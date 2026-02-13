@@ -262,20 +262,20 @@ with st.sidebar:
     st.divider()
     
 # --- SEÇÃO 1: SELEÇÃO DO ESTUDANTE ---
-st.markdown("### 👤 Selecionar Estudante")
-df_db = load_db()
+    st.markdown("### 👤 Selecionar Estudante")
+    df_db = load_db()
 
 # Se a planilha não estiver vazia, pegamos a coluna 'nome'
-if not df_db.empty and "nome" in df_db.columns:
-    # Pegamos apenas os nomes que não são nulos e transformamos em lista
-    lista_nomes = df_db["nome"].dropna().tolist()
-else:
-    lista_nomes = []
+    if not df_db.empty and "nome" in df_db.columns:
+            # Pegamos apenas os nomes que não são nulos e transformamos em lista
+            lista_nomes = df_db["nome"].dropna().tolist()
+    else:
+            lista_nomes = []
 
-selected_student = st.selectbox(
-    "Selecione para abrir ou criar novo:", 
-    ["-- Novo Registro --"] + lista_nomes,
-    label_visibility="collapsed"
+    selected_student = st.selectbox(
+            "Selecione para abrir ou criar novo:", 
+            ["-- Novo Registro --"] + lista_nomes,
+            label_visibility="collapsed"
 )
 
     # --- SEÇÃO 2: TIPO DE DOCUMENTO ---
@@ -1496,6 +1496,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

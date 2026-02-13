@@ -202,10 +202,7 @@ if 'data_pei' not in st.session_state:
         'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {},
         'comunicacao_tipo': [], 'permanece': []
     }
-    st.session_state.data_pei.update(demo_pei)
-
-if 'data_case' not in st.session_state: 
-    st.session_state.data_case = {'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 'checklist': {}}
+    # REMOVA A LINHA: st.session_state.data_pei.update(demo_pei)
 
 # --- BARRA LATERAL ---
 with st.sidebar:
@@ -1450,6 +1447,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

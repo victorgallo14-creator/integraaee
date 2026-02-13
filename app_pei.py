@@ -344,6 +344,35 @@ if 'data_pei' not in st.session_state:
         'comunicacao_tipo': [], 'permanece': []
     }
     # REMOVA A LINHA: st.session_state.data_pei.update(demo_pei)
+def carregar_dados_aluno():
+    # Pega o nome que foi selecionado na selectbox
+    selecao = st.session_state.get('aluno_selecionado')
+    
+    if selecao and selecao != "-- Novo Registro --":
+        try:
+            # Busca no banco de dados (seu DataFrame já carregado)
+            df_db = load_db()
+            registro = df_db[df_db["nome"] == selecao].iloc[0]
+            dados = json.loads(registro["dados_json"])
+            
+            # Converte datas de texto para o formato que o calendário do Streamlit aceita
+            for k, v in dados.items():
+                if isinstance(v, str) and len(v) == 10 and v.count('-') == 2:
+                    try:
+                        dados[k] = datetime.strptime(v, '%Y-%m-%d').date()
+                    except:
+                        pass
+            
+            # Salva no estado da sessão (PEI ou Caso)
+            if registro["tipo_doc"] == "PEI":
+                st.session_state.data_pei = dados
+            else:
+                st.session_state.data_case = dados
+                
+            # Registra no seu novo sistema de log
+            registrar_log("ABRIU AUTOMATICO", selecao)
+        except Exception as e:
+            st.error(f"Erro ao carregar: {e}")
 
 # --- BARRA LATERAL ---
 with st.sidebar:
@@ -370,10 +399,12 @@ with st.sidebar:
     else:
             lista_nomes = []
 
-    selected_student = st.selectbox(
-            "Selecione para abrir ou criar novo:", 
-            ["-- Novo Registro --"] + lista_nomes,
-            label_visibility="collapsed"
+# LOCAL: Dentro do 'with st.sidebar:'
+selected_student = st.selectbox(
+    "Selecione para abrir ou criar novo:", 
+    options=["-- Novo Registro --"] + lista_nomes,
+    key="aluno_selecionado",      # <--- Adicione esta KEY
+    on_change=carregar_dados_aluno # <--- Adicione este comando
 )
 
     # --- SEÇÃO 2: TIPO DE DOCUMENTO ---
@@ -1599,6 +1630,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

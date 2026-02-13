@@ -80,6 +80,37 @@ def login():
         # Interrompe o carregamento do restante do app até que o login seja feito
         st.stop()
 
+def carregar_dados_aluno():
+    # Pega o nome selecionado na selectbox (que deve ter a key='aluno_selecionado')
+    selecao = st.session_state.get('aluno_selecionado')
+    
+    if selecao and selecao != "-- Novo Registro --":
+        try:
+            # Busca no banco de dados
+            df_db = load_db()
+            registro = df_db[df_db["id"] == selecao].iloc[0]
+            dados = json.loads(registro["dados_json"])
+            
+            # Reidratação de datas (essencial para não quebrar o PDF)
+            for k, v in dados.items():
+                if isinstance(v, str) and len(v) == 10 and v.count('-') == 2:
+                    try:
+                        dados[k] = datetime.strptime(v, '%Y-%m-%d').date()
+                    except:
+                        pass
+            
+            # Salva no estado da sessão conforme o tipo
+            if registro["tipo_doc"] == "PEI":
+                st.session_state.data_pei = dados
+            else:
+                st.session_state.data_case = dados
+                
+            # Registra no log que o arquivo foi aberto automaticamente
+            registrar_log("ABRIU ARQUIVO", selecao, "Carregamento automático via lista")
+            
+        except Exception as e:
+            st.error(f"Erro ao carregar dados: {e}")
+
 # --- ATIVAÇÃO DO LOGIN ---
 login()
 
@@ -212,6 +243,15 @@ st.markdown("""
     .stButton button { width: 100%; border-radius: 8px; }
 </style>
 """, unsafe_allow_html=True)
+
+# Na sua Sidebar:
+st.sidebar.selectbox(
+    "Selecione um Aluno",
+    options=["-- Novo Registro --"] + lista_nomes,
+    key="aluno_selecionado",
+    on_change=carregar_dados_aluno # <--- O segredo está aqui!
+)
+
 # --- MEMÓRIA (JSON) ---
 DB_FILE = "banco_dados_aee_final.json"
 
@@ -1598,6 +1638,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

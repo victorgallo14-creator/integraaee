@@ -357,7 +357,7 @@ with st.sidebar:
                 st.session_state.data_case = {'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 'checklist': {}, 'clinicas': []}
             st.rerun()
     # Crédito sutil
-    st.markdown('<div style="text-align: center; color: #cbd5e1; font-size: 0.7rem; margin-top: 20px;">SME Limeira v1.0</div>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align: center; color: #cbd5e1; font-size: 0.7rem; margin-top: 20px;"></div>', unsafe_allow_html=True)
 
     # BOTÃO SAIR
     if st.button("🚪 SAIR DO SISTEMA", use_container_width=True):
@@ -1522,6 +1522,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

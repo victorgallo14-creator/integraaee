@@ -11,42 +11,64 @@ from streamlit_gsheets import GSheetsConnection
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# --- SISTEMA DE LOGIN ---
+# --- FUNÇÃO DE LOGIN SEGURA ---
 def login():
+    # Inicializa o estado de autenticação se não existir
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
 
+    # Se não estiver autenticado, exibe a tela de login
     if not st.session_state.authenticated:
-        # Estilização da tela de login
         st.markdown("""
             <div style="text-align: center; padding: 20px;">
-                <h2 style="color: #1e3a8a;">Acesso Restrito - SME Limeira</h2>
-                <p>Por favor, insira suas credenciais para acessar o Sistema AEE.</p>
+                <h2 style="color: #1e3a8a;">SISTEMA INTEGRA AEE</h2>
+                <p style="color: #64748b;">Acesso restrito aos docentes do CEIEF Rafael Affonso Leite</p>
             </div>
         """, unsafe_allow_html=True)
         
-        col1, col2, col3 = st.columns([1, 2, 1])
+        col1, col2, col3 = st.columns([1, 1.5, 1])
         with col2:
             with st.form("login_form"):
-                user_id = st.text_input("Matrícula")
-                password = st.text_input("Senha", type="password")
+                user_id = st.text_input("Matrícula (Funcional)")
+                # A senha agora é buscada direto do painel 'Secrets' do Streamlit
+                password = st.text_input("Senha do Sistema", type="password")
                 submit = st.form_submit_button("Entrar")
                 
-                # Defina aqui a sua senha padrão
-                SENHA_PADRAO = "AEE2026"
-                
                 if submit:
-                    # Aqui você pode adicionar uma lista de matrículas permitidas futuramente
-                    if password == SENHA_PADRAO and user_id != "":
-                        st.session_state.authenticated = True
-                        st.success("Acesso autorizado!")
-                        st.rerun()
-                    else:
-                        st.error("Matrícula ou senha incorretos.")
+                    try:
+                        # 1. Busca a senha mestre nos Secrets
+                        # No painel do Streamlit, adicione: 
+                        # [credentials]
+                        # password = "sua_senha_aqui"
+                        SENHA_MESTRA = st.secrets["credentials"]["password"]
+                        
+                        # 2. Busca a lista de professores na planilha
+                        df_professores = conn.read(worksheet="Professores", ttl=0)
+                        df_professores['matricula'] = df_professores['matricula'].astype(str)
+                        
+                        # 3. Validação dupla
+                        if password == SENHA_MESTRA and user_id in df_professores['matricula'].values:
+                            # Pega o nome do professor para saudar
+                            nome_prof = df_professores[df_professores['matricula'] == user_id]['nome'].values[0]
+                            
+                            st.session_state.authenticated = True
+                            st.session_state.usuario_nome = nome_prof
+                            st.success(f"Acesso liberado! Bem-vindo(a), {nome_prof}.")
+                            st.rerun()
+                        else:
+                            st.error("Matrícula não localizada ou senha incorreta.")
+                    except Exception as e:
+                        st.error("Erro técnico: Certifique-se de que a aba 'Professores' existe e que a senha está nos Secrets.")
         
-        # Para tudo e não mostra o restante do app
+        # Bloqueia a execução do restante do app enquanto não logar
         st.stop()
 
+# --- EXECUÇÃO DO LOGIN ---
+login()
+
+# Se chegou aqui, o usuário está logado. 
+# Você pode mostrar o nome dele na barra lateral:
+st.sidebar.markdown(f"👤 **Usuário:** {st.session_state.get('usuario_nome', 'Professor')}")
 # Chama a função de login
 login()
 
@@ -1489,6 +1511,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

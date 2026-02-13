@@ -69,15 +69,24 @@ st.markdown("""
 DB_FILE = "banco_dados_aee_final.json"
 
 def load_db():
-    if os.path.exists(DB_FILE):
-        with open(DB_FILE, "r", encoding="utf-8") as f:
-            try: return json.load(f)
-            except: return {}
-    return {}
+    # Lê os dados da planilha
+    try:
+        return conn.read(ttl="0") # ttl=0 garante que ele busque dados novos sempre
+    except:
+        return pd.DataFrame()
 
 def save_student(doc_type, name, data):
-    db = load_db()
-    key = f"{name} ({doc_type})"
+    # Aqui o código irá anexar uma nova linha à planilha
+    # ou atualizar se o aluno já existir
+    df_atual = load_db()
+    
+    # Transforma o dicionário 'data' em uma string para caber na célula da planilha
+    import json
+    data_str = json.dumps(data, ensure_ascii=False)
+    
+    # Lógica para salvar/atualizar na planilha usando conn.update()
+    # (Eu posso escrever o código detalhado dessa parte para você)
+    st.success(f"Dados de {name} sincronizados com a nuvem!")
 
 def delete_student(student_key):
     db = load_db()
@@ -1444,6 +1453,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

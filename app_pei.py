@@ -174,8 +174,8 @@ st.markdown("""
 def clean_pdf_text(text):
     if text is None or text is False: return ""
     if text is True: return "Sim"
-    try: return str(text).encode('latin-1', 'replace').decode('latin-1')
-    except: return str(text)
+    # Isso garante que o Python converta símbolos estranhos para algo que o PDF aceite
+    return str(text).encode('latin-1', 'replace').decode('latin-1')
 
 def get_pdf_bytes(pdf_instance):
     try: return bytes(pdf_instance.output(dest='S').encode('latin-1'))
@@ -1450,6 +1450,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

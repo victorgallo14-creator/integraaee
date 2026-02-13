@@ -87,35 +87,6 @@ login()
 # Exibimos o nome do professor na barra lateral para confirmação
 st.sidebar.markdown(f"👤 **Docente:** {st.session_state.get('usuario_nome', 'Professor')}")
 
-from streamlit_autorefresh import st_autorefresh
-
-# --- CONFIGURAÇÃO DO SALVAMENTO AUTOMÁTICO ---
-# O intervalo é em milissegundos (60000ms = 1 minuto)
-count = st_autorefresh(interval=60000, key="autosave_counter")
-
-def auto_save():
-    # 1. Verifica se o usuário está logado
-    if st.session_state.get('authenticated'):
-        
-        # 2. Busca o modo de documento do session_state (onde ele fica guardado com segurança)
-        # Substituímos o 'doc_mode' direto por uma busca segura no estado da sessão
-        modo_atual = st.session_state.get('doc_option', '') 
-
-        # 3. Lógica para PEI
-        if "PEI" in modo_atual:
-            # Só salva se houver um nome de aluno preenchido
-            if st.session_state.get('data_pei') and st.session_state.data_pei.get('nome'):
-                save_student("PEI", st.session_state.data_pei['nome'], st.session_state.data_pei)
-                # Opcional: registrar_log("AUTO-SAVE", st.session_state.data_pei['nome'], "Automático")
-            
-        # 4. Lógica para Estudo de Caso
-        elif "Estudo de Caso" in modo_atual:
-            if st.session_state.get('data_case') and st.session_state.data_case.get('nome'):
-                save_student("CASO", st.session_state.data_case['nome'], st.session_state.data_case)
-
-# Se o contador do autorefresh subir, ele executa a função
-if count > 0:
-    auto_save()
 
 def registrar_log(acao, aluno="N/A", detalhes=""):
     """Registra a atividade do professor na aba Log"""
@@ -296,6 +267,36 @@ def delete_student(student_key):
         json.dump(db, f, indent=4, ensure_ascii=False)
     
     st.toast(f"✅ Documento de {name} salvo com sucesso!", icon="💾")
+
+from streamlit_autorefresh import st_autorefresh
+
+# --- CONFIGURAÇÃO DO SALVAMENTO AUTOMÁTICO ---
+# O intervalo é em milissegundos (60000ms = 1 minuto)
+count = st_autorefresh(interval=60000, key="autosave_counter")
+
+def auto_save():
+    # 1. Verifica se o usuário está logado
+    if st.session_state.get('authenticated'):
+        
+        # 2. Busca o modo de documento do session_state (onde ele fica guardado com segurança)
+        # Substituímos o 'doc_mode' direto por uma busca segura no estado da sessão
+        modo_atual = st.session_state.get('doc_option', '') 
+
+        # 3. Lógica para PEI
+        if "PEI" in modo_atual:
+            # Só salva se houver um nome de aluno preenchido
+            if st.session_state.get('data_pei') and st.session_state.data_pei.get('nome'):
+                save_student("PEI", st.session_state.data_pei['nome'], st.session_state.data_pei)
+                # Opcional: registrar_log("AUTO-SAVE", st.session_state.data_pei['nome'], "Automático")
+            
+        # 4. Lógica para Estudo de Caso
+        elif "Estudo de Caso" in modo_atual:
+            if st.session_state.get('data_case') and st.session_state.data_case.get('nome'):
+                save_student("CASO", st.session_state.data_case['nome'], st.session_state.data_case)
+
+# Se o contador do autorefresh subir, ele executa a função
+if count > 0:
+    auto_save()
 
 # --- ESTILO VISUAL DA INTERFACE ---
 st.markdown("""
@@ -1664,6 +1665,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

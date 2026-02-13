@@ -396,64 +396,7 @@ def carregar_dados_aluno():
         st.info("Formulário pronto para um novo preenchimento.")
 
 # --- BARRA LATERAL ---
-# --- BARRA LATERAL (LINHA 411) ---
-with st.sidebar:
-    st.markdown('<div class="sidebar-header">', unsafe_allow_html=True)
-    
-    st.markdown("""
-        <div class="sidebar-title">SISTEMA INTEGRA RAFAEL</div>
-        <div class="sidebar-subtitle">Gestão de Educação Especial</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.divider()
-    
-    # 1. Valor padrão para evitar NameError
-    default_doc_idx = 0
-
-    st.markdown("### 👤 Selecionar Estudante")
-    df_db = load_db()
-
-    if not df_db.empty and "nome" in df_db.columns:
-        lista_nomes = df_db["nome"].dropna().tolist()
-    else:
-        lista_nomes = []
-
-    # --- SELECTBOX COM CARREGAMENTO AUTOMÁTICO ---
-    selected_student = st.selectbox(
-        "Selecione para abrir ou criar novo:", 
-        options=["-- Novo Registro --"] + lista_nomes,
-        key="aluno_selecionado",
-        on_change=carregar_dados_aluno,
-        label_visibility="collapsed"
-    )
-
-    # 2. Define o índice para o rádio
-    if selected_student != "-- Novo Registro --":
-        if "(CASO)" in selected_student: 
-            default_doc_idx = 1
-        else:
-            default_doc_idx = 0
-
-    st.markdown("### 📂 Tipo de Documento")
-    doc_mode = st.radio(
-        "Documento:", 
-        ["PEI (Plano Educacional)", "Estudo de Caso"],
-        index=default_doc_idx,
-        key="doc_option",
-        label_visibility="collapsed"
-    )
-
-    # 3. Nível de Ensino (Fundamental vs Infantil)
-    if "PEI" in doc_mode:
-        st.markdown("### 🏫 Nível de Ensino")
-        st.selectbox(
-            "Nível:", 
-            ["Fundamental", "Infantil"], 
-            key="pei_level_choice",
-            label_visibility="collapsed"
-        )
-    
+            
     st.divider()
     
 # --- SEÇÃO 1: SELEÇÃO DO ESTUDANTE ---
@@ -1702,6 +1645,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

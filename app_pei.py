@@ -13,7 +13,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 
 # --- CONFIGURAÇÃO INICIAL ---
 st.set_page_config(
-    page_title="SME Limeira | Sistema AEE",
+    page_title="Integra | Sistema AEE",
     layout="wide",
     page_icon="🎓",
     initial_sidebar_state="expanded"
@@ -1450,6 +1450,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

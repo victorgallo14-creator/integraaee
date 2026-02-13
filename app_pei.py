@@ -300,28 +300,28 @@ with st.sidebar:
 
     st.divider()
 
-    # --- SEÇÃO 3: AÇÕES ---
-if selected_student != "-- Novo Registro --":
-    # Criamos as colunas aqui para que col_btn1 e col_btn2 existam
-    col_btn1, col_btn2 = st.columns(2)
-    
-    if col_btn1.button("📂 Abrir", type="primary"):
-        # Busca a linha do aluno selecionado no DataFrame 'db'
-        registro = db[db["nome"] == selected_student].iloc[0]
+# --- SEÇÃO 3: AÇÕES (DENTRO DA SIDEBAR) ---
+    if selected_student != "-- Novo Registro --":
+        # Criamos as colunas dentro da sidebar
+        col_btn1, col_btn2 = st.columns(2)
         
-        # Converte o texto JSON de volta para dicionário
-        dados_carregados = json.loads(registro["dados_json"])
-        
-        # Preenche o formulário correto
-        if registro["tipo_doc"] == "PEI":
-            st.session_state.data_pei = dados_carregados
-        else:
-            st.session_state.data_case = dados_carregados
+        if col_btn1.button("📂 Abrir", type="primary"):
+            # Usamos 'df_db' que é o nome que você definiu lá em cima
+            registro = df_db[df_db["nome"] == selected_student].iloc[0]
             
-        st.rerun()
+            # Converte o texto JSON de volta para dicionário
+            dados_carregados = json.loads(registro["dados_json"])
+            
+            # Preenche o formulário correto baseado no tipo salvo
+            if registro["tipo_doc"] == "PEI":
+                st.session_state.data_pei = dados_carregados
+            else:
+                st.session_state.data_case = dados_carregados
+                
+            st.rerun()
 
-    if col_btn2.button("🗑️ Excluir", type="secondary"):
-        st.session_state.confirm_delete = True
+        if col_btn2.button("🗑️ Excluir", type="secondary"):
+            st.session_state.confirm_delete = True
     
     # --- RODAPÉ ---
     with st.expander("⚙️ Opções Avançadas"):
@@ -1490,6 +1490,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

@@ -272,7 +272,7 @@ from streamlit_autorefresh import st_autorefresh
 
 # --- CONFIGURAÇÃO DO SALVAMENTO AUTOMÁTICO ---
 # O intervalo é em milissegundos (60000ms = 1 minuto)
-count = st_autorefresh(interval=60000, key="autosave_counter")
+count = st_autorefresh(interval=10000, key="autosave_counter")
 
 def auto_save():
     # 1. Verifica se o usuário está logado
@@ -1665,6 +1665,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

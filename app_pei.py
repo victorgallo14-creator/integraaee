@@ -11,6 +11,17 @@ from streamlit_gsheets import GSheetsConnection
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 
+# --- OCULTAR TOOLBAR E MENU ---
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            header {visibility: hidden;}
+            footer {visibility: hidden;}
+            .stAppDeployButton {display:none;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
 # --- FUNÇÃO DE LOGIN COMPLETA E ROBUSTA (SME LIMEIRA) ---
 def login():
     # Inicializa o estado de autenticação se não existir
@@ -1587,6 +1598,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

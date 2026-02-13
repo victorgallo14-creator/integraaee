@@ -396,10 +396,20 @@ def carregar_dados_aluno():
         st.info("Formulário pronto para um novo preenchimento.")
 
 # --- BARRA LATERAL ---
-            
-    st.divider()
+with st.sidebar:
+    st.markdown('<div class="sidebar-header">', unsafe_allow_html=True)
     
-# --- SEÇÃO 1: SELEÇÃO DO ESTUDANTE ---
+    st.markdown("""
+        <div class="sidebar-title">SISTEMA INTEGRA RAFAEL</div>
+        <div class="sidebar-subtitle">Gestão de Educação Especial</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.divider()
+
+    # 1. Definimos o valor padrão para evitar erros
+    default_doc_idx = 0
+
     st.markdown("### 👤 Selecionar Estudante")
     df_db = load_db()
 
@@ -408,32 +418,34 @@ def carregar_dados_aluno():
     else:
         lista_nomes = []
 
-    # Esta linha deve estar com exatamente o mesmo recuo (espaços) das outras
+    # --- ESTA É A ÚNICA LISTA QUE DEVE EXISTIR ---
     selected_student = st.selectbox(
         "Selecione para abrir ou criar novo:", 
         options=["-- Novo Registro --"] + lista_nomes,
         key="aluno_selecionado",
-        on_change=carregar_dados_aluno, # Função que criamos para abrir automático
+        on_change=carregar_dados_aluno, # Isso faz abrir sozinho!
         label_visibility="collapsed"
     )
 
-# --- SEÇÃO 2: TIPO DE DOCUMENTO ---
+    # 2. Lógica para definir se o rádio começa em PEI ou CASO
+    if selected_student != "-- Novo Registro --":
+        if "(CASO)" in selected_student: 
+            default_doc_idx = 1
+        else:
+            default_doc_idx = 0
+
     st.markdown("### 📂 Tipo de Documento")
-    
-    # ... (seu código de default_doc_idx) ...
-    
     doc_mode = st.radio(
         "Documento:", 
         ["PEI (Plano Educacional)", "Estudo de Caso"],
         index=default_doc_idx,
-        key="doc_option", # Adicione esta key para o auto-save funcionar
+        key="doc_option",
         label_visibility="collapsed"
     )
-    
-    # ADICIONE ESTE BLOCO AQUI PARA RECUPERAR A ESCOLHA:
+
+    # 3. OPÇÃO DO NÍVEL DE ENSINO (Essencial para não dar erro lá na frente)
     if "PEI" in doc_mode:
         st.markdown("### 🏫 Nível de Ensino")
-        # Criamos a variável pei_level vinculada ao session_state
         pei_level = st.selectbox(
             "Nível:", 
             ["Fundamental", "Infantil"], 
@@ -441,8 +453,15 @@ def carregar_dados_aluno():
             label_visibility="collapsed"
         )
     else:
-        # Se for Estudo de Caso, definimos um valor padrão para não dar erro no código
         pei_level = None
+
+    st.divider()
+
+    # --- SEÇÃO DE AÇÕES (Botões extras) ---
+    if selected_student != "-- Novo Registro --":
+        if st.button("🗑️ Excluir Registro", type="secondary", use_container_width=True):
+            st.session_state.confirm_delete = True
+
 
 # --- SEÇÃO 3: AÇÕES (DENTRO DA SIDEBAR) ---
     if selected_student != "-- Novo Registro --":
@@ -1645,6 +1664,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

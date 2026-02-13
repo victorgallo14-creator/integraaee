@@ -396,22 +396,10 @@ def carregar_dados_aluno():
         st.info("Formulário pronto para um novo preenchimento.")
 
 # --- BARRA LATERAL ---
-# --- BUSQUE ESTA LINHA NO SEU CÓDIGO ---
+# --- BARRA LATERAL (LINHA 411) ---
 with st.sidebar:
     st.markdown('<div class="sidebar-header">', unsafe_allow_html=True)
     
-    # ... (mantenha seu código da logo se houver) ...
-
-    st.markdown("""
-        <div class="sidebar-title">SISTEMA INTEGRA RAFAEL</div>
-        <div class="sidebar-subtitle">Gestão de Educação Especial</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    with st.sidebar:
-    st.markdown('<div class="sidebar-header">', unsafe_allow_html=True)
-    
-    # ... (mantenha seu código da logo/título aqui) ...
     st.markdown("""
         <div class="sidebar-title">SISTEMA INTEGRA RAFAEL</div>
         <div class="sidebar-subtitle">Gestão de Educação Especial</div>
@@ -419,8 +407,8 @@ with st.sidebar:
     """, unsafe_allow_html=True)
     
     st.divider()
-
-    # 1. Definimos o valor padrão para evitar erro de variável não definida
+    
+    # 1. Valor padrão para evitar NameError
     default_doc_idx = 0
 
     st.markdown("### 👤 Selecionar Estudante")
@@ -431,16 +419,16 @@ with st.sidebar:
     else:
         lista_nomes = []
 
-    # --- ÚNICA SELECTBOX DO ALUNO ---
+    # --- SELECTBOX COM CARREGAMENTO AUTOMÁTICO ---
     selected_student = st.selectbox(
         "Selecione para abrir ou criar novo:", 
         options=["-- Novo Registro --"] + lista_nomes,
-        key="aluno_selecionado",       # <--- ESTA CHAVE DEVE SER ÚNICA
-        on_change=carregar_dados_aluno, # Função automática
+        key="aluno_selecionado",
+        on_change=carregar_dados_aluno,
         label_visibility="collapsed"
     )
 
-    # 2. Lógica para definir se o rádio começa em PEI ou CASO
+    # 2. Define o índice para o rádio
     if selected_student != "-- Novo Registro --":
         if "(CASO)" in selected_student: 
             default_doc_idx = 1
@@ -456,7 +444,7 @@ with st.sidebar:
         label_visibility="collapsed"
     )
 
-    # 3. OPÇÃO DO NÍVEL DE ENSINO
+    # 3. Nível de Ensino (Fundamental vs Infantil)
     if "PEI" in doc_mode:
         st.markdown("### 🏫 Nível de Ensino")
         st.selectbox(
@@ -467,25 +455,6 @@ with st.sidebar:
         )
     
     st.divider()
-    
-    # ... (A partir daqui seguem os botões de Sair, etc.)
-
-    # 3. OPÇÃO DO NÍVEL DE ENSINO (O que estava faltando)
-    if "PEI" in doc_mode:
-        st.markdown("### 🏫 Nível de Ensino")
-        # Criamos a variável pei_level vinculada ao session_state
-        # Isso resolve o erro na linha 681
-        st.selectbox(
-            "Nível:", 
-            ["Fundamental", "Infantil"], 
-            key="pei_level_choice",
-            label_visibility="collapsed"
-        )
-    
-    st.divider()
-    # --- FIM DO BLOCO A SER COLADO ---
-
-    # Daqui para baixo seguem os botões de Excluir, Sair, etc.
     
 # --- SEÇÃO 1: SELEÇÃO DO ESTUDANTE ---
     st.markdown("### 👤 Selecionar Estudante")
@@ -1733,6 +1702,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

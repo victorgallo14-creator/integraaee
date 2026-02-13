@@ -196,46 +196,6 @@ class OfficialPDF(FPDF):
         self.set_font('Arial', 'B', 12); self.set_fill_color(240, 240, 240)
         self.cell(width, 8, clean_pdf_text(title), 1, 1, 'L', 1)
 
-# --- DADOS DE DEMONSTRAÇÃO ---
-demo_pei = {
-    'nome': 'João Miguel Silva', 'nasc': date(2017, 5, 20), 'idade': '8', 'ano_esc': '3º Ano B',
-    'mae': 'Ana Paula Silva', 'pai': 'Carlos Souza', 'tel': '(19) 98765-4321',
-    'prof_poli': 'Mariana Rocha', 'prof_aee': 'Roberto Santos', 'prof_arte': 'Lúcia Ferreira',
-    'prof_ef': 'Marcos Oliveira', 'prof_tec': 'Aline Souza', 'gestor': 'Fernanda Lima',
-    'coord': 'Pedro Alcântara', 'revisoes': 'Semestral', 'elab_per': '1º Trimestre',
-    'diag_status': 'Sim', 'laudo_data': date(2024, 10, 15), 'laudo_medico': 'Dr. Antônio Cavalcanti',
-    'diag_tipo': ['Deficiência', 'Transtorno do Neurodesenvolvimento'],
-    'defic_txt': 'Visual e Motora Severa', 'neuro_txt': 'TEA Nível 1',
-    'med_nome': 'Risperidona 1mg (Noite)\nRitalina LA 10mg (Manhã)', 'med_hor': '20:00 / 08:00',
-    'med_doc': 'Dr. Silva e Dra. Helena', 'med_obj': 'Controle de ansiedade e foco.',
-    'saude_extra': 'O estudante necessita de acompanhamento para locomoção.',
-    'terapias': {
-        'Psicologia': {'realiza': True, 'dias': ['2ª', '4ª'], 'horario': '14:00'},
-        'Fonoaudiologia': {'realiza': True, 'dias': ['3ª'], 'horario': '09:00'},
-        'Outros': {'realiza': True, 'nome_custom': 'Equoterapia', 'dias': ['Sábado'], 'horario': '08:00'}
-    },
-    'com_tipo': 'Oralmente', 'com_alt_espec': '', 'com_necessidades': 'Sim', 'com_necessidades_espec': 'Comunicação funcional.',
-    'com_chamado': 'Sim', 'com_comandos': 'Sim', 'loc_reduzida': 'Não', 'loc_ambiente': 'Sim',
-    'loc_ambiente_ajuda': 'Com autonomia', 'hig_banheiro': 'Sim', 'hig_banheiro_ajuda': 'Com autonomia',
-    'hig_dentes': 'Sim', 'hig_dentes_ajuda': 'Com ajuda',
-    'beh_interesses': 'Dinossauros e Legos.', 'beh_objetos_gosta': 'Bonecos T-Rex.',
-    'beh_objetos_odeia': 'Barulhos metálicos.', 'beh_toque': 'Gosta de abraços conhecidos.',
-    'beh_calmo': 'Ouvir músicas calmas.', 'beh_atividades': 'Pintura e tablet.',
-    'beh_gatilhos': 'Sirenes e mudanças abruptas.', 'beh_crise_regula': 'Tempo no "cantinho" com seu cobertor.',
-    'beh_desafios': 'Resistência a trocar de tarefa.', 'beh_restricoes': 'Sim',
-    'beh_restricoes_espec': 'Alergia a lactose.', 'beh_autonomia_agua': 'Sim', 
-    'beh_pertinentes': 'O aluno tem tido evolução significativa na socialização.',
-    # Novos dados da Seção 4
-    'dev_permanece': 'Sim - Por longo período', 'dev_permanece_espec': '',
-    'dev_integrado': 'Sim', 'dev_integrado_espec': '',
-    'dev_loc_escola': 'Sim - Com autonomia', 'dev_loc_escola_espec': '',
-    'dev_tarefas': 'Sim - Com ajuda', 'dev_tarefas_espec': 'Necessita de mediação para tarefas escritas.',
-    'dev_amigos': 'Sim', 'dev_amigos_espec': '',
-    'dev_colega_pref': 'Sim',
-    'dev_participa': 'Sim', 'dev_participa_espec': '',
-    'dev_afetivo': 'A turma acolhe bem o estudante, auxiliando-o espontaneamente nas atividades.'
-}
-
 # --- INICIALIZAÇÃO ---
 if 'data_pei' not in st.session_state: 
     st.session_state.data_pei = {
@@ -1490,6 +1450,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

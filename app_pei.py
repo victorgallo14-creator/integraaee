@@ -349,149 +349,83 @@ def carregar_dados_aluno():
     if not selecao or selecao == "-- Novo Registro --":
         st.session_state.data_pei = {'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {}, 'comunicacao_tipo': [], 'permanece': []}
         st.session_state.data_case = {'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 'checklist': {}, 'clinicas': []}
-        # Limpa o nome travado
         st.session_state.nome_original_salvamento = None
         return
 
     try:
         df_db = load_db()
-        # Busca o registro
-        if "id" in df_db.columns and selecao in df_db["id"].values:
-            registro = df_db[df_db["id"] == selecao].iloc[0]
-        elif "nome" in df_db.columns and selecao in df_db["nome"].values:
+        # Busca o registro exato
+        if "nome" in df_db.columns and selecao in df_db["nome"].values:
             registro = df_db[df_db["nome"] == selecao].iloc[0]
-        else:
-            return
-
-        dados = json.loads(registro["dados_json"])
-        dados['nome'] = registro["nome"] # Força o nome da planilha para dentro do formulário
-        
-        # --- AQUI ESTÁ O SEGREDO ---
-        # Guardamos o nome exato da planilha para usar na hora de salvar depois
-        st.session_state.nome_original_salvamento = registro["nome"]
-        # ---------------------------
-
-        for k, v in dados.items():
-            if isinstance(v, str) and len(v) == 10 and v.count('-') == 2:
-                try: dados[k] = datetime.strptime(v, '%Y-%m-%d').date()
-                except: pass
-        
-        if registro["tipo_doc"] == "PEI":
-            st.session_state.data_pei = dados
-        else:
-            st.session_state.data_case = dados
+            dados = json.loads(registro["dados_json"])
             
-        st.toast(f"✅ {selecao} carregado.")
+            # TRAVA O NOME: Força o nome da planilha para dentro do formulário
+            dados['nome'] = registro["nome"] 
+            st.session_state.nome_original_salvamento = registro["nome"]
+
+            # Reidratação de datas
+            for k, v in dados.items():
+                if isinstance(v, str) and len(v) == 10 and v.count('-') == 2:
+                    try: dados[k] = datetime.strptime(v, '%Y-%m-%d').date()
+                    except: pass
+            
+            if registro["tipo_doc"] == "PEI":
+                st.session_state.data_pei = dados
+            else:
+                st.session_state.data_case = dados
+                
+            st.toast(f"✅ {selecao} carregado com sucesso.")
     except Exception as e:
-        st.info("Pronto para preenchimento.")
+        st.info("Pronto para novo preenchimento.")
 
 # --- BARRA LATERAL ---
 with st.sidebar:
     st.markdown('<div class="sidebar-header">', unsafe_allow_html=True)
-    
-    st.markdown("""
-        <div class="sidebar-title">SISTEMA INTEGRA RAFAEL</div>
-        <div class="sidebar-subtitle">Gestão de Educação Especial</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
+    st.markdown("""<div class="sidebar-title">SISTEMA INTEGRA RAFAEL</div>
+        <div class="sidebar-subtitle">Gestão de Educação Especial</div></div>""", unsafe_allow_html=True)
     st.divider()
 
-    # 1. Definimos o valor padrão para evitar erros
     default_doc_idx = 0
-
     st.markdown("### 👤 Selecionar Estudante")
     df_db = load_db()
+    lista_nomes = df_db["nome"].dropna().tolist() if not df_db.empty else []
 
-    if not df_db.empty and "nome" in df_db.columns:
-        lista_nomes = df_db["nome"].dropna().tolist()
-    else:
-        lista_nomes = []
-
-    # --- ESTA É A ÚNICA LISTA QUE DEVE EXISTIR ---
+    # SELECTBOX ÚNICA (on_change faz carregar automático)
     selected_student = st.selectbox(
-        "Selecione para abrir ou criar novo:", 
+        "Selecione o Estudante:", 
         options=["-- Novo Registro --"] + lista_nomes,
         key="aluno_selecionado",
-        on_change=carregar_dados_aluno, # Isso faz abrir sozinho!
+        on_change=carregar_dados_aluno,
         label_visibility="collapsed"
     )
 
-    # 2. Lógica para definir se o rádio começa em PEI ou CASO
     if selected_student != "-- Novo Registro --":
-        if "(CASO)" in selected_student: 
+        # Se na lista o nome contiver (CASO), muda o rádio automaticamente
+        df_aluno = df_db[df_db["nome"] == selected_student]
+        if not df_aluno.empty and df_aluno.iloc[0]["tipo_doc"] == "CASO":
             default_doc_idx = 1
-        else:
-            default_doc_idx = 0
 
     st.markdown("### 📂 Tipo de Documento")
     doc_mode = st.radio(
-        "Documento:", 
-        ["PEI (Plano Educacional)", "Estudo de Caso"],
-        index=default_doc_idx,
-        key="doc_option",
-        label_visibility="collapsed"
+        "Documento:", ["PEI (Plano Educacional)", "Estudo de Caso"],
+        index=default_doc_idx, key="doc_option", label_visibility="collapsed"
     )
 
-    # 3. OPÇÃO DO NÍVEL DE ENSINO (Essencial para não dar erro lá na frente)
     if "PEI" in doc_mode:
         st.markdown("### 🏫 Nível de Ensino")
-        pei_level = st.selectbox(
-            "Nível:", 
-            ["Fundamental", "Infantil"], 
-            key="pei_level_choice",
-            label_visibility="collapsed"
-        )
+        pei_level = st.selectbox("Nível:", ["Fundamental", "Infantil"], key="pei_level_choice")
     else:
         pei_level = None
 
     st.divider()
-
-    # --- SEÇÃO DE AÇÕES (Botões extras) ---
+    
+    # Botões de ação secundários
     if selected_student != "-- Novo Registro --":
         if st.button("🗑️ Excluir Registro", type="secondary", use_container_width=True):
             st.session_state.confirm_delete = True
 
-
-# --- SEÇÃO 3: AÇÕES (DENTRO DA SIDEBAR) ---
-    if selected_student != "-- Novo Registro --":
-        # Criamos as colunas dentro da sidebar
-        col_btn1, col_btn2 = st.columns(2)
-        
-        if col_btn1.button("📂 Abrir", type="primary"):
-            # Usamos 'df_db' que é o nome que você definiu lá em cima
-            registro = df_db[df_db["nome"] == selected_student].iloc[0]
-            
-            # Converte o texto JSON de volta para dicionário
-            dados_carregados = json.loads(registro["dados_json"])
-            
-            # Preenche o formulário correto baseado no tipo salvo
-            if registro["tipo_doc"] == "PEI":
-                st.session_state.data_pei = dados_carregados
-            else:
-                st.session_state.data_case = dados_carregados
-                
-            st.rerun()
-
-        if col_btn2.button("🗑️ Excluir", type="secondary"):
-            st.session_state.confirm_delete = True
-    
-    # --- RODAPÉ ---
-    with st.expander("⚙️ Opções Avançadas"):
-        if st.button("Limpar Campos da Tela"):
-            if "PEI" in doc_mode:
-                st.session_state.data_pei = {'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {}, 'comunicacao_tipo': [], 'permanece': []}
-            else:
-                st.session_state.data_case = {'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 'checklist': {}, 'clinicas': []}
-            st.rerun()
-    # Crédito sutil
-    st.markdown('<div style="text-align: center; color: #cbd5e1; font-size: 0.7rem; margin-top: 20px;"></div>', unsafe_allow_html=True)
-
-    # BOTÃO SAIR
     if st.button("🚪 SAIR DO SISTEMA", use_container_width=True):
-        # Limpa todas as variáveis da sessão
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
+        for key in list(st.session_state.keys()): del st.session_state[key]
         st.rerun()
 
 # ==============================================================================
@@ -1654,6 +1588,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

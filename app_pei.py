@@ -304,12 +304,22 @@ with st.sidebar:
     if selected_student != "-- Novo Registro --":
         col_btn1, col_btn2 = st.columns(2)
         
-        if col_btn1.button("📂 Abrir", type="primary"):
-            if "PEI" in doc_mode: 
-                st.session_state.data_pei = db[selected_student]
-            else: 
-                st.session_state.data_case = db[selected_student]
-            st.rerun()
+if col_btn1.button("📂 Abrir", type="primary"):
+    if selected_student != "-- Novo Registro --":
+        # Procuramos na tabela (db) a linha onde o nome é igual ao selecionado
+        registro = db[db["nome"] == selected_student].iloc[0]
+        
+        # O conteúdo do formulário está guardado na coluna 'dados_json' como texto.
+        # Precisamos transformar esse texto de volta em um dicionário Python.
+        dados_carregados = json.loads(registro["dados_json"])
+        
+        # Agora salvamos no estado da sessão para preencher os campos automaticamente
+        if registro["tipo_doc"] == "PEI":
+            st.session_state.data_pei = dados_carregados
+        else:
+            st.session_state.data_case = dados_carregados
+            
+        st.rerun()
 
         if col_btn2.button("🗑️ Excluir", type="secondary"):
             st.session_state.confirm_delete = True
@@ -1496,6 +1506,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

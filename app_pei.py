@@ -84,31 +84,44 @@ def load_db():
         return pd.DataFrame(columns=["nome", "tipo_doc", "dados_json"])
 
 def save_student(doc_type, name, data):
-    """Salva ou atualiza um aluno na planilha"""
-    df_atual = load_db()
+    """Salva ou atualiza um aluno na planilha tratando datas"""
     
-    # Prepara os dados para salvar (converte o dicionário em texto JSON)
-    novo_registro = {
-        "nome": name,
-        "tipo_doc": doc_type,
-        "dados_json": json.dumps(data, ensure_ascii=False)
-    }
-    
-    if not df_atual.empty and name in df_atual["nome"].values:
-        # Atualiza aluno existente
-        df_atual.loc[df_atual["nome"] == name, ["tipo_doc", "dados_json"]] = [doc_type, novo_registro["dados_json"]]
-        df_final = df_atual
-    else:
-        # Adiciona novo aluno
-        df_novo = pd.DataFrame([novo_registro])
-        df_final = pd.concat([df_atual, df_novo], ignore_index=True)
-    
-    # Envia de volta para a planilha
+    # Função interna para converter datas em texto
+    def serializar_datas(obj):
+        if isinstance(obj, (date, datetime)):
+            return obj.strftime("%Y-%m-%d")
+        if isinstance(obj, dict):
+            return {k: serializar_datas(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [serializar_datas(i) for i in obj]
+        return obj
+
     try:
+        df_atual = load_db()
+        
+        # Limpa as datas do dicionário 'data' antes de converter para JSON
+        data_limpa = serializar_datas(data)
+        
+        novo_registro = {
+            "nome": name,
+            "tipo_doc": doc_type,
+            "dados_json": json.dumps(data_limpa, ensure_ascii=False)
+        }
+        
+        if not df_atual.empty and "nome" in df_atual.columns and name in df_atual["nome"].values:
+            # Atualiza
+            df_atual.loc[df_atual["nome"] == name, ["tipo_doc", "dados_json"]] = [doc_type, novo_registro["dados_json"]]
+            df_final = df_atual
+        else:
+            # Adiciona
+            df_novo = pd.DataFrame([novo_registro])
+            df_final = pd.concat([df_atual, df_novo], ignore_index=True)
+        
         conn.update(worksheet="Alunos", data=df_final)
-        st.success(f"✅ Dados de {name} sincronizados com a nuvem!")
+        st.toast(f"✅ {name} salvo com sucesso na nuvem!", icon="💾")
+        
     except Exception as e:
-        st.error(f"Erro ao salvar na planilha: {e}")
+        st.error(f"Erro ao salvar: {e}")
 
 def delete_student(student_key):
     db = load_db()
@@ -1475,6 +1488,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

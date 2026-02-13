@@ -293,11 +293,6 @@ def get_pdf_bytes(pdf_instance):
     try: return bytes(pdf_instance.output(dest='S').encode('latin-1'))
     except: return bytes(pdf_instance.output(dest='S'))
 
-def preview_pdf(pdf_bytes):
-    if pdf_bytes:
-        b64 = base64.b64encode(pdf_bytes).decode('utf-8')
-        href = f'<a href="data:application/pdf;base64,{b64}" target="_blank" style="text-decoration: none; background-color: #2563eb; color: white; padding: 10px 20px; border-radius: 8px;">📑 Abrir Prévia em Nova Aba</a>'
-        st.markdown(href, unsafe_allow_html=True)
 
 # --- CLASSE PDF CUSTOMIZADA ---
 class OfficialPDF(FPDF):
@@ -1576,6 +1571,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

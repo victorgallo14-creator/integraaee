@@ -11,6 +11,45 @@ from streamlit_gsheets import GSheetsConnection
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 
+# --- SISTEMA DE LOGIN ---
+def login():
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+
+    if not st.session_state.authenticated:
+        # Estilização da tela de login
+        st.markdown("""
+            <div style="text-align: center; padding: 20px;">
+                <h2 style="color: #1e3a8a;">Acesso Restrito - SME Limeira</h2>
+                <p>Por favor, insira suas credenciais para acessar o Sistema AEE.</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            with st.form("login_form"):
+                user_id = st.text_input("Matrícula")
+                password = st.text_input("Senha", type="password")
+                submit = st.form_submit_button("Entrar")
+                
+                # Defina aqui a sua senha padrão
+                SENHA_PADRAO = "AEE2026"
+                
+                if submit:
+                    # Aqui você pode adicionar uma lista de matrículas permitidas futuramente
+                    if password == SENHA_PADRAO and user_id != "":
+                        st.session_state.authenticated = True
+                        st.success("Acesso autorizado!")
+                        st.rerun()
+                    else:
+                        st.error("Matrícula ou senha incorretos.")
+        
+        # Para tudo e não mostra o restante do app
+        st.stop()
+
+# Chama a função de login
+login()
+
 # --- CONFIGURAÇÃO INICIAL ---
 st.set_page_config(
     page_title="Integra | Sistema AEE",
@@ -1450,6 +1489,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

@@ -346,38 +346,30 @@ if 'data_pei' not in st.session_state:
 def carregar_dados_aluno():
     selecao = st.session_state.get('aluno_selecionado')
     
-    # Se for "Novo Registro" ou se a lista estiver vazia, limpamos os campos
     if not selecao or selecao == "-- Novo Registro --":
         st.session_state.data_pei = {'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {}, 'comunicacao_tipo': [], 'permanece': []}
         st.session_state.data_case = {'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 'checklist': {}, 'clinicas': []}
+        # Limpa o nome travado
+        st.session_state.nome_original_salvamento = None
         return
 
     try:
         df_db = load_db()
-        
         # Busca o registro
         if "id" in df_db.columns and selecao in df_db["id"].values:
             registro = df_db[df_db["id"] == selecao].iloc[0]
         elif "nome" in df_db.columns and selecao in df_db["nome"].values:
             registro = df_db[df_db["nome"] == selecao].iloc[0]
         else:
-            # Se o aluno está na lista mas não tem linha na planilha de dados ainda
-            st.info(f"✨ O documento de {selecao} ainda não foi iniciado. Os campos estão prontos para preenchimento!")
             return
 
-        # Verifica se o JSON está vazio (caso o nome esteja lá mas sem dados)
-        conteudo_json = registro["dados_json"]
-        if pd.isna(conteudo_json) or conteudo_json == "" or conteudo_json == "{}":
-            st.info(f"📝 {selecao} ainda não possui dados salvos. Comece o preenchimento abaixo.")
-            # Limpa para garantir que não sobrou lixo de outro aluno
-            if "PEI" in st.session_state.get('doc_option', ''):
-                st.session_state.data_pei = {'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {}, 'comunicacao_tipo': [], 'permanece': []}
-            return
-
-        # Se chegou aqui, é porque tem dado, então carrega normal
-        dados = json.loads(conteudo_json)
+        dados = json.loads(registro["dados_json"])
         
-        # Re-hidratação de datas
+        # --- AQUI ESTÁ O SEGREDO ---
+        # Guardamos o nome exato da planilha para usar na hora de salvar depois
+        st.session_state.nome_original_salvamento = registro["nome"]
+        # ---------------------------
+
         for k, v in dados.items():
             if isinstance(v, str) and len(v) == 10 and v.count('-') == 2:
                 try: dados[k] = datetime.strptime(v, '%Y-%m-%d').date()
@@ -388,11 +380,9 @@ def carregar_dados_aluno():
         else:
             st.session_state.data_case = dados
             
-        st.toast(f"✅ Arquivo de {selecao} carregado.")
-
+        st.toast(f"✅ {selecao} carregado.")
     except Exception as e:
-        # Se der qualquer erro na busca (como lista vazia), tratamos como novo registro
-        st.info("Formulário pronto para um novo preenchimento.")
+        st.info("Pronto para preenchimento.")
 
 # --- BARRA LATERAL ---
 with st.sidebar:
@@ -1663,6 +1653,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

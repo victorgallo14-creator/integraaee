@@ -200,47 +200,45 @@ def load_db():
         return pd.DataFrame(columns=["nome", "tipo_doc", "dados_json"])
 
 def save_student(doc_type, name, data):
-    """Salva ou atualiza garantindo que PEI e CASO sejam registros diferentes"""
-    
-    def serializar_datas(obj):
-        if isinstance(obj, (date, datetime)):
-            return obj.strftime("%Y-%m-%d")
-        if isinstance(obj, dict):
-            return {k: serializar_datas(v) for k, v in obj.items()}
-        if isinstance(obj, list):
-            return [serializar_datas(i) for i in obj]
-        return obj
-
+    """Salva ou atualiza garantindo que não duplique linhas"""
     try:
         df_atual = load_db()
-        data_limpa = serializar_datas(data)
         
-        # Criamos uma coluna de identificação única (Nome + Tipo)
-        # Ex: "João Silva (PEI)" ou "João Silva (CASO)"
+        # 1. Geramos o ID único exatamente como ele aparece na lista
+        # Se o seu sistema usa "Nome (PEI)", mantenha esse padrão
         id_registro = f"{name} ({doc_type})"
         
-        novo_registro = {
-            "id": id_registro, # Nova coluna para busca
-            "nome": name,
-            "tipo_doc": doc_type,
-            "dados_json": json.dumps(data_limpa, ensure_ascii=False)
-        }
-        
-        # Agora verificamos se essa combinação Nome+Tipo já existe
+        # 2. Limpamos os dados para salvar
+        def serializar_datas(obj):
+            if isinstance(obj, (date, datetime)): return obj.strftime("%Y-%m-%d")
+            if isinstance(obj, dict): return {k: serializar_datas(v) for k, v in obj.items()}
+            if isinstance(obj, list): return [serializar_datas(i) for i in obj]
+            return obj
+            
+        data_limpa = serializar_datas(data)
+        novo_json = json.dumps(data_limpa, ensure_ascii=False)
+
+        # 3. VERIFICAÇÃO DE DUPLICIDADE
+        # Se o ID já existe, atualizamos a linha existente
         if not df_atual.empty and "id" in df_atual.columns and id_registro in df_atual["id"].values:
-            # Atualiza apenas aquele documento específico daquela criança
-            df_atual.loc[df_atual["id"] == id_registro, ["dados_json"]] = [novo_registro["dados_json"]]
+            df_atual.loc[df_atual["id"] == id_registro, "dados_json"] = novo_json
             df_final = df_atual
         else:
-            # Se for um tipo de documento novo para aquela criança, adiciona linha nova
-            df_novo = pd.DataFrame([novo_registro])
-            df_final = pd.concat([df_atual, df_novo], ignore_index=True)
-        
+            # Se não existe, aí sim cria uma linha nova
+            novo_registro = {
+                "id": id_registro,
+                "nome": name,
+                "tipo_doc": doc_type,
+                "dados_json": novo_json
+            }
+            df_final = pd.concat([df_atual, pd.DataFrame([novo_registro])], ignore_index=True)
+
+        # 4. Envia para a planilha
         conn.update(worksheet="Alunos", data=df_final)
-        st.toast(f"✅ {doc_type} de {name} salvo com sucesso!", icon="💾")
+        st.toast(f"✅ Alterações em {name} salvas na mesma linha!", icon="💾")
         
     except Exception as e:
-        st.error(f"Erro ao salvar: {e}")
+        st.error(f"Erro ao salvar sem duplicar: {e}")
 
 def delete_student(student_key):
     db = load_db()
@@ -1665,6 +1663,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

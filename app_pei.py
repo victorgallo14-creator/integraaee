@@ -83,18 +83,24 @@ from streamlit_autorefresh import st_autorefresh
 count = st_autorefresh(interval=60000, key="autosave_counter")
 
 def auto_save():
-    # Só tenta salvar se o usuário estiver logado e houver um aluno selecionado
+    # 1. Verifica se o usuário está logado
     if st.session_state.get('authenticated'):
         
-        # Lógica para PEI
-        if "PEI" in doc_mode and st.session_state.data_pei.get('nome'):
-            save_student("PEI", st.session_state.data_pei['nome'], st.session_state.data_pei)
-            # st.toast não é recomendado aqui para não irritar o professor toda hora, 
-            # mas você pode deixar um log discreto se quiser.
+        # 2. Busca o modo de documento do session_state (onde ele fica guardado com segurança)
+        # Substituímos o 'doc_mode' direto por uma busca segura no estado da sessão
+        modo_atual = st.session_state.get('doc_option', '') 
+
+        # 3. Lógica para PEI
+        if "PEI" in modo_atual:
+            # Só salva se houver um nome de aluno preenchido
+            if st.session_state.get('data_pei') and st.session_state.data_pei.get('nome'):
+                save_student("PEI", st.session_state.data_pei['nome'], st.session_state.data_pei)
+                # Opcional: registrar_log("AUTO-SAVE", st.session_state.data_pei['nome'], "Automático")
             
-        # Lógica para Estudo de Caso
-        elif "Estudo de Caso" in doc_mode and st.session_state.data_case.get('nome'):
-            save_student("CASO", st.session_state.data_case['nome'], st.session_state.data_case)
+        # 4. Lógica para Estudo de Caso
+        elif "Estudo de Caso" in modo_atual:
+            if st.session_state.get('data_case') and st.session_state.data_case.get('nome'):
+                save_student("CASO", st.session_state.data_case['nome'], st.session_state.data_case)
 
 # Se o contador do autorefresh subir, ele executa a função
 if count > 0:
@@ -1568,6 +1574,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

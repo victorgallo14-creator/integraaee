@@ -135,6 +135,18 @@ st.set_page_config(
     layout="wide",
     page_icon="🎓",
     initial_sidebar_state="expanded"
+
+    # --- OCULTAR TOOLBAR E MENU ---
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            header {visibility: hidden;}
+            footer {visibility: hidden;}
+            .stAppDeployButton {display:none;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+    
 )
 # --- ESTILO VISUAL DA INTERFACE (CSS MELHORADO) ---
 st.markdown("""
@@ -1574,6 +1586,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

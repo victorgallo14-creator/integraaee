@@ -408,7 +408,7 @@ selected_student = st.selectbox(
 )
 
     # --- SEÇÃO 2: TIPO DE DOCUMENTO ---
-    st.markdown("### 📂 Tipo de Documento")
+st.markdown("### 📂 Tipo de Documento")
     
     # Se for um aluno novo, permite escolher qualquer um. 
     # Se for um aluno carregado, o radio já pode vir marcado com o tipo correto.
@@ -1630,6 +1630,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

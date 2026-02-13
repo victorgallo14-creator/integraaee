@@ -347,6 +347,7 @@ if 'data_pei' not in st.session_state:
 def carregar_dados_aluno():
     selecao = st.session_state.get('aluno_selecionado')
     
+    # Se for novo registro, limpa tudo e libera as variáveis
     if not selecao or selecao == "-- Novo Registro --":
         st.session_state.data_pei = {'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {}, 'comunicacao_tipo': [], 'permanece': []}
         st.session_state.data_case = {'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 'checklist': {}, 'clinicas': []}
@@ -355,27 +356,45 @@ def carregar_dados_aluno():
 
     try:
         df_db = load_db()
-        # Busca o registro exato
-        if "nome" in df_db.columns and selecao in df_db["nome"].values:
+        # Busca o registro
+        if "id" in df_db.columns and selecao in df_db["id"].values:
+            registro = df_db[df_db["id"] == selecao].iloc[0]
+        elif "nome" in df_db.columns and selecao in df_db["nome"].values:
             registro = df_db[df_db["nome"] == selecao].iloc[0]
-            dados = json.loads(registro["dados_json"])
-            
-            # TRAVA O NOME: Força o nome da planilha para dentro do formulário
-            dados['nome'] = registro["nome"] 
-            st.session_state.nome_original_salvamento = registro["nome"]
+        else:
+            return
 
-            # Reidratação de datas
-            for k, v in dados.items():
-                if isinstance(v, str) and len(v) == 10 and v.count('-') == 2:
-                    try: dados[k] = datetime.strptime(v, '%Y-%m-%d').date()
-                    except: pass
+        dados = json.loads(registro["dados_json"])
+        
+        # --- AQUI ESTÁ A CORREÇÃO PRINCIPAL ---
+        nome_oficial = registro["nome"]
+        
+        # 1. Trava o nome na variável de segurança
+        st.session_state.nome_original_salvamento = nome_oficial
+        
+        # 2. Garante que o nome esteja nos DOIS dicionários
+        # Assim, se você mudar de PEI para Caso, o nome já estará lá
+        if "data_pei" not in st.session_state: st.session_state.data_pei = {}
+        if "data_case" not in st.session_state: st.session_state.data_case = {}
+        
+        st.session_state.data_pei['nome'] = nome_oficial
+        st.session_state.data_case['nome'] = nome_oficial
+        # --------------------------------------
+
+        # Reidratação de datas
+        for k, v in dados.items():
+            if isinstance(v, str) and len(v) == 10 and v.count('-') == 2:
+                try: dados[k] = datetime.strptime(v, '%Y-%m-%d').date()
+                except: pass
+        
+        # Preenche os dados específicos do documento salvo
+        if registro["tipo_doc"] == "PEI":
+            st.session_state.data_pei.update(dados) # Usa update para não apagar o nome que acabamos de por
+        else:
+            st.session_state.data_case.update(dados)
             
-            if registro["tipo_doc"] == "PEI":
-                st.session_state.data_pei = dados
-            else:
-                st.session_state.data_case = dados
-                
-            st.toast(f"✅ {selecao} carregado com sucesso.")
+        st.toast(f"✅ {selecao} carregado.")
+        
     except Exception as e:
         st.info("Pronto para novo preenchimento.")
 
@@ -1589,6 +1608,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

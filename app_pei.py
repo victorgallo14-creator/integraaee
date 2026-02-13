@@ -1065,7 +1065,6 @@ if "PEI" in doc_mode:
 
         if 'pdf_bytes' in st.session_state:
             st.download_button("📥 BAIXAR PEI COMPLETO", st.session_state.pdf_bytes, f"PEI_{data.get('nome','aluno')}.pdf", "application/pdf", type="primary")
-            preview_pdf(st.session_state.pdf_bytes)
 
 # ==============================================================================
 # ESTUDO DE CASO
@@ -1569,6 +1568,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

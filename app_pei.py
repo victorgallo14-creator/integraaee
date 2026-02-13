@@ -1,5 +1,5 @@
 import streamlit as st
-from fpdf import FPDF
+from fpdf import fpdf
 from datetime import datetime, date
 import io
 import os
@@ -1442,4 +1442,5 @@ else:
         # Botão de Download (Fora do if do botão Gerar, mas dentro da tab)
         if 'pdf_bytes_caso' in st.session_state:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
+
             preview_pdf(st.session_state.pdf_bytes_caso)

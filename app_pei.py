@@ -408,11 +408,19 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
     
+    with st.sidebar:
+    st.markdown('<div class="sidebar-header">', unsafe_allow_html=True)
+    
+    # ... (mantenha seu código da logo/título aqui) ...
+    st.markdown("""
+        <div class="sidebar-title">SISTEMA INTEGRA RAFAEL</div>
+        <div class="sidebar-subtitle">Gestão de Educação Especial</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
     st.divider()
 
-    # --- COLE ESTE BLOCO EXATAMENTE AQUI ---
-    
-    # 1. Definimos o valor padrão para evitar o erro NameError
+    # 1. Definimos o valor padrão para evitar erro de variável não definida
     default_doc_idx = 0
 
     st.markdown("### 👤 Selecionar Estudante")
@@ -423,12 +431,12 @@ with st.sidebar:
     else:
         lista_nomes = []
 
-    # Selectbox com a função automática que criamos
+    # --- ÚNICA SELECTBOX DO ALUNO ---
     selected_student = st.selectbox(
         "Selecione para abrir ou criar novo:", 
         options=["-- Novo Registro --"] + lista_nomes,
-        key="aluno_selecionado",
-        on_change=carregar_dados_aluno, # Abre sozinho ao clicar
+        key="aluno_selecionado",       # <--- ESTA CHAVE DEVE SER ÚNICA
+        on_change=carregar_dados_aluno, # Função automática
         label_visibility="collapsed"
     )
 
@@ -447,6 +455,20 @@ with st.sidebar:
         key="doc_option",
         label_visibility="collapsed"
     )
+
+    # 3. OPÇÃO DO NÍVEL DE ENSINO
+    if "PEI" in doc_mode:
+        st.markdown("### 🏫 Nível de Ensino")
+        st.selectbox(
+            "Nível:", 
+            ["Fundamental", "Infantil"], 
+            key="pei_level_choice",
+            label_visibility="collapsed"
+        )
+    
+    st.divider()
+    
+    # ... (A partir daqui seguem os botões de Sair, etc.)
 
     # 3. OPÇÃO DO NÍVEL DE ENSINO (O que estava faltando)
     if "PEI" in doc_mode:
@@ -1711,6 +1733,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

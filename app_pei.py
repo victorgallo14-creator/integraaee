@@ -178,8 +178,11 @@ def clean_pdf_text(text):
     return str(text).encode('latin-1', 'replace').decode('latin-1')
 
 def get_pdf_bytes(pdf_instance):
-    try: return bytes(pdf_instance.output(dest='S').encode('latin-1'))
-    except: return bytes(pdf_instance.output(dest='S'))
+    # O fpdf2 usa output() sem argumentos para retornar os bytes diretamente
+    try:
+        return pdf_instance.output()
+    except:
+        return bytes(pdf_instance.output(dest='S'))
 
 def preview_pdf(pdf_bytes):
     if pdf_bytes:
@@ -1456,6 +1459,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

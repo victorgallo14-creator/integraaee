@@ -135,7 +135,8 @@ def get_pdf_bytes(pdf_instance):
 def preview_pdf(pdf_bytes):
     if pdf_bytes:
         b64 = base64.b64encode(pdf_bytes).decode('utf-8')
-        pdf_display = f'<iframe src="data:application/pdf;base64,{b64}" width="100%" height="800px" style="border:none; border-radius:12px;"></iframe>'
+        # Adicionamos parâmetros de visualização do PDF para forçar o carregamento
+        pdf_display = f'<embed src="data:application/pdf;base64,{b64}#toolbar=0&navpanes=0&scrollbar=0" width="100%" height="800" type="application/pdf">'
         st.markdown(pdf_display, unsafe_allow_html=True)
 
 # --- CLASSE PDF CUSTOMIZADA ---
@@ -1444,4 +1445,5 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 

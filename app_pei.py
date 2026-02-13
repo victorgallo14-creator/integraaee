@@ -33,26 +33,27 @@ def login():
                 password = st.text_input("Senha", type="password")
                 submit = st.form_submit_button("Entrar")
                 
-                if submit:
+             if submit:
                     try:
-                        # Puxa a senha definida no painel do Streamlit Cloud
                         SENHA_MESTRA = st.secrets["credentials"]["password"]
                         
-                        # Carrega a aba de professores
+                        # ttl=0 garante que ele leia a planilha em tempo real
                         df_professores = conn.read(worksheet="Professores", ttl=0)
-                        df_professores['matricula'] = df_professores['matricula'].astype(str)
                         
-                        # Valida se a senha está certa E se a matrícula existe na lista
-                        if password == SENHA_MESTRA and user_id in df_professores['matricula'].values:
-                            nome_prof = df_professores[df_professores['matricula'] == user_id]['nome'].values[0]
+                        # Limpa espaços e garante que tudo seja lido como texto
+                        lista_matriculas = df_professores['matricula'].astype(str).str.strip().values
+                        
+                        if password == SENHA_MESTRA and str(user_id).strip() in lista_matriculas:
+                            # Busca o nome correspondente
+                            registro = df_professores[df_professores['matricula'].astype(str).str.strip() == str(user_id).strip()]
+                            nome_prof = registro['nome'].values[0]
+                            
                             st.session_state.authenticated = True
                             st.session_state.usuario_nome = nome_prof
-                            st.success(f"Acesso autorizado! Bem-vindo, {nome_prof}")
+                            st.success(f"Acesso autorizado!")
                             st.rerun()
                         else:
                             st.error("Matrícula ou senha incorretos.")
-                    except Exception as e:
-                        st.error("Erro técnico: Verifique se a aba 'Professores' existe e a senha está no Secrets.")
         
         st.stop()
 
@@ -1510,6 +1511,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

@@ -364,7 +364,7 @@ def carregar_dados_aluno():
             return
 
         dados = json.loads(registro["dados_json"])
-                dados['nome'] = registro["nome"] # Força o nome da planilha para dentro do formulário
+        dados['nome'] = registro["nome"] # Força o nome da planilha para dentro do formulário
         
         # --- AQUI ESTÁ O SEGREDO ---
         # Guardamos o nome exato da planilha para usar na hora de salvar depois
@@ -1654,6 +1654,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

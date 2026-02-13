@@ -427,20 +427,32 @@ with st.sidebar:
         label_visibility="collapsed"
     )
 
-    # --- SEÇÃO 2: TIPO DE DOCUMENTO ---
+# --- SEÇÃO 2: TIPO DE DOCUMENTO ---
     st.markdown("### 📂 Tipo de Documento")
     
-    default_doc_idx = 0
-    if selected_student != "-- Novo Registro --":
-        if "(CASO)" in selected_student: 
-            default_doc_idx = 1
+    # ... (seu código de default_doc_idx) ...
     
     doc_mode = st.radio(
         "Documento:", 
         ["PEI (Plano Educacional)", "Estudo de Caso"],
         index=default_doc_idx,
+        key="doc_option", # Adicione esta key para o auto-save funcionar
         label_visibility="collapsed"
     )
+    
+    # ADICIONE ESTE BLOCO AQUI PARA RECUPERAR A ESCOLHA:
+    if "PEI" in doc_mode:
+        st.markdown("### 🏫 Nível de Ensino")
+        # Criamos a variável pei_level vinculada ao session_state
+        pei_level = st.selectbox(
+            "Nível:", 
+            ["Fundamental", "Infantil"], 
+            key="pei_level_choice",
+            label_visibility="collapsed"
+        )
+    else:
+        # Se for Estudo de Caso, definimos um valor padrão para não dar erro no código
+        pei_level = None
 
 # --- SEÇÃO 3: AÇÕES (DENTRO DA SIDEBAR) ---
     if selected_student != "-- Novo Registro --":
@@ -1643,6 +1655,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

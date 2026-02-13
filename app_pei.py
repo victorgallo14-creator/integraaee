@@ -86,9 +86,8 @@ def load_db():
         return pd.DataFrame(columns=["nome", "tipo_doc", "dados_json"])
 
 def save_student(doc_type, name, data):
-    """Salva ou atualiza um aluno na planilha tratando datas"""
+    """Salva ou atualiza garantindo que PEI e CASO sejam registros diferentes"""
     
-    # Função interna para converter datas em texto
     def serializar_datas(obj):
         if isinstance(obj, (date, datetime)):
             return obj.strftime("%Y-%m-%d")
@@ -100,27 +99,31 @@ def save_student(doc_type, name, data):
 
     try:
         df_atual = load_db()
-        
-        # Limpa as datas do dicionário 'data' antes de converter para JSON
         data_limpa = serializar_datas(data)
         
+        # Criamos uma coluna de identificação única (Nome + Tipo)
+        # Ex: "João Silva (PEI)" ou "João Silva (CASO)"
+        id_registro = f"{name} ({doc_type})"
+        
         novo_registro = {
+            "id": id_registro, # Nova coluna para busca
             "nome": name,
             "tipo_doc": doc_type,
             "dados_json": json.dumps(data_limpa, ensure_ascii=False)
         }
         
-        if not df_atual.empty and "nome" in df_atual.columns and name in df_atual["nome"].values:
-            # Atualiza
-            df_atual.loc[df_atual["nome"] == name, ["tipo_doc", "dados_json"]] = [doc_type, novo_registro["dados_json"]]
+        # Agora verificamos se essa combinação Nome+Tipo já existe
+        if not df_atual.empty and "id" in df_atual.columns and id_registro in df_atual["id"].values:
+            # Atualiza apenas aquele documento específico daquela criança
+            df_atual.loc[df_atual["id"] == id_registro, ["dados_json"]] = [novo_registro["dados_json"]]
             df_final = df_atual
         else:
-            # Adiciona
+            # Se for um tipo de documento novo para aquela criança, adiciona linha nova
             df_novo = pd.DataFrame([novo_registro])
             df_final = pd.concat([df_atual, df_novo], ignore_index=True)
         
         conn.update(worksheet="Alunos", data=df_final)
-        st.toast(f"✅ {name} salvo com sucesso na nuvem!", icon="💾")
+        st.toast(f"✅ {doc_type} de {name} salvo com sucesso!", icon="💾")
         
     except Exception as e:
         st.error(f"Erro ao salvar: {e}")
@@ -1447,6 +1450,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

@@ -392,26 +392,24 @@ with st.sidebar:
     st.markdown("### 👤 Selecionar Estudante")
     df_db = load_db()
 
-# Se a planilha não estiver vazia, pegamos a coluna 'nome'
     if not df_db.empty and "nome" in df_db.columns:
-            # Pegamos apenas os nomes que não são nulos e transformamos em lista
-            lista_nomes = df_db["nome"].dropna().tolist()
+        lista_nomes = df_db["nome"].dropna().tolist()
     else:
-            lista_nomes = []
+        lista_nomes = []
 
-# LOCAL: Dentro do 'with st.sidebar:'
-selected_student = st.selectbox(
+    # Esta linha deve estar com exatamente o mesmo recuo (espaços) das outras
+    selected_student = st.selectbox(
         "Selecione para abrir ou criar novo:", 
-        ["-- Novo Registro --"] + lista_nomes,
+        options=["-- Novo Registro --"] + lista_nomes,
         key="aluno_selecionado",
-        on_change=carregar_dados_aluno
+        on_change=carregar_dados_aluno, # Função que criamos para abrir automático
+        label_visibility="collapsed"
     )
 
+    # --- SEÇÃO 2: TIPO DE DOCUMENTO ---
     st.markdown("### 📂 Tipo de Documento")
     
-    # Linha 415 ajustada:
     default_doc_idx = 0
-    
     if selected_student != "-- Novo Registro --":
         if "(CASO)" in selected_student: 
             default_doc_idx = 1
@@ -422,12 +420,6 @@ selected_student = st.selectbox(
         index=default_doc_idx,
         label_visibility="collapsed"
     )
-    
-    if "PEI" in doc_mode:
-        st.markdown("### 🏫 Nível de Ensino")
-        pei_level = st.selectbox("Nível:", ["Fundamental", "Infantil"], label_visibility="collapsed")
-
-    st.divider()
 
 # --- SEÇÃO 3: AÇÕES (DENTRO DA SIDEBAR) ---
     if selected_student != "-- Novo Registro --":
@@ -1630,6 +1622,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

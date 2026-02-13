@@ -1111,7 +1111,7 @@ else:
     # --- ABA 1: IDENTIFICAÇÃO ---
     with tabs[0]:
         st.subheader("1.1 Dados Gerais do Estudante")
-        data['nome'] = st.text_input("Nome Completo", value=data.get('nome', ''))
+        data['nome'] = st.text_input("Nome Completo", value=data.get('nome', ''), disabled=True)
         
         c1, c2, c3 = st.columns([1, 1, 2])
         data['ano_esc'] = c1.text_input("Ano Escolaridade", value=data.get('ano_esc', ''))
@@ -1589,6 +1589,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

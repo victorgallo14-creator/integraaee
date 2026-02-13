@@ -1,0 +1,40 @@
+{
+    "Fuuu (PEI)": {
+        "terapias": {},
+        "flex": {},
+        "plano_ensino": {},
+        "flex_matrix": {},
+        "plano_ensino_tri": {},
+        "nome": "Fuuu",
+        "ano_esc": "",
+        "mae": "",
+        "prof_aee": ""
+    },
+    "fuuuu (CASO)": {
+        "irmaos": [
+            {
+                "nome": "",
+                "idade": "",
+                "esc": ""
+            },
+            {
+                "nome": "",
+                "idade": "",
+                "esc": ""
+            },
+            {
+                "nome": "",
+                "idade": "",
+                "esc": ""
+            },
+            {
+                "nome": "",
+                "idade": "",
+                "esc": ""
+            }
+        ],
+        "checklist": {},
+        "nome": "fuuuu",
+        "unidade": ""
+    }
+}

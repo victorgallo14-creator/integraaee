@@ -960,7 +960,7 @@ if "PEI" in doc_mode:
 # ESTUDO DE CASO (NOVO MÓDULO COMPLETO)
 # ==============================================================================
 else:
-    st.markdown("""<div class="header-box"><div class="header-title">ESTUDO DE CASO</div></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="header-box"><div class="header-title">Estudo de Caso</div></div>""", unsafe_allow_html=True)
     
     # Inicializa dados se vazio
     if 'data_case' not in st.session_state: 
@@ -1450,6 +1450,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

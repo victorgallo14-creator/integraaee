@@ -11,57 +11,56 @@ from streamlit_gsheets import GSheetsConnection
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# --- FUNÇÃO DE LOGIN SEGURA ---
+# --- FUNÇÃO DE LOGIN (LAYOUT ORIGINAL + PLANILHA) ---
 def login():
-    # Inicializa o estado de autenticação se não existir
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
 
-    # Se não estiver autenticado, exibe a tela de login
     if not st.session_state.authenticated:
+        # Layout Centralizado e Limpo
         st.markdown("""
             <div style="text-align: center; padding: 20px;">
-                <h2 style="color: #1e3a8a;">SISTEMA INTEGRA AEE</h2>
-                <p style="color: #64748b;">Acesso restrito aos docentes do CEIEF Rafael Affonso Leite</p>
+                <h2 style="color: #1e3a8a;">SME Limeira | Sistema Integra</h2>
+                <p style="color: #64748b;">Acesso restrito - Centro de Formação do Professor</p>
             </div>
         """, unsafe_allow_html=True)
         
-        col1, col2, col3 = st.columns([1, 1.5, 1])
+        col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             with st.form("login_form"):
-                user_id = st.text_input("Matrícula (Funcional)")
-                # A senha agora é buscada direto do painel 'Secrets' do Streamlit
-                password = st.text_input("Senha do Sistema", type="password")
+                user_id = st.text_input("Matrícula")
+                # Busca a senha diretamente do Secrets para sua segurança
+                password = st.text_input("Senha", type="password")
                 submit = st.form_submit_button("Entrar")
                 
                 if submit:
                     try:
-                        # 1. Busca a senha mestre nos Secrets
-                        # No painel do Streamlit, adicione: 
-                        # [credentials]
-                        # password = "sua_senha_aqui"
+                        # Puxa a senha definida no painel do Streamlit Cloud
                         SENHA_MESTRA = st.secrets["credentials"]["password"]
                         
-                        # 2. Busca a lista de professores na planilha
+                        # Carrega a aba de professores
                         df_professores = conn.read(worksheet="Professores", ttl=0)
                         df_professores['matricula'] = df_professores['matricula'].astype(str)
                         
-                        # 3. Validação dupla
+                        # Valida se a senha está certa E se a matrícula existe na lista
                         if password == SENHA_MESTRA and user_id in df_professores['matricula'].values:
-                            # Pega o nome do professor para saudar
                             nome_prof = df_professores[df_professores['matricula'] == user_id]['nome'].values[0]
-                            
                             st.session_state.authenticated = True
                             st.session_state.usuario_nome = nome_prof
-                            st.success(f"Acesso liberado! Bem-vindo(a), {nome_prof}.")
+                            st.success(f"Acesso autorizado! Bem-vindo, {nome_prof}")
                             st.rerun()
                         else:
-                            st.error("Matrícula não localizada ou senha incorreta.")
+                            st.error("Matrícula ou senha incorretos.")
                     except Exception as e:
-                        st.error("Erro técnico: Certifique-se de que a aba 'Professores' existe e que a senha está nos Secrets.")
+                        st.error("Erro técnico: Verifique se a aba 'Professores' existe e a senha está no Secrets.")
         
-        # Bloqueia a execução do restante do app enquanto não logar
         st.stop()
+
+# --- ATIVAÇÃO DO LOGIN ---
+login()
+
+# Exibe o nome do professor logado na barra lateral
+st.sidebar.markdown(f"👤 **Docente:** {st.session_state.get('usuario_nome', '')}")
 
 # --- EXECUÇÃO DO LOGIN ---
 login()
@@ -1511,6 +1510,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

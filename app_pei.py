@@ -406,7 +406,7 @@ with st.sidebar:
     st.divider()
 
     default_doc_idx = 0
-    st.markdown("### 👤 Selecionar Estudante")
+    st.markdown("### 👨‍🎓 Selecionar Estudante")
     df_db = load_db()
     lista_nomes = df_db["nome"].dropna().tolist() if not df_db.empty else []
 
@@ -1608,6 +1608,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

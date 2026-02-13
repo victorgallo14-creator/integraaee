@@ -184,8 +184,14 @@ def get_pdf_bytes(pdf_instance):
 def preview_pdf(pdf_bytes):
     if pdf_bytes:
         b64 = base64.b64encode(pdf_bytes).decode('utf-8')
-        href = f'<a href="data:application/pdf;base64,{b64}" target="_blank" style="text-decoration: none; background-color: #2563eb; color: white; padding: 10px 20px; border-radius: 8px;">📑 Abrir Prévia em Nova Aba</a>'
-        st.markdown(href, unsafe_allow_html=True)
+        # Usamos a tag <object> que é mais estável que <iframe> para PDFs em Base64
+        pdf_display = f'''
+            <object data="data:application/pdf;base64,{b64}" type="application/pdf" width="100%" height="800px">
+                <p>Seu navegador não suporta a visualização direta. 
+                <a href="data:application/pdf;base64,{b64}" download="documento.pdf">Clique aqui para baixar</a>.</p>
+            </object>
+        '''
+        st.markdown(pdf_display, unsafe_allow_html=True)
 
 # --- CLASSE PDF CUSTOMIZADA ---
 class OfficialPDF(FPDF):
@@ -1450,6 +1456,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

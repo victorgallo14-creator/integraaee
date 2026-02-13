@@ -401,22 +401,22 @@ with st.sidebar:
 
 # LOCAL: Dentro do 'with st.sidebar:'
 selected_student = st.selectbox(
-    "Selecione para abrir ou criar novo:", 
-    options=["-- Novo Registro --"] + lista_nomes,
-    key="aluno_selecionado",      # <--- Adicione esta KEY
-    on_change=carregar_dados_aluno # <--- Adicione este comando
-)
+        "Selecione para abrir ou criar novo:", 
+        ["-- Novo Registro --"] + lista_nomes,
+        key="aluno_selecionado",
+        on_change=carregar_dados_aluno
+    )
 
-    # --- SEÇÃO 2: TIPO DE DOCUMENTO ---
-st.markdown("### 📂 Tipo de Documento")
+    st.markdown("### 📂 Tipo de Documento")
     
-    # Se for um aluno novo, permite escolher qualquer um. 
-    # Se for um aluno carregado, o radio já pode vir marcado com o tipo correto.
-default_doc_idx = 0
+    # Linha 415 ajustada:
+    default_doc_idx = 0
+    
     if selected_student != "-- Novo Registro --":
-    if "(CASO)" in selected_student: default_doc_idx = 1
+        if "(CASO)" in selected_student: 
+            default_doc_idx = 1
     
-doc_mode = st.radio(
+    doc_mode = st.radio(
         "Documento:", 
         ["PEI (Plano Educacional)", "Estudo de Caso"],
         index=default_doc_idx,
@@ -1630,6 +1630,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

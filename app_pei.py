@@ -1570,6 +1570,12 @@ else:
 
             preview_pdf(st.session_state.pdf_bytes_caso)
 
+# Apenas um exemplo de como exibir os logs para você
+if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
+    st.markdown("### 📜 Histórico de Alterações")
+    df_logs = conn.read(worksheet="Log", ttl=0)
+    # Mostra os mais recentes primeiro
+    st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
 
 
 

@@ -5,6 +5,9 @@ import io
 import os
 import base64
 import json
+import pandas as pd  # <--- ESTA LINHA É A QUE ESTÁ FALTANDO
+import json
+from streamlit_gsheets import GSheetsConnection
 
 # --- CONFIGURAÇÃO INICIAL ---
 st.set_page_config(
@@ -1472,6 +1475,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

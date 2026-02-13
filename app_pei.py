@@ -69,15 +69,43 @@ st.markdown("""
 DB_FILE = "banco_dados_aee_final.json"
 
 def load_db():
-    if os.path.exists(DB_FILE):
-        with open(DB_FILE, "r", encoding="utf-8") as f:
-            try: return json.load(f)
-            except: return {}
-    return {}
+    """Lê os dados da planilha do Google"""
+    try:
+        # Tenta ler a aba chamada 'Alunos'
+        df = conn.read(worksheet="Alunos", ttl=0)
+        # Remove linhas completamente vazias
+        df = df.dropna(how="all")
+        return df
+    except Exception as e:
+        # Se a planilha estiver vazia ou der erro, retorna um DataFrame com as colunas certas
+        return pd.DataFrame(columns=["nome", "tipo_doc", "dados_json"])
 
 def save_student(doc_type, name, data):
-    db = load_db()
-    key = f"{name} ({doc_type})"
+    """Salva ou atualiza um aluno na planilha"""
+    df_atual = load_db()
+    
+    # Prepara os dados para salvar (converte o dicionário em texto JSON)
+    novo_registro = {
+        "nome": name,
+        "tipo_doc": doc_type,
+        "dados_json": json.dumps(data, ensure_ascii=False)
+    }
+    
+    if not df_atual.empty and name in df_atual["nome"].values:
+        # Atualiza aluno existente
+        df_atual.loc[df_atual["nome"] == name, ["tipo_doc", "dados_json"]] = [doc_type, novo_registro["dados_json"]]
+        df_final = df_atual
+    else:
+        # Adiciona novo aluno
+        df_novo = pd.DataFrame([novo_registro])
+        df_final = pd.concat([df_atual, df_novo], ignore_index=True)
+    
+    # Envia de volta para a planilha
+    try:
+        conn.update(worksheet="Alunos", data=df_final)
+        st.success(f"✅ Dados de {name} sincronizados com a nuvem!")
+    except Exception as e:
+        st.error(f"Erro ao salvar na planilha: {e}")
 
 def delete_student(student_key):
     db = load_db()
@@ -1444,5 +1472,6 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 

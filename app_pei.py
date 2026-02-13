@@ -345,17 +345,26 @@ if 'data_pei' not in st.session_state:
     }
     # REMOVA A LINHA: st.session_state.data_pei.update(demo_pei)
 def carregar_dados_aluno():
-    # Pega o nome que foi selecionado na selectbox
     selecao = st.session_state.get('aluno_selecionado')
     
     if selecao and selecao != "-- Novo Registro --":
         try:
-            # Busca no banco de dados (seu DataFrame já carregado)
             df_db = load_db()
-            registro = df_db[df_db["nome"] == selecao].iloc[0]
-            dados = json.loads(registro["dados_json"])
+            # Busca o registro específico pelo ID único
+            registro = df_db[df_db["id"] == selecao].iloc[0]
             
-            # Converte datas de texto para o formato que o calendário do Streamlit aceita
+            # --- CORREÇÃO DO ERRO ---
+            # Verifica se o conteúdo é realmente um texto antes de tentar converter
+            conteudo_json = registro["dados_json"]
+            
+            if pd.isna(conteudo_json) or not isinstance(conteudo_json, str):
+                st.error(f"O arquivo de {selecao} está vazio ou corrompido na planilha.")
+                return
+
+            dados = json.loads(conteudo_json)
+            # ------------------------
+
+            # Reidratação de datas para o formulário
             for k, v in dados.items():
                 if isinstance(v, str) and len(v) == 10 and v.count('-') == 2:
                     try:
@@ -363,16 +372,16 @@ def carregar_dados_aluno():
                     except:
                         pass
             
-            # Salva no estado da sessão (PEI ou Caso)
+            # Salva no estado da sessão
             if registro["tipo_doc"] == "PEI":
                 st.session_state.data_pei = dados
             else:
                 st.session_state.data_case = dados
                 
-            # Registra no seu novo sistema de log
             registrar_log("ABRIU AUTOMATICO", selecao)
+            
         except Exception as e:
-            st.error(f"Erro ao carregar: {e}")
+            st.error(f"Erro técnico ao processar o arquivo: {e}")
 
 # --- BARRA LATERAL ---
 with st.sidebar:
@@ -1622,6 +1631,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

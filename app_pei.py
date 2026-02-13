@@ -100,6 +100,29 @@ def auto_save():
 if count > 0:
     auto_save()
 
+def registrar_log(acao, aluno="N/A", detalhes=""):
+    """Registra a atividade do professor na aba Log"""
+    try:
+        # Pega os dados do professor logado no st.session_state
+        prof_nome = st.session_state.get('usuario_nome', 'Desconhecido')
+        # Precisamos garantir que a matrícula foi salva no login
+        prof_mat = st.session_state.get('usuario_matricula', '000') 
+        
+        novo_log = {
+            "data_hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "professor": prof_nome,
+            "matricula": prof_mat,
+            "aluno": aluno,
+            "acao": acao,
+            "detalhes": detalhes
+        }
+        
+        df_log_atual = conn.read(worksheet="Log", ttl=0)
+        df_novo_log = pd.concat([df_log_atual, pd.DataFrame([novo_log])], ignore_index=True)
+        conn.update(worksheet="Log", data=df_novo_log)
+    except Exception as e:
+        print(f"Erro ao registrar log: {e}")
+
 # --- CONFIGURAÇÃO INICIAL ---
 st.set_page_config(
     page_title="Integra | Sistema AEE",
@@ -1546,6 +1569,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

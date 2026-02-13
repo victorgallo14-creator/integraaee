@@ -439,7 +439,7 @@ if "PEI" in doc_mode:
 
     with tabs[0]:
         c1, c2 = st.columns([3, 1])
-        data['nome'] = c1.text_input("Nome", value=data.get('nome', ''))
+        data['nome'] = c1.text_input("Nome", value=data.get('nome', ''), disabled=True)
         d_val = data.get('nasc')
         if isinstance(d_val, str):
             try: d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
@@ -1589,6 +1589,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

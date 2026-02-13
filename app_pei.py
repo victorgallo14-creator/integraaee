@@ -76,6 +76,30 @@ login()
 # Exibimos o nome do professor na barra lateral para confirmação
 st.sidebar.markdown(f"👤 **Docente:** {st.session_state.get('usuario_nome', 'Professor')}")
 
+from streamlit_autorefresh import st_autorefresh
+
+# --- CONFIGURAÇÃO DO SALVAMENTO AUTOMÁTICO ---
+# O intervalo é em milissegundos (60000ms = 1 minuto)
+count = st_autorefresh(interval=60000, key="autosave_counter")
+
+def auto_save():
+    # Só tenta salvar se o usuário estiver logado e houver um aluno selecionado
+    if st.session_state.get('authenticated'):
+        
+        # Lógica para PEI
+        if "PEI" in doc_mode and st.session_state.data_pei.get('nome'):
+            save_student("PEI", st.session_state.data_pei['nome'], st.session_state.data_pei)
+            # st.toast não é recomendado aqui para não irritar o professor toda hora, 
+            # mas você pode deixar um log discreto se quiser.
+            
+        # Lógica para Estudo de Caso
+        elif "Estudo de Caso" in doc_mode and st.session_state.data_case.get('nome'):
+            save_student("CASO", st.session_state.data_case['nome'], st.session_state.data_case)
+
+# Se o contador do autorefresh subir, ele executa a função
+if count > 0:
+    auto_save()
+
 # --- CONFIGURAÇÃO INICIAL ---
 st.set_page_config(
     page_title="Integra | Sistema AEE",
@@ -1522,6 +1546,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

@@ -11,56 +11,67 @@ from streamlit_gsheets import GSheetsConnection
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# --- FUNÇÃO DE LOGIN (LAYOUT ORIGINAL + PLANILHA) ---
+# --- FUNÇÃO DE LOGIN COMPLETA E ROBUSTA ---
 def login():
+    # Inicializa o estado de autenticação
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
 
     if not st.session_state.authenticated:
-        # Layout Centralizado e Limpo
+        # Layout centralizado e institucional
         st.markdown("""
             <div style="text-align: center; padding: 20px;">
                 <h2 style="color: #1e3a8a;">SME Limeira | Sistema Integra</h2>
-                <p style="color: #64748b;">Acesso restrito - Centro de Formação do Professor</p>
+                <p style="color: #64748b;">Acesso restrito ao CEIEF Rafael Affonso Leite</p>
             </div>
         """, unsafe_allow_html=True)
         
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             with st.form("login_form"):
-                user_id = st.text_input("Matrícula")
-                # Busca a senha diretamente do Secrets para sua segurança
-                password = st.text_input("Senha", type="password")
+                user_id = st.text_input("Matrícula (Funcional)")
+                # A senha deve ser configurada no painel 'Secrets' do Streamlit
+                password = st.text_input("Senha do Sistema", type="password")
                 submit = st.form_submit_button("Entrar")
                 
                 if submit:
                     try:
+                        # 1. Busca a senha mestre nos Secrets (Segurança)
+                        # No painel do Streamlit, em Secrets, adicione: 
+                        # [credentials]
+                        # password = "sua_senha_aqui"
                         SENHA_MESTRA = st.secrets["credentials"]["password"]
                         
-                        # ttl=0 garante que ele leia a planilha em tempo real
+                        # 2. Busca a lista na aba 'Professores' (Atualização em tempo real)
                         df_professores = conn.read(worksheet="Professores", ttl=0)
                         
-                        # Limpa espaços e garante que tudo seja lido como texto
-                        lista_matriculas = df_professores['matricula'].astype(str).str.strip().values
+                        # Limpeza de dados: converte tudo para texto e remove espaços acidentais
+                        df_professores['matricula'] = df_professores['matricula'].astype(str).str.strip()
+                        user_id_limpo = str(user_id).strip()
                         
-                        if password == SENHA_MESTRA and str(user_id).strip() in lista_matriculas:
-                            # Busca o nome correspondente
-                            registro = df_professores[df_professores['matricula'].astype(str).str.strip() == str(user_id).strip()]
+                        # 3. Validação de credenciais
+                        if password == SENHA_MESTRA and user_id_limpo in df_professores['matricula'].values:
+                            # Busca o nome do professor para a sessão
+                            registro = df_professores[df_professores['matricula'] == user_id_limpo]
                             nome_prof = registro['nome'].values[0]
                             
                             st.session_state.authenticated = True
                             st.session_state.usuario_nome = nome_prof
-                            st.success(f"Acesso autorizado!")
+                            st.success(f"Acesso autorizado! Bem-vindo(a), {nome_prof}")
                             st.rerun()
                         else:
-                            st.error("Matrícula ou senha incorretos.")
+                            st.error("Matrícula não localizada ou senha incorreta.")
+                            
+                    except Exception as e:
+                        st.error("Erro de conexão: Verifique se a aba 'Professores' existe e se a senha está nos Secrets.")
         
+        # Interrompe o script para que o conteúdo do app não carregue por baixo do login
         st.stop()
 
 # --- ATIVAÇÃO DO LOGIN ---
 login()
 
-# Exibe o nome do professor logado na barra lateral
+# Exibe o nome do usuário logado na barra lateral para confirmação
 st.sidebar.markdown(f"👤 **Docente:** {st.session_state.get('usuario_nome', '')}")
 
 # --- EXECUÇÃO DO LOGIN ---
@@ -1511,6 +1522,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

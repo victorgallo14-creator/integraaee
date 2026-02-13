@@ -413,8 +413,8 @@ st.markdown("### 📂 Tipo de Documento")
     # Se for um aluno novo, permite escolher qualquer um. 
     # Se for um aluno carregado, o radio já pode vir marcado com o tipo correto.
 default_doc_idx = 0
-if selected_student != "-- Novo Registro --":
-if "(CASO)" in selected_student: default_doc_idx = 1
+    if selected_student != "-- Novo Registro --":
+    if "(CASO)" in selected_student: default_doc_idx = 1
     
 doc_mode = st.radio(
         "Documento:", 
@@ -1630,6 +1630,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

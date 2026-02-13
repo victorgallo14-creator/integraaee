@@ -33,7 +33,7 @@ def login():
                 password = st.text_input("Senha", type="password")
                 submit = st.form_submit_button("Entrar")
                 
-             if submit:
+                if submit:
                     try:
                         SENHA_MESTRA = st.secrets["credentials"]["password"]
                         
@@ -1511,6 +1511,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

@@ -301,19 +301,18 @@ with st.sidebar:
     st.divider()
 
     # --- SEÇÃO 3: AÇÕES ---
-    if selected_student != "-- Novo Registro --":
-        col_btn1, col_btn2 = st.columns(2)
-        
-if col_btn1.button("📂 Abrir", type="primary"):
-    if selected_student != "-- Novo Registro --":
-        # Procuramos na tabela (db) a linha onde o nome é igual ao selecionado
+if selected_student != "-- Novo Registro --":
+    # Criamos as colunas aqui para que col_btn1 e col_btn2 existam
+    col_btn1, col_btn2 = st.columns(2)
+    
+    if col_btn1.button("📂 Abrir", type="primary"):
+        # Busca a linha do aluno selecionado no DataFrame 'db'
         registro = db[db["nome"] == selected_student].iloc[0]
         
-        # O conteúdo do formulário está guardado na coluna 'dados_json' como texto.
-        # Precisamos transformar esse texto de volta em um dicionário Python.
+        # Converte o texto JSON de volta para dicionário
         dados_carregados = json.loads(registro["dados_json"])
         
-        # Agora salvamos no estado da sessão para preencher os campos automaticamente
+        # Preenche o formulário correto
         if registro["tipo_doc"] == "PEI":
             st.session_state.data_pei = dados_carregados
         else:
@@ -321,23 +320,8 @@ if col_btn1.button("📂 Abrir", type="primary"):
             
         st.rerun()
 
-        if col_btn2.button("🗑️ Excluir", type="secondary"):
-            st.session_state.confirm_delete = True
-
-        if st.session_state.get('confirm_delete', False):
-            st.error(f"Apagar {selected_student}?")
-            c1, c2 = st.columns(2)
-            if c1.button("✅ Sim"):
-                delete_student(selected_student) # Certifique-se que essa função está no código
-                st.session_state.confirm_delete = False
-                st.rerun()
-            if c2.button("❌ Não"):
-                st.session_state.confirm_delete = False
-                st.rerun()
-    else:
-        st.info("Aguardando preenchimento de novo aluno.")
-
-    st.divider()
+    if col_btn2.button("🗑️ Excluir", type="secondary"):
+        st.session_state.confirm_delete = True
     
     # --- RODAPÉ ---
     with st.expander("⚙️ Opções Avançadas"):
@@ -1506,6 +1490,7 @@ else:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
             preview_pdf(st.session_state.pdf_bytes_caso)
+
 
 
 

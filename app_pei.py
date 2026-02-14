@@ -57,93 +57,165 @@ def login():
         st.session_state.authenticated = False
 
     if not st.session_state.authenticated:
-        # --- CSS DA TELA DE LOGIN ---
+        # --- CSS DA TELA DE LOGIN (NO-SCROLL LAYOUT) ---
         st.markdown("""
             <style>
-                .login-header { text-align: center; margin-bottom: 30px; }
-                .login-icon { font-size: 4rem; margin-bottom: 10px; }
-                .login-title { font-size: 2.5rem; font-weight: 800; color: #1e3a8a; line-height: 1.1; }
-                .login-subtitle { font-size: 1.1rem; color: #64748b; font-weight: 400; margin-top: 5px; }
-                .privacy-box {
-                    background-color: #fff7ed; border-left: 6px solid #f97316;
-                    padding: 15px; border-radius: 8px; margin-bottom: 25px;
-                    font-size: 0.85rem; color: #9a3412; line-height: 1.5;
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+                /* Remove padding padrão do Streamlit para ocupar a tela toda */
+                .block-container {
+                    padding-top: 1rem !important;
+                    padding-bottom: 0rem !important;
+                    max-width: 100%;
                 }
-                .privacy-title { font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 0.9rem;}
+                
+                /* Fundo da Página */
+                [data-testid="stAppViewContainer"] {
+                    background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+                }
+                
+                /* Painel Esquerdo (Arte) */
+                .login-art-box {
+                    background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
+                    height: 550px;
+                    border-radius: 16px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    color: white;
+                    padding: 40px;
+                    text-align: center;
+                    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2);
+                }
+                
+                /* Painel Direito (Formulário) */
                 div[data-testid="stForm"] {
-                    background-color: white; padding: 2.5rem; border-radius: 16px;
-                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-                    border: 1px solid #e2e8f0;
+                    background-color: white;
+                    border: none;
+                    padding: 3rem;
+                    border-radius: 16px;
+                    height: 550px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
                 }
-                /* Inputs styling override */
-                .stTextInput label { font-weight: 600; color: #475569; }
+                
+                /* Tipografia */
+                .welcome-title {
+                    font-size: 2rem;
+                    font-weight: 700;
+                    color: #1e293b;
+                    margin-bottom: 5px;
+                }
+                .welcome-sub {
+                    font-size: 1rem;
+                    color: #64748b;
+                    margin-bottom: 30px;
+                }
+                
+                /* Inputs Customizados */
+                .stTextInput label {
+                    font-size: 0.85rem;
+                    color: #475569;
+                    font-weight: 600;
+                }
+                
+                /* Aviso LGPD */
+                .lgpd-box {
+                    background-color: #fff7ed;
+                    border-left: 4px solid #f97316;
+                    padding: 12px;
+                    margin-top: 20px;
+                    margin-bottom: 20px;
+                    border-radius: 6px;
+                }
+                .lgpd-title {
+                    color: #9a3412;
+                    font-weight: 700;
+                    font-size: 0.8rem;
+                    display: flex; 
+                    align-items: center; 
+                    gap: 6px;
+                }
+                .lgpd-text {
+                    color: #9a3412;
+                    font-size: 0.75rem;
+                    margin-top: 4px;
+                    line-height: 1.3;
+                }
             </style>
         """, unsafe_allow_html=True)
         
-        # Centralização Vertical e Horizontal
+        # Espaçamento para centralizar verticalmente na tela
         st.write("")
         st.write("")
-        col1, col2, col3 = st.columns([1, 1.4, 1])
+        st.write("")
+
+        # Layout em Colunas: Spacer, Arte, Form, Spacer
+        # [1, 3, 3, 1] cria um cartão centralizado dividido em 2 metades iguais
+        c_pad1, c_art, c_form, c_pad2 = st.columns([1, 3.5, 3.5, 1])
         
-        with col2:
+        with c_art:
             st.markdown("""
-                <div class="login-header">
-                    <div class="login-icon">🎓</div>
-                    <div class="login-title">SISTEMA INTEGRA</div>
-                    <div class="login-subtitle">Gestão de Educação Especial Inclusiva</div>
-                </div>
-                
-                <div class="privacy-box">
-                    <div class="privacy-title">🔒 CONFIDENCIALIDADE E SIGILO</div>
-                    Este sistema processa <b>dados pessoais sensíveis</b> de estudantes, protegidos pela 
-                    Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).
-                    <br><br>
-                    ⚠️ <b>O acesso é monitorado.</b> Ao prosseguir, você concorda em manter o sigilo absoluto das informações acessadas.
+                <div class="login-art-box">
+                    <div style="font-size: 5rem; margin-bottom: 1rem;">🎓</div>
+                    <h1 style="color: white; font-weight: 800; font-size: 3rem; margin: 0; line-height: 1;">INTEGRA</h1>
+                    <p style="font-size: 1.2rem; opacity: 0.9; font-weight: 300; margin-top: 10px;">Gestão de Educação<br>Especial Inclusiva</p>
+                    
+                    <div style="margin-top: 40px; width: 100%;">
+                        <hr style="border-color: rgba(255,255,255,0.2); margin-bottom: 20px;">
+                        <p style="font-style: italic; font-size: 0.9rem; opacity: 0.8;">
+                            "A inclusão acontece quando se aprende com as diferenças e não com as igualdades."
+                        </p>
+                    </div>
                 </div>
             """, unsafe_allow_html=True)
             
+        with c_form:
             with st.form("login_form"):
-                st.markdown("##### 🔐 Credenciais de Acesso")
-                user_id = st.text_input("Matrícula Funcional", placeholder="Ex: 12345")
-                password = st.text_input("Senha do Sistema", type="password", placeholder="••••••")
+                st.markdown('<div class="welcome-title">Bem-vindo(a)</div>', unsafe_allow_html=True)
+                st.markdown('<div class="welcome-sub">Insira suas credenciais para acessar o sistema.</div>', unsafe_allow_html=True)
                 
-                st.write("")
+                user_id = st.text_input("Matrícula Funcional", placeholder="Ex: 12345")
+                password = st.text_input("Senha", type="password", placeholder="••••••")
+                
+                st.markdown("""
+                    <div class="lgpd-box">
+                        <div class="lgpd-title">🔒 CONFIDENCIALIDADE E SIGILO</div>
+                        <div class="lgpd-text">
+                            Este sistema contém dados sensíveis protegidos pela LGPD. 
+                            O acesso é monitorado e exclusivo para fins pedagógicos.
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
                 submit = st.form_submit_button("ACESSAR SISTEMA", type="primary")
                 
                 if submit:
                     try:
-                        # 1. Busca a senha mestre nos Secrets (Segurança)
-                        # No painel do Streamlit Cloud, em Secrets, adicione:
-                        # [credentials]
-                        # password = "sua_senha_aqui"
-                        # Fallback seguro caso não haja secrets configurado
+                        # 1. Busca a senha mestre nos Secrets
                         SENHA_MESTRA = st.secrets.get("credentials", {}).get("password", "admin")
                         
-                        # 2. Busca a lista de professores na aba 'Professores'
+                        # 2. Busca a lista de professores
                         df_professores = conn.read(worksheet="Professores", ttl=0)
                         
-                        # --- TRATAMENTO DE DADOS (PARA NÃO DAR ERRO DE RECONHECIMENTO) ---
-                        # Converte para texto, remove o ".0" do final e tira espaços vazios
                         if not df_professores.empty:
                             df_professores['matricula'] = df_professores['matricula'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
                             user_id_limpo = str(user_id).strip()
                             
-                            # 3. Validação dupla (Senha + Matrícula na lista)
                             if password == SENHA_MESTRA and user_id_limpo in df_professores['matricula'].values:
-                                # Busca o nome do professor para personalizar a saudação
                                 registro = df_professores[df_professores['matricula'] == user_id_limpo]
                                 nome_prof = registro['nome'].values[0]
                                 
                                 st.session_state.authenticated = True
                                 st.session_state.usuario_nome = nome_prof
-                                st.toast(f"Bem-vindo(a), {nome_prof}!", icon="👋")
+                                st.toast(f"Acesso autorizado. Bem-vindo(a), {nome_prof}!", icon="🔓")
                                 time.sleep(1)
                                 st.rerun()
                             else:
-                                st.error("Acesso negado. Verifique sua matrícula e senha.")
+                                st.error("Credenciais inválidas.")
                         else:
-                            st.error("Não foi possível carregar a lista de professores.")
+                            st.error("Erro de conexão com a base de dados.")
                             
                     except Exception as e:
                         st.error(f"Erro técnico: {e}")
@@ -1532,7 +1604,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 student_hist = df_hist[df_hist["Aluno"] == data.get('nome')]
                 
                 if not student_hist.empty:
-                    # Ordenar por data (mais recente primeiro) se possível, ou apenas inverter
+                    # Ordenar por data (mais recente primeiro)
                     student_hist = student_hist.iloc[::-1]
                     st.dataframe(student_hist, use_container_width=True, hide_index=True)
                 else:

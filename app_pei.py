@@ -241,7 +241,26 @@ def safe_update(worksheet_name, data):
         st.error(f"Erro ao atualizar {worksheet_name}: {e}")
         return False
 
-def save_student(doc_type, name, data):
+def log_action(student_name, action, details=""):
+    """Registra uma ação no histórico do aluno."""
+    try:
+        user = st.session_state.get('usuario_nome', 'Desconhecido')
+        df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
+        
+        new_entry = {
+            "Data_Hora": datetime.now().strftime("%d/%m/%Y %H:%M"),
+            "Aluno": student_name,
+            "Usuario": user,
+            "Acao": action,
+            "Detalhes": details
+        }
+        
+        df_hist = pd.concat([pd.DataFrame([new_entry]), df_hist], ignore_index=True)
+        safe_update("Historico", df_hist)
+    except Exception as e:
+        print(f"Erro no log: {e}")
+
+def save_student(doc_type, name, data, section="Geral"):
     """Salva ou atualiza garantindo que não duplique linhas"""
     try:
         df_atual = load_db()
@@ -269,6 +288,10 @@ def save_student(doc_type, name, data):
             df_final = pd.concat([df_atual, pd.DataFrame([novo_registro])], ignore_index=True)
 
         conn.update(worksheet="Alunos", data=df_final)
+        
+        # Registra no histórico
+        log_action(name, f"Salvou {doc_type}", f"Seção: {section}")
+        
         st.toast(f"✅ Alterações em {name} salvas na nuvem!", icon="💾")
         
     except Exception as e:
@@ -282,6 +305,7 @@ def delete_student(student_name):
             df_new = df[df["nome"] != student_name]
             if len(df_new) < len(df):
                 conn.update(worksheet="Alunos", data=df_new)
+                log_action(student_name, "Exclusão", "Registro do aluno excluído")
                 st.toast(f"🗑️ Registro de {student_name} excluído com sucesso!", icon="🔥")
                 return True
     except Exception as e:
@@ -720,7 +744,7 @@ elif app_mode == "👥 Gestão de Alunos":
         
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
 
-        tabs = st.tabs(["1. Identificação", "2. Saúde", "3. Conduta", "4. Escolar", "5. Acadêmico", "6. Metas/Flex", "7. Emissão"])
+        tabs = st.tabs(["1. Identificação", "2. Saúde", "3. Conduta", "4. Escolar", "5. Acadêmico", "6. Metas/Flex", "7. Emissão", "8. Histórico"])
         data = st.session_state.data_pei
 
         # --- ABA 1: IDENTIFICAÇÃO ---
@@ -797,7 +821,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 st.markdown("---")
                 if st.form_submit_button("💾 Salvar Identificação"):
-                    save_student("PEI", data.get('nome'), data)
+                    save_student("PEI", data.get('nome'), data, "Identificação")
 
         # --- ABA 2: SAÚDE ---
         with tabs[1]:
@@ -859,7 +883,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 st.markdown("---")
                 if st.form_submit_button("💾 Salvar Saúde"):
-                    save_student("PEI", data.get('nome'), data)
+                    save_student("PEI", data.get('nome'), data, "Saúde")
 
         # --- ABA 3: CONDUTA ---
         with tabs[2]:
@@ -938,7 +962,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 st.markdown("---")
                 if st.form_submit_button("💾 Salvar Conduta"):
-                    save_student("PEI", data.get('nome'), data)
+                    save_student("PEI", data.get('nome'), data, "Conduta")
 
         # --- ABA 4: ESCOLAR ---
         with tabs[3]:
@@ -984,7 +1008,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 st.markdown("---")
                 if st.form_submit_button("💾 Salvar Escolar"):
-                    save_student("PEI", data.get('nome'), data)
+                    save_student("PEI", data.get('nome'), data, "Escolar")
 
         # --- ABA 5: ACADÊMICO ---
         with tabs[4]:
@@ -1034,7 +1058,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 st.markdown("---")
                 if st.form_submit_button("💾 Salvar Acadêmico"):
-                    save_student("PEI", data.get('nome'), data)
+                    save_student("PEI", data.get('nome'), data, "Acadêmico")
 
         # --- ABA 6: METAS E FLEXIBILIZAÇÃO ---
         with tabs[5]:
@@ -1104,13 +1128,16 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 st.markdown("---")
                 if st.form_submit_button("💾 Salvar Metas e Plano"):
-                    save_student("PEI", data.get('nome'), data)
+                    save_student("PEI", data.get('nome'), data, "Metas e Plano")
 
         # --- ABA 7: EMISSÃO ---
         with tabs[6]:
             st.info("Antes de gerar o PDF, certifique-se de ter clicado em 'Salvar' nas abas anteriores.")
-            if st.button("💾 SALVAR PEI COMPLETO", type="primary"): save_student("PEI", data['nome'], data)
+            if st.button("💾 SALVAR PEI COMPLETO", type="primary"): save_student("PEI", data['nome'], data, "Completo")
             if st.button("👁️ GERAR PDF COMPLETO"):
+                # Registrar ação de gerar PDF
+                log_action(data.get('nome'), "Gerou PDF", "PEI Completo")
+                
                 pdf = OfficialPDF('L', 'mm', 'A4'); pdf.add_page(); pdf.set_margins(10, 10, 10)
                 
                 # --- PÁGINA 1 ---
@@ -1455,6 +1482,26 @@ elif app_mode == "👥 Gestão de Alunos":
             if 'pdf_bytes' in st.session_state:
                 st.download_button("📥 BAIXAR PEI COMPLETO", st.session_state.pdf_bytes, f"PEI_{data.get('nome','aluno')}.pdf", "application/pdf", type="primary")
 
+        # --- ABA 8: HISTÓRICO ---
+        with tabs[7]:
+            st.subheader("Histórico de Atividades")
+            st.caption("Registro de alterações, salvamentos e geração de documentos.")
+            
+            df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
+            
+            if not df_hist.empty and data.get('nome'):
+                # Filtrar pelo aluno atual
+                student_hist = df_hist[df_hist["Aluno"] == data.get('nome')]
+                
+                if not student_hist.empty:
+                    # Ordenar por data (mais recente primeiro) se possível, ou apenas inverter
+                    student_hist = student_hist.iloc[::-1]
+                    st.dataframe(student_hist, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Nenhum histórico encontrado para este aluno.")
+            else:
+                st.info("O histórico está vazio ou aluno não selecionado.")
+
     # ESTUDO DE CASO COM FORMULÁRIOS
     elif doc_mode == "Estudo de Caso":
         st.markdown("""<div class="header-box"><div class="header-title">Estudo de Caso</div></div>""", unsafe_allow_html=True)
@@ -1470,7 +1517,7 @@ elif app_mode == "👥 Gestão de Alunos":
         
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
 
-        tabs = st.tabs(["1. Identificação", "2. Família", "3. Histórico", "4. Saúde", "5. Comportamento", "6. Gerar PDF"])
+        tabs = st.tabs(["1. Identificação", "2. Família", "3. Histórico", "4. Saúde", "5. Comportamento", "6. Gerar PDF", "7. Histórico"])
 
         # --- ABA 1: IDENTIFICAÇÃO ---
         with tabs[0]:
@@ -1503,7 +1550,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 st.markdown("---")
                 if st.form_submit_button("💾 Salvar Dados de Identificação"):
-                    save_student("CASO", data.get('nome'), data)
+                    save_student("CASO", data.get('nome'), data, "Identificação")
 
         # --- ABA 2: DADOS FAMILIARES ---
         with tabs[1]:
@@ -1547,7 +1594,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 st.markdown("---")
                 if st.form_submit_button("💾 Salvar Dados Familiares"):
-                    save_student("CASO", data.get('nome'), data)
+                    save_student("CASO", data.get('nome'), data, "Família")
 
         # --- ABA 3: HISTÓRICO ---
         with tabs[2]:
@@ -1599,7 +1646,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 st.markdown("---")
                 if st.form_submit_button("💾 Salvar Dados de Histórico"):
-                    save_student("CASO", data.get('nome'), data)
+                    save_student("CASO", data.get('nome'), data, "Histórico")
 
         # --- ABA 4: SAÚDE ---
         with tabs[3]:
@@ -1637,7 +1684,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 st.markdown("---")
                 if st.form_submit_button("💾 Salvar Dados de Saúde"):
-                    save_student("CASO", data.get('nome'), data)
+                    save_student("CASO", data.get('nome'), data, "Saúde")
 
         # --- ABA 5: COMPORTAMENTO ---
         with tabs[4]:
@@ -1685,14 +1732,17 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 st.markdown("---")
                 if st.form_submit_button("💾 Salvar Comportamento"):
-                    save_student("CASO", data.get('nome'), data)
+                    save_student("CASO", data.get('nome'), data, "Comportamento")
 
         # --- ABA 6: GERAR PDF (ESTUDO DE CASO) ---
         with tabs[5]:
             if st.button("💾 SALVAR ESTUDO DE CASO", type="primary"): 
-                save_student("CASO", data.get('nome', 'aluno'), data)
+                save_student("CASO", data.get('nome', 'aluno'), data, "Completo")
 
             if st.button("👁️ GERAR PDF"):
+                # Registrar ação de gerar PDF
+                log_action(data.get('nome'), "Gerou PDF", "Estudo de Caso")
+                
                 # Cria PDF em Retrato ('P')
                 pdf = OfficialPDF('P', 'mm', 'A4')
                 pdf.add_page(); pdf.set_margins(15, 15, 15)
@@ -1940,3 +1990,23 @@ elif app_mode == "👥 Gestão de Alunos":
 
             if 'pdf_bytes_caso' in st.session_state:
                 st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
+
+        # --- ABA 7: HISTÓRICO ---
+        with tabs[6]:
+            st.subheader("Histórico de Atividades")
+            st.caption("Registro de alterações, salvamentos e geração de documentos.")
+            
+            df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
+            
+            if not df_hist.empty and data.get('nome'):
+                # Filtrar pelo aluno atual
+                student_hist = df_hist[df_hist["Aluno"] == data.get('nome')]
+                
+                if not student_hist.empty:
+                    # Ordenar por data (mais recente primeiro)
+                    student_hist = student_hist.iloc[::-1]
+                    st.dataframe(student_hist, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Nenhum histórico encontrado para este aluno.")
+            else:
+                st.info("O histórico está vazio ou aluno não selecionado.")

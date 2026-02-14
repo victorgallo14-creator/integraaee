@@ -417,20 +417,18 @@ with col_user:
 st.divider()
 
 # Seleção de Aluno e Documento em colunas horizontais
+# --- ÁREA DE SELEÇÃO (LOGO ABAIXO DO TÍTULO) ---
 c1, c2, c3 = st.columns([2, 1, 1])
 
 with c1:
     df_db = load_db()
-    
-    # 1. TRATAMENTO DO ERRO (TYPEERROR):
+    # Tratamento para evitar o erro do print anterior
     if not df_db.empty and "nome" in df_db.columns:
-        # Extraímos os nomes, removemos os nulos (.dropna) e garantimos que tudo é texto (str)
-        lista_crua = df_db["nome"].dropna().unique().tolist()
-        lista_nomes = sorted([str(nome) for nome in lista_crua])
+        lista_nomes = sorted([str(x) for x in df_db["nome"].dropna().unique()])
     else:
         lista_nomes = []
 
-    # 2. SELECTBOX NO CORPO PRINCIPAL:
+    # Aqui aparecerá a lista de nomes
     selected_student = st.selectbox(
         "👨‍🎓 Selecionar Estudante", 
         ["-- Novo Registro --"] + lista_nomes, 
@@ -439,20 +437,18 @@ with c1:
     )
 
 with c2:
+    # Aqui aparecerá a opção PEI ou Estudo de Caso
     doc_mode = st.radio(
         "📂 Tipo de Documento", 
         ["PEI", "Estudo de Caso"], 
-        key="doc_option", 
+        key="doc_option",
         horizontal=True
     )
 
 with c3:
+    # Opção de nível (apenas se for PEI)
     if "PEI" in doc_mode:
         pei_level = st.selectbox("🏫 Nível", ["Fundamental", "Infantil"], key="pei_level_choice")
-    else:
-        st.write("") # Espaçador para manter o alinhamento
-
-st.markdown('</div>', unsafe_allow_html=True)
 
 # ==============================================================================
 # PEI
@@ -1614,6 +1610,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

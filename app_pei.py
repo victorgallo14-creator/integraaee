@@ -970,7 +970,7 @@ if "PEI" in doc_mode:
                 pdf.cell(0, 8, clean_pdf_text(titulo), 1, 1, 'L', 1)
                 pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "Metas / Habilidades:", "LTR", 1)
                 pdf.set_font("Arial", "", 10); pdf.multi_cell(0, 5, clean_pdf_text(meta if meta else "---"), "LRB")
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("Estratégias:"), "LTR", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 5, clean_pdf_text("Estratégias:"), "LTR", 1)
                 pdf.set_font("Arial", "", 10); pdf.multi_cell(0, 5, clean_pdf_text(estrategia if estrategia else "---"), "LRB")
                 pdf.ln(2)
 
@@ -1608,6 +1608,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

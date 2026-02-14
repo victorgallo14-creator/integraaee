@@ -411,60 +411,130 @@ def carregar_dados_aluno():
         
     except Exception as e:
         st.info("Pronto para novo preenchimento.")
+                
+# --- CSS PARA ESTILIZAR A SIDEBAR ---
+st.markdown("""
+<style>
+    /* Estilo do Card do Professor */
+    .prof-card {
+        background-color: #f0f2f6;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        margin-bottom: 20px;
+        border: 1px solid #e0e0e0;
+    }
+    .prof-label {
+        color: #64748b;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    .prof-name {
+        color: #1e3a8a;
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-top: 5px;
+    }
+    
+    /* Melhorar espaçamento dos radios */
+    .stRadio { margin-bottom: 15px; }
+</style>
+""", unsafe_allow_html=True)
 
 # --- BARRA LATERAL ---
 with st.sidebar:
-    st.markdown('<div class="sidebar-header">', unsafe_allow_html=True)
-    st.markdown("""<div class="sidebar-title">SISTEMA INTEGRA</div>
-        <div class="sidebar-subtitle">Gestão de Educação Especial do CEIEF Rafael Affonso Leite - Uso Interno</div></div>""", unsafe_allow_html=True)
+    # 1. CABEÇALHO (Logo e Título)
+    # Se tiver logo, descomente a linha abaixo:
+    # st.image("seu_logo.png", width=150) 
+    
+    st.markdown("""
+        <div style="text-align: center; padding-bottom: 10px;">
+            <h1 style="color: #1e3a8a; font-size: 1.8rem; margin:0;">SISTEMA INTEGRA</h1>
+            <p style="color: #64748b; font-size: 0.9rem; margin-top: -5px;">Gestão de Educação Especial</p>
+        </div>
+    """, unsafe_allow_html=True)
 
-    st.divider()           
-    st.sidebar.markdown(f"👤 **Docente:** {st.session_state.get('usuario_nome', 'Professor')}")
+    # 2. CARD DO USUÁRIO (Aquele que arrumamos antes)
+    nome_prof = st.session_state.get('usuario_nome', 'Professor')
+    st.markdown(f"""
+        <div class="prof-card">
+            <div class="prof-label">Docente Logado</div>
+            <div class="prof-name">👤 {nome_prof}</div>
+        </div>
+    """, unsafe_allow_html=True)
 
     st.divider()
 
-    default_doc_idx = 0
-    st.markdown("### 👨‍🎓 Selecionar Estudante")
-    df_db = load_db()
-    lista_nomes = df_db["nome"].dropna().tolist() if not df_db.empty else []
+    # 3. SELEÇÃO DO ESTUDANTE
+    # Usamos um container para agrupar visualmente
+    with st.container():
+        st.markdown("### 🎓 Estudante")
+        
+        df_db = load_db() # Função que carrega seus dados
+        lista_nomes = df_db["nome"].dropna().tolist() if not df_db.empty else []
+        
+        selected_student = st.selectbox(
+            "Selecione o arquivo:", 
+            options=["-- Novo Registro --"] + lista_nomes,
+            key="aluno_selecionado",
+            on_change=carregar_dados_aluno,
+            label_visibility="collapsed", # Esconde o label padrão repetitivo
+            placeholder="Buscar aluno..."
+        )
 
-    # SELECTBOX ÚNICA (on_change faz carregar automático)
-    selected_student = st.selectbox(
-        "Selecione o Estudante:", 
-        options=["-- Novo Registro --"] + lista_nomes,
-        key="aluno_selecionado",
-        on_change=carregar_dados_aluno,
+        # Lógica para detectar se é CASO automaticamente (seu código original)
+        default_doc_idx = 0
+        if selected_student != "-- Novo Registro --":
+            df_aluno = df_db[df_db["nome"] == selected_student]
+            if not df_aluno.empty and df_aluno.iloc[0]["tipo_doc"] == "CASO":
+                default_doc_idx = 1
+
+    # 4. TIPO DE DOCUMENTO
+    st.markdown("### 📂 Documento")
+    doc_mode = st.radio(
+        "Selecione o modo:", 
+        ["PEI (Plano Educacional)", "Estudo de Caso"],
+        index=default_doc_idx, 
+        key="doc_option", 
         label_visibility="collapsed"
     )
 
-    if selected_student != "-- Novo Registro --":
-        # Se na lista o nome contiver (CASO), muda o rádio automaticamente
-        df_aluno = df_db[df_db["nome"] == selected_student]
-        if not df_aluno.empty and df_aluno.iloc[0]["tipo_doc"] == "CASO":
-            default_doc_idx = 1
-
-    st.markdown("### 📂 Tipo de Documento")
-    doc_mode = st.radio(
-        "Documento:", ["PEI (Plano Educacional)", "Estudo de Caso"],
-        index=default_doc_idx, key="doc_option", label_visibility="collapsed"
-    )
-
+    # 5. NÍVEL DE ENSINO (Aparece só se for PEI)
     if "PEI" in doc_mode:
-        st.markdown("### 🏫 Nível de Ensino")
-        pei_level = st.selectbox("Nível:", ["Fundamental", "Infantil"], key="pei_level_choice")
+        st.info("🏫 **Nível de Ensino:**")
+        pei_level = st.selectbox(
+            "Nível:", 
+            ["Fundamental", "Infantil"], 
+            key="pei_level_choice",
+            label_visibility="collapsed"
+        )
     else:
         pei_level = None
 
+    # Espaçador para empurrar o rodapé para baixo visualmente
+    st.markdown("<br><br>", unsafe_allow_html=True)
     st.divider()
-    
-    # Botões de ação secundários
-    if selected_student != "-- Novo Registro --":
-        if st.button("🗑️ Excluir Registro", type="secondary", use_container_width=True):
-            st.session_state.confirm_delete = True
 
-    if st.button("🚪 SAIR DO SISTEMA", use_container_width=True):
-        for key in list(st.session_state.keys()): del st.session_state[key]
-        st.rerun()
+    # 6. RODAPÉ (Ações Críticas)
+    col_sair, col_del = st.columns([1.2, 1])
+
+    with col_sair:
+        if st.button("🚪 Sair", type="primary", use_container_width=True):
+            for key in list(st.session_state.keys()): del st.session_state[key]
+            st.rerun()
+            
+    with col_del:
+        # Coloquei o botão de excluir dentro de um popover (nativo do Streamlit novo)
+        # ou deixamos ele 'secondary' para não chamar tanta atenção quanto o salvar
+        if selected_student != "-- Novo Registro --":
+            if st.button("🗑️ Excluir", type="secondary", use_container_width=True, help="Apagar este aluno"):
+                st.session_state.confirm_delete = True
+
+    # 7. MENU ADMINISTRATIVO (Discreto)
+    if st.checkbox("👁️ Modo Diretor", key="modo_diretor"):
+         st.caption("Histórico de alterações ativado na página principal.")
 
 # ==============================================================================
 # PEI
@@ -1643,6 +1713,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

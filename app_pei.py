@@ -190,15 +190,12 @@ st.markdown("""
 DB_FILE = "banco_dados_aee_final.json"
 
 def load_db():
-    """Lê os dados da planilha do Google"""
     try:
-        # Tenta ler a aba chamada 'Alunos'
+        # Tenta ler a aba Alunos
         df = conn.read(worksheet="Alunos", ttl=0)
-        # Remove linhas completamente vazias
-        df = df.dropna(how="all")
-        return df
+        return df if df is not None else pd.DataFrame(columns=["nome", "tipo_doc", "dados_json"])
     except Exception as e:
-        # Se a planilha estiver vazia ou der erro, retorna um DataFrame com as colunas certas
+        # Se der erro, retorna estrutura vazia para não travar o sorted
         return pd.DataFrame(columns=["nome", "tipo_doc", "dados_json"])
 
 def save_student(doc_type, name, data):
@@ -1623,6 +1620,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

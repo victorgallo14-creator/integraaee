@@ -21,7 +21,7 @@ st.markdown("""
         border-radius: 12px;
         border-left: 6px solid #2563eb;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
+        margin-bottom: -100px;
         display: block;
         height: auto;
     }
@@ -1609,6 +1609,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

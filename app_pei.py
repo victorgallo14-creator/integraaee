@@ -452,6 +452,8 @@ with c3:
     else:
         st.write("") # Espaçador
 
+
+
 # FECHAMENTO DA PRIMEIRA CAIXA
 # ==============================================================================
 # PEI
@@ -1613,6 +1615,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

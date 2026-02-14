@@ -18,7 +18,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 st.set_page_config(
     page_title="Integra | Sistema AEE",
     layout="wide",
-    page_icon="🎓",
+    page_icon="🧠",
     initial_sidebar_state="auto"
 )
 
@@ -75,8 +75,8 @@ def login():
                 /* Painel Esquerdo (Arte) */
                 .login-art-box {
                     background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
-                    height: 550px;
-                    border-radius: 16px;
+                    height: 600px; /* Altura fixa para alinhar */
+                    border-radius: 16px 0 0 16px; /* Arredondado apenas na esquerda */
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
@@ -84,33 +84,40 @@ def login():
                     color: white;
                     padding: 40px;
                     text-align: center;
-                    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2);
+                    box-shadow: -5px 10px 25px rgba(37, 99, 235, 0.2);
                 }
                 
                 /* Painel Direito (Formulário) */
-                div[data-testid="stForm"] {
+                .login-form-container {
                     background-color: white;
                     border: none;
-                    padding: 3rem;
-                    border-radius: 16px;
-                    height: 550px;
+                    padding: 2rem 3rem;
+                    border-radius: 0 16px 16px 0; /* Arredondado apenas na direita */
+                    height: 600px; /* Mesma altura da arte */
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
-                    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+                    box-shadow: 5px 10px 25px rgba(0,0,0,0.05);
                 }
                 
+                /* Força o formulário a ser transparente para pegar o fundo do container */
+                div[data-testid="stForm"] {
+                    background-color: transparent;
+                    border: none;
+                    padding: 0;
+                }
+
                 /* Tipografia */
                 .welcome-title {
-                    font-size: 2rem;
+                    font-size: 1.8rem;
                     font-weight: 700;
                     color: #1e293b;
                     margin-bottom: 5px;
                 }
                 .welcome-sub {
-                    font-size: 1rem;
+                    font-size: 0.95rem;
                     color: #64748b;
-                    margin-bottom: 30px;
+                    margin-bottom: 20px;
                 }
                 
                 /* Inputs Customizados */
@@ -124,24 +131,24 @@ def login():
                 .lgpd-box {
                     background-color: #fff7ed;
                     border-left: 4px solid #f97316;
-                    padding: 12px;
-                    margin-top: 20px;
-                    margin-bottom: 20px;
+                    padding: 10px;
+                    margin-top: 15px;
+                    margin-bottom: 15px;
                     border-radius: 6px;
                 }
                 .lgpd-title {
                     color: #9a3412;
                     font-weight: 700;
-                    font-size: 0.8rem;
+                    font-size: 0.75rem;
                     display: flex; 
                     align-items: center; 
                     gap: 6px;
                 }
                 .lgpd-text {
                     color: #9a3412;
-                    font-size: 0.75rem;
-                    margin-top: 4px;
-                    line-height: 1.3;
+                    font-size: 0.7rem;
+                    margin-top: 2px;
+                    line-height: 1.2;
                 }
             </style>
         """, unsafe_allow_html=True)
@@ -149,33 +156,45 @@ def login():
         # Espaçamento para centralizar verticalmente na tela
         st.write("")
         st.write("")
-        st.write("")
 
         # Layout em Colunas: Spacer, Arte, Form, Spacer
-        # [1, 3, 3, 1] cria um cartão centralizado dividido em 2 metades iguais
-        c_pad1, c_art, c_form, c_pad2 = st.columns([1, 3.5, 3.5, 1])
+        # Ajuste de proporção para ficar elegante
+        c_pad1, c_art, c_form, c_pad2 = st.columns([1, 4, 4, 1])
         
+        # --- LADO ESQUERDO (ARTE AZUL) ---
         with c_art:
             st.markdown("""
                 <div class="login-art-box">
-                    <div style="font-size: 5rem; margin-bottom: 1rem;">🎓</div>
-                    <h1 style="color: white; font-weight: 800; font-size: 3rem; margin: 0; line-height: 1;">INTEGRA</h1>
+                    <div style="font-size: 6rem; margin-bottom: 1rem; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));">🧠</div>
+                    <h1 style="color: white; font-weight: 800; font-size: 3.5rem; margin: 0; line-height: 1;">INTEGRA</h1>
                     <p style="font-size: 1.2rem; opacity: 0.9; font-weight: 300; margin-top: 10px;">Gestão de Educação<br>Especial Inclusiva</p>
                     
                     <div style="margin-top: 40px; width: 100%;">
-                        <hr style="border-color: rgba(255,255,255,0.2); margin-bottom: 20px;">
-                        <p style="font-style: italic; font-size: 0.9rem; opacity: 0.8;">
+                        <hr style="border-color: rgba(255,255,255,0.3); margin-bottom: 20px;">
+                        <p style="font-style: italic; font-size: 1rem; opacity: 0.9;">
                             "A inclusão acontece quando se aprende com as diferenças e não com as igualdades."
                         </p>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
             
+        # --- LADO DIREITO (FORMULÁRIO BRANCO) ---
         with c_form:
+            # Container CSS customizado para garantir o fundo branco e altura correta
+            st.markdown('<div class="login-form-container">', unsafe_allow_html=True)
+            
+            # Logo da Escola (Se existir)
+            if os.path.exists("logo_escola.png"):
+                # Centraliza a imagem usando colunas
+                cl1, cl2, cl3 = st.columns([1, 1.5, 1])
+                with cl2:
+                    st.image("logo_escola.png", use_container_width=True)
+                st.write("") # Espaço após logo
+            
+            st.markdown('<div class="welcome-title">Bem-vindo(a)</div>', unsafe_allow_html=True)
+            st.markdown('<div class="welcome-sub">Insira suas credenciais para acessar o sistema.</div>', unsafe_allow_html=True)
+            
             with st.form("login_form"):
-                st.markdown('<div class="welcome-title">Bem-vindo(a)</div>', unsafe_allow_html=True)
-                st.markdown('<div class="welcome-sub">Insira suas credenciais para acessar o sistema.</div>', unsafe_allow_html=True)
-                
                 user_id = st.text_input("Matrícula Funcional", placeholder="Ex: 12345")
                 password = st.text_input("Senha", type="password", placeholder="••••••")
                 
@@ -183,8 +202,7 @@ def login():
                     <div class="lgpd-box">
                         <div class="lgpd-title">🔒 CONFIDENCIALIDADE E SIGILO</div>
                         <div class="lgpd-text">
-                            Este sistema contém dados sensíveis protegidos pela LGPD. 
-                            O acesso é monitorado e exclusivo para fins pedagógicos.
+                            Acesso monitorado. Dados sensíveis protegidos pela LGPD. Uso exclusivo pedagógico.
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
@@ -219,6 +237,8 @@ def login():
                             
                     except Exception as e:
                         st.error(f"Erro técnico: {e}")
+
+            st.markdown('</div>', unsafe_allow_html=True) # Fecha container
         
         # Interrompe o carregamento do restante do app até que o login seja feito
         st.stop()

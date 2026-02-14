@@ -281,11 +281,11 @@ def delete_student(student_key):
     
     st.toast(f"✅ Documento de {name} salvo com sucesso!", icon="💾")
 
-from streamlit_autorefresh import st_autorefresh
+#from streamlit_autorefresh import st_autorefresh
 
 # --- CONFIGURAÇÃO DO SALVAMENTO AUTOMÁTICO ---
 # O intervalo é em milissegundos (60000ms = 1 minuto)
-count = st_autorefresh(interval=60000, key="autosave_counter")
+#count = st_autorefresh(interval=60000, key="autosave_counter")
 
 def auto_save():
     # 1. Verifica se o usuário está logado
@@ -308,8 +308,8 @@ def auto_save():
                 save_student("CASO", st.session_state.data_case['nome'], st.session_state.data_case)
 
 # Se o contador do autorefresh subir, ele executa a função
-if count > 0:
-    auto_save()
+#if count > 0:
+    #auto_save()
 
 # --- ESTILO VISUAL DA INTERFACE ---
 st.markdown("""
@@ -1744,6 +1744,7 @@ else:
         # Botão de Download (Fora do if do botão Gerar, mas dentro da tab)
         if 'pdf_bytes_caso' in st.session_state:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
+
 
 
 

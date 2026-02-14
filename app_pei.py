@@ -421,7 +421,16 @@ c1, c2, c3 = st.columns([2, 1, 1])
 
 with c1:
     df_db = load_db()
-    lista_nomes = sorted(df_db["nome"].unique().tolist()) if not df_db.empty else []
+    
+    # 1. TRATAMENTO DO ERRO (TYPEERROR):
+    if not df_db.empty and "nome" in df_db.columns:
+        # Extraímos os nomes, removemos os nulos (.dropna) e garantimos que tudo é texto (str)
+        lista_crua = df_db["nome"].dropna().unique().tolist()
+        lista_nomes = sorted([str(nome) for nome in lista_crua])
+    else:
+        lista_nomes = []
+
+    # 2. SELECTBOX NO CORPO PRINCIPAL:
     selected_student = st.selectbox(
         "👨‍🎓 Selecionar Estudante", 
         ["-- Novo Registro --"] + lista_nomes, 
@@ -1605,6 +1614,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

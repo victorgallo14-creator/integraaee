@@ -10,7 +10,6 @@ import json
 from streamlit_gsheets import GSheetsConnection
 
 conn = st.connection("gsheets", type=GSheetsConnection)
-st.set_page_config(initial_sidebar_state="collapsed")
 
 # --- OCULTAR TOOLBAR E MENU ---
 hide_st_style = """
@@ -237,7 +236,7 @@ def save_student(doc_type, name, data):
 
         # 4. Envia para a planilha
         conn.update(worksheet="Alunos", data=df_final)
-        st.toast(f" Alterações em {name} salvas automaticamente!", icon="💾")
+        st.toast(f"✅ Alterações em {name} salvas na mesma linha!", icon="💾")
         
     except Exception as e:
         st.error(f"Erro ao salvar sem duplicar: {e}")
@@ -400,50 +399,54 @@ def carregar_dados_aluno():
         st.info("Pronto para novo preenchimento.")
 
 # --- BARRA LATERAL ---
-# --- PAINEL DE CONTROLE CENTRAL ---
-st.markdown('<div class="header-box">', unsafe_allow_html=True)
-col_logo, col_titulo, col_user = st.columns([1, 4, 2])
+with st.sidebar:
+    st.markdown('<div class="sidebar-header">', unsafe_allow_html=True)
+    st.markdown("""<div class="sidebar-title">SISTEMA INTEGRA RAFAEL</div>
+        <div class="sidebar-subtitle">Gestão de Educação Especial</div></div>""", unsafe_allow_html=True)
+    st.divider()
 
-with col_titulo:
-    st.title("SISTEMA INTEGRA RAFAEL")
-    st.subheader("Gestão de Educação Especial")
-
-with col_user:
-    st.write(f"👤 **Docente:** {st.session_state.get('usuario_nome', 'Professor')}")
-    if st.button("🚪 Sair do Sistema"):
-        st.session_state.clear()
-        st.rerun()
-
-st.divider()
-
-# Seleção de Aluno e Documento em colunas horizontais
-c1, c2, c3 = st.columns([2, 1, 1])
-
-with c1:
+    default_doc_idx = 0
+    st.markdown("### 👤 Selecionar Estudante")
     df_db = load_db()
-    lista_nomes = sorted(df_db["nome"].unique().tolist()) if not df_db.empty else []
+    lista_nomes = df_db["nome"].dropna().tolist() if not df_db.empty else []
+
+    # SELECTBOX ÚNICA (on_change faz carregar automático)
     selected_student = st.selectbox(
-        "👨‍🎓 Selecionar Estudante", 
-        ["-- Novo Registro --"] + lista_nomes, 
-        key="aluno_selecionado", 
-        on_change=carregar_dados_aluno
+        "Selecione o Estudante:", 
+        options=["-- Novo Registro --"] + lista_nomes,
+        key="aluno_selecionado",
+        on_change=carregar_dados_aluno,
+        label_visibility="collapsed"
     )
 
-with c2:
+    if selected_student != "-- Novo Registro --":
+        # Se na lista o nome contiver (CASO), muda o rádio automaticamente
+        df_aluno = df_db[df_db["nome"] == selected_student]
+        if not df_aluno.empty and df_aluno.iloc[0]["tipo_doc"] == "CASO":
+            default_doc_idx = 1
+
+    st.markdown("### 📂 Tipo de Documento")
     doc_mode = st.radio(
-        "📂 Tipo de Documento", 
-        ["PEI", "Estudo de Caso"], 
-        key="doc_option", 
-        horizontal=True
+        "Documento:", ["PEI (Plano Educacional)", "Estudo de Caso"],
+        index=default_doc_idx, key="doc_option", label_visibility="collapsed"
     )
 
-with c3:
     if "PEI" in doc_mode:
-        pei_level = st.selectbox("🏫 Nível", ["Fundamental", "Infantil"], key="pei_level_choice")
+        st.markdown("### 🏫 Nível de Ensino")
+        pei_level = st.selectbox("Nível:", ["Fundamental", "Infantil"], key="pei_level_choice")
     else:
-        st.write("") # Espaçador para manter o alinhamento
+        pei_level = None
 
-st.markdown('</div>', unsafe_allow_html=True)
+    st.divider()
+    
+    # Botões de ação secundários
+    if selected_student != "-- Novo Registro --":
+        if st.button("🗑️ Excluir Registro", type="secondary", use_container_width=True):
+            st.session_state.confirm_delete = True
+
+    if st.button("🚪 SAIR DO SISTEMA", use_container_width=True):
+        for key in list(st.session_state.keys()): del st.session_state[key]
+        st.rerun()
 
 # ==============================================================================
 # PEI
@@ -1605,11 +1608,6 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
-
-
-
-
-
 
 
 

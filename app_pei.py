@@ -5,6 +5,8 @@ import io
 import os
 import base64
 import json
+import tempfile
+from PIL import Image
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 
@@ -425,6 +427,24 @@ with st.sidebar:
         on_change=carregar_dados_aluno,
         label_visibility="collapsed"
     )
+
+    # --- FOTO NA SIDEBAR ---
+    current_photo_sb = None
+    if selected_student != "-- Novo Registro --":
+        # Tenta pegar da memória (session_state) se já carregou
+        # Se for PEI
+        if st.session_state.get('data_pei', {}).get('nome') == selected_student:
+             current_photo_sb = st.session_state.data_pei.get('foto_base64')
+        # Se for Caso
+        elif st.session_state.get('data_case', {}).get('nome') == selected_student:
+             current_photo_sb = st.session_state.data_case.get('foto_base64')
+             
+    if current_photo_sb:
+        try:
+            img_bytes_sb = base64.b64decode(current_photo_sb)
+            st.image(img_bytes_sb, use_container_width=True)
+        except:
+            pass
     
     # Lógica de auto-seleção
     default_doc_idx = 0
@@ -496,22 +516,54 @@ if "PEI" in doc_mode:
     with tabs[0]:
         with st.form("form_pei_identificacao"):
             st.subheader("1. Identificação")
-            c1, c2 = st.columns([3, 1])
-            data['nome'] = c1.text_input("Nome", value=data.get('nome', ''), disabled=True)
             
-            d_val = data.get('nasc')
-            if isinstance(d_val, str): 
-                try: d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
-                except: d_val = date.today()
-            data['nasc'] = c2.date_input("Nascimento", value=d_val if d_val else date.today())
+            # --- LAYOUT COM FOTO ---
+            col_img, col_data = st.columns([1, 4])
             
-            c3, c4 = st.columns(2)
-            data['idade'] = c3.text_input("Idade", value=data.get('idade', ''))
-            data['ano_esc'] = c4.text_input("Ano Escolar", value=data.get('ano_esc', ''))
+            with col_img:
+                st.markdown("📷 **Foto**")
+                # Se ja tiver foto, mostra
+                if data.get('foto_base64'):
+                    try:
+                        b = base64.b64decode(data['foto_base64'])
+                        st.image(b, use_container_width=True)
+                        if st.checkbox("Remover", key="rem_foto_pei"):
+                            data['foto_base64'] = None
+                    except:
+                        st.error("Erro foto")
+                
+                # Upload
+                uploaded_photo = st.file_uploader("Carregar", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key="up_foto_pei")
+                if uploaded_photo:
+                    try:
+                        img = Image.open(uploaded_photo)
+                        if img.mode != 'RGB': img = img.convert('RGB')
+                        # Resize para não pesar no banco
+                        img.thumbnail((300, 400))
+                        buf = io.BytesIO()
+                        img.save(buf, format="JPEG", quality=85)
+                        data['foto_base64'] = base64.b64encode(buf.getvalue()).decode()
+                        st.success("OK!")
+                    except Exception as e:
+                        st.error(f"Erro: {e}")
             
-            data['mae'] = st.text_input("Nome da Mãe", value=data.get('mae', ''))
-            data['pai'] = st.text_input("Nome do Pai", value=data.get('pai', ''))
-            data['tel'] = st.text_input("Telefone", value=data.get('tel', ''))
+            with col_data:
+                c1, c2 = st.columns([3, 1])
+                data['nome'] = c1.text_input("Nome", value=data.get('nome', ''), disabled=True)
+                
+                d_val = data.get('nasc')
+                if isinstance(d_val, str): 
+                    try: d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
+                    except: d_val = date.today()
+                data['nasc'] = c2.date_input("Nascimento", value=d_val if d_val else date.today())
+                
+                c3, c4 = st.columns(2)
+                data['idade'] = c3.text_input("Idade", value=data.get('idade', ''))
+                data['ano_esc'] = c4.text_input("Ano Escolar", value=data.get('ano_esc', ''))
+                
+                data['mae'] = st.text_input("Nome da Mãe", value=data.get('mae', ''))
+                data['pai'] = st.text_input("Nome do Pai", value=data.get('pai', ''))
+                data['tel'] = st.text_input("Telefone", value=data.get('tel', ''))
             
             st.markdown("**Docentes Responsáveis**")
             d1, d2, d3 = st.columns(3)
@@ -860,8 +912,23 @@ if "PEI" in doc_mode:
             pdf.ln(8); pdf.set_font("Arial", "B", 14)
             pdf.cell(297, 8, clean_pdf_text("PLANO EDUCACIONAL ESPECIALIZADO - PEI"), 0, 1, 'C')
             
-            pdf.rect(256, 53, 30, 40)
-            pdf.set_xy(255.5, 70); pdf.set_font("Arial", "", 9); pdf.cell(30, 5, "FOTO", 0, 0, 'C')
+            # --- FOTO ---
+            # Retângulo da foto: x=256, y=53, w=30, h=40
+            if data.get('foto_base64'):
+                try:
+                    img_data = base64.b64decode(data.get('foto_base64'))
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+                        tmp_file.write(img_data)
+                        tmp_path = tmp_file.name
+                    pdf.image(tmp_path, 256, 53, 30, 40)
+                    os.unlink(tmp_path)
+                    pdf.rect(256, 53, 30, 40) # Borda
+                except:
+                    pdf.rect(256, 53, 30, 40)
+                    pdf.set_xy(255.5, 70); pdf.set_font("Arial", "", 8); pdf.cell(30, 5, "Erro", 0, 0, 'C')
+            else:
+                pdf.rect(256, 53, 30, 40)
+                pdf.set_xy(255.5, 70); pdf.set_font("Arial", "", 9); pdf.cell(30, 5, "FOTO", 0, 0, 'C')
             
             pdf.set_xy(10, 48); table_w = 240; h = 9 
             pdf.section_title("1. IDENTIFICAÇÃO DO ESTUDANTE", width=table_w) 

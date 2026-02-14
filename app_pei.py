@@ -959,7 +959,7 @@ if "PEI" in doc_mode:
 
             # --- 6. METAS (PDF - IGUAL PARA AMBOS) ---
             pdf.ln(5)
-            if pdf.get_y() > 230: pdf.add_page()
+            if pdf.get_y() > 220: pdf.add_page()
             
             pdf.section_title("6. METAS ESPECÍFICAS PARA O ANO EM CURSO", width=0)
             pdf.ln(2)
@@ -1608,6 +1608,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

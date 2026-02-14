@@ -398,66 +398,39 @@ def carregar_dados_aluno():
 
 # --- BARRA LATERAL ---
 # --- PAINEL DE CONTROLE CENTRAL ---
+# --- ABERTURA DA PRIMEIRA CAIXA BRANCA ---
 st.markdown('<div class="header-box">', unsafe_allow_html=True)
-col_logo, col_titulo, col_user = st.columns([1, 4, 2])
 
-with col_titulo:
-    st.title("SISTEMA INTEGRA RAFAEL")
-    st.subheader("Gestão de Educação Especial")
+col_txt, col_user = st.columns([2, 1])
+
+with col_txt:
+    st.markdown('<h1 style="margin:0;">SISTEMA INTEGRA RAFAEL</h1>', unsafe_allow_html=True)
+    st.markdown('<p style="font-size:1.2rem; color:#64748b;">Gestão de Educação Especial</p>', unsafe_allow_html=True)
 
 with col_user:
-    st.write(f"👤 **Docente:** {st.session_state.get('usuario_nome', 'Professor')}")
+    st.markdown(f"👤 **Docente:** {st.session_state.get('usuario_nome', 'José Victor Souza Gallo')}")
     if st.button("🚪 Sair do Sistema"):
         st.session_state.clear()
         st.rerun()
 
 st.divider()
 
-# Seleção de Aluno e Documento em colunas horizontais
-# --- ÁREA DE SELEÇÃO (LOGO ABAIXO DO TÍTULO) ---
-# --- NOVO PAINEL DE CONTROLE CENTRAL (RECORTE E COLE) ---
-st.markdown('<div class="header-box">', unsafe_allow_html=True)
-
-# Criamos as colunas dentro do container
+# Colunas de Seleção (dentro da caixa)
 c1, c2, c3 = st.columns([2, 1, 1])
 
 with c1:
-    try:
-        df_db = load_db()
-        # Garante que a lista não quebre o sorted nem o selectbox
-        if not df_db.empty and "nome" in df_db.columns:
-            # Converte para string, remove nulos e ordena de forma segura
-            lista_nomes = sorted([str(x) for x in df_db["nome"].dropna().unique() if str(x).strip() != ""])
-        else:
-            lista_nomes = []
-    except Exception as e:
-        st.error(f"Erro ao carregar lista: {e}")
-        lista_nomes = []
-
-    # O Seletor de Alunos
-    selected_student = st.selectbox(
-        "👨‍🎓 Selecionar Estudante", 
-        ["-- Novo Registro --"] + lista_nomes, 
-        key="aluno_selecionado", 
-        on_change=carregar_dados_aluno
-    )
+    df_db = load_db()
+    lista_nomes = sorted([str(x) for x in df_db["nome"].dropna().unique()]) if not df_db.empty else []
+    selected_student = st.selectbox("👨‍🎓 Selecionar Estudante", ["-- Novo Registro --"] + lista_nomes, key="aluno_selecionado", on_change=carregar_dados_aluno)
 
 with c2:
-    # O Seletor de Tipo de Documento
-    doc_mode = st.radio(
-        "📂 Tipo de Documento", 
-        ["PEI", "Estudo de Caso"], 
-        key="doc_option",
-        horizontal=True
-    )
+    doc_mode = st.radio("📂 Tipo de Documento", ["PEI", "Estudo de Caso"], key="doc_option", horizontal=True)
 
 with c3:
-    # Nível de Ensino (Aparece apenas se for PEI)
     if "PEI" in doc_mode:
         pei_level = st.selectbox("🏫 Nível", ["Fundamental", "Infantil"], key="pei_level_choice")
-    else:
-        st.info("Formulário: Anamnese")
 
+# FECHAMENTO DA PRIMEIRA CAIXA
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ==============================================================================
@@ -1620,6 +1593,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

@@ -414,7 +414,6 @@ def carregar_dados_aluno():
 
 # --- ABERTURA DA PRIMEIRA CAIXA BRANCA ---
 # Adicionei o ) que faltava no final da linha abaixo
-st.markdown('<div class="header-box">', unsafe_allow_html=True)
 
 col_txt, col_user = st.columns([2, 1])
 
@@ -454,8 +453,6 @@ with c3:
         st.write("") # Espaçador
 
 # FECHAMENTO DA PRIMEIRA CAIXA
-st.markdown('</div>', unsafe_allow_html=True)
-
 # ==============================================================================
 # PEI
 # ==============================================================================
@@ -1616,6 +1613,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

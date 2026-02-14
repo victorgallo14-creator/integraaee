@@ -8,6 +8,39 @@ import json
 import pandas as pd  # <--- ESTA LINHA É A QUE ESTÁ FALTANDO
 import json
 from streamlit_gsheets import GSheetsConnection
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
+from google.oauth2 import service_account
+
+DRIVE_FOLDER_ID = "1Wwfn6M9EY9KE5x6EmfmmTlUq8SvuVrdu"
+
+def upload_to_drive(file_content, file_name):
+    """Envia o PDF para a pasta do Drive usando a mesma conta do Google Sheets"""
+    try:
+        # Puxa as credenciais que já estão no seu arquivo Secrets
+        creds_info = json.loads(st.secrets["connections"]["gsheets"]["service_account"])
+        credentials = service_account.Credentials.from_service_account_info(creds_info)
+        
+        service = build('drive', 'v3', credentials=credentials)
+        
+        file_metadata = {
+            'name': file_name,
+            'parents': [DRIVE_FOLDER_ID]
+        }
+        
+        media = MediaIoBaseUpload(io.BytesIO(file_content), mimetype='application/pdf')
+        
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+        
+        return file.get('id')
+    except Exception as e:
+        st.error(f"⚠️ Falha no arquivamento Drive: {e}")
+        return None
+
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 
@@ -948,7 +981,7 @@ if "PEI" in doc_mode:
     with tabs[6]:
         st.info("Antes de gerar o PDF, certifique-se de ter clicado em 'Salvar' nas abas anteriores.")
         if st.button("💾 SALVAR PEI COMPLETO", type="primary"): save_student("PEI", data['nome'], data)
-        if st.button("👁️ GERAR PDF COMPLETO"):
+        if st.button("👁️ GERAR PDF COMPLETO E SALVAR NO DRIVE"):
             pdf = OfficialPDF('L', 'mm', 'A4'); pdf.add_page(); pdf.set_margins(10, 10, 10)
             
             # --- PÁGINA 1 (CONGELADA) ---
@@ -1539,7 +1572,7 @@ else:
 
 
         
-        if st.button("👁️ GERAR PDF"):
+        if st.button("👁️ GERAR PDF E SALVAR NO DRIVE DA ESCOLA"):
             # Cria PDF em Retrato ('P')
             pdf = OfficialPDF('P', 'mm', 'A4')
             pdf.add_page(); pdf.set_margins(15, 15, 15)
@@ -1799,6 +1832,7 @@ else:
         # Botão de Download (Fora do if do botão Gerar, mas dentro da tab)
         if 'pdf_bytes_caso' in st.session_state:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
+
 
 
 

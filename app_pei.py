@@ -468,19 +468,19 @@ with st.sidebar:
             pass
     
     # Lógica de auto-seleção
-    default_doc_idx = 0
+    default_doc_idx = 1 # PEI as default after Dashboard (index 0)
     if selected_student != "-- Novo Registro --":
         # Filtra pelo nome
         df_aluno = df_db[df_db["nome"] == selected_student]
         if not df_aluno.empty and df_aluno.iloc[0]["tipo_doc"] == "CASO":
-            default_doc_idx = 1
+            default_doc_idx = 2 # Caso
 
     # 4. TIPO DE DOCUMENTO
     st.markdown('<p class="section-label">📂 Documento</p>', unsafe_allow_html=True)
     doc_mode = st.radio(
         "Modo", 
-        ["PEI", "Estudo de Caso"], 
-        index=default_doc_idx, 
+        ["Dashboard", "PEI", "Estudo de Caso"], 
+        index=0 if selected_student == "-- Novo Registro --" else default_doc_idx, 
         key="doc_option",
         label_visibility="collapsed"
     )
@@ -523,9 +523,122 @@ with st.sidebar:
             st.rerun()
 
 # ==============================================================================
+# DASHBOARD
+# ==============================================================================
+if doc_mode == "Dashboard":
+    st.markdown(f"""<div class="header-box"><div class="header-title">Painel de Monitoramento (Dashboard)</div></div>""", unsafe_allow_html=True)
+    
+    df_dash = load_db()
+    
+    if df_dash.empty:
+        st.info("Ainda não há estudantes cadastrados na base de dados.")
+    else:
+        # --- CÁLCULO DE MÉTRICAS ---
+        total_alunos = len(df_dash)
+        
+        # Filtros
+        df_pei = df_dash[df_dash["tipo_doc"] == "PEI"]
+        df_caso = df_dash[df_dash["tipo_doc"] == "CASO"]
+        
+        total_pei = len(df_pei)
+        total_caso = len(df_caso)
+        
+        # Cálculo de Progresso (Estimativa baseada em campos chave)
+        # Chaves representativas de um PEI completo
+        keys_pei_check = ['nome', 'nasc', 'prof_poli', 'diag_status', 'com_tipo', 'loc_reduzida', 'hig_banheiro', 'beh_interesses', 'dev_permanece', 'aval_port', 'meta_social_obj', 'flex_matrix']
+        keys_caso_check = ['nome', 'd_nasc', 'pai_nome', 'hist_idade_entrou', 'gest_parentesco', 'saude_prob', 'checklist']
+        
+        # Função Auxiliar de Progresso
+        def calc_progress(row_json, keys_check):
+            try:
+                data = json.loads(row_json)
+                filled = 0
+                for k in keys_check:
+                    val = data.get(k)
+                    if val:
+                        if isinstance(val, list) and len(val) > 0: filled += 1
+                        elif isinstance(val, dict) and len(val) > 0: filled += 1
+                        elif isinstance(val, str) and val.strip() != "": filled += 1
+                        elif isinstance(val, (int, float)): filled += 1
+                        elif val is True: filled += 1
+                return int((filled / len(keys_check)) * 100)
+            except:
+                return 0
+
+        # Aplica cálculo
+        pei_progress_list = []
+        pei_fully_completed = 0
+        deficiencies_count = {}
+        
+        # Analisa PEIs
+        for idx, row in df_pei.iterrows():
+            prog = calc_progress(row['dados_json'], keys_pei_check)
+            pei_progress_list.append({"Aluno": row['nome'], "Progresso": prog, "Tipo": "PEI"})
+            if prog >= 90: pei_fully_completed += 1
+            
+            # Conta Deficiências
+            try:
+                d = json.loads(row['dados_json'])
+                # Conta Tipos Checkbox
+                for dtype in d.get('diag_tipo', []):
+                    deficiencies_count[dtype] = deficiencies_count.get(dtype, 0) + 1
+                # Tenta pegar texto específico se for Deficiência
+                if "Deficiência" in d.get('diag_tipo', []) and d.get('defic_txt'):
+                    d_txt = d.get('defic_txt').upper().strip()
+                    # Agrupamento simples
+                    deficiencies_count[d_txt] = deficiencies_count.get(d_txt, 0) + 1
+            except: pass
+
+        # Analisa Casos
+        caso_progress_list = []
+        caso_fully_completed = 0
+        for idx, row in df_caso.iterrows():
+            prog = calc_progress(row['dados_json'], keys_caso_check)
+            caso_progress_list.append({"Aluno": row['nome'], "Progresso": prog, "Tipo": "Estudo de Caso"})
+            if prog >= 90: caso_fully_completed += 1
+
+        # --- EXIBIÇÃO ---
+        
+        # 1. Métricas de Topo
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Total de Alunos", total_alunos)
+        m2.metric("PEIs Cadastrados", total_pei)
+        m3.metric("PEIs Concluídos (+90%)", pei_fully_completed)
+        m4.metric("Casos Concluídos (+90%)", caso_fully_completed)
+        
+        st.divider()
+        
+        # 2. Gráfico de Deficiências
+        c_chart, c_prog = st.columns([1, 1])
+        
+        with c_chart:
+            st.subheader("📊 Deficiências Identificadas")
+            if deficiencies_count:
+                df_def = pd.DataFrame(list(deficiencies_count.items()), columns=["Deficiência", "Qtd"])
+                df_def = df_def.sort_values(by="Qtd", ascending=False)
+                st.bar_chart(df_def.set_index("Deficiência"))
+            else:
+                st.info("Nenhuma deficiência registrada nos PEIs.")
+
+        # 3. Barras de Progresso Individuais
+        with c_prog:
+            st.subheader("🚀 Progresso de Preenchimento")
+            
+            # Combina listas
+            all_progress = pei_progress_list + caso_progress_list
+            # Ordena por menor progresso (para chamar atenção)
+            all_progress = sorted(all_progress, key=lambda x: x['Progresso'])
+            
+            # Mostra em um container com scroll se houver muitos
+            with st.container(height=400):
+                for p in all_progress:
+                    st.caption(f"{p['Aluno']} ({p['Tipo']})")
+                    st.progress(p['Progresso'] / 100)
+
+# ==============================================================================
 # PEI COM FORMULÁRIOS
 # ==============================================================================
-if "PEI" in doc_mode:
+elif "PEI" in doc_mode:
     st.markdown(f"""<div class="header-box"><div class="header-title">Plano Educacional Individualizado - PEI</div></div>""", unsafe_allow_html=True)
     
     st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
@@ -1268,7 +1381,7 @@ if "PEI" in doc_mode:
 # ==============================================================================
 # ESTUDO DE CASO COM FORMULÁRIOS
 # ==============================================================================
-else:
+elif "Estudo de Caso" in doc_mode:
     st.markdown("""<div class="header-box"><div class="header-title">Estudo de Caso</div></div>""", unsafe_allow_html=True)
     
     if 'data_case' not in st.session_state: 
@@ -1536,7 +1649,7 @@ else:
             
             pdf.set_font("Arial", "B", 10); pdf.cell(30, 8, "Escolaridade:", 1, 0, 'L', 1)
             pdf.set_font("Arial", "", 10); pdf.cell(40, 8, clean_pdf_text(data.get('ano_esc', '')), 1, 0)
-            pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, clean_pdf_text("Período:"), 1, 0, 'C', 1)
+            pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Período:", 1, 0, 'C', 1)
             pdf.set_font("Arial", "", 10); pdf.cell(30, 8, clean_pdf_text(data.get('periodo', '')), 1, 0, 'C')
             pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Unidade:", 1, 0, 'C', 1)
             pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('unidade', '')), 1, 1)

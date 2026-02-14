@@ -21,7 +21,7 @@ st.markdown("""
         border-radius: 12px;
         border-left: 6px solid #2563eb;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        margin-bottom: -100px;
+        margin-bottom: -90px;
         display: block;
         height: auto;
     }
@@ -193,7 +193,7 @@ st.markdown("""
         border-left: 6px solid #2563eb; /* Borda lateral azul */
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         margin-bottom: 2rem;
-        margin-top: -10px !important;
+        margin-top: -5px !important;
     }
     .header-title { color: #1e293b; font-weight: 700; font-size: 1.8rem; margin: 0; }
     
@@ -1615,6 +1615,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

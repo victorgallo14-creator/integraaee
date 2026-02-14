@@ -642,8 +642,17 @@ if app_mode == "📊 Painel de Gestão":
             df_recados = safe_read("Recados", ["Data", "Autor", "Mensagem"])
             if not df_recados.empty:
                 with st.container(height=300):
-                    for i, row in df_recados.iterrows():
-                        st.info(f"**{row['Autor']}** ({row['Data']}):\n\n{row['Mensagem']}")
+                    for index, row in df_recados.iterrows():
+                        c_msg, c_del = st.columns([0.85, 0.15])
+                        with c_msg:
+                            st.info(f"**{row['Autor']}** ({row['Data']}):\n\n{row['Mensagem']}")
+                        with c_del:
+                            if st.button("🗑️", key=f"del_rec_{index}", help="Excluir recado"):
+                                df_recados = df_recados.drop(index)
+                                safe_update("Recados", df_recados)
+                                st.cache_data.clear()
+                                time.sleep(0.5)
+                                st.rerun()
             else:
                 st.write("Nenhum recado.")
 
@@ -673,12 +682,22 @@ if app_mode == "📊 Painel de Gestão":
             df_agenda = safe_read("Agenda", ["Data", "Evento", "Autor"])
             if not df_agenda.empty:
                 with st.container(height=300):
-                    for i, row in df_agenda.iterrows():
+                    for index, row in df_agenda.iterrows():
                         try:
                             d_fmt = datetime.strptime(str(row['Data']), "%Y-%m-%d").strftime("%d/%m")
                         except:
                             d_fmt = str(row['Data'])
-                        st.write(f"🗓️ **{d_fmt}** - {row['Evento']} _({row['Autor']})_")
+                        
+                        c_evt, c_del_evt = st.columns([0.85, 0.15])
+                        with c_evt:
+                            st.write(f"🗓️ **{d_fmt}** - {row['Evento']} _({row['Autor']})_")
+                        with c_del_evt:
+                            if st.button("🗑️", key=f"del_agd_{index}", help="Excluir evento"):
+                                df_agenda = df_agenda.drop(index)
+                                safe_update("Agenda", df_agenda)
+                                st.cache_data.clear()
+                                time.sleep(0.5)
+                                st.rerun()
             else:
                 st.write("Agenda vazia.")
 
@@ -1913,3 +1932,194 @@ elif app_mode == "👥 Gestão de Alunos":
 
             if 'pdf_bytes_caso' in st.session_state:
                 st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
+
+# ==============================================================================
+# VIEW: DASHBOARD
+# ==============================================================================
+if app_mode == "📊 Painel de Gestão":
+    # Data e Hora (Fuso BR)
+    fuso_br = timezone(timedelta(hours=-3))
+    agora = datetime.now(fuso_br)
+    
+    dias_semana = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
+    meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+    
+    dia_str = dias_semana[agora.weekday()]
+    mes_str = meses[agora.month - 1]
+    data_formatada = f"{dia_str}, {agora.day} de {mes_str} de {agora.year}"
+    
+    st.markdown(f"""
+    <div class="header-box" style="margin-top:-50px;">
+        <div class="header-title">Painel de Gestão</div>
+        <div class="header-subtitle">{data_formatada} | {agora.strftime('%H:%M')}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    df_dash = load_db()
+    
+    # --- CÁLCULO DE MÉTRICAS ---
+    # Contagem de alunos únicos
+    if not df_dash.empty and "nome" in df_dash.columns:
+        total_alunos = df_dash["nome"].nunique()
+    else:
+        total_alunos = 0
+        
+    total_pei = len(df_dash[df_dash["tipo_doc"] == "PEI"])
+    total_caso = len(df_dash[df_dash["tipo_doc"] == "CASO"])
+    
+    # Função Auxiliar de Progresso
+    def calc_progress(row_json, keys_check):
+        try:
+            data = json.loads(row_json)
+            filled = 0
+            for k in keys_check:
+                val = data.get(k)
+                if val:
+                    if isinstance(val, list) and len(val) > 0: filled += 1
+                    elif isinstance(val, dict) and len(val) > 0: filled += 1
+                    elif isinstance(val, str) and val.strip() != "": filled += 1
+                    elif isinstance(val, (int, float)): filled += 1
+                    elif val is True: filled += 1
+            return int((filled / len(keys_check)) * 100)
+        except: return 0
+
+    # Chaves para checagem
+    keys_pei = ['nome', 'nasc', 'prof_poli', 'diag_status', 'com_tipo', 'loc_reduzida', 'hig_banheiro', 'beh_interesses', 'dev_permanece', 'aval_port', 'meta_social_obj', 'flex_matrix']
+    
+    concluidos = 0
+    deficiencies_count = {}
+    pei_progress_list = []
+
+    for idx, row in df_dash.iterrows():
+        try:
+            d = json.loads(row['dados_json'])
+            # Deficiências
+            for dtype in d.get('diag_tipo', []):
+                deficiencies_count[dtype] = deficiencies_count.get(dtype, 0) + 1
+            if "Deficiência" in d.get('diag_tipo', []) and d.get('defic_txt'):
+                d_txt = d.get('defic_txt').upper().strip()
+                deficiencies_count[d_txt] = deficiencies_count.get(d_txt, 0) + 1
+            
+            # Progresso PEI
+            if row['tipo_doc'] == "PEI":
+                prog = calc_progress(row['dados_json'], keys_pei)
+                pei_progress_list.append({"Aluno": row['nome'], "Progresso": prog})
+                if prog >= 90: concluidos += 1
+        except: pass
+
+    # --- CARDS DE MÉTRICAS ---
+    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+    col_m1.markdown(f'<div class="metric-card"><div class="metric-value">{total_alunos}</div><div class="metric-label">Total Alunos</div></div>', unsafe_allow_html=True)
+    col_m2.markdown(f'<div class="metric-card"><div class="metric-value">{total_pei}</div><div class="metric-label">PEIs Criados</div></div>', unsafe_allow_html=True)
+    col_m3.markdown(f'<div class="metric-card"><div class="metric-value">{concluidos}</div><div class="metric-label">PEIs Concluídos</div></div>', unsafe_allow_html=True)
+    col_m4.markdown(f'<div class="metric-card"><div class="metric-value">{total_caso}</div><div class="metric-label">Estudos de Caso</div></div>', unsafe_allow_html=True)
+    
+    st.divider()
+
+    # --- ABAS DO DASHBOARD ---
+    tab_graf, tab_com = st.tabs(["📊 Estatísticas & Progresso", "📢 Comunicação & Agenda"])
+    
+    with tab_graf:
+        c_chart, c_prog = st.columns([1, 1])
+        with c_chart:
+            st.subheader("Tipos de Deficiência")
+            if deficiencies_count:
+                df_def = pd.DataFrame(list(deficiencies_count.items()), columns=["Tipo", "Qtd"])
+                st.bar_chart(df_def.set_index("Tipo"), color="#1e3a8a")
+            else:
+                st.info("Sem dados suficientes.")
+        
+        with c_prog:
+            st.subheader("Progresso dos PEIs")
+            if pei_progress_list:
+                df_prog = pd.DataFrame(pei_progress_list).sort_values("Progresso")
+                with st.container(height=300):
+                    for _, row in df_prog.iterrows():
+                        st.caption(f"{row['Aluno']}")
+                        st.progress(row['Progresso'] / 100)
+            else:
+                st.info("Nenhum PEI cadastrado.")
+
+    with tab_com:
+        c_aviso, c_agenda = st.columns([1, 1])
+        
+        # --- MURAL DE AVISOS ---
+        with c_aviso:
+            st.markdown("### 📌 Mural de Avisos")
+            with st.form("form_recado"):
+                txt_recado = st.text_area("Novo Recado", height=80)
+                if st.form_submit_button("Publicar"):
+                    df_recados = safe_read("Recados", ["Data", "Autor", "Mensagem"])
+                    novo_recado = {
+                        "Data": datetime.now().strftime("%d/%m %H:%M"),
+                        "Autor": st.session_state.get('usuario_nome', 'Admin'),
+                        "Mensagem": txt_recado
+                    }
+                    df_recados = pd.concat([pd.DataFrame([novo_recado]), df_recados], ignore_index=True)
+                    safe_update("Recados", df_recados)
+                    st.cache_data.clear() # Limpa cache para atualizar
+                    time.sleep(1) # Aguarda propagação
+                    st.rerun()
+            
+            # Listar Recados
+            df_recados = safe_read("Recados", ["Data", "Autor", "Mensagem"])
+            if not df_recados.empty:
+                with st.container(height=300):
+                    for index, row in df_recados.iterrows():
+                        c_msg, c_del = st.columns([0.85, 0.15])
+                        with c_msg:
+                            st.info(f"**{row['Autor']}** ({row['Data']}):\n\n{row['Mensagem']}")
+                        with c_del:
+                            if st.button("🗑️", key=f"del_rec_{index}", help="Excluir recado"):
+                                df_recados = df_recados.drop(index)
+                                safe_update("Recados", df_recados)
+                                st.cache_data.clear()
+                                time.sleep(0.5)
+                                st.rerun()
+            else:
+                st.write("Nenhum recado.")
+
+        # --- AGENDA DA EQUIPE ---
+        with c_agenda:
+            st.markdown("### 📅 Agenda da Equipe")
+            with st.form("form_agenda"):
+                c_d, c_e = st.columns([1, 2])
+                data_evento = c_d.date_input("Data")
+                desc_evento = c_e.text_input("Evento")
+                if st.form_submit_button("Agendar"):
+                    df_agenda = safe_read("Agenda", ["Data", "Evento", "Autor"])
+                    novo_evento = {
+                        "Data": data_evento.strftime("%Y-%m-%d"),
+                        "Evento": desc_evento,
+                        "Autor": st.session_state.get('usuario_nome', 'Admin')
+                    }
+                    df_agenda = pd.concat([df_agenda, pd.DataFrame([novo_evento])], ignore_index=True)
+                    # Ordenar por data
+                    df_agenda = df_agenda.sort_values(by="Data", ascending=False)
+                    safe_update("Agenda", df_agenda)
+                    st.cache_data.clear() # Limpa cache para atualizar
+                    time.sleep(1) # Aguarda propagação
+                    st.rerun()
+            
+            # Listar Agenda
+            df_agenda = safe_read("Agenda", ["Data", "Evento", "Autor"])
+            if not df_agenda.empty:
+                with st.container(height=300):
+                    for index, row in df_agenda.iterrows():
+                        try:
+                            d_fmt = datetime.strptime(str(row['Data']), "%Y-%m-%d").strftime("%d/%m")
+                        except:
+                            d_fmt = str(row['Data'])
+                        
+                        c_evt, c_del_evt = st.columns([0.85, 0.15])
+                        with c_evt:
+                            st.write(f"🗓️ **{d_fmt}** - {row['Evento']} _({row['Autor']})_")
+                        with c_del_evt:
+                            if st.button("🗑️", key=f"del_agd_{index}", help="Excluir evento"):
+                                df_agenda = df_agenda.drop(index)
+                                safe_update("Agenda", df_agenda)
+                                st.cache_data.clear()
+                                time.sleep(0.5)
+                                st.rerun()
+            else:
+                st.write("Agenda vazia.")

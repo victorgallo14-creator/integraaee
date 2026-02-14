@@ -418,8 +418,7 @@ with st.sidebar:
     st.markdown("""<div class="sidebar-title">SISTEMA INTEGRA</div>
         <div class="sidebar-subtitle">Gestão de Educação Especial do CEIEF Rafael Affonso Leite - Uso Interno</div></div>""", unsafe_allow_html=True)
 
-    st.divider()
-            
+    st.divider()           
     st.sidebar.markdown(f"👤 **Docente:** {st.session_state.get('usuario_nome', 'Professor')}")
 
     st.divider()
@@ -1644,6 +1643,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

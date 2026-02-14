@@ -443,76 +443,81 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BARRA LATERAL COMPACTA ---
+# --- BARRA LATERAL ULTRA-COMPACTA ---
 with st.sidebar:
-    # CSS PARA APERTAR O LAYOUT
+    # CSS PARA "ESPREMER" O LAYOUT
     st.markdown("""
     <style>
-        /* Reduz o espaço entre os elementos (Widgets) */
-        [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-            gap: 0.5rem; /* O padrão é 1rem (muito grande) */
-            padding-top: 1rem; /* Sobe o conteúdo */
+        /* 1. Remove o espaço gigante no topo da barra lateral */
+        section[data-testid="stSidebar"] > div {
+            padding-top: 1rem !important; /* Padrão é 6rem, reduzimos para 1 */
+            padding-bottom: 1rem !important;
         }
         
-        /* Título Compacto */
+        /* 2. Reduz o espaço entre cada widget (botões, selects) */
+        [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+            gap: 0.3rem !important; /* Espaço mínimo entre itens */
+        }
+        
+        /* 3. Estilo dos Textos Personalizados */
         .sidebar-title {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 800;
             color: #1e3a8a;
-            margin-bottom: 0px;
+            margin: 0;
             text-align: center;
+            line-height: 1.2;
         }
         .sidebar-sub {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #64748b;
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
-        
-        /* Card de Usuário "Slim" */
-        .user-slim {
-            background-color: #f1f5f9;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            padding: 6px 10px;
-            font-size: 0.85rem;
-            color: #334155;
-            text-align: center;
-            margin-bottom: 5px;
-        }
-        
-        /* Reduzir margens dos divisores */
-        hr { margin: 0.5em 0; }
-        
-        /* Títulos das seções menores */
         .section-label {
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-top: 5px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #475569;
+            margin-top: 8px;
             margin-bottom: 0px;
         }
+        
+        /* 4. Card Usuário Super Fino */
+        .user-slim {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 4px;
+            font-size: 0.8rem;
+            color: #334155;
+            text-align: center;
+        }
+        
+        /* 5. Ajuste fino nos Radios e Selects para ocuparem menos espaço */
+        .stRadio { margin-top: -5px; }
+        div[data-baseweb="select"] { min-height: 32px; }
+        
+        /* Linha divisória mais discreta */
+        hr { margin: 0.5em 0 !important; }
     </style>
     """, unsafe_allow_html=True)
 
-    # 1. CABEÇALHO MÍNIMO
-    st.markdown('<div class="sidebar-title">SISTEMA INTEGRA</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sidebar-sub">Gestão de Educação Especial</div>', unsafe_allow_html=True)
+    # --- CONTEÚDO ---
 
-    # 2. USUÁRIO (Linha Única)
+    # 1. TÍTULO
+    st.markdown('<div class="sidebar-title">SISTEMA INTEGRA</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sidebar-sub">Gestão de Ed. Especial</div>', unsafe_allow_html=True)
+
+    # 2. USUÁRIO (Apenas Nome)
     nome_prof = st.session_state.get('usuario_nome', 'Docente')
-    # Pega apenas o primeiro e último nome para economizar espaço se for muito longo
     nomes = nome_prof.split()
-    nome_curto = f"{nomes[0]} {nomes[-1]}" if len(nomes) > 1 else nome_prof
+    nome_curto = f"{nomes[0]} {nomes[-1]}" if len(nomes) > 1 else nomes[0]
     
-    st.markdown(f'''
-        <div class="user-slim">
-            👤 <b>{nome_curto}</b>
-        </div>
-    ''', unsafe_allow_html=True)
+    st.markdown(f'<div class="user-slim">👤 <b>{nome_curto}</b></div>', unsafe_allow_html=True)
     
     st.divider()
 
-    # 3. SELETOR DE ALUNO
+    # 3. SELETOR DE ESTUDANTE
     df_db = load_db()
     lista_nomes = df_db["nome"].dropna().tolist() if not df_db.empty else []
     
@@ -522,27 +527,27 @@ with st.sidebar:
         ["-- Novo Registro --"] + lista_nomes,
         key="aluno_selecionado",
         on_change=carregar_dados_aluno,
-        label_visibility="collapsed" # Esconde o label padrão gigante
+        label_visibility="collapsed"
     )
     
-    # Lógica de auto-seleção (mantida)
+    # Lógica de auto-seleção
     default_doc_idx = 0
     if selected_student != "-- Novo Registro --":
         df_aluno = df_db[df_db["nome"] == selected_student]
         if not df_aluno.empty and df_aluno.iloc[0]["tipo_doc"] == "CASO":
             default_doc_idx = 1
 
-    # 4. DOCUMENTO
+    # 4. TIPO DE DOCUMENTO
     st.markdown('<p class="section-label">📂 Documento</p>', unsafe_allow_html=True)
     doc_mode = st.radio(
         "Modo", 
-        ["PEI", "Estudo de Caso"], # Texto encurtado para caber melhor
+        ["PEI", "Estudo de Caso"], 
         index=default_doc_idx, 
         key="doc_option",
         label_visibility="collapsed"
     )
 
-    # 5. NÍVEL (Aparece condicionalmente)
+    # 5. NÍVEL (Só aparece se for PEI)
     if "PEI" in doc_mode:
         st.markdown('<p class="section-label">🏫 Nível</p>', unsafe_allow_html=True)
         pei_level = st.selectbox(
@@ -552,9 +557,12 @@ with st.sidebar:
             label_visibility="collapsed"
         )
     
+    # Espaço flexível (empurra o rodapé um pouco se sobrar espaço, mas não gera scroll)
+    st.markdown('<div style="flex-grow: 1;"></div>', unsafe_allow_html=True)
+    
     st.divider()
 
-    # 6. RODAPÉ (Botões Compactos na mesma linha)
+    # 6. RODAPÉ (Botões alinhados)
     c1, c2 = st.columns(2)
     with c1:
         if st.button("🚪 Sair", use_container_width=True):
@@ -1743,6 +1751,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

@@ -142,6 +142,7 @@ def login():
                     font-size: 0.7rem;
                     margin-top: 2px;
                     line-height: 1.2;
+                    text-align: justify; /* Texto justificado */
                 }
             </style>
         """, unsafe_allow_html=True)
@@ -197,7 +198,8 @@ def login():
                     <div class="lgpd-box">
                         <div class="lgpd-title">🔒 CONFIDENCIALIDADE E SIGILO</div>
                         <div class="lgpd-text">
-                            Acesso Monitorado. Este sistema contém informações confidenciais e dados sensíveis protegidos pela Lei Geral de Proteção de Dados (LGPD). O uso é estritamente destinado a finalidades pedagógicas e administrativas, conforme diretrizes institucionais. Ao prosseguir, você declara estar ciente de que todas as ações são registradas, podendo haver auditoria para garantia da segurança, integridade e conformidade dos dados. A utilização indevida acarretará responsabilização conforme a legislação vigente.
+                            Acesso Monitorado. Este sistema contém informações confidenciais e dados sensíveis protegidos pela Lei Geral de Proteção de Dados (LGPD). O uso é estritamente destinado a finalidades pedagógicas e administrativas. 
+                            Ao prosseguir, você declara estar ciente de que todas as ações são registradas, podendo haver auditoria para garantia da segurança, integridade e conformidade dos dados. A utilização indevida acarretará responsabilização conforme a legislação vigente.
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
@@ -2056,9 +2058,9 @@ elif app_mode == "👥 Gestão de Alunos":
                     "Aceita alterações no ambiente?",
                     "Tem algum medo?",
                     "Tem alguma mania?",
-                    "Tem algum hiperfoco ou interesse específico?",
-                    "Prefere brincar com outras crianças? Tem amigos?",
-                    "Expectativa da família quanto à escolaridade?"
+                    "Tem alguma área/assunto, brinquedo ou hiperfoco?",
+                    "Prefere brincar sozinho ou com outras crianças? Tem amigos?",
+                    "Qual a expectativa da família em relação à escolaridade da criança?"
                 ]
                 
                 pdf.set_font("Arial", "", 9)
@@ -2133,5 +2135,3 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.info("Nenhum histórico encontrado para este aluno.")
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
-
-

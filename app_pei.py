@@ -469,49 +469,53 @@ if 'data_pei' not in st.session_state:
         'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {},
         'comunicacao_tipo': [], 'permanece': []
     }
+if 'data_conduta' not in st.session_state:
+    st.session_state.data_conduta = {}
 
 def carregar_dados_aluno():
     selecao = st.session_state.get('aluno_selecionado')
     
-    # Se for novo registro, limpa tudo e libera as variáveis
+    # Init empty
+    st.session_state.data_pei = {'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {}, 'comunicacao_tipo': [], 'permanece': []}
+    st.session_state.data_case = {'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 'checklist': {}, 'clinicas': []}
+    st.session_state.data_conduta = {}
+    st.session_state.nome_original_salvamento = None
+
     if not selecao or selecao == "-- Novo Registro --":
-        st.session_state.data_pei = {'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {}, 'comunicacao_tipo': [], 'permanece': []}
-        st.session_state.data_case = {'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 'checklist': {}, 'clinicas': []}
-        st.session_state.nome_original_salvamento = None
         return
 
     try:
         df_db = load_db()
-        # Busca o registro
-        if "id" in df_db.columns and selecao in df_db["id"].values:
-            registro = df_db[df_db["id"] == selecao].iloc[0]
-        elif "nome" in df_db.columns and selecao in df_db["nome"].values:
-            registro = df_db[df_db["nome"] == selecao].iloc[0]
-        else:
-            return
-
-        dados = json.loads(registro["dados_json"])
-        nome_oficial = registro["nome"]
-        st.session_state.nome_original_salvamento = nome_oficial
-        
-        if "data_pei" not in st.session_state: st.session_state.data_pei = {}
-        if "data_case" not in st.session_state: st.session_state.data_case = {}
-        
-        st.session_state.data_pei['nome'] = nome_oficial
-        st.session_state.data_case['nome'] = nome_oficial
-
-        for k, v in dados.items():
-            if isinstance(v, str) and len(v) == 10 and v.count('-') == 2:
-                try: dados[k] = datetime.strptime(v, '%Y-%m-%d').date()
-                except: pass
-        
-        if registro["tipo_doc"] == "PEI":
-            st.session_state.data_pei.update(dados)
-        else:
-            st.session_state.data_case.update(dados)
+        # Filter by name
+        if "nome" in df_db.columns:
+            rows = df_db[df_db["nome"] == selecao]
+            if rows.empty: return
             
-        st.toast(f"✅ {selecao} carregado.")
-        
+            st.session_state.nome_original_salvamento = selecao
+            st.session_state.data_pei['nome'] = selecao
+            st.session_state.data_case['nome'] = selecao
+            st.session_state.data_conduta['nome'] = selecao
+
+            for _, row in rows.iterrows():
+                try:
+                    dados = json.loads(row["dados_json"])
+                    # Date conversion
+                    for k, v in dados.items():
+                        if isinstance(v, str) and len(v) == 10 and v.count('-') == 2:
+                            try: dados[k] = datetime.strptime(v, '%Y-%m-%d').date()
+                            except: pass
+                    
+                    dtype = row["tipo_doc"]
+                    if dtype == "PEI":
+                        st.session_state.data_pei.update(dados)
+                    elif dtype == "CASO":
+                        st.session_state.data_case.update(dados)
+                    elif dtype == "CONDUTA":
+                        st.session_state.data_conduta.update(dados)
+                except: pass
+            
+            st.toast(f"✅ {selecao} carregado.")
+            
     except Exception as e:
         st.info("Pronto para novo preenchimento.")
 
@@ -586,7 +590,8 @@ with st.sidebar:
     if app_mode == "👥 Gestão de Alunos":
         st.divider()
         df_db = load_db()
-        lista_nomes = df_db["nome"].dropna().tolist() if not df_db.empty else []
+        # Fix duplicates in dropdown
+        lista_nomes = df_db["nome"].dropna().unique().tolist() if not df_db.empty else []
         
         st.markdown('<p class="section-label">🎓 Selecionar Estudante</p>', unsafe_allow_html=True)
         selected_student = st.selectbox(
@@ -614,14 +619,13 @@ with st.sidebar:
         # Auto-seleção de documento
         default_doc_idx = 0
         if selected_student != "-- Novo Registro --":
-            df_aluno = df_db[df_db["nome"] == selected_student]
-            if not df_aluno.empty and df_aluno.iloc[0]["tipo_doc"] == "CASO":
-                default_doc_idx = 1
+            # Just simple heuristic
+            pass
 
         st.markdown('<p class="section-label">📂 Tipo de Documento</p>', unsafe_allow_html=True)
         doc_sub_mode = st.radio(
             "Modo Doc", 
-            ["PEI", "Estudo de Caso"], 
+            ["PEI", "Estudo de Caso", "Protocolo de Conduta"], 
             index=default_doc_idx, 
             key="doc_option",
             label_visibility="collapsed"
@@ -2119,6 +2123,190 @@ elif app_mode == "👥 Gestão de Alunos":
 
             if 'pdf_bytes_caso' in st.session_state:
                 st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
+
+    # --- PROTOCOLO DE CONDUTA ---
+    elif doc_mode == "Protocolo de Conduta":
+        st.markdown("""<div class="header-box"><div class="header-title">Protocolo de Conduta</div></div>""", unsafe_allow_html=True)
+        st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
+        
+        data_conduta = st.session_state.data_conduta
+        data_pei = st.session_state.data_pei
+        
+        with st.form("form_conduta"):
+            st.subheader("Configuração do Protocolo")
+            st.caption("Preencha manualmente ou utilize o botão abaixo para importar informações do PEI do aluno, convertendo-as automaticamente para a 1ª pessoa.")
+            
+            if st.form_submit_button("🔄 Preencher Automaticamente com dados do PEI"):
+                # Mapeamento e conversão simples para 1ª pessoa
+                if data_pei:
+                    # Sobre Mim
+                    defic = data_pei.get('defic_txt', '') or data_pei.get('neuro_txt', '')
+                    data_conduta['conduta_sobre_mim'] = f"Olá, meu nome é {data_pei.get('nome', '')}. Tenho {data_pei.get('idade', '')} anos. Estou matriculado no {data_pei.get('ano_esc', '')} ano. {defic}"
+                    
+                    # Coisas que eu gosto
+                    gostos = []
+                    if data_pei.get('beh_interesses'): gostos.append(data_pei.get('beh_interesses'))
+                    if data_pei.get('beh_objetos_gosta'): gostos.append(data_pei.get('beh_objetos_gosta'))
+                    if data_pei.get('beh_atividades'): gostos.append(data_pei.get('beh_atividades'))
+                    data_conduta['conduta_gosto'] = "\n".join(gostos)
+                    
+                    # Coisas que não gosto
+                    nao_gosto = []
+                    if data_pei.get('beh_objetos_odeia'): nao_gosto.append(data_pei.get('beh_objetos_odeia'))
+                    if data_pei.get('beh_gatilhos'): nao_gosto.append(f"Fico chateado/nervoso quando: {data_pei.get('beh_gatilhos')}")
+                    data_conduta['conduta_nao_gosto'] = "\n".join(nao_gosto)
+                    
+                    # Como me comunico
+                    data_conduta['conduta_comunico'] = f"Eu me comunico: {data_pei.get('com_tipo', '')}. {data_pei.get('com_alt_espec', '')}"
+                    
+                    # Como me ajudar
+                    ajuda = []
+                    if data_pei.get('beh_crise_regula'): ajuda.append(f"Para me regular: {data_pei.get('beh_crise_regula')}")
+                    if data_pei.get('beh_calmo'): ajuda.append(f"O que me acalma: {data_pei.get('beh_calmo')}")
+                    data_conduta['conduta_ajuda'] = "\n".join(ajuda)
+                    
+                    # Habilidades
+                    habs = []
+                    if data_pei.get('hig_banheiro'): habs.append(f"Uso do banheiro: {data_pei.get('hig_banheiro')}")
+                    if data_pei.get('hig_dentes'): habs.append(f"Escovação: {data_pei.get('hig_dentes')}")
+                    if data_pei.get('dev_tarefas'): habs.append(f"Tarefas: {data_pei.get('dev_tarefas')}")
+                    data_conduta['conduta_habilidades'] = "\n".join(habs)
+                    
+                    st.success("Dados importados do PEI com sucesso! Revise abaixo.")
+                else:
+                    st.warning("Dados do PEI não encontrados para este aluno.")
+
+            # Campos do Formulário
+            c1, c2 = st.columns([3, 1])
+            data_conduta['nome'] = c1.text_input("Nome", value=data_pei.get('nome', data_conduta.get('nome','')), disabled=True)
+            
+            d_val = data_conduta.get('nasc') or data_pei.get('nasc')
+            if isinstance(d_val, str): 
+                try: d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
+                except: d_val = date.today()
+            data_conduta['nasc'] = c2.date_input("Nascimento", value=d_val if d_val else date.today(), format="DD/MM/YYYY")
+            
+            data_conduta['ano_esc'] = st.text_input("Ano de Escolaridade", value=data_pei.get('ano_esc', data_conduta.get('ano_esc','')))
+            
+            st.divider()
+            
+            c_g, c_s = st.columns(2)
+            data_conduta['conduta_gosto'] = c_g.text_area("Coisas que eu gosto (Laranja)", value=data_conduta.get('conduta_gosto', ''), height=150)
+            data_conduta['conduta_sobre_mim'] = c_s.text_area("Sobre mim (Verde)", value=data_conduta.get('conduta_sobre_mim', ''), height=150)
+            
+            c_ng, c_com = st.columns(2)
+            data_conduta['conduta_nao_gosto'] = c_ng.text_area("Coisas que eu não gosto (Vermelho)", value=data_conduta.get('conduta_nao_gosto', ''), height=150)
+            data_conduta['conduta_comunico'] = c_com.text_area("Como me comunico (Roxo)", value=data_conduta.get('conduta_comunico', ''), height=150)
+            
+            c_aj, c_hab = st.columns(2)
+            data_conduta['conduta_ajuda'] = c_aj.text_area("Como me ajudar (Azul)", value=data_conduta.get('conduta_ajuda', ''), height=150)
+            data_conduta['conduta_habilidades'] = c_hab.text_area("Habilidades / Eu posso (Amarelo)", value=data_conduta.get('conduta_habilidades', ''), height=150)
+
+            st.markdown("---")
+            c_save, c_pdf = st.columns(2)
+            
+            if c_save.form_submit_button("💾 Salvar Protocolo"):
+                save_student("CONDUTA", data_conduta.get('nome', 'aluno'), data_conduta, "Protocolo")
+            
+            if c_pdf.form_submit_button("👁️ Gerar PDF"):
+                log_action(data_conduta.get('nome'), "Gerou PDF", "Protocolo de Conduta")
+                
+                pdf = OfficialPDF('P', 'mm', 'A4')
+                pdf.add_page(); pdf.set_margins(10, 10, 10)
+                
+                # --- CABEÇALHO ---
+                if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 10, 8, 20)
+                pdf.set_xy(35, 10); pdf.set_font("Arial", "", 12)
+                pdf.cell(0, 6, clean_pdf_text("Secretaria Municipal de"), 0, 1)
+                pdf.set_x(35); pdf.set_font("Arial", "B", 16)
+                pdf.cell(0, 8, clean_pdf_text("EDUCAÇÃO"), 0, 1)
+                
+                # Box Titulo
+                pdf.set_xy(130, 8)
+                pdf.set_font("Arial", "", 12)
+                pdf.cell(70, 10, "Protocolo de conduta", 1, 1, 'C')
+                
+                # --- IDENTIFICAÇÃO (FOTO E DADOS) ---
+                start_y = 35
+                
+                # FOTO (Placeholder circular visual - quadrado com label por simplicidade do FPDF)
+                pdf.set_xy(10, start_y)
+                # Tenta carregar foto do PEI se não tiver no conduta (usa mesma ref)
+                foto_b64 = data_pei.get('foto_base64')
+                if foto_b64:
+                    try:
+                        img_data = base64.b64decode(foto_b64)
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+                            tmp_file.write(img_data)
+                            tmp_path = tmp_file.name
+                        pdf.image(tmp_path, 15, start_y, 40, 50) # Imagem retangular
+                        os.unlink(tmp_path)
+                    except:
+                        pdf.rect(15, start_y, 40, 50)
+                        pdf.set_xy(15, start_y+20); pdf.set_font("Arial", "", 8); pdf.cell(40, 5, "ERRO FOTO", 0, 0, 'C')
+                else:
+                    pdf.rect(15, start_y, 40, 50) # Moldura
+                    pdf.set_xy(15, start_y+20); pdf.set_font("Arial", "", 8); pdf.cell(40, 5, "FOTO DO ESTUDANTE", 0, 0, 'C')
+                
+                # Campos ao lado da foto
+                pdf.set_font("Arial", "", 10)
+                
+                # Nome (Borda Vermelha)
+                pdf.set_draw_color(255, 69, 0) # Red
+                pdf.set_line_width(0.5)
+                pdf.set_xy(70, start_y)
+                pdf.cell(130, 8, clean_pdf_text(f"Meu nome: {data_conduta.get('nome','')}"), 1, 1, 'L')
+                
+                # Data Nasc (Borda Azul)
+                pdf.set_draw_color(0, 191, 255) # Cyan/Blue
+                pdf.set_xy(70, start_y + 12)
+                pdf.multi_cell(40, 6, clean_pdf_text(f"Data de\nNascimento:\n{str(data_conduta.get('nasc',''))}"), 1, 'C')
+                
+                # Ano escolar (Borda Rosa)
+                pdf.set_draw_color(255, 105, 180) # Pink
+                pdf.set_xy(115, start_y + 12)
+                pdf.multi_cell(50, 9, clean_pdf_text(f"Ano de escolaridade:\n{data_conduta.get('ano_esc','')}") , 1, 'C')
+                
+                # --- CAIXAS DE CONTEÚDO ---
+                
+                # Função auxiliar para desenhar caixas coloridas
+                def draw_colored_box(x, y, w, h, r, g, b, title, content):
+                    pdf.set_draw_color(r, g, b)
+                    pdf.set_line_width(0.8)
+                    pdf.rect(x, y, w, h)
+                    
+                    pdf.set_xy(x, y+2)
+                    pdf.set_text_color(0, 0, 0)
+                    pdf.set_font("Arial", "B", 10)
+                    pdf.cell(w, 5, clean_pdf_text(title), 0, 1, 'C')
+                    
+                    pdf.set_xy(x+2, y+8)
+                    pdf.set_font("Arial", "", 9)
+                    pdf.multi_cell(w-4, 5, clean_pdf_text(content), 0, 'L')
+
+                # Sobre Mim (Verde) - Lado Direito
+                draw_colored_box(100, 70, 100, 35, 154, 205, 50, "Sobre mim", data_conduta.get('conduta_sobre_mim', ''))
+                
+                # Coisas que eu gosto (Laranja) - Lado Esquerdo
+                draw_colored_box(10, 100, 85, 50, 255, 165, 0, "Coisas que eu gosto", data_conduta.get('conduta_gosto', ''))
+                
+                # Coisas que eu não gosto (Vermelho) - Lado Direito
+                draw_colored_box(130, 115, 70, 60, 255, 69, 0, "Coisas que eu não gosto", data_conduta.get('conduta_nao_gosto', ''))
+                
+                # Como me comunico (Roxo) - Lado Esquerdo
+                draw_colored_box(10, 160, 110, 40, 147, 112, 219, "Como me comunico", data_conduta.get('conduta_comunico', ''))
+                
+                # Como me ajudar (Azul) - Lado Esquerdo Inferior
+                draw_colored_box(10, 210, 110, 60, 0, 191, 255, "Como me ajudar", data_conduta.get('conduta_ajuda', ''))
+                
+                # Habilidades (Amarelo) - Lado Direito Inferior
+                draw_colored_box(130, 190, 70, 80, 255, 215, 0, "Habilidades (eu posso...)", data_conduta.get('conduta_habilidades', ''))
+
+                st.session_state.pdf_bytes_conduta = get_pdf_bytes(pdf)
+                st.rerun()
+
+        if 'pdf_bytes_conduta' in st.session_state:
+            st.download_button("📥 BAIXAR PROTOCOLO PDF", st.session_state.pdf_bytes_conduta, f"Conduta_{data_conduta.get('nome','aluno')}.pdf", "application/pdf", type="primary")
 
         # --- ABA 7: HISTÓRICO ---
         with tabs[6]:

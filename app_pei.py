@@ -200,7 +200,7 @@ def load_db():
 
 def save_student(doc_type, name, data):
     """Salva ou atualiza garantindo que não duplique linhas"""
-    try
+    try:
         df_atual = load_db()
         
         # 1. Geramos o ID único exatamente como ele aparece na lista
@@ -1597,6 +1597,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

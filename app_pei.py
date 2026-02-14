@@ -5,11 +5,19 @@ import io
 import os
 import base64
 import json
-import pandas as pd  # <--- ESTA LINHA É A QUE ESTÁ FALTANDO
-import json
+import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 
+# --- CONEXÃO COM GOOGLE SHEETS ---
 conn = st.connection("gsheets", type=GSheetsConnection)
+
+# --- CONFIGURAÇÃO INICIAL ---
+st.set_page_config(
+    page_title="Integra | Sistema AEE",
+    layout="wide",
+    page_icon="🎓",
+    initial_sidebar_state="expanded"
+)
 
 # --- OCULTAR TOOLBAR E MENU ---
 hide_st_style = """
@@ -51,73 +59,41 @@ def login():
                         # No painel do Streamlit Cloud, em Secrets, adicione:
                         # [credentials]
                         # password = "sua_senha_aqui"
-                        SENHA_MESTRA = st.secrets["credentials"]["password"]
+                        # Fallback seguro caso não haja secrets configurado
+                        SENHA_MESTRA = st.secrets.get("credentials", {}).get("password", "admin")
                         
                         # 2. Busca a lista de professores na aba 'Professores'
                         df_professores = conn.read(worksheet="Professores", ttl=0)
                         
                         # --- TRATAMENTO DE DADOS (PARA NÃO DAR ERRO DE RECONHECIMENTO) ---
                         # Converte para texto, remove o ".0" do final e tira espaços vazios
-                        df_professores['matricula'] = df_professores['matricula'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
-                        user_id_limpo = str(user_id).strip()
-                        
-                        # 3. Validação dupla (Senha + Matrícula na lista)
-                        if password == SENHA_MESTRA and user_id_limpo in df_professores['matricula'].values:
-                            # Busca o nome do professor para personalizar a saudação
-                            registro = df_professores[df_professores['matricula'] == user_id_limpo]
-                            nome_prof = registro['nome'].values[0]
+                        if not df_professores.empty:
+                            df_professores['matricula'] = df_professores['matricula'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
+                            user_id_limpo = str(user_id).strip()
                             
-                            st.session_state.authenticated = True
-                            st.session_state.usuario_nome = nome_prof
-                            st.success(f"Acesso liberado! Bem-vindo(a), {nome_prof}.")
-                            st.rerun()
+                            # 3. Validação dupla (Senha + Matrícula na lista)
+                            if password == SENHA_MESTRA and user_id_limpo in df_professores['matricula'].values:
+                                # Busca o nome do professor para personalizar a saudação
+                                registro = df_professores[df_professores['matricula'] == user_id_limpo]
+                                nome_prof = registro['nome'].values[0]
+                                
+                                st.session_state.authenticated = True
+                                st.session_state.usuario_nome = nome_prof
+                                st.success(f"Acesso liberado! Bem-vindo(a), {nome_prof}.")
+                                st.rerun()
+                            else:
+                                st.error("Matrícula não cadastrada ou senha incorreta.")
                         else:
-                            st.error("Matrícula não cadastrada ou senha incorreta.")
+                            st.error("Não foi possível carregar a lista de professores.")
                             
                     except Exception as e:
-                        st.error("Erro técnico: Verifique se a aba 'Professores' existe e se a senha está nos Secrets.")
+                        st.error(f"Erro técnico: {e}")
         
         # Interrompe o carregamento do restante do app até que o login seja feito
         st.stop()
 
 # --- ATIVAÇÃO DO LOGIN ---
 login()
-
-# Se o código continuar daqui, o usuário está logado.
-# Exibimos o nome do professor na barra lateral para confirmação
-
-
-def registrar_log(acao, aluno="N/A", detalhes=""):
-    """Registra a atividade do professor na aba Log"""
-    try:
-        # Pega os dados do professor logado no st.session_state
-        prof_nome = st.session_state.get('usuario_nome', 'Desconhecido')
-        # Precisamos garantir que a matrícula foi salva no login
-        prof_mat = st.session_state.get('usuario_matricula', '000') 
-        
-        novo_log = {
-            "data_hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-            "professor": prof_nome,
-            "matricula": prof_mat,
-            "aluno": aluno,
-            "acao": acao,
-            "detalhes": detalhes
-        }
-        
-        df_log_atual = conn.read(worksheet="Log", ttl=0)
-        df_novo_log = pd.concat([df_log_atual, pd.DataFrame([novo_log])], ignore_index=True)
-        conn.update(worksheet="Log", data=df_novo_log)
-    except Exception as e:
-        print(f"Erro ao registrar log: {e}")
-
-# --- CONFIGURAÇÃO INICIAL ---
-st.set_page_config(
-    page_title="Integra | Sistema AEE",
-    layout="wide",
-    page_icon="🎓",
-    initial_sidebar_state="expanded"
-    
-)
 
 # --- CSS PARA TRAVAR A SIDEBAR ---
 st.markdown("""
@@ -133,17 +109,6 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
-
-    # --- OCULTAR TOOLBAR E MENU ---
-hide_st_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            header {visibility: hidden;}
-            footer {visibility: hidden;}
-            .stAppDeployButton {display:none;}
-            </style>
-            """
-st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # --- ESTILO VISUAL DA INTERFACE (CSS MELHORADO) ---
 st.markdown("""
@@ -170,7 +135,7 @@ st.markdown("""
         width: 100%;
         padding-bottom: 20px;
     }
-    }
+    
     .sidebar-title {
         color: #1e3a8a; /* Azul Institucional */
         font-weight: 800;
@@ -190,17 +155,17 @@ st.markdown("""
         border-left: 6px solid #2563eb; /* Borda lateral azul */
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         margin-bottom: 2rem;
-        margin-top: -100px !important;
+        margin-top: -50px !important;
     }
     .header-title { color: #1e293b; font-weight: 700; font-size: 1.8rem; margin: 0; }
+    .header-subtitle { color: #64748b; font-size: 1rem; margin-top: 5px; }
     
     /* Botões */
     .stButton button { width: 100%; border-radius: 8px; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- MEMÓRIA (JSON) ---
-DB_FILE = "banco_dados_aee_final.json"
+# --- FUNÇÕES DE BANCO DE DADOS ---
 
 def load_db():
     """Lê os dados da planilha do Google"""
@@ -212,7 +177,7 @@ def load_db():
         return df
     except Exception as e:
         # Se a planilha estiver vazia ou der erro, retorna um DataFrame com as colunas certas
-        return pd.DataFrame(columns=["nome", "tipo_doc", "dados_json"])
+        return pd.DataFrame(columns=["nome", "tipo_doc", "dados_json", "id"])
 
 def save_student(doc_type, name, data):
     """Salva ou atualiza garantindo que não duplique linhas"""
@@ -220,7 +185,6 @@ def save_student(doc_type, name, data):
         df_atual = load_db()
         
         # 1. Geramos o ID único exatamente como ele aparece na lista
-        # Se o seu sistema usa "Nome (PEI)", mantenha esse padrão
         id_registro = f"{name} ({doc_type})"
         
         # 2. Limpamos os dados para salvar
@@ -250,84 +214,52 @@ def save_student(doc_type, name, data):
 
         # 4. Envia para a planilha
         conn.update(worksheet="Alunos", data=df_final)
-        st.toast(f"✅ Alterações em {name} salvas na mesma linha!", icon="💾")
+        st.toast(f"✅ Alterações em {name} salvas na nuvem!", icon="💾")
         
     except Exception as e:
-        st.error(f"Erro ao salvar sem duplicar: {e}")
+        st.error(f"Erro ao salvar: {e}")
 
-def delete_student(student_key):
-    db = load_db()
-    if student_key in db:
-        del db[student_key]
-        with open(DB_FILE, "w", encoding="utf-8") as f:
-            json.dump(db, f, indent=4, ensure_ascii=False)
-        st.toast(f"🗑️ Registro excluído com sucesso!", icon="🔥")
-        return True
-    return False
-    
-    def serialize(obj):
-        if isinstance(obj, (datetime, date)):
-            return obj.strftime("%Y-%m-%d")
-        elif isinstance(obj, dict):
-            return {k: serialize(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [serialize(i) for i in obj]
-        return obj
-
-    clean_data = serialize(data)
-    db[key] = clean_data
-    with open(DB_FILE, "w", encoding="utf-8") as f:
-        json.dump(db, f, indent=4, ensure_ascii=False)
-    
-    st.toast(f"✅ Documento de {name} salvo com sucesso!", icon="💾")
-
-#from streamlit_autorefresh import st_autorefresh
-
-# --- CONFIGURAÇÃO DO SALVAMENTO AUTOMÁTICO ---
-# O intervalo é em milissegundos (60000ms = 1 minuto)
-#count = st_autorefresh(interval=60000, key="autosave_counter")
-
-def auto_save():
-    # 1. Verifica se o usuário está logado
-    if st.session_state.get('authenticated'):
-        
-        # 2. Busca o modo de documento do session_state (onde ele fica guardado com segurança)
-        # Substituímos o 'doc_mode' direto por uma busca segura no estado da sessão
-        modo_atual = st.session_state.get('doc_option', '') 
-
-        # 3. Lógica para PEI
-        if "PEI" in modo_atual:
-            # Só salva se houver um nome de aluno preenchido
-            if st.session_state.get('data_pei') and st.session_state.data_pei.get('nome'):
-                save_student("PEI", st.session_state.data_pei['nome'], st.session_state.data_pei)
-                # Opcional: registrar_log("AUTO-SAVE", st.session_state.data_pei['nome'], "Automático")
+def delete_student(student_name):
+    """Exclui um aluno do DataFrame e atualiza a planilha"""
+    try:
+        df = load_db()
+        # Verificamos se a coluna nome existe
+        if "nome" in df.columns:
+            # Filtra removendo o estudante selecionado
+            # Nota: selected_student retorna o "nome", então usamos essa coluna
+            df_new = df[df["nome"] != student_name]
             
-        # 4. Lógica para Estudo de Caso
-        elif "Estudo de Caso" in modo_atual:
-            if st.session_state.get('data_case') and st.session_state.data_case.get('nome'):
-                save_student("CASO", st.session_state.data_case['nome'], st.session_state.data_case)
+            # Se houve remoção, atualiza
+            if len(df_new) < len(df):
+                conn.update(worksheet="Alunos", data=df_new)
+                st.toast(f"🗑️ Registro de {student_name} excluído com sucesso!", icon="🔥")
+                return True
+    except Exception as e:
+        st.error(f"Erro ao excluir: {e}")
+    return False
 
-# Se o contador do autorefresh subir, ele executa a função
-#if count > 0:
-    #auto_save()
+def registrar_log(acao, aluno="N/A", detalhes=""):
+    """Registra a atividade do professor na aba Log"""
+    try:
+        prof_nome = st.session_state.get('usuario_nome', 'Desconhecido')
+        prof_mat = st.session_state.get('usuario_matricula', '000') 
+        
+        novo_log = {
+            "data_hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "professor": prof_nome,
+            "matricula": prof_mat,
+            "aluno": aluno,
+            "acao": acao,
+            "detalhes": detalhes
+        }
+        
+        df_log_atual = conn.read(worksheet="Log", ttl=0)
+        df_novo_log = pd.concat([df_log_atual, pd.DataFrame([novo_log])], ignore_index=True)
+        conn.update(worksheet="Log", data=df_novo_log)
+    except Exception as e:
+        print(f"Erro ao registrar log: {e}")
 
-# --- ESTILO VISUAL DA INTERFACE ---
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    .stApp { background-color: #f8fafc; }
-    .header-box {
-        background: white; padding: 2rem; border-radius: 12px;
-        border-bottom: 4px solid #2563eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        margin-bottom: 2rem;
-    }
-    .header-title { color: #1e293b; font-weight: 700; font-size: 1.8rem; margin: 0; }
-    .header-subtitle { color: #64748b; font-size: 1rem; margin-top: 5px; }
-</style>
-""", unsafe_allow_html=True)
-
-# --- HELPERS ---
+# --- HELPERS PARA PDF ---
 def clean_pdf_text(text):
     if text is None or text is False: return ""
     if text is True: return "Sim"
@@ -337,7 +269,6 @@ def clean_pdf_text(text):
 def get_pdf_bytes(pdf_instance):
     try: return bytes(pdf_instance.output(dest='S').encode('latin-1'))
     except: return bytes(pdf_instance.output(dest='S'))
-
 
 # --- CLASSE PDF CUSTOMIZADA ---
 class OfficialPDF(FPDF):
@@ -351,13 +282,13 @@ class OfficialPDF(FPDF):
         self.set_font('Arial', 'B', 12); self.set_fill_color(240, 240, 240)
         self.cell(width, 8, clean_pdf_text(title), 1, 1, 'L', 1)
 
-# --- INICIALIZAÇÃO ---
+# --- INICIALIZAÇÃO DE ESTADO ---
 if 'data_pei' not in st.session_state: 
     st.session_state.data_pei = {
         'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {},
         'comunicacao_tipo': [], 'permanece': []
     }
-    # REMOVA A LINHA: st.session_state.data_pei.update(demo_pei)
+
 def carregar_dados_aluno():
     selecao = st.session_state.get('aluno_selecionado')
     
@@ -380,20 +311,17 @@ def carregar_dados_aluno():
 
         dados = json.loads(registro["dados_json"])
         
-        # --- AQUI ESTÁ A CORREÇÃO PRINCIPAL ---
         nome_oficial = registro["nome"]
         
         # 1. Trava o nome na variável de segurança
         st.session_state.nome_original_salvamento = nome_oficial
         
         # 2. Garante que o nome esteja nos DOIS dicionários
-        # Assim, se você mudar de PEI para Caso, o nome já estará lá
         if "data_pei" not in st.session_state: st.session_state.data_pei = {}
         if "data_case" not in st.session_state: st.session_state.data_case = {}
         
         st.session_state.data_pei['nome'] = nome_oficial
         st.session_state.data_case['nome'] = nome_oficial
-        # --------------------------------------
 
         # Reidratação de datas
         for k, v in dados.items():
@@ -403,7 +331,7 @@ def carregar_dados_aluno():
         
         # Preenche os dados específicos do documento salvo
         if registro["tipo_doc"] == "PEI":
-            st.session_state.data_pei.update(dados) # Usa update para não apagar o nome que acabamos de por
+            st.session_state.data_pei.update(dados)
         else:
             st.session_state.data_case.update(dados)
             
@@ -411,37 +339,6 @@ def carregar_dados_aluno():
         
     except Exception as e:
         st.info("Pronto para novo preenchimento.")
-                
-# --- CSS PARA ESTILIZAR A SIDEBAR ---
-st.markdown("""
-<style>
-    /* Estilo do Card do Professor */
-    .prof-card {
-        background-color: #f0f2f6;
-        border-radius: 10px;
-        padding: 15px;
-        text-align: center;
-        margin-bottom: 20px;
-        border: 1px solid #e0e0e0;
-    }
-    .prof-label {
-        color: #64748b;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-    }
-    .prof-name {
-        color: #1e3a8a;
-        font-size: 1.1rem;
-        font-weight: 700;
-        margin-top: 5px;
-    }
-    
-    /* Melhorar espaçamento dos radios */
-    .stRadio { margin-bottom: 15px; }
-</style>
-""", unsafe_allow_html=True)
 
 # --- BARRA LATERAL ULTRA-COMPACTA ---
 with st.sidebar:
@@ -502,8 +399,6 @@ with st.sidebar:
     </style>
     """, unsafe_allow_html=True)
 
-    # --- CONTEÚDO ---
-
     # 1. TÍTULO
     st.markdown('<div class="sidebar-title">SISTEMA INTEGRA</div>', unsafe_allow_html=True)
     st.markdown('<div class="sidebar-sub">Gestão de Ed. Especial</div>', unsafe_allow_html=True)
@@ -519,6 +414,7 @@ with st.sidebar:
 
     # 3. SELETOR DE ESTUDANTE
     df_db = load_db()
+    # Usando o nome para o seletor. Se possível, o ID seria melhor, mas o código original usa nome.
     lista_nomes = df_db["nome"].dropna().tolist() if not df_db.empty else []
     
     st.markdown('<p class="section-label">🎓 Estudante</p>', unsafe_allow_html=True)
@@ -533,6 +429,7 @@ with st.sidebar:
     # Lógica de auto-seleção
     default_doc_idx = 0
     if selected_student != "-- Novo Registro --":
+        # Filtra pelo nome
         df_aluno = df_db[df_db["nome"] == selected_student]
         if not df_aluno.empty and df_aluno.iloc[0]["tipo_doc"] == "CASO":
             default_doc_idx = 1
@@ -557,12 +454,10 @@ with st.sidebar:
             label_visibility="collapsed"
         )
     
-    # Espaço flexível (empurra o rodapé um pouco se sobrar espaço, mas não gera scroll)
     st.markdown('<div style="flex-grow: 1;"></div>', unsafe_allow_html=True)
-    
     st.divider()
 
-    # 6. RODAPÉ (Botões alinhados)
+    # 6. RODAPÉ
     c1, c2 = st.columns(2)
     with c1:
         if st.button("🚪 Sair", use_container_width=True):
@@ -574,13 +469,24 @@ with st.sidebar:
             if st.button("🗑️ Excluir", type="secondary", use_container_width=True):
                 st.session_state.confirm_delete = True
 
+    # Confirmação de exclusão
+    if st.session_state.get("confirm_delete"):
+        st.warning(f"Excluir {selected_student}?")
+        col_d1, col_d2 = st.columns(2)
+        if col_d1.button("✅ Sim"):
+            delete_student(selected_student)
+            st.session_state.confirm_delete = False
+            st.rerun()
+        if col_d2.button("❌ Não"):
+            st.session_state.confirm_delete = False
+            st.rerun()
+
 # ==============================================================================
-# PEI COM FORMULÁRIOS (SEM TRAVAMENTO)
+# PEI COM FORMULÁRIOS
 # ==============================================================================
 if "PEI" in doc_mode:
     st.markdown(f"""<div class="header-box"><div class="header-title">Plano Educacional Individualizado - PEI</div></div>""", unsafe_allow_html=True)
     
-    # CSS para botão de salvar verde (igual fizemos no Caso)
     st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
 
     tabs = st.tabs(["1. Identificação", "2. Saúde", "3. Conduta", "4. Escolar", "5. Acadêmico", "6. Metas/Flex", "7. Emissão"])
@@ -649,11 +555,9 @@ if "PEI" in doc_mode:
             cats = ["Deficiência", "Transtorno do Neurodesenvolvimento", "Transtornos Aprendizagem", "AH/SD", "Outros"]
             if 'diag_tipo' not in data: data['diag_tipo'] = []
             
-            # Checkbox precisa de key única dentro do form
             c_c1, c_c2 = st.columns(2)
             for i, cat in enumerate(cats):
                 col = c_c1 if i % 2 == 0 else c_c2
-                # Truque para checkbox dentro de form: usar key única
                 is_checked = cat in data['diag_tipo']
                 if col.checkbox(cat, value=is_checked, key=f"pei_chk_{i}"):
                     if cat not in data['diag_tipo']: data['diag_tipo'].append(cat)
@@ -676,7 +580,6 @@ if "PEI" in doc_mode:
                 c_t1, c_t2, c_t3 = st.columns([1, 2, 2])
                 data['terapias'][esp]['realiza'] = c_t1.checkbox("Realiza?", value=data['terapias'][esp].get('realiza', False), key=f"pei_terapias_{esp}")
                 
-                # Multiselect e inputs
                 data['terapias'][esp]['dias'] = c_t2.multiselect("Dias", ["2ª", "3ª", "4ª", "5ª", "6ª", "Sábado", "Domingo"], default=data['terapias'][esp].get('dias', []), key=f"pei_dias_{esp}")
                 data['terapias'][esp]['horario'] = c_t3.text_input("Horário", value=data['terapias'][esp].get('horario', ''), key=f"pei_hor_{esp}")
                 
@@ -915,14 +818,10 @@ if "PEI" in doc_mode:
             trimestres = ["1º Trimestre", "2º Trimestre", "3º Trimestre"]
             if 'plano_ensino_tri' not in data: data['plano_ensino_tri'] = {}
 
-            # O st.tabs não pode ficar dentro do form se quisermos forms independentes, 
-            # mas como está tudo dentro da ABA 6, vamos manter um form gigante para essa aba toda.
-            
             for tri in trimestres:
                 st.markdown(f"### 🗓️ {tri}")
                 if tri not in data['plano_ensino_tri']: data['plano_ensino_tri'][tri] = {}
                 
-                # Para evitar um form com 500 campos, mostramos apenas as disciplinas em expanders
                 for disc in disciplinas_flex:
                     with st.expander(f"{tri} - {disc}", expanded=False):
                         if disc not in data['plano_ensino_tri'][tri]:
@@ -951,7 +850,7 @@ if "PEI" in doc_mode:
         if st.button("👁️ GERAR PDF COMPLETO"):
             pdf = OfficialPDF('L', 'mm', 'A4'); pdf.add_page(); pdf.set_margins(10, 10, 10)
             
-            # --- PÁGINA 1 (CONGELADA) ---
+            # --- PÁGINA 1 ---
             if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 10, 8, 25)
             if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 252, 4, 37) 
             pdf.set_xy(0, 12); pdf.set_font("Arial", "", 14)
@@ -980,7 +879,7 @@ if "PEI" in doc_mode:
             for l, v in docs:
                 pdf.set_font("Arial", "B", 12); pdf.cell(60, h, clean_pdf_text(l), 1); pdf.set_font("Arial", "", 12); pdf.cell(full_w-60, h, clean_pdf_text(v), 1, 1)
 
-            # --- PÁGINA 2 (CONGELADA - SAÚDE) ---
+            # --- PÁGINA 2 ---
             pdf.add_page(); pdf.section_title("2. INFORMAÇÕES DE SAÚDE", width=0); h = 10
             pdf.set_font("Arial", "B", 12); pdf.cell(100, h, clean_pdf_text("O estudante tem diagnóstico conclusivo:"), 1, 0, 'L')
             status_sim = "[ X ]" if data.get('diag_status') == "Sim" else "[   ]"
@@ -1028,7 +927,7 @@ if "PEI" in doc_mode:
             pdf.ln(3); pdf.set_font("Arial", "B", 12); pdf.cell(0, 8, clean_pdf_text("Outras informações de saúde consideradas relevantes:"), "LTR", 1, 'L', 1)
             pdf.set_font("Arial", "", 12); pdf.multi_cell(0, 8, clean_pdf_text(data.get('saude_extra', 'Nenhuma informação adicional.')), "LRB")
 
-            # --- 3. PROTOCOLO DE CONDUTA (CONGELADO - CONTINUADO) ---
+            # --- 3. PROTOCOLO DE CONDUTA ---
             pdf.ln(5); pdf.section_title("3. PROTOCOLO DE CONDUTA", width=0); h = 8
             pdf.set_font("Arial", "B", 11); pdf.set_fill_color(245, 245, 245); pdf.cell(0, 8, "COMUNICAÇÃO, LOCOMOÇÃO E HIGIENE", 1, 1, 'C', 1)
             rows_cond = [
@@ -1045,7 +944,6 @@ if "PEI" in doc_mode:
                 pdf.set_font("Arial", "B", 10); pdf.cell(95, h, clean_pdf_text(l), 1, 0, 'L'); pdf.set_font("Arial", "", 10); pdf.cell(0, h, clean_pdf_text(v), 1, 1, 'L')
             
             pdf.ln(4); pdf.set_font("Arial", "B", 11); pdf.set_fill_color(245, 245, 245); pdf.cell(0, 8, "COMPORTAMENTO E INTERESSES", 1, 1, 'C', 1)
-# ... trecho anterior do código ...
 
             verbatims = [
                 ("Quais são os interesses do estudante?", data.get('beh_interesses')),
@@ -1063,24 +961,18 @@ if "PEI" in doc_mode:
             ]
             
             for l, v in verbatims:
-                # 1. Verifica se precisa de nova página antes de começar o bloco (Pergunta + Resposta)
-                # Se estiver muito no final da página, pule antes para não quebrar o bloco no meio
                 if pdf.get_y() > 250: 
                     pdf.add_page()
                     
-                # --- PERGUNTA ---
-                pdf.set_x(10) # <--- O SEGREDO: Força voltar para a margem esquerda (10mm)
+                pdf.set_x(10)
                 pdf.set_font("Arial", "B", 10)
-                # w=0 vai até o final da margem, "LTR" faz borda Cima, Esquerda, Direita
                 pdf.multi_cell(0, 7, clean_pdf_text(l), border="LTR", align='L', fill=True) 
                 
-                # --- RESPOSTA ---
-                pdf.set_x(10) # <--- O SEGREDO 2: Força novamente antes da resposta
+                pdf.set_x(10)
                 pdf.set_font("Arial", "", 10)
-                # "LBR" faz borda Esquerda, Baixo, Direita (fechando a caixa)
                 pdf.multi_cell(0, 6, clean_pdf_text(v if v else "---"), border="LBR", align='L', fill=False)
 
-            # --- 4. DESENVOLVIMENTO ESCOLAR (NOVA SEÇÃO) ---
+            # --- 4. DESENVOLVIMENTO ESCOLAR ---
             pdf.ln(5); pdf.section_title("4. DESENVOLVIMENTO ESCOLAR", width=0); h = 8
             dev_rows = [
                 ("Permanece em sala e aula?", f"{data.get('dev_permanece')} - {data.get('dev_permanece_espec')}"),
@@ -1097,9 +989,8 @@ if "PEI" in doc_mode:
             pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(0, 7, clean_pdf_text("Envolvimento afetivo e social da turma com o estudante:"), "LTR", 1, 'L', 1)
             pdf.set_font("Arial", "", 10); pdf.multi_cell(0, 6, clean_pdf_text(data.get('dev_afetivo', '---')), "LRB")
 
-# --- 5. AVALIAÇÃO ACADÊMICA (PDF ADAPTADO) ---
+            # --- 5. AVALIAÇÃO ACADÊMICA ---
             pdf.ln(5)
-            # Verifica espaço
             if pdf.get_y() > 220: pdf.add_page()
 
             pdf.section_title("5. AVALIAÇÃO ACADÊMICA DO ESTUDANTE", width=0)
@@ -1136,7 +1027,6 @@ if "PEI" in doc_mode:
                 ]
             
             for titulo, texto in areas_aval:
-                # Verifica quebra
                 if pdf.get_y() > 230: pdf.add_page()
                 
                 pdf.set_font("Arial", "B", 10); pdf.set_fill_color(240, 240, 240)
@@ -1145,7 +1035,7 @@ if "PEI" in doc_mode:
                 pdf.multi_cell(0, 6, clean_pdf_text(texto if texto else "---"), "LRB")
                 pdf.ln(2)
 
-            # --- 6. METAS (PDF - IGUAL PARA AMBOS) ---
+            # --- 6. METAS ---
             pdf.ln(5)
             if pdf.get_y() > 220: pdf.add_page()
             
@@ -1166,7 +1056,7 @@ if "PEI" in doc_mode:
             print_meta_row("Habilidades de Autocuidado e Vida Prática", data.get('meta_auto_obj'), data.get('meta_auto_est'))
             print_meta_row("Habilidades Acadêmicas", data.get('meta_acad_obj'), data.get('meta_acad_est'))
 
-            # --- 7. FLEXIBILIZAÇÃO (PDF ADAPTADO) ---
+            # --- 7. FLEXIBILIZAÇÃO ---
             pdf.ln(5)
             if pdf.get_y() > 230: pdf.add_page()
             
@@ -1182,7 +1072,6 @@ if "PEI" in doc_mode:
             pdf.cell(90, 8, clean_pdf_text("CONTEÚDO"), 1, 0, 'C', 1)
             pdf.cell(0, 8, "METODOLOGIA", 1, 1, 'C', 1)
 
-            # LISTA DINÂMICA PARA O PDF
             if pei_level == "Fundamental":
                 disciplinas_flex = ["Língua Portuguesa", "Matemática", "História", "Geografia", "Ciências", "Arte", "Educação Física", "Linguagens e Tecnologia"]
             else:
@@ -1219,10 +1108,6 @@ if "PEI" in doc_mode:
                     for disc in disciplinas_flex:
                         plan = dados_tri.get(disc, {'obj': '', 'cont': '', 'met': ''})
                         
-                        # Se vazio, pula no PDF? Vamos manter para o professor ver que existe a disciplina.
-                        # Ou se preferir ocultar disciplinas vazias, descomente:
-                        # if not (plan['obj'] or plan['cont'] or plan['met']): continue
-
                         if pdf.get_y() > 220: pdf.add_page()
                         
                         pdf.set_font("Arial", "B", 10); pdf.set_fill_color(230, 230, 230)
@@ -1258,7 +1143,7 @@ if "PEI" in doc_mode:
                 pdf.set_font("Arial", "", 10)
                 pdf.multi_cell(0, 6, clean_pdf_text(data.get('plano_obs_geral')), "LRB")
 
-            # --- ASSINATURAS (MANTIDO DO ANTERIOR - SERVE PARA AMBOS) ---
+            # --- ASSINATURAS ---
             pdf.ln(15)
             if pdf.get_y() > 230: pdf.add_page(); pdf.ln(15)
             pdf.set_font("Arial", "", 8)
@@ -1286,8 +1171,6 @@ if "PEI" in doc_mode:
             draw_signature(65, y, data.get('coord', ''), "Coordenador Pedagógico")
             draw_signature(162, y, data.get('gestor', ''), "Gestor Escolar")
 
-
-
             st.session_state.pdf_bytes = get_pdf_bytes(pdf)
             st.rerun()
 
@@ -1295,10 +1178,7 @@ if "PEI" in doc_mode:
             st.download_button("📥 BAIXAR PEI COMPLETO", st.session_state.pdf_bytes, f"PEI_{data.get('nome','aluno')}.pdf", "application/pdf", type="primary")
 
 # ==============================================================================
-# ESTUDO DE CASO
-# ==============================================================================
-# ==============================================================================
-# ESTUDO DE CASO COM FORMULÁRIOS (SEM RECARREGAR A TELA)
+# ESTUDO DE CASO COM FORMULÁRIOS
 # ==============================================================================
 else:
     st.markdown("""<div class="header-box"><div class="header-title">Estudo de Caso</div></div>""", unsafe_allow_html=True)
@@ -1312,21 +1192,21 @@ else:
     
     data = st.session_state.data_case
     
-    # Adicionei CSS para o botão de submit ficar verde e largo
     st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
 
     tabs = st.tabs(["1. Identificação", "2. Família", "3. Histórico", "4. Saúde", "5. Comportamento", "6. Gerar PDF"])
 
-    # --- ABA 1: IDENTIFICAÇÃO (COM FORMULÁRIO) ---
+    # --- ABA 1: IDENTIFICAÇÃO ---
     with tabs[0]:
         with st.form("form_caso_identificacao"):
             st.subheader("1.1 Dados Gerais do Estudante")
-            # Nota: Dentro do form, removemos o on_change automático
             data['nome'] = st.text_input("Nome Completo", value=data.get('nome', ''), disabled=True)
             
             c1, c2, c3 = st.columns([1, 1, 2])
             data['ano_esc'] = c1.text_input("Ano Escolaridade", value=data.get('ano_esc', ''))
-            idx_per = ["Manhã", "Tarde", "Integral"].index(data.get('periodo')) if data.get('periodo') in ["Manhã", "Tarde", "Integral"] else 0
+            
+            p_val = data.get('periodo') if data.get('periodo') in ["Manhã", "Tarde", "Integral"] else "Manhã"
+            idx_per = ["Manhã", "Tarde", "Integral"].index(p_val)
             data['periodo'] = c2.selectbox("Período", ["Manhã", "Tarde", "Integral"], index=idx_per)
             data['unidade'] = c3.text_input("Unidade Escolar", value=data.get('unidade', ''))
 
@@ -1346,11 +1226,10 @@ else:
             data['telefones'] = c8.text_input("Telefones", value=data.get('telefones', ''))
             
             st.markdown("---")
-            # O BOTÃO MÁGICO: Nada atualiza até clicar aqui
             if st.form_submit_button("💾 Salvar Dados de Identificação"):
                 save_student("CASO", data.get('nome'), data)
 
-    # --- ABA 2: DADOS FAMILIARES (COM FORMULÁRIO) ---
+    # --- ABA 2: DADOS FAMILIARES ---
     with tabs[1]:
         with st.form("form_caso_familia"):
             st.subheader("1.1.2 Dados Familiares")
@@ -1394,7 +1273,7 @@ else:
             if st.form_submit_button("💾 Salvar Dados Familiares"):
                 save_student("CASO", data.get('nome'), data)
 
-    # --- ABA 3: HISTÓRICO (COM FORMULÁRIO) ---
+    # --- ABA 3: HISTÓRICO ---
     with tabs[2]:
         with st.form("form_caso_historico"):
             st.subheader("1.1.3 História Escolar")
@@ -1446,7 +1325,7 @@ else:
             if st.form_submit_button("💾 Salvar Dados de Histórico"):
                 save_student("CASO", data.get('nome'), data)
 
-    # --- ABA 4: SAÚDE (COM FORMULÁRIO) ---
+    # --- ABA 4: SAÚDE ---
     with tabs[3]:
         with st.form("form_caso_saude"):
             st.subheader("1.3 Informações sobre Saúde")
@@ -1484,7 +1363,7 @@ else:
             if st.form_submit_button("💾 Salvar Dados de Saúde"):
                 save_student("CASO", data.get('nome'), data)
 
-    # --- ABA 5: COMPORTAMENTO (COM FORMULÁRIO) ---
+    # --- ABA 5: COMPORTAMENTO ---
     with tabs[4]:
         with st.form("form_caso_comportamento"):
             st.subheader("1.4 Compreensão da Família (Checklist)")
@@ -1532,13 +1411,11 @@ else:
             if st.form_submit_button("💾 Salvar Comportamento"):
                 save_student("CASO", data.get('nome'), data)
 
-# --- ABA 6: GERAR PDF (ESTUDO DE CASO - ESTILO PEI) ---
+    # --- ABA 6: GERAR PDF (ESTUDO DE CASO) ---
     with tabs[5]:
         if st.button("💾 SALVAR ESTUDO DE CASO", type="primary"): 
             save_student("CASO", data.get('nome', 'aluno'), data)
 
-
-        
         if st.button("👁️ GERAR PDF"):
             # Cria PDF em Retrato ('P')
             pdf = OfficialPDF('P', 'mm', 'A4')
@@ -1644,11 +1521,10 @@ else:
                 pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(data.get('hist_obs')), 1)
 
             # --- 1.2 GESTAÇÃO, PARTO E DESENVOLVIMENTO ---
-            pdf.add_page() # Nova página para não quebrar o bloco
+            pdf.add_page()
             pdf.section_title("1.2 GESTAÇÃO, PARTO E DESENVOLVIMENTO", width=0)
             pdf.ln(4)
             
-            # Função auxiliar para linhas de dados (Rótulo | Valor)
             def print_data_row(label, value):
                 pdf.set_font("Arial", "B", 9); pdf.set_fill_color(240, 240, 240)
                 pdf.cell(80, 7, clean_pdf_text(label), 1, 0, 'L', 1)
@@ -1694,13 +1570,11 @@ else:
             for label, value in saude_rows:
                 print_data_row(label, value)
             
-            # Controle de Esfíncter
             esf = []
             if data.get('esf_urina'): esf.append("Urina")
             if data.get('esf_fezes'): esf.append("Fezes")
             print_data_row("Controle de Esfíncter:", f"{', '.join(esf) if esf else 'Não'}  (Idade: {data.get('esf_idade')})")
             
-            # Clínicas
             pdf.ln(4)
             pdf.set_font("Arial", "B", 10); pdf.set_fill_color(240, 240, 240)
             pdf.cell(0, 8, "Atendimentos Clínicos Extraescolares", 1, 1, 'L', 1)
@@ -1720,7 +1594,6 @@ else:
             pdf.section_title("1.4 COMPREENSÃO DA FAMÍLIA (CHECKLIST)", width=0)
             pdf.ln(4)
             
-            # Tabela
             pdf.set_fill_color(220, 220, 220); pdf.set_font("Arial", "B", 9)
             pdf.cell(110, 8, "PERGUNTA / ASPECTO OBSERVADO", 1, 0, 'C', 1)
             pdf.cell(25, 8, "SIM/NÃO", 1, 0, 'C', 1)
@@ -1745,25 +1618,20 @@ else:
                 opt = data.get('checklist', {}).get(f"{key_base}_opt", "Não")
                 obs = data.get('checklist', {}).get(f"{key_base}_obs", "")
                 
-                # Ajusta altura da célula baseada no tamanho da observação
                 line_height = 6
-                num_lines = pdf.get_string_width(obs) / 50  # Estimativa simples
+                num_lines = pdf.get_string_width(obs) / 50 
                 cell_height = max(line_height, (int(num_lines) + 1) * line_height)
                 
                 x_start = pdf.get_x(); y_start = pdf.get_y()
                 
-                # Pergunta (com quebra de linha se necessário)
                 pdf.multi_cell(110, line_height, clean_pdf_text(item), 1, 'L')
                 
-                # Opção (Sim/Não)
                 pdf.set_xy(x_start + 110, y_start)
                 pdf.cell(25, cell_height, clean_pdf_text(opt), 1, 0, 'C')
                 
-                # Observação (Multi-cell)
                 pdf.set_xy(x_start + 135, y_start)
                 pdf.multi_cell(0, line_height, clean_pdf_text(obs), 1, 'L')
                 
-                # Garante que o cursor desça para a próxima linha da tabela corretamente
                 pdf.set_xy(x_start, y_start + cell_height)
 
             # --- FINALIZAÇÃO ---
@@ -1773,7 +1641,6 @@ else:
             pdf.set_font("Arial", "", 9)
             pdf.multi_cell(0, 6, clean_pdf_text(data.get('entrevista_extra', '---')), 1)
             
-            # --- ASSINATURAS ---
             pdf.ln(10)
             if pdf.get_y() > 240: pdf.add_page()
             
@@ -1784,7 +1651,7 @@ else:
             print_data_row("Profissional Entrevistador:", data.get('entrevista_prof'))
             print_data_row("Data da Entrevista:", str(data.get('entrevista_data', '')))
             
-            pdf.ln(25) # Espaço para assinar
+            pdf.ln(25) 
             
             y = pdf.get_y()
             pdf.line(20, y, 90, y); pdf.line(110, y, 190, y)
@@ -1792,10 +1659,8 @@ else:
             pdf.set_xy(20, y+2); pdf.cell(70, 5, "Assinatura do Responsável Legal", 0, 0, 'C')
             pdf.set_xy(110, y+2); pdf.cell(80, 5, "Assinatura do Docente/Gestor", 0, 1, 'C')
 
-            # Salva na sessão e recarrega
             st.session_state.pdf_bytes_caso = get_pdf_bytes(pdf)
             st.rerun()
 
-        # Botão de Download (Fora do if do botão Gerar, mas dentro da tab)
         if 'pdf_bytes_caso' in st.session_state:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")

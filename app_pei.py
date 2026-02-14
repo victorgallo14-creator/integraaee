@@ -120,6 +120,21 @@ st.set_page_config(
     
 )
 
+# --- CSS PARA TRAVAR A SIDEBAR ---
+st.markdown("""
+    <style>
+        /* Esconde o botão de fechar (X) na parte superior da barra lateral */
+        [data-testid="stSidebarCollapseButton"] {
+            display: none;
+        }
+        
+        /* Esconde o botão de abrir (>) caso ela apareça fechada */
+        [data-testid="stSidebarNavOpen"] {
+            display: none;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
     # --- OCULTAR TOOLBAR E MENU ---
 hide_st_style = """
             <style>
@@ -1625,6 +1640,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

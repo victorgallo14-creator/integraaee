@@ -62,9 +62,13 @@ def login():
             <style>
                 /* Remove padding padrão do Streamlit para ocupar a tela toda */
                 .block-container {
-                    padding-top: 1rem !important;
+                    padding-top: 0rem !important;
                     padding-bottom: 0rem !important;
                     max-width: 100%;
+                    min-height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
                 }
                 
                 /* Fundo da Página */
@@ -75,7 +79,7 @@ def login():
                 /* Painel Esquerdo (Arte) */
                 .login-art-box {
                     background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
-                    height: 600px; /* Altura fixa para alinhar */
+                    height: 550px; /* Altura ajustada para centralizar melhor */
                     border-radius: 16px 0 0 16px; /* Arredondado apenas na esquerda */
                     display: flex;
                     flex-direction: column;
@@ -93,7 +97,7 @@ def login():
                     border: none;
                     padding: 2rem 3rem;
                     border-radius: 0 16px 16px 0; /* Arredondado apenas na direita */
-                    height: 600px; /* Mesma altura da arte */
+                    height: 550px; /* Mesma altura da arte */
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
@@ -146,6 +150,10 @@ def login():
                 }
             </style>
         """, unsafe_allow_html=True)
+        
+        # Layout em Colunas: Spacer, Arte, Form, Spacer
+        # Ajuste de proporção para ficar elegante
+        c_pad1, c_art, c_form, c_pad2 = st.columns([1, 4, 4, 1])
         
         # Espaçamento para centralizar verticalmente na tela
         st.write("")
@@ -2135,3 +2143,4 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.info("Nenhum histórico encontrado para este aluno.")
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
+

@@ -17,7 +17,7 @@ st.markdown("""
         .block-container {
             padding-top: 0rem;
             padding-bottom: 0rem;
-            margin-top: -2rem !important;
+            margin-top: -3rem !important;
         }
         #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
@@ -1610,6 +1610,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

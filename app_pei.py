@@ -888,9 +888,16 @@ if "PEI" in doc_mode:
                 ("Tem autonomia para tomar água e se alimentar?", f"{data.get('beh_autonomia_agua')} - {data.get('beh_autonomia_agua_espec')}"),
                 ("Outras informações julgadas pertinentes:", data.get('beh_pertinentes'))
             ]
+            
             for l, v in verbatims:
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 7, clean_pdf_text(l), "LTR", 1, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.multi_cell(0, 6, clean_pdf_text(v if v else "---"), "LRB")
+                # CORREÇÃO AQUI: Trocamos cell por multi_cell na pergunta (l)
+                pdf.set_font("Arial", "B", 10)
+                # O multi_cell aqui garante que a pergunta quebre linha se for longa demais
+                pdf.multi_cell(0, 7, clean_pdf_text(l), "LTR", 'L', 1) 
+                
+                # A resposta continua usando multi_cell para texto longo
+                pdf.set_font("Arial", "", 10)
+                pdf.multi_cell(0, 6, clean_pdf_text(v if v else "---"), "LRB")
 
             # --- 4. DESENVOLVIMENTO ESCOLAR (NOVA SEÇÃO) ---
             pdf.ln(5); pdf.section_title("4. DESENVOLVIMENTO ESCOLAR", width=0); h = 8
@@ -1608,6 +1615,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

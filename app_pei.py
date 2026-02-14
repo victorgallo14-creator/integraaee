@@ -151,10 +151,6 @@ def login():
             </style>
         """, unsafe_allow_html=True)
         
-        # Layout em Colunas: Spacer, Arte, Form, Spacer
-        # Ajuste de proporção para ficar elegante
-        c_pad1, c_art, c_form, c_pad2 = st.columns([1, 4, 4, 1])
-        
         # Espaçamento para centralizar verticalmente na tela
         st.write("")
         st.write("")
@@ -207,7 +203,7 @@ def login():
                         <div class="lgpd-title">🔒 CONFIDENCIALIDADE E SIGILO</div>
                         <div class="lgpd-text">
                             Acesso Monitorado. Este sistema contém informações confidenciais e dados sensíveis protegidos pela Lei Geral de Proteção de Dados (LGPD). O uso é estritamente destinado a finalidades pedagógicas e administrativas. 
-                            A utilização indevida acarretará responsabilização conforme a legislação vigente.
+                            Ao prosseguir, você declara estar ciente de que todas as ações são registradas, podendo haver auditoria para garantia da segurança, integridade e conformidade dos dados. A utilização indevida acarretará responsabilização conforme a legislação vigente.
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
@@ -826,7 +822,7 @@ if app_mode == "📊 Painel de Gestão":
             st.markdown("### 📅 Agenda da Equipe")
             with st.form("form_agenda"):
                 c_d, c_e = st.columns([1, 2])
-                data_evento = c_d.date_input("Data")
+                data_evento = c_d.date_input("Data", format="DD/MM/YYYY")
                 desc_evento = c_e.text_input("Evento")
                 if st.form_submit_button("Agendar"):
                     df_agenda = safe_read("Agenda", ["Data", "Evento", "Autor"])
@@ -923,7 +919,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     if isinstance(d_val, str): 
                         try: d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
                         except: d_val = date.today()
-                    data['nasc'] = c2.date_input("Nascimento", value=d_val if d_val else date.today())
+                    data['nasc'] = c2.date_input("Nascimento", value=d_val if d_val else date.today(), format="DD/MM/YYYY")
                     
                     c3, c4 = st.columns(2)
                     data['idade'] = c3.text_input("Idade", value=data.get('idade', ''))
@@ -968,7 +964,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 if isinstance(ld_val, str): 
                     try: ld_val = datetime.strptime(ld_val, '%Y-%m-%d').date()
                     except: ld_val = date.today()
-                data['laudo_data'] = c_l1.date_input("Data do Laudo Médico", value=ld_val if ld_val else date.today())
+                data['laudo_data'] = c_l1.date_input("Data do Laudo Médico", value=ld_val if ld_val else date.today(), format="DD/MM/YYYY")
                 data['laudo_medico'] = c_l2.text_input("Médico Responsável pelo Laudo", value=data.get('laudo_medico', ''))
                 
                 st.markdown("Categorias de Diagnóstico:")
@@ -1673,7 +1669,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 if isinstance(d_nasc, str):
                     try: d_nasc = datetime.strptime(d_nasc, '%Y-%m-%d').date()
                     except: d_nasc = date.today()
-                data['d_nasc'] = c5.date_input("Data de Nascimento", value=d_nasc if d_nasc else date.today())
+                data['d_nasc'] = c5.date_input("Data de Nascimento", value=d_nasc if d_nasc else date.today(), format="DD/MM/YYYY")
 
                 data['endereco'] = st.text_input("Endereço", value=data.get('endereco', ''))
                 c6, c7, c8 = st.columns([2, 2, 2])
@@ -1859,7 +1855,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 if isinstance(d_ent, str): 
                      try: d_ent = datetime.strptime(d_ent, '%Y-%m-%d').date()
                      except: d_ent = date.today()
-                data['entrevista_data'] = c_e3.date_input("Data", value=d_ent if d_ent else date.today())
+                data['entrevista_data'] = c_e3.date_input("Data", value=d_ent if d_ent else date.today(), format="DD/MM/YYYY")
                 
                 data['entrevista_extra'] = st.text_area("Outras informações relevantes:", value=data.get('entrevista_extra', ''))
                 
@@ -2143,5 +2139,3 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.info("Nenhum histórico encontrado para este aluno.")
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
-
-

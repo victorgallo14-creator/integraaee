@@ -560,8 +560,16 @@ if app_mode == "📊 Painel de Gestão":
             return int((filled / len(keys_check)) * 100)
         except: return 0
 
-    # Chaves para checagem
-    keys_pei = ['nome', 'nasc', 'prof_poli', 'diag_status', 'com_tipo', 'loc_reduzida', 'hig_banheiro', 'beh_interesses', 'dev_permanece', 'aval_port', 'meta_social_obj', 'flex_matrix']
+    # Chaves para checagem (focadas em conteúdo preenchido para evitar falsos positivos)
+    keys_pei = [
+        'prof_poli', 'prof_aee',       # 1. Identificação
+        'defic_txt', 'saude_extra',    # 2. Saúde
+        'beh_interesses', 'beh_desafios', # 3. Conduta
+        'dev_afetivo',                 # 4. Escolar
+        'aval_port', 'aval_ling_verbal', # 5. Acadêmico (um dos dois)
+        'meta_social_obj', 'meta_acad_obj', # 6. Metas
+        'plano_obs_geral'              # Final
+    ]
     
     concluidos = 0
     deficiencies_count = {}
@@ -612,7 +620,7 @@ if app_mode == "📊 Painel de Gestão":
                 df_prog = pd.DataFrame(pei_progress_list).sort_values("Progresso")
                 with st.container(height=300):
                     for _, row in df_prog.iterrows():
-                        st.caption(f"{row['Aluno']}")
+                        st.caption(f"{row['Aluno']} ({row['Progresso']}%)")
                         st.progress(row['Progresso'] / 100)
             else:
                 st.info("Nenhum PEI cadastrado.")

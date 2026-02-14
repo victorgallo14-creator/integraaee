@@ -197,7 +197,7 @@ def login():
                     <div class="lgpd-box">
                         <div class="lgpd-title">🔒 CONFIDENCIALIDADE E SIGILO</div>
                         <div class="lgpd-text">
-                            Acesso monitorado. Dados sensíveis protegidos pela LGPD. Uso exclusivo pedagógico.
+                            Acesso Monitorado. Este sistema contém informações confidenciais e dados sensíveis protegidos pela Lei Geral de Proteção de Dados (LGPD). O uso é estritamente destinado a finalidades pedagógicas e administrativas, conforme diretrizes institucionais. Ao prosseguir, você declara estar ciente de que todas as ações são registradas, podendo haver auditoria para garantia da segurança, integridade e conformidade dos dados. A utilização indevida acarretará responsabilização conforme a legislação vigente.
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
@@ -2133,4 +2133,5 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.info("Nenhum histórico encontrado para este aluno.")
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
+
 

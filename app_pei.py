@@ -412,9 +412,8 @@ def carregar_dados_aluno():
     except Exception as e:
         st.info("Pronto para novo preenchimento.")
 
-# --- BARRA LATERAL ---
-# --- PAINEL DE CONTROLE CENTRAL ---
 # --- ABERTURA DA PRIMEIRA CAIXA BRANCA ---
+# Adicionei o ) que faltava no final da linha abaixo
 st.markdown('<div class="header-box">', unsafe_allow_html=True)
 
 col_txt, col_user = st.columns([2, 1])
@@ -436,8 +435,14 @@ c1, c2, c3 = st.columns([2, 1, 1])
 
 with c1:
     df_db = load_db()
+    # Tratamento para evitar erro de ordenação (TypeError)
     lista_nomes = sorted([str(x) for x in df_db["nome"].dropna().unique()]) if not df_db.empty else []
-    selected_student = st.selectbox("👨‍🎓 Selecionar Estudante", ["-- Novo Registro --"] + lista_nomes, key="aluno_selecionado", on_change=carregar_dados_aluno)
+    selected_student = st.selectbox(
+        "👨‍🎓 Selecionar Estudante", 
+        ["-- Novo Registro --"] + lista_nomes, 
+        key="aluno_selecionado", 
+        on_change=carregar_dados_aluno
+    )
 
 with c2:
     doc_mode = st.radio("📂 Tipo de Documento", ["PEI", "Estudo de Caso"], key="doc_option", horizontal=True)
@@ -445,6 +450,8 @@ with c2:
 with c3:
     if "PEI" in doc_mode:
         pei_level = st.selectbox("🏫 Nível", ["Fundamental", "Infantil"], key="pei_level_choice")
+    else:
+        st.write("") # Espaçador
 
 # FECHAMENTO DA PRIMEIRA CAIXA
 st.markdown('</div>', unsafe_allow_html=True)
@@ -1609,6 +1616,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

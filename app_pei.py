@@ -1571,16 +1571,30 @@ else:
                 save_student("CASO", data.get('nome'), data)
 
 # --- ABA 6: GERAR PDF (ESTUDO DE CASO - ESTILO PEI) ---
-    with tabs[5]:
-        if st.button("💾 SALVAR ESTUDO DE CASO", type="primary"): 
-            save_student("CASO", data.get('nome', 'aluno'), data)
 
+    with tabs[1]:
+        if st.button("💾 SALVAR E ARQUIVAR NO DRIVE", type="primary"):
+            save_student("CASO", data['nome'], data)
+            
+            pdf = OfficialPDF('P', 'mm', 'A4'); pdf.add_page()
+            pdf.set_font("Arial", "B", 16); pdf.cell(0, 10, "ESTUDO DE CASO", 0, 1, 'C')
+            pdf.ln(10)
+            pdf.section_title(f"Estudante: {data['nome']}")
+            pdf.set_font("Arial", "", 11); pdf.multi_cell(0, 10, clean_pdf_text(data.get('relato', '---')))
+            
+            pdf_bytes_caso = pdf.output(dest='S').encode('latin-1')
+            st.session_state.pdf_bytes_caso = pdf_bytes_caso
+            
+            timestamp = datetime.now().strftime("%d-%m-%Y_%H%M")
+            nome_arquivo = f"Caso_{data['nome']}_{timestamp}.pdf"
+            drive_id = upload_to_drive(pdf_bytes_caso, nome_arquivo)
+            
+            if drive_id:
+                st.success(f"📂 Arquivado automaticamente no Drive da Escola!")
+            st.rerun()
 
-        
-        if st.button("👁️ GERAR PDF E SALVAR NO DRIVE DA ESCOLA"):
-            # Cria PDF em Retrato ('P')
-            pdf = OfficialPDF('P', 'mm', 'A4')
-            pdf.add_page(); pdf.set_margins(15, 15, 15)
+        if 'pdf_bytes_caso' in st.session_state:
+            st.download_button("📥 Baixar PDF para o PC", st.session_state.pdf_bytes_caso, "Caso_Estudo.pdf")
             
             # --- CABEÇALHO ---
             if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)
@@ -1837,6 +1851,7 @@ else:
         # Botão de Download (Fora do if do botão Gerar, mas dentro da tab)
         if 'pdf_bytes_caso' in st.session_state:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
+
 
 
 

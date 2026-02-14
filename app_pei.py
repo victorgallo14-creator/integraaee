@@ -450,7 +450,7 @@ with st.sidebar:
     <style>
         /* 1. Remove o espaço gigante no topo da barra lateral */
         section[data-testid="stSidebar"] > div {
-            padding-top: 1rem !important; /* Padrão é 6rem, reduzimos para 1 */
+            padding-top: 0.7rem !important; /* Padrão é 6rem, reduzimos para 1 */
             padding-bottom: 0.5rem !important;
         }
         
@@ -1751,6 +1751,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

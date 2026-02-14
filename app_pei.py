@@ -18,16 +18,33 @@ st.set_page_config(
     page_title="Integra | Sistema AEE",
     layout="wide",
     page_icon="🎓",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="auto"
 )
 
-# --- OCULTAR TOOLBAR E MENU ---
+# --- OCULTAR TOOLBAR E MENU E RESPONSIVIDADE ---
 hide_st_style = """
             <style>
             #MainMenu {visibility: hidden;}
-            header {visibility: hidden;}
             footer {visibility: hidden;}
             .stAppDeployButton {display:none;}
+            
+            /* --- COMPORTAMENTO DESKTOP (Largura > 992px) --- */
+            @media (min-width: 992px) {
+                /* Esconde o header e trava a sidebar aberta */
+                header {visibility: hidden;}
+                [data-testid="stSidebarCollapseButton"] {display: none;}
+            }
+            
+            /* --- COMPORTAMENTO MOBILE/TABLET (Largura <= 991px) --- */
+            @media (max-width: 991px) {
+                /* Header visível para acessar o menu hambúrguer */
+                header {visibility: visible;}
+                
+                /* Ajustes para evitar que o conteúdo suba demais */
+                .header-box {
+                    margin-top: 0px !important;
+                }
+            }
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
@@ -47,7 +64,8 @@ def login():
             </div>
         """, unsafe_allow_html=True)
         
-        col1, col2, col3 = st.columns([1, 1.5, 1])
+        # Ajuste de colunas para melhor responsividade em tablets
+        col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             with st.form("login_form"):
                 user_id = st.text_input("Matrícula (Funcional)")
@@ -97,22 +115,7 @@ def login():
 # --- ATIVAÇÃO DO LOGIN ---
 login()
 
-# --- CSS PARA TRAVAR A SIDEBAR ---
-st.markdown("""
-    <style>
-        /* Esconde o botão de fechar (X) na parte superior da barra lateral */
-        [data-testid="stSidebarCollapseButton"] {
-            display: none;
-        }
-        
-        /* Esconde o botão de abrir (>) caso ela apareça fechada */
-        [data-testid="stSidebarNavOpen"] {
-            display: none;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- ESTILO VISUAL DA INTERFACE (CSS MELHORADO) ---
+# --- ESTILO VISUAL DA INTERFACE (CSS MELHORADO E RESPONSIVO) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
@@ -157,13 +160,31 @@ st.markdown("""
         border-left: 6px solid #2563eb; /* Borda lateral azul */
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         margin-bottom: 2rem;
-        margin-top: -50px !important;
+        /* Margem negativa apenas para Desktop para 'colar' no topo */
+        margin-top: -50px;
     }
+    
     .header-title { color: #1e293b; font-weight: 700; font-size: 1.8rem; margin: 0; }
     .header-subtitle { color: #64748b; font-size: 1rem; margin-top: 5px; }
     
     /* Botões */
     .stButton button { width: 100%; border-radius: 8px; }
+    
+    /* --- MEDIA QUERIES PARA MOBILE --- */
+    @media (max-width: 991px) {
+        .header-box {
+            margin-top: 10px !important; /* Reseta a margem no mobile */
+            padding: 1.5rem !important;
+        }
+        .header-title {
+            font-size: 1.5rem !important;
+        }
+        
+        /* Ajustes gerais de espaçamento */
+        .stBlock {
+            padding-top: 1rem;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -349,8 +370,8 @@ with st.sidebar:
     <style>
         /* 1. Remove o espaço gigante no topo da barra lateral */
         section[data-testid="stSidebar"] > div {
-            padding-top: 0.7rem !important; /* Padrão é 6rem, reduzimos para 1 */
-            padding-bottom: 0.5rem !important;
+            padding-top: 1rem !important; /* Mais espaço para o botão X no mobile */
+            padding-bottom: 2rem !important;
         }
         
         /* 2. Reduz o espaço entre cada widget (botões, selects) */

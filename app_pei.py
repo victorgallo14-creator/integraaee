@@ -15,17 +15,20 @@ from google.oauth2 import service_account
 DRIVE_FOLDER_ID = "1Wwfn6M9EY9KE5x6EmfmmTlUq8SvuVrdu"
 
 def upload_to_drive(file_content, file_name):
-    """Envia o PDF para a pasta do Drive usando a mesma conta do Google Sheets"""
+    """Envia o PDF para a pasta do Drive com escopo de acesso definido"""
     try:
-        # Puxa as credenciais que já estão no seu arquivo Secrets
-        creds_info = json.loads(st.secrets["connections"]["gsheets"]["service_account"])
-        credentials = service_account.Credentials.from_service_account_info(creds_info)
+        # Carrega as credenciais
+        info = json.loads(st.secrets["connections"]["gsheets"]["service_account"])
+        
+        # DEFINIÇÃO DE ESCOPO (Obrigatório para o Drive aceitar a conexão)
+        SCOPES = ['https://www.googleapis.com/auth/drive']
+        credentials = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
         
         service = build('drive', 'v3', credentials=credentials)
         
         file_metadata = {
             'name': file_name,
-            'parents': [DRIVE_FOLDER_ID]
+            'parents': ["1Wwfn6M9EY9KE5x6EmfmmTlUq8SvuVrdu"]
         }
         
         media = MediaIoBaseUpload(io.BytesIO(file_content), mimetype='application/pdf')
@@ -38,7 +41,9 @@ def upload_to_drive(file_content, file_name):
         
         return file.get('id')
     except Exception as e:
-        st.error(f"⚠️ Falha no arquivamento Drive: {e}")
+        # Log detalhado para o programador ver no terminal do Streamlit
+        print(f"Erro detalhado no Drive: {e}")
+        st.error(f"⚠️ Erro ao arquivar no Drive. Verifique as permissões da pasta.")
         return None
 
 
@@ -1832,6 +1837,7 @@ else:
         # Botão de Download (Fora do if do botão Gerar, mas dentro da tab)
         if 'pdf_bytes_caso' in st.session_state:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
+
 
 
 

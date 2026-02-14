@@ -87,8 +87,8 @@ def login():
                     box-shadow: -5px 10px 25px rgba(37, 99, 235, 0.2);
                 }
                 
-                /* Painel Direito (Formulário) */
-                .login-form-container {
+                /* Painel Direito (Formulário) - Estilizando o próprio stForm */
+                div[data-testid="stForm"] {
                     background-color: white;
                     border: none;
                     padding: 2rem 3rem;
@@ -98,13 +98,6 @@ def login():
                     flex-direction: column;
                     justify-content: center;
                     box-shadow: 5px 10px 25px rgba(0,0,0,0.05);
-                }
-                
-                /* Força o formulário a ser transparente para pegar o fundo do container */
-                div[data-testid="stForm"] {
-                    background-color: transparent;
-                    border: none;
-                    padding: 0;
                 }
 
                 /* Tipografia */
@@ -163,38 +156,36 @@ def login():
         
         # --- LADO ESQUERDO (ARTE AZUL) ---
         with c_art:
+            # Atenção: HTML sem indentação para evitar renderização de bloco de código
             st.markdown("""
-                <div class="login-art-box">
-                    <div style="font-size: 6rem; margin-bottom: 1rem; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));">🧠</div>
-                    <h1 style="color: white; font-weight: 800; font-size: 3.5rem; margin: 0; line-height: 1;">INTEGRA</h1>
-                    <p style="font-size: 1.2rem; opacity: 0.9; font-weight: 300; margin-top: 10px;">Gestão de Educação<br>Especial Inclusiva</p>
-                    
-                    <p style="margin-top: 40px; width: 100%;">
-                        <hr style="border-color: rgba(255,255,255,0.3); margin-bottom: 20px;">
-                        <p style="font-style: italic; font-size: 1rem; opacity: 0.9;">
-                            "A inclusão acontece quando se aprende com as diferenças e não com as igualdades."
-                        </p>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
+<div class="login-art-box">
+    <div style="font-size: 6rem; margin-bottom: 1rem; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));">🧠</div>
+    <h1 style="color: white; font-weight: 800; font-size: 3.5rem; margin: 0; line-height: 1;">INTEGRA</h1>
+    <p style="font-size: 1.2rem; opacity: 0.9; font-weight: 300; margin-top: 10px;">Gestão de Educação<br>Especial Inclusiva</p>
+    <div style="margin-top: 40px; width: 100%;">
+        <hr style="border-color: rgba(255,255,255,0.3); margin-bottom: 20px;">
+        <p style="font-style: italic; font-size: 1rem; opacity: 0.9;">
+            "A inclusão acontece quando se aprende com as diferenças e não com as igualdades."
+        </p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
             
         # --- LADO DIREITO (FORMULÁRIO BRANCO) ---
         with c_form:
-            # Container CSS customizado para garantir o fundo branco e altura correta
-            st.markdown('<div class="login-form-container">', unsafe_allow_html=True)
-            
-            # Logo da Escola (Se existir)
-            if os.path.exists("logo_escola.png"):
-                # Centraliza a imagem usando colunas
-                cl1, cl2, cl3 = st.columns([1, 1.5, 1])
-                with cl2:
-                    st.image("logo_escola.png", use_container_width=True)
-                st.write("") # Espaço após logo
-            
-            st.markdown('<div class="welcome-title">Bem-vindo(a)</div>', unsafe_allow_html=True)
-            st.markdown('<div class="welcome-sub">Insira suas credenciais para acessar o sistema.</div>', unsafe_allow_html=True)
-            
+            # Usando st.form como o container do cartão branco
             with st.form("login_form"):
+                
+                # Logo da Escola (Se existir) - Centralizado
+                if os.path.exists("logo_escola.png"):
+                    cl1, cl2, cl3 = st.columns([1, 2, 1])
+                    with cl2:
+                        st.image("logo_escola.png", use_container_width=True)
+                    st.write("") # Espaço após logo
+                
+                st.markdown('<div class="welcome-title">Bem-vindo(a)</div>', unsafe_allow_html=True)
+                st.markdown('<div class="welcome-sub">Insira suas credenciais para acessar o sistema.</div>', unsafe_allow_html=True)
+                
                 user_id = st.text_input("Matrícula Funcional", placeholder="Ex: 12345")
                 password = st.text_input("Senha", type="password", placeholder="••••••")
                 
@@ -237,8 +228,6 @@ def login():
                             
                     except Exception as e:
                         st.error(f"Erro técnico: {e}")
-
-            st.markdown('</div>', unsafe_allow_html=True) # Fecha container
         
         # Interrompe o carregamento do restante do app até que o login seja feito
         st.stop()
@@ -1613,7 +1602,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 st.download_button("📥 BAIXAR PEI COMPLETO", st.session_state.pdf_bytes, f"PEI_{data.get('nome','aluno')}.pdf", "application/pdf", type="primary")
 
         # --- ABA 8: HISTÓRICO ---
-        with tabs[7]:
+        with tabs[6]:
             st.subheader("Histórico de Atividades")
             st.caption("Registro de alterações, salvamentos e geração de documentos.")
             
@@ -2140,4 +2129,3 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.info("Nenhum histórico encontrado para este aluno.")
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
-

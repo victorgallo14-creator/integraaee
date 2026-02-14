@@ -176,15 +176,19 @@ def login():
             # Usando st.form como o container do cartão branco
             with st.form("login_form"):
                 
-                # Logo da Escola (Se existir) - Centralizado
-                if os.path.exists("logo_escola.png"):
-                    cl1, cl2, cl3 = st.columns([1, 2, 1])
-                    with cl2:
-                        st.image("logo_escola.png", use_container_width=True)
-                    st.write("") # Espaço após logo
+                # Layout Header: Texto à esquerda, Logo à direita (menor)
+                c_head_txt, c_head_logo = st.columns([3, 1.2])
                 
-                st.markdown('<div class="welcome-title">Bem-vindo(a)</div>', unsafe_allow_html=True)
-                st.markdown('<div class="welcome-sub">Insira suas credenciais para acessar o sistema.</div>', unsafe_allow_html=True)
+                with c_head_txt:
+                    st.markdown('<div class="welcome-title" style="margin-top: 0px;">Bem-vindo(a)</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="welcome-sub">Insira suas credenciais para acessar o sistema.</div>', unsafe_allow_html=True)
+                
+                with c_head_logo:
+                    if os.path.exists("logo_escola.png"):
+                        # Logo alinhado à direita no layout de colunas
+                        st.image("logo_escola.png", use_container_width=True)
+                
+                st.write("") # Espaço
                 
                 user_id = st.text_input("Matrícula Funcional", placeholder="Ex: 12345")
                 password = st.text_input("Senha", type="password", placeholder="••••••")
@@ -2129,3 +2133,4 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.info("Nenhum histórico encontrado para este aluno.")
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
+

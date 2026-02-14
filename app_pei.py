@@ -12,6 +12,19 @@ from streamlit_gsheets import GSheetsConnection
 conn = st.connection("gsheets", type=GSheetsConnection)
 st.set_page_config(initial_sidebar_state="collapsed")
 
+<style>
+.header-box {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    border-left: 6px solid #2563eb;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    display: block;
+    height: auto; /* Fundamental para a caixa crescer com o conteúdo */
+}
+</style>
+
 # --- OCULTAR TOOLBAR E MENU ---
 hide_st_style = """
             <style>
@@ -1593,6 +1606,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

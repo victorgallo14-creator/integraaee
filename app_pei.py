@@ -1,6 +1,6 @@
 import streamlit as st
 from fpdf import FPDF
-from datetime import datetime, date
+from datetime import datetime, date, timedelta, timezone
 import io
 import os
 import base64
@@ -225,7 +225,10 @@ def safe_read(worksheet_name, columns):
     """Lê uma aba com segurança, retornando vazio se falhar"""
     try:
         df = conn.read(worksheet=worksheet_name, ttl=0)
-        return df.dropna(how="all")
+        # Se vier vazio, retornamos o DF com as colunas certas
+        if df.empty:
+             return pd.DataFrame(columns=columns)
+        return df
     except:
         return pd.DataFrame(columns=columns)
 
@@ -420,7 +423,7 @@ with st.sidebar:
     st.divider()
 
     # 3. NAVEGAÇÃO PRINCIPAL
-    app_mode = st.radio("Navegação", ["📊 Dashboard", "👥 Gestão de Alunos"], label_visibility="collapsed")
+    app_mode = st.radio("Navegação", ["📊 Painel de Gestão", "👥 Gestão de Alunos"], label_visibility="collapsed")
 
     selected_student = "-- Novo Registro --"
     pei_level = "Fundamental" # Default
@@ -510,11 +513,17 @@ with st.sidebar:
 # ==============================================================================
 # VIEW: DASHBOARD
 # ==============================================================================
-if app_mode == "📊 Dashboard":
-    # Data e Hora
-    agora = datetime.now()
-    dia_semana = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"][agora.weekday()]
-    data_formatada = agora.strftime(f"{dia_semana}, %d de %B de %Y")
+if app_mode == "📊 Painel de Gestão":
+    # Data e Hora (Fuso BR)
+    fuso_br = timezone(timedelta(hours=-3))
+    agora = datetime.now(fuso_br)
+    
+    dias_semana = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
+    meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+    
+    dia_str = dias_semana[agora.weekday()]
+    mes_str = meses[agora.month - 1]
+    data_formatada = f"{dia_str}, {agora.day} de {mes_str} de {agora.year}"
     
     st.markdown(f"""
     <div class="header-box" style="margin-top:-50px;">
@@ -526,7 +535,12 @@ if app_mode == "📊 Dashboard":
     df_dash = load_db()
     
     # --- CÁLCULO DE MÉTRICAS ---
-    total_alunos = len(df_dash)
+    # Contagem de alunos únicos
+    if not df_dash.empty and "nome" in df_dash.columns:
+        total_alunos = df_dash["nome"].nunique()
+    else:
+        total_alunos = 0
+        
     total_pei = len(df_dash[df_dash["tipo_doc"] == "PEI"])
     total_caso = len(df_dash[df_dash["tipo_doc"] == "CASO"])
     
@@ -620,6 +634,8 @@ if app_mode == "📊 Dashboard":
                     }
                     df_recados = pd.concat([pd.DataFrame([novo_recado]), df_recados], ignore_index=True)
                     safe_update("Recados", df_recados)
+                    st.cache_data.clear() # Limpa cache para atualizar
+                    time.sleep(1) # Aguarda propagação
                     st.rerun()
             
             # Listar Recados
@@ -649,6 +665,8 @@ if app_mode == "📊 Dashboard":
                     # Ordenar por data
                     df_agenda = df_agenda.sort_values(by="Data", ascending=False)
                     safe_update("Agenda", df_agenda)
+                    st.cache_data.clear() # Limpa cache para atualizar
+                    time.sleep(1) # Aguarda propagação
                     st.rerun()
             
             # Listar Agenda
@@ -656,7 +674,10 @@ if app_mode == "📊 Dashboard":
             if not df_agenda.empty:
                 with st.container(height=300):
                     for i, row in df_agenda.iterrows():
-                        d_fmt = datetime.strptime(row['Data'], "%Y-%m-%d").strftime("%d/%m")
+                        try:
+                            d_fmt = datetime.strptime(str(row['Data']), "%Y-%m-%d").strftime("%d/%m")
+                        except:
+                            d_fmt = str(row['Data'])
                         st.write(f"🗓️ **{d_fmt}** - {row['Evento']} _({row['Autor']})_")
             else:
                 st.write("Agenda vazia.")

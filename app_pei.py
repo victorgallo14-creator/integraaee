@@ -169,7 +169,7 @@ def login():
                     <h1 style="color: white; font-weight: 800; font-size: 3.5rem; margin: 0; line-height: 1;">INTEGRA</h1>
                     <p style="font-size: 1.2rem; opacity: 0.9; font-weight: 300; margin-top: 10px;">Gestão de Educação<br>Especial Inclusiva</p>
                     
-                    <div style="margin-top: 40px; width: 100%;">
+                    <p style="margin-top: 40px; width: 100%;">
                         <hr style="border-color: rgba(255,255,255,0.3); margin-bottom: 20px;">
                         <p style="font-style: italic; font-size: 1rem; opacity: 0.9;">
                             "A inclusão acontece quando se aprende com as diferenças e não com as igualdades."
@@ -2140,3 +2140,4 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.info("Nenhum histórico encontrado para este aluno.")
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
+

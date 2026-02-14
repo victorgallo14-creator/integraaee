@@ -1572,7 +1572,7 @@ else:
 
 # --- ABA 6: GERAR PDF (ESTUDO DE CASO - ESTILO PEI) ---
 
-    with tabs[1]:
+    with tabs[5]:
         if st.button("💾 SALVAR E ARQUIVAR NO DRIVE", type="primary"):
             save_student("CASO", data['nome'], data)
             
@@ -1851,6 +1851,7 @@ else:
         # Botão de Download (Fora do if do botão Gerar, mas dentro da tab)
         if 'pdf_bytes_caso' in st.session_state:
             st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
+
 
 
 

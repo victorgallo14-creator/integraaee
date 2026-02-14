@@ -413,8 +413,8 @@ def carregar_dados_aluno():
 col_txt, col_user = st.columns([2, 1])
 
 with col_txt:
-    st.markdown('<h1 style="margin:-200;">SISTEMA INTEGRA RAFAEL</h1>', unsafe_allow_html=True)
-    st.markdown('<p style="font-size:1.2rem; color:#64748b;">Gestão de Educação Especial</p>', unsafe_allow_html=True)
+    st.markdown('<h1 style="margin:-200;">SISTEMA INTEGRA</h1>', unsafe_allow_html=True)
+    st.markdown('<p style="font-size:1.2rem; color:#64748b;">Gestão de Educação Especial do CEIEF Rafael Affonso Leite</p>', unsafe_allow_html=True)
 
 with col_user:
     st.markdown(f"👤 **Docente:** {st.session_state.get('usuario_nome', 'José Victor Souza Gallo')}")
@@ -1610,6 +1610,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

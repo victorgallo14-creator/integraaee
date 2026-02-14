@@ -85,7 +85,6 @@ login()
 
 # Se o código continuar daqui, o usuário está logado.
 # Exibimos o nome do professor na barra lateral para confirmação
-st.sidebar.markdown(f"👤 **Docente:** {st.session_state.get('usuario_nome', 'Professor')}")
 
 
 def registrar_log(acao, aluno="N/A", detalhes=""):
@@ -418,6 +417,8 @@ with st.sidebar:
     st.markdown('<div class="sidebar-header">', unsafe_allow_html=True)
     st.markdown("""<div class="sidebar-title">SISTEMA INTEGRA</div>
         <div class="sidebar-subtitle">Gestão de Educação Especial do CEIEF Rafael Affonso Leite - Uso Interno</div></div>""", unsafe_allow_html=True)
+    st.sidebar.markdown(f"👤 **Docente:** {st.session_state.get('usuario_nome', 'Professor')}")
+
     st.divider()
 
     default_doc_idx = 0
@@ -1640,6 +1641,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

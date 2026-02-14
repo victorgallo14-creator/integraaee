@@ -11,17 +11,29 @@ from streamlit_gsheets import GSheetsConnection
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 st.set_page_config(initial_sidebar_state="collapsed")
-
-# --- OCULTAR TOOLBAR E MENU ---
-hide_st_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            header {visibility: hidden;}
-            footer {visibility: hidden;}
-            .stAppDeployButton {display:none;}
-            </style>
-            """
-st.markdown(hide_st_style, unsafe_allow_html=True)
+st.markdown("""
+    <style>
+        /* Remove o espaço em branco excessivo no topo da página */
+        .block-container {
+            padding-top: 1rem;
+            padding-bottom: 0rem;
+        }
+        #MainMenu {visibility: hidden;}
+        header {visibility: hidden;}
+        footer {visibility: hidden;}
+        
+        .header-box {
+            background-color: #ffffff;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 6px solid #2563eb;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1rem;
+            display: block;
+            height: auto;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 # --- FUNÇÃO DE LOGIN COMPLETA E ROBUSTA (SME LIMEIRA) ---
 def login():
@@ -1597,6 +1609,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

@@ -456,7 +456,7 @@ with st.sidebar:
         
         /* 2. Reduz o espaço entre cada widget (botões, selects) */
         [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-            gap: 0.7rem !important; /* Espaço mínimo entre itens */
+            gap: 1.5rem !important; /* Espaço mínimo entre itens */
         }
         
         /* 3. Estilo dos Textos Personalizados */
@@ -1751,6 +1751,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

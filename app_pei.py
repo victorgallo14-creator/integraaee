@@ -874,6 +874,8 @@ if "PEI" in doc_mode:
                 pdf.set_font("Arial", "B", 10); pdf.cell(95, h, clean_pdf_text(l), 1, 0, 'L'); pdf.set_font("Arial", "", 10); pdf.cell(0, h, clean_pdf_text(v), 1, 1, 'L')
             
             pdf.ln(4); pdf.set_font("Arial", "B", 11); pdf.set_fill_color(245, 245, 245); pdf.cell(0, 8, "COMPORTAMENTO E INTERESSES", 1, 1, 'C', 1)
+# ... trecho anterior do código ...
+
             verbatims = [
                 ("Quais são os interesses do estudante?", data.get('beh_interesses')),
                 ("Quais objetos que gosta? Tem um objeto de apego?", data.get('beh_objetos_gosta')),
@@ -890,14 +892,22 @@ if "PEI" in doc_mode:
             ]
             
             for l, v in verbatims:
-                # CORREÇÃO AQUI: Trocamos cell por multi_cell na pergunta (l)
+                # 1. Verifica se precisa de nova página antes de começar o bloco (Pergunta + Resposta)
+                # Se estiver muito no final da página, pule antes para não quebrar o bloco no meio
+                if pdf.get_y() > 250: 
+                    pdf.add_page()
+                    
+                # --- PERGUNTA ---
+                pdf.set_x(10) # <--- O SEGREDO: Força voltar para a margem esquerda (10mm)
                 pdf.set_font("Arial", "B", 10)
-                # O multi_cell aqui garante que a pergunta quebre linha se for longa demais
-                pdf.multi_cell(0, 7, clean_pdf_text(l), "LTR", 'L', 1) 
+                # w=0 vai até o final da margem, "LTR" faz borda Cima, Esquerda, Direita
+                pdf.multi_cell(0, 7, clean_pdf_text(l), border="LTR", align='L', fill=True) 
                 
-                # A resposta continua usando multi_cell para texto longo
+                # --- RESPOSTA ---
+                pdf.set_x(10) # <--- O SEGREDO 2: Força novamente antes da resposta
                 pdf.set_font("Arial", "", 10)
-                pdf.multi_cell(0, 6, clean_pdf_text(v if v else "---"), "LRB")
+                # "LBR" faz borda Esquerda, Baixo, Direita (fechando a caixa)
+                pdf.multi_cell(0, 6, clean_pdf_text(v if v else "---"), border="LBR", align='L', fill=False)
 
             # --- 4. DESENVOLVIMENTO ESCOLAR (NOVA SEÇÃO) ---
             pdf.ln(5); pdf.section_title("4. DESENVOLVIMENTO ESCOLAR", width=0); h = 8
@@ -1615,6 +1625,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

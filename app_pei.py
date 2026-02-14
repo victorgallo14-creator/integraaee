@@ -57,22 +57,59 @@ def login():
         st.session_state.authenticated = False
 
     if not st.session_state.authenticated:
-        # Layout centralizado e limpo
+        # --- CSS DA TELA DE LOGIN ---
         st.markdown("""
-            <div style="text-align: center; padding: 20px;">
-                <h2 style="color: #1e3a8a;">SISTEMA INTEGRA AEE</h2>
-                <p style="color: #64748b;">Acesso restrito aos docentes do CEIEF Rafael Affonso Leite</p>
-            </div>
+            <style>
+                .login-header { text-align: center; margin-bottom: 30px; }
+                .login-icon { font-size: 4rem; margin-bottom: 10px; }
+                .login-title { font-size: 2.5rem; font-weight: 800; color: #1e3a8a; line-height: 1.1; }
+                .login-subtitle { font-size: 1.1rem; color: #64748b; font-weight: 400; margin-top: 5px; }
+                .privacy-box {
+                    background-color: #fff7ed; border-left: 6px solid #f97316;
+                    padding: 15px; border-radius: 8px; margin-bottom: 25px;
+                    font-size: 0.85rem; color: #9a3412; line-height: 1.5;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+                }
+                .privacy-title { font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 0.9rem;}
+                div[data-testid="stForm"] {
+                    background-color: white; padding: 2.5rem; border-radius: 16px;
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+                    border: 1px solid #e2e8f0;
+                }
+                /* Inputs styling override */
+                .stTextInput label { font-weight: 600; color: #475569; }
+            </style>
         """, unsafe_allow_html=True)
         
-        # Ajuste de colunas para melhor responsividade em tablets
-        col1, col2, col3 = st.columns([1, 2, 1])
+        # Centralização Vertical e Horizontal
+        st.write("")
+        st.write("")
+        col1, col2, col3 = st.columns([1, 1.4, 1])
+        
         with col2:
+            st.markdown("""
+                <div class="login-header">
+                    <div class="login-icon">🎓</div>
+                    <div class="login-title">SISTEMA INTEGRA</div>
+                    <div class="login-subtitle">Gestão de Educação Especial Inclusiva</div>
+                </div>
+                
+                <div class="privacy-box">
+                    <div class="privacy-title">🔒 CONFIDENCIALIDADE E SIGILO</div>
+                    Este sistema processa <b>dados pessoais sensíveis</b> de estudantes, protegidos pela 
+                    Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).
+                    <br><br>
+                    ⚠️ <b>O acesso é monitorado.</b> Ao prosseguir, você concorda em manter o sigilo absoluto das informações acessadas.
+                </div>
+            """, unsafe_allow_html=True)
+            
             with st.form("login_form"):
-                user_id = st.text_input("Matrícula (Funcional)")
-                # A senha agora é buscada direto do painel 'Secrets' do Streamlit
-                password = st.text_input("Senha do Sistema", type="password")
-                submit = st.form_submit_button("Entrar")
+                st.markdown("##### 🔐 Credenciais de Acesso")
+                user_id = st.text_input("Matrícula Funcional", placeholder="Ex: 12345")
+                password = st.text_input("Senha do Sistema", type="password", placeholder="••••••")
+                
+                st.write("")
+                submit = st.form_submit_button("ACESSAR SISTEMA", type="primary")
                 
                 if submit:
                     try:
@@ -100,10 +137,11 @@ def login():
                                 
                                 st.session_state.authenticated = True
                                 st.session_state.usuario_nome = nome_prof
-                                st.success(f"Acesso liberado! Bem-vindo(a), {nome_prof}.")
+                                st.toast(f"Bem-vindo(a), {nome_prof}!", icon="👋")
+                                time.sleep(1)
                                 st.rerun()
                             else:
-                                st.error("Matrícula não cadastrada ou senha incorreta.")
+                                st.error("Acesso negado. Verifique sua matrícula e senha.")
                         else:
                             st.error("Não foi possível carregar a lista de professores.")
                             

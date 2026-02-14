@@ -443,98 +443,128 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BARRA LATERAL ---
+# --- BARRA LATERAL COMPACTA ---
 with st.sidebar:
-    # 1. CABEÇALHO (Logo e Título)
-    # Se tiver logo, descomente a linha abaixo:
-    # st.image("seu_logo.png", width=150) 
-    
+    # CSS PARA APERTAR O LAYOUT
     st.markdown("""
-        <div style="text-align: center; padding-bottom: 10px;">
-            <h1 style="color: #1e3a8a; font-size: 1.8rem; margin:0;">SISTEMA INTEGRA</h1>
-            <p style="color: #64748b; font-size: 0.9rem; margin-top: -5px;">Gestão de Educação Especial</p>
-        </div>
+    <style>
+        /* Reduz o espaço entre os elementos (Widgets) */
+        [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+            gap: 0.5rem; /* O padrão é 1rem (muito grande) */
+            padding-top: 1rem; /* Sobe o conteúdo */
+        }
+        
+        /* Título Compacto */
+        .sidebar-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #1e3a8a;
+            margin-bottom: 0px;
+            text-align: center;
+        }
+        .sidebar-sub {
+            font-size: 0.75rem;
+            color: #64748b;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        /* Card de Usuário "Slim" */
+        .user-slim {
+            background-color: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 0.85rem;
+            color: #334155;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        
+        /* Reduzir margens dos divisores */
+        hr { margin: 0.5em 0; }
+        
+        /* Títulos das seções menores */
+        .section-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 5px;
+            margin-bottom: 0px;
+        }
+    </style>
     """, unsafe_allow_html=True)
 
-    # 2. CARD DO USUÁRIO (Aquele que arrumamos antes)
-    nome_prof = st.session_state.get('usuario_nome', 'Professor')
-    st.markdown(f"""
-        <div class="prof-card">
-            <div class="prof-label">Docente Logado</div>
-            <div class="prof-name">👤 {nome_prof}</div>
-        </div>
-    """, unsafe_allow_html=True)
+    # 1. CABEÇALHO MÍNIMO
+    st.markdown('<div class="sidebar-title">SISTEMA INTEGRA</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sidebar-sub">Gestão de Educação Especial</div>', unsafe_allow_html=True)
 
+    # 2. USUÁRIO (Linha Única)
+    nome_prof = st.session_state.get('usuario_nome', 'Docente')
+    # Pega apenas o primeiro e último nome para economizar espaço se for muito longo
+    nomes = nome_prof.split()
+    nome_curto = f"{nomes[0]} {nomes[-1]}" if len(nomes) > 1 else nome_prof
+    
+    st.markdown(f'''
+        <div class="user-slim">
+            👤 <b>{nome_curto}</b>
+        </div>
+    ''', unsafe_allow_html=True)
+    
     st.divider()
 
-    # 3. SELEÇÃO DO ESTUDANTE
-    # Usamos um container para agrupar visualmente
-    with st.container():
-        st.markdown("### 🎓 Estudante")
-        
-        df_db = load_db() # Função que carrega seus dados
-        lista_nomes = df_db["nome"].dropna().tolist() if not df_db.empty else []
-        
-        selected_student = st.selectbox(
-            "Selecione o arquivo:", 
-            options=["-- Novo Registro --"] + lista_nomes,
-            key="aluno_selecionado",
-            on_change=carregar_dados_aluno,
-            label_visibility="collapsed", # Esconde o label padrão repetitivo
-            placeholder="Buscar aluno..."
-        )
+    # 3. SELETOR DE ALUNO
+    df_db = load_db()
+    lista_nomes = df_db["nome"].dropna().tolist() if not df_db.empty else []
+    
+    st.markdown('<p class="section-label">🎓 Estudante</p>', unsafe_allow_html=True)
+    selected_student = st.selectbox(
+        "Estudante", 
+        ["-- Novo Registro --"] + lista_nomes,
+        key="aluno_selecionado",
+        on_change=carregar_dados_aluno,
+        label_visibility="collapsed" # Esconde o label padrão gigante
+    )
+    
+    # Lógica de auto-seleção (mantida)
+    default_doc_idx = 0
+    if selected_student != "-- Novo Registro --":
+        df_aluno = df_db[df_db["nome"] == selected_student]
+        if not df_aluno.empty and df_aluno.iloc[0]["tipo_doc"] == "CASO":
+            default_doc_idx = 1
 
-        # Lógica para detectar se é CASO automaticamente (seu código original)
-        default_doc_idx = 0
-        if selected_student != "-- Novo Registro --":
-            df_aluno = df_db[df_db["nome"] == selected_student]
-            if not df_aluno.empty and df_aluno.iloc[0]["tipo_doc"] == "CASO":
-                default_doc_idx = 1
-
-    # 4. TIPO DE DOCUMENTO
-    st.markdown("### 📂 Documento")
+    # 4. DOCUMENTO
+    st.markdown('<p class="section-label">📂 Documento</p>', unsafe_allow_html=True)
     doc_mode = st.radio(
-        "Selecione o modo:", 
-        ["PEI (Plano Educacional)", "Estudo de Caso"],
+        "Modo", 
+        ["PEI", "Estudo de Caso"], # Texto encurtado para caber melhor
         index=default_doc_idx, 
-        key="doc_option", 
+        key="doc_option",
         label_visibility="collapsed"
     )
 
-    # 5. NÍVEL DE ENSINO (Aparece só se for PEI)
+    # 5. NÍVEL (Aparece condicionalmente)
     if "PEI" in doc_mode:
-        st.info("🏫 **Nível de Ensino:**")
+        st.markdown('<p class="section-label">🏫 Nível</p>', unsafe_allow_html=True)
         pei_level = st.selectbox(
-            "Nível:", 
+            "Nível", 
             ["Fundamental", "Infantil"], 
             key="pei_level_choice",
             label_visibility="collapsed"
         )
-    else:
-        pei_level = None
-
-    # Espaçador para empurrar o rodapé para baixo visualmente
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    
     st.divider()
 
-    # 6. RODAPÉ (Ações Críticas)
-    col_sair, col_del = st.columns([1.2, 1])
-
-    with col_sair:
-        if st.button("🚪 Sair", type="primary", use_container_width=True):
+    # 6. RODAPÉ (Botões Compactos na mesma linha)
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("🚪 Sair", use_container_width=True):
             for key in list(st.session_state.keys()): del st.session_state[key]
             st.rerun()
             
-    with col_del:
-        # Coloquei o botão de excluir dentro de um popover (nativo do Streamlit novo)
-        # ou deixamos ele 'secondary' para não chamar tanta atenção quanto o salvar
+    with c2:
         if selected_student != "-- Novo Registro --":
-            if st.button("🗑️ Excluir", type="secondary", use_container_width=True, help="Apagar este aluno"):
+            if st.button("🗑️ Excluir", type="secondary", use_container_width=True):
                 st.session_state.confirm_delete = True
-
-    # 7. MENU ADMINISTRATIVO (Discreto)
-    if st.checkbox("👁️ Modo Diretor", key="modo_diretor"):
-         st.caption("Histórico de alterações ativado na página principal.")
 
 # ==============================================================================
 # PEI
@@ -1713,6 +1743,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

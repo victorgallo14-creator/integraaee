@@ -418,17 +418,26 @@ st.divider()
 
 # Seleção de Aluno e Documento em colunas horizontais
 # --- ÁREA DE SELEÇÃO (LOGO ABAIXO DO TÍTULO) ---
+# --- NOVO PAINEL DE CONTROLE CENTRAL (RECORTE E COLE) ---
+st.markdown('<div class="header-box">', unsafe_allow_html=True)
+
+# Criamos as colunas dentro do container
 c1, c2, c3 = st.columns([2, 1, 1])
 
 with c1:
-    df_db = load_db()
-    # Tratamento para evitar o erro do print anterior
-    if not df_db.empty and "nome" in df_db.columns:
-        lista_nomes = sorted([str(x) for x in df_db["nome"].dropna().unique()])
-    else:
+    try:
+        df_db = load_db()
+        # Garante que a lista não quebre o sorted nem o selectbox
+        if not df_db.empty and "nome" in df_db.columns:
+            # Converte para string, remove nulos e ordena de forma segura
+            lista_nomes = sorted([str(x) for x in df_db["nome"].dropna().unique() if str(x).strip() != ""])
+        else:
+            lista_nomes = []
+    except Exception as e:
+        st.error(f"Erro ao carregar lista: {e}")
         lista_nomes = []
 
-    # Aqui aparecerá a lista de nomes
+    # O Seletor de Alunos
     selected_student = st.selectbox(
         "👨‍🎓 Selecionar Estudante", 
         ["-- Novo Registro --"] + lista_nomes, 
@@ -437,7 +446,7 @@ with c1:
     )
 
 with c2:
-    # Aqui aparecerá a opção PEI ou Estudo de Caso
+    # O Seletor de Tipo de Documento
     doc_mode = st.radio(
         "📂 Tipo de Documento", 
         ["PEI", "Estudo de Caso"], 
@@ -446,9 +455,13 @@ with c2:
     )
 
 with c3:
-    # Opção de nível (apenas se for PEI)
+    # Nível de Ensino (Aparece apenas se for PEI)
     if "PEI" in doc_mode:
         pei_level = st.selectbox("🏫 Nível", ["Fundamental", "Infantil"], key="pei_level_choice")
+    else:
+        st.info("Formulário: Anamnese")
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ==============================================================================
 # PEI
@@ -1610,6 +1623,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

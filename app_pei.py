@@ -852,7 +852,7 @@ if "PEI" in doc_mode:
 
             pdf.ln(5); pdf.set_font("Arial", "B", 12); pdf.cell(0, 10, "Medicação e Horários:", "LTR", 1, 'L', 1)
             pdf.set_font("Arial", "", 12); pdf.multi_cell(0, 8, clean_pdf_text(f"{data.get('med_nome', 'Não utiliza')}\nHorários: {data.get('med_hor', 'N/A')}"), "LRB")
-            pdf.set_font("Arial", "B", 12); pdf.cell(0, 8, "Médico Responsável:", 1); pdf.set_font("Arial", "", 12); pdf.cell(0, 10, clean_pdf_text(data.get('med_doc', 'N/A')), 1, 1)
+            pdf.set_font("Arial", "B", 12); pdf.cell(50, 8, "Médico Responsável:", 1); pdf.set_font("Arial", "", 12); pdf.cell(0, 10, clean_pdf_text(data.get('med_doc', 'N/A')), 1, 1)
             pdf.set_font("Arial", "B", 12); pdf.cell(0, 8, "Objetivo da medicação:", "LTR", 1, 'L', 1); pdf.set_font("Arial", "", 12); pdf.multi_cell(0, 8, clean_pdf_text(data.get('med_obj', 'Não informado.')), "LRB")
             pdf.ln(3); pdf.set_font("Arial", "B", 12); pdf.cell(0, 8, clean_pdf_text("Outras informações de saúde consideradas relevantes:"), "LTR", 1, 'L', 1)
             pdf.set_font("Arial", "", 12); pdf.multi_cell(0, 8, clean_pdf_text(data.get('saude_extra', 'Nenhuma informação adicional.')), "LRB")
@@ -1625,6 +1625,7 @@ if st.sidebar.checkbox("👁️ Ver Histórico (Diretor)"):
     df_logs = conn.read(worksheet="Log", ttl=0)
     # Mostra os mais recentes primeiro
     st.dataframe(df_logs.sort_values(by="data_hora", ascending=False), use_container_width=True)
+
 
 
 

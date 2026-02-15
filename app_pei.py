@@ -2955,26 +2955,19 @@ elif app_mode == "👥 Gestão de Alunos":
                 else:
                     log_action(data_diario.get('nome'), "Gerou PDF", f"Relatório Mensal {mes_sel}/{ano_sel}")
                     
+                    # Cria PDF em Retrato ('P')
                     pdf = OfficialPDF('P', 'mm', 'A4')
                     pdf.add_page(); pdf.set_margins(15, 15, 15)
                     
-                # Cria PDF em Retrato ('P')
-                pdf = OfficialPDF('P', 'mm', 'A4')
-                pdf.add_page(); pdf.set_margins(15, 15, 15)
-                
-                # --- CABEÇALHO ---
-                if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)
-                if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 170, 6, 25)
+                    # --- CABEÇALHO ---
+                    if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)
+                    if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 170, 6, 25)
 
-                # Títulos Centralizados
-                pdf.set_xy(0, 15); pdf.set_font("Arial", "B", 12)
-                pdf.cell(210, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
-                pdf.cell(180, 6, clean_pdf_text("CEIEF RAFAEL AFFONSO LEITE"), 0, 1, 'C')
-                pdf.ln(8)
-                pdf.set_font("Arial", "B", 16); pdf.cell(0, 10, "ESTUDO DE CASO", 0, 1, 'C')
-                pdf.ln(5)
-                    
-                    pdf.ln(10)
+                    # Títulos Centralizados
+                    pdf.set_xy(0, 15); pdf.set_font("Arial", "B", 12)
+                    pdf.cell(210, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
+                    pdf.cell(180, 6, clean_pdf_text("CEIEF RAFAEL AFFONSO LEITE"), 0, 1, 'C')
+                    pdf.ln(8)
                     pdf.set_font("Arial", "B", 14)
                     pdf.set_fill_color(230, 230, 230)
                     pdf.cell(0, 10, clean_pdf_text("RELATÓRIO DIÁRIO DE AÇÕES DE ACOMPANHAMENTO ESCOLAR"), 1, 1, 'C', True)
@@ -3103,6 +3096,3 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
-
-
-

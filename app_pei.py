@@ -290,9 +290,9 @@ def login():
                 }
                 
                 /* Painel Direito (Formulário) - Target the specific column wrapper (3rd column) */
-                div[data-testid="column"]:nth-of-type(3) > div[data-testid="stVerticalBlock"] {
+                div[data-testid="column"]:nth-of-type(3) {
                     background-color: white;
-                    padding: 2rem 3rem;
+                    padding: 2rem 3rem !important;
                     border-radius: 0 16px 16px 0; /* Arredondado apenas na direita */
                     height: 600px; /* Mesma altura da arte */
                     display: flex;
@@ -483,6 +483,7 @@ def login():
         
         # Interrompe o carregamento do restante do app até que o login seja feito
         st.stop()
+
 
 # --- ATIVAÇÃO DO LOGIN ---
 login()
@@ -3464,4 +3465,5 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 

@@ -2646,7 +2646,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     
                     pdf.set_x(35)
                     # Indent 35. Max width to right margin (195): 195 - 35 = 160.
-                    pdf.multi_cell(160, 4, clean_pdf_text("I – a experiência de seu corpo docente, seus diretores, coordenadores, orientadores e supervisores educacionais;\nII – o setor responsável pela educação especial do respectivo sistema;\nIII – a colaboração da família e a cooperação dos serviços de Saúde, Assistência Social, Trabalho, Justiça e Esporte, bem como do Ministério Público, quando necessário."), 0, 'J')
+                    pdf.multi_cell(160, 4, clean_pdf_text("I - a experiência de seu corpo docente, seus diretores, coordenadores, orientadores e supervisores educacionais;\nII - o setor responsável pela educação especial do respectivo sistema;\nIII - a colaboração da família e a cooperação dos serviços de Saúde, Assistência Social, Trabalho, Justiça e Esporte, bem como do Ministério Público, quando necessário."), 0, 'J')
                     pdf.ln(4)
 
                     # 5. GENERAL ASPECTS
@@ -2693,7 +2693,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     
                     # PART II
                     if pdf.get_y() > 220: pdf.add_page()
-                    print_section_header_fix(pdf, "PARTE II – HABILIDADE SOCIAIS E DE INTERAÇÃO")
+                    print_section_header_fix(pdf, "PARTE II - HABILIDADE SOCIAIS E DE INTERAÇÃO")
                     print_question_options_fix(pdf, "4. COMPORTAMENTO:", opts_comp, data_aval.get('comportamento'), data_aval.get('comp_obs'))
                     if pdf.get_y() > 230: pdf.add_page()
                     print_question_options_fix(pdf, "5. PARTICIPAÇÃO EM GRUPO:", opts_part, data_aval.get('part_grupo'), data_aval.get('part_obs'))
@@ -2788,11 +2788,11 @@ elif app_mode == "👥 Gestão de Alunos":
                     
                     pdf.ln(3); pdf.set_font("Arial", "", 10)
                     apoio_txt = data_aval.get('apoio_existente') if data_aval.get('apoio_existente') else "______________________________________________________"
-                    pdf.multi_cell(0, 5, clean_pdf_text(f"Se este apoio já é oferecido, explicitar aqui: {apoio_txt}"), 0, 'L')
+                    pdf.multi_cell(0, 5, clean_pdf_text(f"Profissional de Apoio Escolar (se houver): {apoio_txt}"), 0, 'L')
 
                     pdf.ln(10)
                     if pdf.get_y() > 240: pdf.add_page()
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("Responsáveis pela avaliação (Nome e Assinatura):"), 0, 1); pdf.ln(5)
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("Responsáveis pela avaliação:"), 0, 1); pdf.ln(5)
                     
                     # Signatures formatted with Name on one line, Role below
                     def draw_signature_block(pdf, x, y, width, name, role):
@@ -2842,6 +2842,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
                 else: st.info("Sem histórico.")
             else: st.info("Histórico vazio.")
+
 
 
 

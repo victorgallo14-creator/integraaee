@@ -2368,6 +2368,68 @@ elif app_mode == "👥 Gestão de Alunos":
         data_pei = st.session_state.data_pei
         data_caso = st.session_state.data_case
         
+        # --- DEFINIÇÃO DAS LISTAS DE OPÇÕES (GLOBAL PARA O CONTEXTO) ---
+        defs_opts = ["Deficiência auditiva/surdez", "Deficiência física", "Deficiência intelectual", "Deficiência múltipla", "Deficiência visual", "Transtorno do Espectro Autista", "Síndrome de Down"]
+        
+        opts_alim = ["É independente.", "Necessita de apoio parcial.", "Necessita de apoio total."]
+        opts_hig = ["É independente.", "Usa fralda.", "Necessita de apoio parcial.", "Necessita de apoio total."]
+        opts_loc = ["é independente.", "cai ou tropeça com frequência.", "faz uso de cadeira de rodas de forma independente", "faz uso de cadeira de rodas, necessitando ser conduzido.", "possui prótese/órtese.", "faz uso de andador.", "faz uso de bengala."]
+        
+        opts_comp = [
+            "Demonstra comportamento adequado em relação às situações escolares cotidianas (sala de aula, refeitório, quadra etc).",
+            "Apresenta alguns comportamentos inadequados (choro, recusa verbal, se jogar no chão) em momentos específicos , mas a recuperação é rápida.",
+            "diariamente apresenta comportamentos inadequados que envolvem choro, recusa verbal, birras, saídas sem autorização, correr incontido não atendimento às solicitações dos docentes e funcionários.",
+            "Frequentemente a criança emite comportamento inadequado severo que é perigoso a si própria ou outras pessoas (ex: agressões, autolesivos)."
+        ]
+        
+        opts_part = [
+            "participa de atividades em grupo da rotina escolar, interagindo com os estudantes",
+            "é capaz de participar de atividades em grupo somente em momentos de curta duração",
+            "não é capaz de participar de atividades em grupo de forma autônoma, dependendo de apoio para essa interação",
+            "Mesmo com apoio, não é capaz de participar de atividades em grupo."
+        ]
+        
+        opts_int = ["Adequada com as crianças e adultos.", "Satisfatória.", "Inadequada.", "Outros"]
+        
+        opts_rot = [
+            "Compreende e atende as orientações oferecidas pelo docente de forma autônoma",
+            "Precisa de intervenções pontuais do docente para compreender e atender as orientações.",
+            "Mesmo com apoio apresenta severas dificuldades quanto à compreensão para atendimento de solicitações."
+        ]
+        
+        opts_ativ = [
+            "não há necessidade de flexibilização curricular",
+            "precisa de flexibilização curricular em relação à metodologia de ensino, mantendo-se os conteúdos previstos para o ano de escolaridade",
+            "precisa de flexibilização curricular em relação à metodologia de ensino e ao conteúdo curricular, adequando às potencialidades do estudantes",
+            "há a necessidade de um currículo funcional, envolvendo as atividades de vida prática e diária."
+        ]
+        
+        opts_at_sust = [
+            "Mantém atenção por longo período de tempo.",
+            "Mantém atenção por longo período de tempo com apoio.",
+            "Não mantém atenção por longo período de tempo."
+        ]
+        
+        opts_at_div = [
+            "Mantém atenção em dois estímulos diferentes.",
+            "Mantém atenção em dois estímulos diferentes em algumas situações.",
+            "Não mantém atenção em dois estímulos diferentes."
+        ]
+        
+        opts_at_sel = [
+            "Mantém atenção na tarefa ignorando estímulos externos.",
+            "Mantém atenção na tarefa ignorando estímulos externos com apoio.",
+            "Não mantém atenção na tarefa com a presença de outros"
+        ]
+        
+        opts_ling = [
+            "Faz uso de palavras para se comunicar, expressando seus pensamentos e desejos.",
+            "Faz uso de palavras para se comunicar, apresentando trocas fonéticas orais.",
+            "Utiliza palavras e frases desconexas, não conseguindo se expressar.",
+            "Não faz uso de palavras para se comunicar, expressando seus desejos por meio de gestos e comportamentos",
+            "Não faz uso de palavras e de gestos para se comunicar."
+        ]
+
         with tabs[0]:
             with st.form("form_avaliacao"):
                 st.subheader("Configuração da Avaliação")
@@ -2389,13 +2451,10 @@ elif app_mode == "👥 Gestão de Alunos":
                         data_aval['aspectos_gerais'] = "\n".join(aspectos)
                         
                         # Parte I - Auto preenchimento sugerido
-                        if data_pei.get('beh_autonomia_agua') == 'Sim': data_aval['alim_nivel'] = 'É independente.'
-                        if data_pei.get('hig_banheiro') == 'Sim': data_aval['hig_nivel'] = 'É independente.'
-                        if data_pei.get('loc_reduzida') == 'Não': data_aval['loc_nivel'] = ['é independente.']
-                        
-                        # Parte II
-                        if data_pei.get('dev_participa') == 'Sim': data_aval['part_grupo'] = 'participa de atividades em grupo da rotina escolar...'
-                        if data_pei.get('dev_integrado') == 'Sim': data_aval['interacao'] = 'Adequada com as crianças e adultos.'
+                        # Tentativa de mapeamento simples
+                        if data_pei.get('beh_autonomia_agua') == 'Sim': data_aval['alim_nivel'] = opts_alim[0]
+                        if data_pei.get('hig_banheiro') == 'Sim': data_aval['hig_nivel'] = opts_hig[0]
+                        if data_pei.get('loc_reduzida') == 'Não': data_aval['loc_nivel'] = [opts_loc[0]]
                         
                         st.success("Dados importados com sucesso! Revise os campos abaixo.")
                     else:
@@ -2409,7 +2468,6 @@ elif app_mode == "👥 Gestão de Alunos":
                 data_aval['ano_esc'] = c3.text_input("Ano Escolaridade", value=data_aval.get('ano_esc', ''))
                 
                 st.markdown("**Deficiências (Marque as opções):**")
-                defs_opts = ["Deficiência auditiva/surdez", "Deficiência física", "Deficiência intelectual", "Deficiência múltipla", "Deficiência visual", "Transtorno do Espectro Autista", "Síndrome de Down"]
                 data_aval['defic_chk'] = st.multiselect("Selecione:", defs_opts, default=data_aval.get('defic_chk', []))
                 data_aval['defic_outra'] = st.text_input("Outra:", value=data_aval.get('defic_outra', ''))
                 
@@ -2421,74 +2479,47 @@ elif app_mode == "👥 Gestão de Alunos":
                     c_a, c_h = st.columns(2)
                     with c_a:
                         st.markdown("**1. Alimentação**")
-                        opts_alim = ["É independente.", "Necessita de apoio parcial.", "Necessita de apoio total."]
                         idx_alim = opts_alim.index(data_aval.get('alim_nivel')) if data_aval.get('alim_nivel') in opts_alim else 0
                         data_aval['alim_nivel'] = st.radio("Nível Alimentação", opts_alim, index=idx_alim, key="rad_alim")
                         data_aval['alim_obs'] = st.text_input("Obs Alimentação:", value=data_aval.get('alim_obs', ''))
                     
                     with c_h:
                         st.markdown("**2. Higiene**")
-                        opts_hig = ["É independente.", "Usa fralda.", "Necessita de apoio parcial.", "Necessita de apoio total."]
                         idx_hig = opts_hig.index(data_aval.get('hig_nivel')) if data_aval.get('hig_nivel') in opts_hig else 0
                         data_aval['hig_nivel'] = st.radio("Nível Higiene", opts_hig, index=idx_hig, key="rad_hig")
                         data_aval['hig_obs'] = st.text_input("Obs Higiene:", value=data_aval.get('hig_obs', ''))
                     
                     st.markdown("**3. Locomoção (Selecione todos que se aplicam)**")
-                    opts_loc = ["é independente.", "cai ou tropeça com frequência.", "faz uso de cadeira de rodas de forma independente", "faz uso de cadeira de rodas, necessitando ser conduzido.", "possui prótese/órtese.", "faz uso de andador.", "faz uso de bengala."]
                     data_aval['loc_nivel'] = st.multiselect("Itens:", opts_loc, default=data_aval.get('loc_nivel', []))
                     data_aval['loc_obs'] = st.text_input("Obs Locomoção:", value=data_aval.get('loc_obs', ''))
 
                 with st.expander("Parte II - Habilidades Sociais e de Interação"):
                     st.markdown("**4. Comportamento**")
-                    opts_comp = [
-                        "Demonstra comportamento adequado em relação às situações escolares cotidianas...",
-                        "Apresenta alguns comportamentos inadequados... mas a recuperação é rápida.",
-                        "Diariamente apresenta comportamentos inadequados (choro, recusa verbal, birras...)",
-                        "Frequentemente a criança emite comportamento inadequado severo (agressões, autolesivos)."
-                    ]
                     idx_comp = opts_comp.index(data_aval.get('comportamento')) if data_aval.get('comportamento') in opts_comp else 0
                     data_aval['comportamento'] = st.radio("Nível Comportamento", opts_comp, index=idx_comp)
                     data_aval['comp_obs'] = st.text_input("Obs Comportamento:", value=data_aval.get('comp_obs', ''))
                     
                     st.divider()
                     st.markdown("**5. Participação em Grupo**")
-                    opts_part = [
-                        "participa de atividades em grupo da rotina escolar, interagindo com os estudantes",
-                        "é capaz de participar de atividades em grupo somente em momentos de curta duração",
-                        "não é capaz de participar de atividades em grupo de forma autônoma, dependendo de apoio",
-                        "Mesmo com apoio, não é capaz de participar de atividades em grupo."
-                    ]
                     idx_part = opts_part.index(data_aval.get('part_grupo')) if data_aval.get('part_grupo') in opts_part else 0
                     data_aval['part_grupo'] = st.radio("Nível Participação", opts_part, index=idx_part)
                     data_aval['part_obs'] = st.text_input("Obs Participação:", value=data_aval.get('part_obs', ''))
                     
                     st.divider()
                     st.markdown("**6. Interação**")
-                    opts_int = ["Adequada com as crianças e adultos.", "Satisfatória.", "Inadequada.", "Outros"]
                     idx_int = opts_int.index(data_aval.get('interacao')) if data_aval.get('interacao') in opts_int else 0
                     data_aval['interacao'] = st.radio("Nível Interação", opts_int, index=idx_int)
                     if data_aval['interacao'] == "Outros":
-                        data_aval['interacao_outros'] = st.text_input("Especifique:", value=data_aval.get('interacao_outros', ''))
+                        data_aval['interacao_outros'] = st.text_input("Especifique (Interação):", value=data_aval.get('interacao_outros', ''))
 
                 with st.expander("Parte III - Habilidades Pedagógicas"):
                     st.markdown("**7. Rotina Sala de Aula**")
-                    opts_rot = [
-                        "Compreende e atende as orientações oferecidas pelo docente de forma autônoma",
-                        "Precisa de intervenções pontuais do docente para compreender e atender as orientações.",
-                        "Mesmo com apoio apresenta severas dificuldades quanto à compreensão..."
-                    ]
                     idx_rot = opts_rot.index(data_aval.get('rotina')) if data_aval.get('rotina') in opts_rot else 0
                     data_aval['rotina'] = st.radio("Nível Rotina", opts_rot, index=idx_rot)
                     data_aval['rotina_obs'] = st.text_input("Obs Rotina:", value=data_aval.get('rotina_obs', ''))
                     
                     st.divider()
                     st.markdown("**8. Atividades Pedagógicas**")
-                    opts_ativ = [
-                        "não há necessidade de flexibilização curricular",
-                        "precisa de flexibilização curricular em relação à metodologia de ensino...",
-                        "precisa de flexibilização curricular em relação à metodologia de ensino e ao conteúdo...",
-                        "há a necessidade de um currículo funcional..."
-                    ]
                     idx_ativ = opts_ativ.index(data_aval.get('ativ_pedag')) if data_aval.get('ativ_pedag') in opts_ativ else 0
                     data_aval['ativ_pedag'] = st.radio("Nível Atividades", opts_ativ, index=idx_ativ)
 
@@ -2496,24 +2527,20 @@ elif app_mode == "👥 Gestão de Alunos":
                     c_com1, c_com2 = st.columns(2)
                     with c_com1:
                         st.markdown("**9. Atenção Sustentada**")
-                        data_aval['atencao_sust'] = st.radio("Sustentada", ["Mantém por longo período.", "Mantém com apoio.", "Não mantém."], index=0, key="at_sust")
+                        idx_as = opts_at_sust.index(data_aval.get('atencao_sust')) if data_aval.get('atencao_sust') in opts_at_sust else 0
+                        data_aval['atencao_sust'] = st.radio("Sustentada", opts_at_sust, index=idx_as, key="at_sust")
                         
                         st.markdown("**11. Atenção Seletiva**")
-                        data_aval['atencao_sel'] = st.radio("Seletiva", ["Ignora externos.", "Ignora com apoio.", "Não mantém com outros."], index=0, key="at_sel")
+                        idx_asel = opts_at_sel.index(data_aval.get('atencao_sel')) if data_aval.get('atencao_sel') in opts_at_sel else 0
+                        data_aval['atencao_sel'] = st.radio("Seletiva", opts_at_sel, index=idx_asel, key="at_sel")
                     
                     with c_com2:
                         st.markdown("**10. Atenção Dividida**")
-                        data_aval['atencao_div'] = st.radio("Dividida", ["Dois estímulos.", "Algumas situações.", "Não mantém."], index=0, key="at_div")
+                        idx_ad = opts_at_div.index(data_aval.get('atencao_div')) if data_aval.get('atencao_div') in opts_at_div else 0
+                        data_aval['atencao_div'] = st.radio("Dividida", opts_at_div, index=idx_ad, key="at_div")
                     
                     st.divider()
                     st.markdown("**12. Linguagem (Marque todas que se aplicam)**")
-                    opts_ling = [
-                        "Faz uso de palavras para se comunicar, expressando seus pensamentos e desejos.",
-                        "Faz uso de palavras para se comunicar, apresentando trocas fonéticas orais.",
-                        "Utiliza palavras e frases desconexas, não conseguindo se expressar.",
-                        "Não faz uso de palavras para se comunicar, expressando seus desejos por meio de gestos...",
-                        "Não faz uso de palavras e de gestos para se comunicar."
-                    ]
                     data_aval['linguagem'] = st.multiselect("Linguagem:", opts_ling, default=data_aval.get('linguagem', []))
                     data_aval['ling_obs'] = st.text_input("Obs Linguagem:", value=data_aval.get('ling_obs', ''))
 
@@ -2562,28 +2589,41 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.set_font("Arial", "B", 11); pdf.cell(40, 6, "Ano escolaridade:", 0, 0); pdf.set_font("Arial", "", 11)
                     pdf.cell(0, 6, clean_pdf_text(data_aval.get('ano_esc', '')), "B", 1); pdf.ln(4)
                     
-                    # Deficiencias
-                    defs = data_aval.get('defic_chk', [])
-                    def_str = "  ".join([f"[X] {d}" for d in defs])
-                    if data_aval.get('defic_outra'): def_str += f"  Outra: {data_aval.get('defic_outra')}"
-                    pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(def_str), 0, 'L'); pdf.ln(4)
+                    # Deficiencias - Lista Completa com X
+                    pdf.set_font("Arial", "", 9)
+                    
+                    def get_mark(val, selected_list):
+                        return "(X)" if val in selected_list else "( )"
+                    
+                    selected_defs = data_aval.get('defic_chk', [])
+                    def_str_list = []
+                    for d in defs_opts:
+                        def_str_list.append(f"{get_mark(d, selected_defs)} {d}")
+                    
+                    # Justificando na linha (aproximado)
+                    pdf.multi_cell(0, 5, clean_pdf_text("  ".join(def_str_list)), 0, 'L')
+                    
+                    if data_aval.get('defic_outra'):
+                        pdf.cell(0, 5, clean_pdf_text(f"Outra: {data_aval.get('defic_outra')}"), 0, 1)
+                    else:
+                        pdf.cell(0, 5, "Outra: _____________________________________________________________", 0, 1)
+                    pdf.ln(2)
                     
                     # PRESSUPOSTOS LEGAIS
-                    pdf.ln(5)
+                    pdf.ln(3)
                     pdf.set_font("Arial", "B", 11)
                     pdf.cell(0, 6, clean_pdf_text("PRESSUPOSTOS LEGAIS:"), 0, 1, 'L')
                     pdf.set_font("Arial", "", 9)
                     
                     # 1
-                    pdf.ln(3)
+                    pdf.ln(2)
                     pdf.multi_cell(0, 5, clean_pdf_text("1- Lei nº 12.764/2012, em seu artigo 3º que trata dos direitos da pessoa com transtorno do espectro autista indica:"), 0, 'L')
                     
-                    # Citation 1
-                    pdf.set_left_margin(30) # 1.5cm indent + 1.5cm margin
-                    pdf.set_font("Arial", "B", 9)
-                    pdf.write(5, clean_pdf_text("Parágrafo único. "))
-                    pdf.set_font("Arial", "I", 9)
-                    pdf.write(5, clean_pdf_text("Em casos de comprovada necessidade, a pessoa com transtorno do espectro autista incluída nas classes comuns de ensino regular, nos termos do inciso IV do art. 2º , terá direito a acompanhante especializado."))
+                    # Citation 1 (1.5cm indent)
+                    pdf.set_left_margin(30)
+                    pdf.set_x(30)
+                    pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("Parágrafo único. "))
+                    pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("Em casos de comprovada necessidade, a pessoa com transtorno do espectro autista incluída nas classes comuns de ensino regular, nos termos do inciso IV do art. 2º , terá direito a acompanhante especializado."))
                     pdf.ln(6)
                     pdf.set_left_margin(15)
                     
@@ -2593,10 +2633,9 @@ elif app_mode == "👥 Gestão de Alunos":
                     
                     # Citation 2
                     pdf.set_left_margin(30)
-                    pdf.set_font("Arial", "B", 9)
-                    pdf.write(5, clean_pdf_text("XIII - profissional de apoio escolar: "))
-                    pdf.set_font("Arial", "I", 9)
-                    pdf.write(5, clean_pdf_text("pessoa que exerce atividades de alimentação, higiene e locomoção do estudante com deficiência e atua em todas as atividades escolares nas quais se fizer necessária, em todos os níveis e modalidades de ensino, em instituições públicas e privadas, excluídas as técnicas ou os procedimentos identificados com profissões legalmente estabelecidas;"))
+                    pdf.set_x(30)
+                    pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("XIII - profissional de apoio escolar: "))
+                    pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("pessoa que exerce atividades de alimentação, higiene e locomoção do estudante com deficiência e atua em todas as atividades escolares nas quais se fizer necessária, em todos os níveis e modalidades de ensino, em instituições públicas e privadas, excluídas as técnicas ou os procedimentos identificados com profissões legalmente estabelecidas;"))
                     pdf.ln(6)
                     pdf.set_left_margin(15)
                     
@@ -2606,146 +2645,196 @@ elif app_mode == "👥 Gestão de Alunos":
                     
                     # Citation 3 - Art 6
                     pdf.set_left_margin(30)
-                    pdf.set_font("Arial", "B", 9)
-                    pdf.write(5, clean_pdf_text("Art. 6º - "))
-                    pdf.set_font("Arial", "I", 9)
-                    pdf.write(5, clean_pdf_text("Para a identificação das necessidades educacionais especiais dos alunos e a tomada de decisões quanto ao atendimento necessário, a escola deve realizar, com assessoramento técnico, avaliação do aluno no processo de ensino e aprendizagem, contando, para tal, com:"))
-                    pdf.ln(6) # Spacing before items
-                    
-                    pdf.set_left_margin(35)
-                    
-                    # I
-                    pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("I - ")); pdf.set_font("Arial", "I", 9)
-                    pdf.write(5, clean_pdf_text("a experiência de seu corpo docente, seus diretores, coordenadores, orientadores e supervisores educacionais;"))
+                    pdf.set_x(30)
+                    pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("Art. 6º - "))
+                    pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("Para a identificação das necessidades educacionais especiais dos alunos e a tomada de decisões quanto ao atendimento necessário, a escola deve realizar, com assessoramento técnico, avaliação do aluno no processo de ensino e aprendizagem, contando, para tal, com:"))
                     pdf.ln(5)
                     
-                    # II
-                    pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("II - ")); pdf.set_font("Arial", "I", 9)
-                    pdf.write(5, clean_pdf_text("o setor responsável pela educação especial do respectivo sistema;"))
-                    pdf.ln(5)
+                    # Incisos (Indent 1.5 + 2.0 = 3.5cm -> 35 + 15margin = 50mm? No, 15margin + 15indent + 20indent = 50mm from page edge)
+                    # User requested 1.5cm indent for law, then +2cm for incisos.
+                    # Margin is 15mm.
+                    # Art 6 indent: 15 + 15 = 30mm.
+                    # Incisos indent: 30 + 20 = 50mm.
+                    pdf.set_left_margin(50)
                     
-                    # III
-                    pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("III - ")); pdf.set_font("Arial", "I", 9)
-                    pdf.write(5, clean_pdf_text("a colaboração da família e a cooperação dos serviços de Saúde, Assistência Social, Trabalho, Justiça e Esporte, bem como do Ministério Público, quando necessário.” (grifamos e negritamos)"))
-                    pdf.ln(6)
+                    pdf.set_x(50); pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("I - ")); pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("a experiência de seu corpo docente, seus diretores, coordenadores, orientadores e supervisores educacionais;")); pdf.ln(5)
+                    pdf.set_x(50); pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("II - ")); pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("o setor responsável pela educação especial do respectivo sistema;")); pdf.ln(5)
+                    pdf.set_x(50); pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("III - ")); pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("a colaboração da família e a cooperação dos serviços de Saúde, Assistência Social, Trabalho, Justiça e Esporte, bem como do Ministério Público, quando necessário.” (grifamos e negritamos)")); pdf.ln(6)
                     
-                    pdf.set_left_margin(15) # Restore original margin
+                    pdf.set_left_margin(15) # Restore
                     
                     # Aspectos Gerais
                     pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "ASPECTOS GERAIS DA VIDA ESCOLAR DO ESTUDANTE:", 0, 1)
-                    pdf.set_font("Arial", "", 10); pdf.set_fill_color(255, 255, 200) # Light yellow highlight attempt
-                    pdf.multi_cell(0, 5, clean_pdf_text(data_aval.get('aspectos_gerais', '---')), 1, 'L', True); pdf.ln(5)
+                    pdf.set_font("Arial", "", 10); pdf.set_fill_color(255, 255, 255)
+                    pdf.multi_cell(0, 5, clean_pdf_text("Relatar: data da matrícula, plano de atendimento, docentes responsáveis pela turma: polivalente, especialistas de Educação Física, Arte; descrever o Atendimento Educacional Especializado, PDI, flexibilização curricular. Outros aspectos julgados necessários."), 0, 'L')
                     
+                    if data_aval.get('aspectos_gerais'):
+                        pdf.ln(2); pdf.set_font("Arial", "", 10)
+                        pdf.multi_cell(0, 5, clean_pdf_text(data_aval.get('aspectos_gerais')), 1, 'L', False)
+                    else:
+                        pdf.ln(2); pdf.cell(0, 10, "", 1, 1)
+                    
+                    pdf.ln(5)
+                    pdf.set_font("Arial", "B", 12); pdf.cell(0, 8, clean_pdf_text("AVALIAÇÃO PEDAGÓGICA"), 0, 1, 'C')
+                    
+                    # Helper function to print all options with selection
+                    def print_full_options(pdf, opts, selected_val, obs_key=None, obs_val=None):
+                        pdf.set_font("Arial", "", 10)
+                        for opt in opts:
+                            mark = "(X)" if selected_val == opt else "( )"
+                            # Handle long text
+                            pdf.multi_cell(0, 5, clean_pdf_text(f"{mark} {opt}"), 0, 'L')
+                        
+                        if obs_key:
+                            obs_text = obs_val if obs_val else "________________________________________________________________"
+                            pdf.cell(0, 6, clean_pdf_text(f"Obs: {obs_text}"), 0, 1)
+                        pdf.ln(2)
+
                     # PART I
                     pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("PARTE I - HABILIDADES DE VIDA DIÁRIA"), 0, 1)
                     
-                    def print_radio_section(title, selected, obs_txt):
-                        pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text(title), 0, 1)
-                        pdf.set_font("Arial", "", 10)
-                        if selected: pdf.cell(0, 6, clean_pdf_text(f"[X] {selected}"), 0, 1)
-                        else: pdf.cell(0, 6, "[ ] Não informado", 0, 1)
-                        if obs_txt: pdf.cell(0, 6, clean_pdf_text(f"Obs: {obs_txt}"), "B", 1)
-                        else: pdf.cell(0, 6, "Obs: _________________________________", "B", 1)
-                        pdf.ln(2)
-
-                    print_radio_section("1. ALIMENTAÇÃO:", data_aval.get('alim_nivel'), data_aval.get('alim_obs'))
-                    print_radio_section("2. HIGIENE:", data_aval.get('hig_nivel'), data_aval.get('hig_obs'))
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("1. ALIMENTAÇÃO:"), 0, 1)
+                    print_full_options(pdf, opts_alim, data_aval.get('alim_nivel'), True, data_aval.get('alim_obs'))
                     
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("3. LOCOMOÇÃO:"), 0, 1)
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("2. HIGIENE:"), 0, 1)
+                    print_full_options(pdf, opts_hig, data_aval.get('hig_nivel'), True, data_aval.get('hig_obs'))
+                    
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("3- LOCOMOÇÃO:"), 0, 1)
                     pdf.set_font("Arial", "", 10)
-                    for l in data_aval.get('loc_nivel', []):
-                        pdf.cell(0, 5, clean_pdf_text(f"[X] {l}"), 0, 1)
-                    pdf.cell(0, 6, clean_pdf_text(f"Obs: {data_aval.get('loc_obs', '')}"), "B", 1); pdf.ln(4)
+                    sel_loc = data_aval.get('loc_nivel', [])
+                    for opt in opts_loc:
+                        mark = "(X)" if opt in sel_loc else "( )"
+                        pdf.cell(0, 5, clean_pdf_text(f"{mark} {opt}"), 0, 1)
+                    
+                    obs_loc = data_aval.get('loc_obs') if data_aval.get('loc_obs') else "________________________________________________________________"
+                    pdf.cell(0, 6, clean_pdf_text(f"Obs: {obs_loc}"), 0, 1)
+                    pdf.ln(4)
                     
                     # PART II
                     if pdf.get_y() > 240: pdf.add_page()
                     pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("PARTE II – HABILIDADE SOCIAIS E DE INTERAÇÃO"), 0, 1)
-                    print_radio_section("4. COMPORTAMENTO:", data_aval.get('comportamento'), data_aval.get('comp_obs'))
-                    print_radio_section("5. PARTICIPAÇÃO EM GRUPO:", data_aval.get('part_grupo'), data_aval.get('part_obs'))
                     
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "6. INTERAÇÃO:", 0, 1); pdf.set_font("Arial", "", 10)
-                    pdf.cell(0, 6, clean_pdf_text(f"Selecionado: {data_aval.get('interacao', '')}"), 0, 1)
-                    if data_aval.get('interacao') == "Outros": pdf.cell(0, 6, clean_pdf_text(f"Especifique: {data_aval.get('interacao_outros')}"), 0, 1)
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("4- EM RELAÇÃO À MAIOR PARTE DO COMPORTAMENTO:"), 0, 1)
+                    print_full_options(pdf, opts_comp, data_aval.get('comportamento'), True, data_aval.get('comp_obs'))
+                    
+                    if pdf.get_y() > 240: pdf.add_page()
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("5- PARTICIPAÇÃO EM GRUPO:"), 0, 1)
+                    print_full_options(pdf, opts_part, data_aval.get('part_grupo'), True, data_aval.get('part_obs'))
+                    
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "6- INTERAÇÃO:", 0, 1)
+                    print_full_options(pdf, opts_int[:-1], data_aval.get('interacao')) # Print standard ones
+                    
+                    # Outros manual handling
+                    mark_out = "(X)" if data_aval.get('interacao') == "Outros" else "( )"
+                    val_out = data_aval.get('interacao_outros') if data_aval.get('interacao_outros') else "____________________________________________"
+                    pdf.cell(0, 5, clean_pdf_text(f"{mark_out} Outros: {val_out}"), 0, 1)
                     pdf.ln(4)
                     
                     # PART III
-                    pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("PARTE III - HABILIDADES PEDAGÓGICAS"), 0, 1)
-                    print_radio_section("7. ROTINA SALA DE AULA:", data_aval.get('rotina'), data_aval.get('rotina_obs'))
+                    if pdf.get_y() > 240: pdf.add_page()
+                    pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("PARTE III- HABILIDADES PEDAGÓGICAS"), 0, 1)
                     
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("8. ATIVIDADES PEDAGÓGICAS:"), 0, 1); pdf.set_font("Arial", "", 10)
-                    pdf.multi_cell(0, 5, clean_pdf_text(data_aval.get('ativ_pedag', '')), 0, 'L'); pdf.ln(4)
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("7- ROTINA DENTRO DA SALA DE AULA:"), 0, 1)
+                    print_full_options(pdf, opts_rot, data_aval.get('rotina'), True, data_aval.get('rotina_obs'))
+                    
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("8- ATIVIDADES PEDAGÓGICAS:"), 0, 1)
+                    print_full_options(pdf, opts_ativ, data_aval.get('ativ_pedag'))
+                    pdf.ln(4)
                     
                     # PART IV
+                    if pdf.get_y() > 230: pdf.add_page()
+                    pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("PARTE IV- HABILIDADES DE COMUNICAÇÃO E ATENÇÃO"), 0, 1)
+                    
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("9- O estudante (atenção sustentada)"), 0, 1)
+                    print_full_options(pdf, opts_at_sust, data_aval.get('atencao_sust'))
+                    
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("10- O estudante (dividida)"), 0, 1)
+                    print_full_options(pdf, opts_at_div, data_aval.get('atencao_div'))
+                    
                     if pdf.get_y() > 240: pdf.add_page()
-                    pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("PARTE IV - HABILIDADES DE COMUNICAÇÃO E ATENÇÃO"), 0, 1)
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("11- O estudante (seletiva)"), 0, 1)
+                    print_full_options(pdf, opts_at_sel, data_aval.get('atencao_sel'))
                     
-                    pdf.set_font("Arial", "B", 10)
-                    pdf.cell(0, 6, "9. Atenção Sustentada: " + clean_pdf_text(data_aval.get('atencao_sust', '')), 0, 1)
-                    pdf.cell(0, 6, "10. Atenção Dividida: " + clean_pdf_text(data_aval.get('atencao_div', '')), 0, 1)
-                    pdf.cell(0, 6, "11. Atenção Seletiva: " + clean_pdf_text(data_aval.get('atencao_sel', '')), 0, 1)
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "12- Linguagem:", 0, 1)
+                    pdf.set_font("Arial", "", 10)
+                    sel_ling = data_aval.get('linguagem', [])
+                    for opt in opts_ling:
+                        mark = "(X)" if opt in sel_ling else "( )"
+                        pdf.multi_cell(0, 5, clean_pdf_text(f"{mark} {opt}"), 0, 'L')
                     
-                    pdf.ln(2); pdf.cell(0, 6, "12. Linguagem:", 0, 1); pdf.set_font("Arial", "", 10)
-                    for li in data_aval.get('linguagem', []):
-                        pdf.cell(0, 5, clean_pdf_text(f"[X] {li}"), 0, 1)
-                    pdf.cell(0, 6, clean_pdf_text(f"OBS: {data_aval.get('ling_obs', '')}"), "B", 1); pdf.ln(5)
+                    obs_ling = data_aval.get('ling_obs') if data_aval.get('ling_obs') else "_____________________________________________________________________________"
+                    pdf.cell(0, 6, clean_pdf_text(f"OBS: {obs_ling}"), 0, 1)
+                    pdf.ln(5)
                     
                     # Levels Table
                     if pdf.get_y() > 200: pdf.add_page()
-                    pdf.set_fill_color(70, 130, 180); pdf.set_text_color(255, 255, 255) # Blue header
-                    pdf.cell(60, 8, "NÍVEIS DE APOIO", 1, 0, 'C', 1)
-                    pdf.cell(0, 8, "CARACTERÍSTICAS", 1, 1, 'C', 1)
+                    pdf.set_fill_color(255, 255, 255); pdf.set_text_color(0, 0, 0)
+                    pdf.set_font("Arial", "B", 10)
                     
-                    pdf.set_text_color(0, 0, 0); pdf.set_fill_color(240, 240, 240) # Gray rows
-                    def row_level(lvl, desc, fill=False):
-                        if pdf.get_y() + 16 > 275: 
-                            pdf.add_page()
-                            pdf.set_font("Arial", "B", 9)
-
-                        pdf.set_font("Arial", "B", 9)
-                        x_start = pdf.get_x(); y_start = pdf.get_y()
-                        
-                        pdf.cell(60, 16, clean_pdf_text(lvl), 1, 0, 'L', fill)
-                        
-                        pdf.set_xy(x_start + 60, y_start)
-                        style = 'FD' if fill else 'D'
-                        pdf.rect(x_start + 60, y_start, 120, 16, style)
-                        
-                        pdf.set_font("Arial", "", 9)
-                        pdf.multi_cell(120, 8, clean_pdf_text(desc), 0, 'L', False)
-                        
-                        pdf.set_xy(x_start, y_start + 16)
+                    # Table Header
+                    pdf.cell(60, 8, clean_pdf_text("NÍVEIS DE APOIO"), 1, 0, 'C')
+                    pdf.cell(0, 8, clean_pdf_text("CARACTERÍSTICAS"), 1, 1, 'C')
                     
-                    row_level("Não há necessidade", "Autonomia preservada. Ações da sala regular + AEE são suficientes.", True)
-                    row_level("Nível 1 (Pouco Subst.)", "Apoio não constante, apenas em ações pontuais.", False)
-                    row_level("Nível 2 (Substancial)", "Há necessidade de apoio constante ao estudante dentro da sala.", True)
-                    row_level("Nível 3 (Muito Subst.)", "Casos severos, atuação de monitor, flexibilização de horários/espaços.", False)
+                    # Rows
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.cell(60, 12, clean_pdf_text("Não há necessidade de apoio"), 1, 0, 'L')
+                    pdf.set_font("Arial", "", 9)
+                    pdf.multi_cell(0, 6, clean_pdf_text("O estudante apresenta autonomia. As ações disponibilizadas aos demais estudantes da sala regular são suficientes, acrescidas de ações do atendimento educacional especializado(AEE)."), 1, 'L')
+                    
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.cell(60, 8, clean_pdf_text("Nível 1- apoio pouco substancial"), 1, 0, 'L')
+                    pdf.set_font("Arial", "", 9)
+                    pdf.cell(0, 8, clean_pdf_text("Não há necessidade de apoio constante, apenas em ações pontuais."), 1, 1, 'L')
+                    
+                    pdf.set_font("Arial", "B", 9)
+                    x = pdf.get_x(); y = pdf.get_y()
+                    pdf.multi_cell(60, 6, clean_pdf_text("Nível 2- apoio substancial ao estudante dentro da sala de aula"), 1, 'L')
+                    pdf.set_xy(x+60, y)
+                    pdf.set_font("Arial", "", 9)
+                    pdf.cell(0, 12, clean_pdf_text("Há necessidade de apoio constante ao estudante"), 1, 1, 'L')
+                    
+                    pdf.set_font("Arial", "B", 9)
+                    x = pdf.get_x(); y = pdf.get_y()
+                    pdf.multi_cell(60, 6, clean_pdf_text("Nível 3- apoio muito substancial"), 1, 'L') # Height 12 approx
+                    pdf.set_xy(x+60, y)
+                    pdf.set_font("Arial", "", 9)
+                    pdf.multi_cell(0, 6, clean_pdf_text("Casos severos em que há a necessidade de atuação do monitor e outras ações específicas: flexibilização de horário e de espaços de atendimento"), 1, 'L')
                     
                     pdf.ln(5)
                     pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("CONCLUSÃO DA EQUIPE PEDAGÓGICA"), 0, 1)
-                    pdf.set_fill_color(255, 255, 0) # Yellow
                     pdf.set_font("Arial", "", 10)
-                    conclusao_txt = f"Diante dos aspectos avaliados... o estudante corresponde ao: {data_aval.get('conclusao_nivel', '___')}."
-                    pdf.multi_cell(0, 8, clean_pdf_text(conclusao_txt), 1, 'L', True)
                     
-                    pdf.ln(2); pdf.set_fill_color(230, 200, 200) # Light Redish/Pinkish for explicit support
-                    pdf.multi_cell(0, 8, clean_pdf_text(f"Apoio oferecido: {data_aval.get('apoio_existente', '---')}"), 1, 'L', 1)
+                    pdf.multi_cell(0, 5, clean_pdf_text("Diante dos aspectos avaliados a equipe pedagógica verificou que o estudante não necessita de apoio além do que oferecido para o coletivo da turma ou que o estudante corresponde ao Nível:"), 0, 'L')
+                    pdf.ln(2)
+                    pdf.set_font("Arial", "B", 12)
+                    pdf.cell(0, 8, clean_pdf_text(f"{data_aval.get('conclusao_nivel', '___________')}"), 0, 1, 'C')
                     
+                    pdf.ln(2); pdf.set_font("Arial", "", 10)
+                    pdf.multi_cell(0, 5, clean_pdf_text(f"Se este apoio já é oferecido pelo monitor ou pelo professor de Educação Especial no contexto da sala de aula deixar explícito aqui: {data_aval.get('apoio_existente', '')}"), 0, 'L')
+                    pdf.cell(0, 5, "__________________________________________________________________________________________", 0, 1)
+                    
+                    pdf.ln(8)
+                    pdf.set_font("Arial", "B", 10)
+                    pdf.cell(0, 6, clean_pdf_text("Responsáveis pela avaliação quanto à necessidade de apoio escolar ( nome e assinatura):"), 0, 1)
                     pdf.ln(10)
+                    
                     pdf.set_font("Arial", "", 9)
+                    y = pdf.get_y()
+                    pdf.line(10, y, 90, y); pdf.line(110, y, 190, y)
+                    pdf.text(10, y+4, clean_pdf_text(f"Professor de sala regular: {data_aval.get('resp_sala','')}")); pdf.text(110, y+4, clean_pdf_text(f"Professor de Arte: {data_aval.get('resp_arte','')}"))
+                    
+                    pdf.ln(15); y = pdf.get_y()
+                    pdf.line(10, y, 90, y); pdf.line(110, y, 190, y)
+                    pdf.text(10, y+4, clean_pdf_text(f"Professor de Educação Física: {data_aval.get('resp_ef','')}")); pdf.text(110, y+4, clean_pdf_text(f"Professor de Educação Especial: {data_aval.get('resp_ee','')}"))
+                    
+                    pdf.ln(10); pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "Equipe Gestora:", 0, 1); pdf.ln(10)
                     
                     y = pdf.get_y()
                     pdf.line(10, y, 90, y); pdf.line(110, y, 190, y)
-                    pdf.text(10, y+4, clean_pdf_text(f"Sala Regular: {data_aval.get('resp_sala','')}")); pdf.text(110, y+4, clean_pdf_text(f"Arte: {data_aval.get('resp_arte','')}"))
+                    pdf.set_font("Arial", "", 9)
+                    pdf.text(10, y+4, clean_pdf_text(f"Direção Escolar: {data_aval.get('resp_dir','')}")); pdf.text(110, y+4, clean_pdf_text(f"Coordenação Pedagógica: {data_aval.get('resp_coord','')}"))
                     
-                    pdf.ln(15); y = pdf.get_y()
-                    pdf.line(10, y, 90, y); pdf.line(110, y, 190, y)
-                    pdf.text(10, y+4, clean_pdf_text(f"Ed. Física: {data_aval.get('resp_ef','')}")); pdf.text(110, y+4, clean_pdf_text(f"Ed. Especial: {data_aval.get('resp_ee','')}"))
-                    
-                    pdf.ln(15); y = pdf.get_y()
-                    pdf.line(10, y, 90, y); pdf.line(110, y, 190, y)
-                    pdf.text(10, y+4, clean_pdf_text(f"Direção: {data_aval.get('resp_dir','')}")); pdf.text(110, y+4, clean_pdf_text(f"Coordenação: {data_aval.get('resp_coord','')}"))
-                    
-                    pdf.ln(10); pdf.cell(0, 6, clean_pdf_text(f"Limeira, {data_aval.get('data_emissao', date.today()).strftime('%d/%m/%Y')}."), 0, 1, 'C')
+                    pdf.ln(15); pdf.cell(0, 6, clean_pdf_text(f"Limeira, {data_aval.get('data_emissao', date.today()).strftime('%d/%m/%Y')}."), 0, 1, 'C')
 
                     st.session_state.pdf_bytes_aval = get_pdf_bytes(pdf)
                     st.rerun()
@@ -2763,3 +2852,4 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
                 else: st.info("Sem histórico.")
             else: st.info("Histórico vazio.")
+

@@ -2625,7 +2625,7 @@ elif app_mode == "👥 Gestão de Alunos":
                             pdf.line(x, y + 4, x + 3, y + 1)
                         # Text
                         pdf.set_xy(x + 5, y)
-                        pdf.multi_cell(0, 5, clean_pdf_text(text), 0, 'L')
+                        pdf.multi_cell(175, 5, clean_pdf_text(text), 0, 'L')
                         # Return to next line automatically handled by multi_cell if width=0, but we usually want precise control
                         # pdf.ln(1) # Gap
 
@@ -2698,7 +2698,7 @@ elif app_mode == "👥 Gestão de Alunos":
                                 pdf.line(x, y+4, x+3, y+1)
                             
                             pdf.set_xy(x + 5, y)
-                            pdf.multi_cell(170, 5, clean_pdf_text(opt), 0, 'L')
+                            pdf.multi_cell(175, 5, clean_pdf_text(opt), 0, 'L')
                         
                         if obs is not None:
                             obs_text = obs if obs else "________________________________________________________________"
@@ -2833,7 +2833,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
             if 'pdf_bytes_aval' in st.session_state:
                 st.download_button("📥 BAIXAR PDF AVALIAÇÃO", st.session_state.pdf_bytes_aval, f"Avaliacao_{data_aval.get('nome','aluno')}.pdf", "application/pdf", type="primary")
-
+                
         # --- ABA HISTÓRICO ---
         with tabs[1]:
             st.subheader("Histórico de Atividades")
@@ -2844,6 +2844,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
                 else: st.info("Sem histórico.")
             else: st.info("Histórico vazio.")
+
 
 
 

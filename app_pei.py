@@ -289,8 +289,8 @@ def login():
                     box-shadow: -5px 10px 25px rgba(37, 99, 235, 0.2);
                 }
                 
-                /* Painel Direito (Formulário) - Estilizando o próprio stForm */
-                .login-form-box {
+                /* Painel Direito (Formulário) - Target the specific column wrapper (3rd column) */
+                div[data-testid="column"]:nth-of-type(3) > div[data-testid="stVerticalBlock"] {
                     background-color: white;
                     padding: 2rem 3rem;
                     border-radius: 0 16px 16px 0; /* Arredondado apenas na direita */
@@ -375,7 +375,8 @@ def login():
             
         # --- LADO DIREITO (FORMULÁRIO BRANCO) ---
         with c_form:
-            st.markdown('<div class="login-form-box">', unsafe_allow_html=True)
+            # CORREÇÃO: Removemos a wrapper div manual (.login-form-box) que causava o problema.
+            # O estilo agora é aplicado ao container da coluna via CSS acima.
             
             # Abas de Login e Validação
             tab_login, tab_validar = st.tabs(["🔐 Acesso ao Sistema", "✅ Validar Documento"])
@@ -479,8 +480,6 @@ def login():
                                 st.error("❌ Documento não encontrado ou código inválido.")
                         except Exception as e:
                             st.error(f"Erro na busca: {e}")
-            
-            st.markdown('</div>', unsafe_allow_html=True)
         
         # Interrompe o carregamento do restante do app até que o login seja feito
         st.stop()
@@ -3465,3 +3464,4 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+

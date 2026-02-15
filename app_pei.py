@@ -2547,15 +2547,21 @@ elif app_mode == "👥 Gestão de Alunos":
                     p = data_pdi.get(f"{key}_proc", "")
                     f = data_pdi.get(f"{key}_final", "")
                     
-                    pdf.set_font("Arial", "B", 9); pdf.set_fill_color(240, 240, 240)
+                    # Title row
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.set_fill_color(240, 240, 240)
                     pdf.cell(0, 6, clean_pdf_text(title), 1, 1, 'L', True)
-                    pdf.set_font("Arial", "", 8)
                     
-                    y_start = pdf.get_y() - 5 
-                    pdf.set_xy(10, pdf.get_y()); pdf.cell(0,0,"",0,1) 
-                    pdf.multi_cell(0, 5, clean_pdf_text(f"Diagnóstico: {d}"))
-                    pdf.multi_cell(0, 5, clean_pdf_text(f"Percurso: {p}"))
-                    pdf.multi_cell(0, 5, clean_pdf_text(f"Final: {f}"))
+                    # Content rows
+                    pdf.set_font("Arial", "", 9)
+                    
+                    # Reset X to margin to avoid indentation issues
+                    pdf.set_x(10)
+                    pdf.multi_cell(0, 5, clean_pdf_text(f"Diagnóstico: {d}"), 1, 'L')
+                    pdf.set_x(10)
+                    pdf.multi_cell(0, 5, clean_pdf_text(f"Percurso: {p}"), 1, 'L')
+                    pdf.set_x(10)
+                    pdf.multi_cell(0, 5, clean_pdf_text(f"Final: {f}"), 1, 'L')
                     pdf.ln(2)
 
                 # 3.1 Cognitivo
@@ -2615,7 +2621,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_check_evolution("Interação", "ps_int")
                 print_check_evolution("Iniciativa Diálogo", "ps_ini_d")
                 print_check_evolution("Iniciativa Ativ.", "ps_ini_a")
-                pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(f"Comportamentos: {', '.join(data_pdi.get('ps_comps',[]))}"))
+                pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(f"Comportamentos: {', '.join(data_pdi.get('ps_comps',[]))}\"))
                 print_check_evolution("Sabe Nome", "vp_nome")
                 print_check_evolution("Sabe Idade", "vp_idade")
                 
@@ -2659,37 +2665,43 @@ elif app_mode == "👥 Gestão de Alunos":
                         
                         for item in items_list:
                              if pdf.get_y() > 250: pdf.add_page()
-                             # Render Row: Label | Content
+                             
                              item_key = f"goal_{category}_{subcat_name}_{item}".replace(" ", "_").lower()
                              content = data_pdi['goals_specific'].get(item_key, "")
                              
-                             # Calculate height based on content
-                             pdf.set_font("Arial", "B", 9)
+                             # Render Row: Label | Content
+                             # Calculate dynamic height based on content width
                              label_w = 60
-                             pdf.cell(label_w, 8, clean_pdf_text(item), 1, 0, 'L')
+                             content_w = 190 - label_w 
                              
+                             # Accurate height estimation using FPDF string width
                              pdf.set_font("Arial", "", 9)
-                             # Use multi_cell for content to wrap
-                             x = pdf.get_x(); y = pdf.get_y()
-                             pdf.multi_cell(0, 8, clean_pdf_text(content), 1, 'L')
-                             # Draw border around the multi_cell area if needed or just line
-                             pdf.rect(x, y, 190-label_w, 8) # Simple rect assuming single line height for visual consistency or just let multi_cell handle it. 
-                             # Since multi_cell moves cursor down, we need to be careful with layout. 
-                             # A simpler approach for this specific "table" look:
-                             # Just line break after multi_cell is enough if we don't strictly need vertical grid lines for the text area, 
-                             # but the user reference shows a table.
-                             # Let's fix the layout for variable height:
-                             # Re-do:
-                             pdf.set_xy(x - label_w, y) # Go back to start of line
+                             text_len = pdf.get_string_width(content)
+                             lines = int(text_len / content_w) + 1
+                             lines += content.count('\n')
+                             line_height = 5
+                             total_h = max(8, lines * line_height)
                              
-                             # Calc max height
-                             h_content = max(8, pdf.get_string_width(content) / (190-label_w) * 5 + 8)
+                             if pdf.get_y() + total_h > 270: 
+                                 pdf.add_page()
                              
+                             x_start = pdf.get_x()
+                             y_start = pdf.get_y()
+                             
+                             # Print Label
                              pdf.set_font("Arial", "B", 9)
-                             pdf.cell(label_w, h_content, clean_pdf_text(item), 1, 0, 'L')
+                             pdf.cell(label_w, total_h, clean_pdf_text(item), 1, 0, 'L')
                              
+                             # Print Content
+                             pdf.set_xy(x_start + label_w, y_start)
                              pdf.set_font("Arial", "", 9)
-                             pdf.multi_cell(0, h_content, clean_pdf_text(content), 1, 'L')
+                             pdf.multi_cell(content_w, line_height, clean_pdf_text(content), 1, 'L')
+                             
+                             # Draw border around content block to match height
+                             pdf.rect(x_start + label_w, y_start, content_w, total_h)
+                             
+                             # Reset cursor
+                             pdf.set_xy(x_start, y_start + total_h)
 
 
                 st.session_state.pdf_bytes_pdi = get_pdf_bytes(pdf)
@@ -2697,7 +2709,6 @@ elif app_mode == "👥 Gestão de Alunos":
 
             if 'pdf_bytes_pdi' in st.session_state:
                 st.download_button("📥 BAIXAR PDI COMPLETO", st.session_state.pdf_bytes_pdi, f"PDI_{data_pdi.get('nome','aluno')}.pdf", "application/pdf", type="primary")
-
 
 
         # --- ABA 6: HISTÓRICO ---
@@ -3985,6 +3996,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

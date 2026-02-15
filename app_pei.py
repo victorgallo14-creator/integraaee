@@ -1,4 +1,4 @@
-import streamlit as st            padding-top: 1rem !important;
+import streamlit as st            
 from fpdf import FPDF
 from datetime import datetime, date, timedelta, timezone
 import io
@@ -3466,6 +3466,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 
 
 

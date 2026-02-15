@@ -473,6 +473,8 @@ if 'data_conduta' not in st.session_state:
     st.session_state.data_conduta = {}
 if 'data_avaliacao' not in st.session_state:
     st.session_state.data_avaliacao = {}
+if 'data_diario' not in st.session_state:
+    st.session_state.data_diario = {}
 
 def carregar_dados_aluno():
     selecao = st.session_state.get('aluno_selecionado')
@@ -482,6 +484,7 @@ def carregar_dados_aluno():
     st.session_state.data_case = {'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 'checklist': {}, 'clinicas': []}
     st.session_state.data_conduta = {}
     st.session_state.data_avaliacao = {}
+    st.session_state.data_diario = {}
     st.session_state.nome_original_salvamento = None
 
     if not selecao or selecao == "-- Novo Registro --":
@@ -499,6 +502,7 @@ def carregar_dados_aluno():
             st.session_state.data_case['nome'] = selecao
             st.session_state.data_conduta['nome'] = selecao
             st.session_state.data_avaliacao['nome'] = selecao
+            st.session_state.data_diario['nome'] = selecao
 
             for _, row in rows.iterrows():
                 try:
@@ -518,6 +522,8 @@ def carregar_dados_aluno():
                         st.session_state.data_conduta.update(dados)
                     elif dtype == "AVALIACAO":
                         st.session_state.data_avaliacao.update(dados)
+                    elif dtype == "DIARIO":
+                        st.session_state.data_diario.update(dados)
                 except: pass
             
             st.toast(f"✅ {selecao} carregado.")
@@ -631,7 +637,7 @@ with st.sidebar:
         st.markdown('<p class="section-label">📂 Tipo de Documento</p>', unsafe_allow_html=True)
         doc_sub_mode = st.radio(
             "Modo Doc", 
-            ["PEI", "Estudo de Caso", "Protocolo de Conduta", "Avaliação Pedagógica"], 
+            ["PEI", "Estudo de Caso", "Protocolo de Conduta", "Avaliação Pedagógica", "Relatório Diário"], 
             index=default_doc_idx, 
             key="doc_option",
             label_visibility="collapsed"
@@ -2827,11 +2833,6 @@ elif app_mode == "👥 Gestão de Alunos":
             if 'pdf_bytes_aval' in st.session_state:
                 st.download_button("📥 BAIXAR PDF AVALIAÇÃO", st.session_state.pdf_bytes_aval, f"Avaliacao_{data_aval.get('nome','aluno')}.pdf", "application/pdf", type="primary")
 
-
-
-        
-
-                
         # --- ABA HISTÓRICO ---
         with tabs[1]:
             st.subheader("Histórico de Atividades")
@@ -2842,16 +2843,176 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
                 else: st.info("Sem histórico.")
             else: st.info("Histórico vazio.")
+            
+    # --- RELATÓRIO DIÁRIO ---
+    elif doc_mode == "Relatório Diário":
+        st.markdown("""<div class="header-box"><div class="header-title">Relatório Diário de Acompanhamento</div></div>""", unsafe_allow_html=True)
+        st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
+        
+        # Inicializa se não existir
+        if 'data_diario' not in st.session_state: st.session_state.data_diario = {}
+        data_diario = st.session_state.data_diario
+        data_pei = st.session_state.data_pei # Para puxar dados automáticos
+        
+        with st.form("form_diario"):
+            st.caption("Preencha os dados abaixo para gerar o relatório do dia.")
+            
+            # Botão para importar dados básicos
+            if st.form_submit_button("🔄 Importar Dados Básicos do Aluno"):
+                if data_pei:
+                    data_diario['nome'] = data_pei.get('nome', '')
+                    data_diario['ano_esc'] = data_pei.get('ano_esc', '')
+                    data_diario['escola'] = "CEIEF Rafael Affonso Leite" # Padrão do sistema ou pegar de outro lugar
+                else:
+                    st.warning("Selecione um aluno com PEI cadastrado para importar dados.")
+            
+            # Campos
+            c1, c2 = st.columns(2)
+            data_diario['escola'] = c1.text_input("Escola", value=data_diario.get('escola', 'CEIEF Rafael Affonso Leite'))
+            
+            d_rel = data_diario.get('data_relatorio')
+            if isinstance(d_rel, str):
+                try: d_rel = datetime.strptime(d_rel, '%Y-%m-%d').date()
+                except: d_rel = date.today()
+            data_diario['data_relatorio'] = c2.date_input("Data", value=d_rel if d_rel else date.today(), format="DD/MM/YYYY")
+            
+            c3, c4 = st.columns(2)
+            data_diario['nome'] = c3.text_input("Estudante", value=data_diario.get('nome', data_pei.get('nome','')), disabled=True)
+            data_diario['ano_esc'] = c4.text_input("Ano de Escolaridade", value=data_diario.get('ano_esc', data_pei.get('ano_esc','')))
+            
+            c5, c6 = st.columns(2)
+            data_diario['periodo'] = c5.selectbox("Período", ["Manhã", "Tarde", "Integral"], index=0)
+            data_diario['acompanhante'] = c6.text_input("Acompanhante (Profissional)", value=data_diario.get('acompanhante', st.session_state.get('usuario_nome','')))
+            
+            st.divider()
+            
+            col_falta, col_vazio = st.columns([1, 5])
+            data_diario['falta'] = col_falta.checkbox("Aluno Faltou?")
+            
+            st.markdown("**Descrição das atividades realizadas com o estudante:**")
+            data_diario['descricao'] = st.text_area("Descreva as atividades ou ocorrências do dia:", height=200, value=data_diario.get('descricao', ''))
+            
+            st.markdown("---")
+            c_save_d, c_gen_d = st.columns(2)
+            
+            # Salvar rascunho
+            if c_save_d.form_submit_button("💾 Salvar Rascunho"):
+                save_student("DIARIO", data_diario.get('nome', 'aluno'), data_diario, "Relatório Diário")
+                
+            # Gerar PDF
+            if c_gen_d.form_submit_button("👁️ Gerar PDF Diário"):
+                log_action(data_diario.get('nome'), "Gerou PDF", "Relatório Diário")
+                
+                pdf = OfficialPDF('P', 'mm', 'A4')
+                pdf.add_page()
+                pdf.set_margins(15, 15, 15)
+                
+                # Cabeçalho Padrão
+                if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 20)
+                if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 175, 8, 20)
 
+                pdf.set_font("Arial", "B", 12)
+                pdf.set_xy(0, 10)
+                pdf.cell(0, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
+                pdf.set_font("Arial", "B", 14)
+                pdf.cell(0, 8, clean_pdf_text("CEIEF RAFAEL AFFONSO LEITE"), 0, 1, 'C')
+                
+                pdf.ln(10)
+                
+                # Título do Relatório
+                pdf.set_font("Arial", "B", 14)
+                pdf.set_fill_color(230, 230, 230)
+                pdf.cell(0, 10, clean_pdf_text("RELATÓRIO DIÁRIO DE AÇÕES DE ACOMPANHAMENTO ESCOLAR"), 1, 1, 'C', True)
+                pdf.ln(5)
+                
+                # Bloco de Informações
+                pdf.set_font("Arial", "B", 11)
+                
+                # Linha 1: Escola e Data
+                pdf.cell(20, 8, "Escola:", 0, 0)
+                pdf.set_font("Arial", "", 11)
+                pdf.cell(110, 8, clean_pdf_text(data_diario.get('escola', '')), "B", 0) # Linha sublinhada
+                
+                pdf.set_font("Arial", "B", 11)
+                pdf.cell(15, 8, "Data:", 0, 0)
+                pdf.set_font("Arial", "", 11)
+                data_pdf = data_diario.get('data_relatorio')
+                if isinstance(data_pdf, (date, datetime)): data_str = data_pdf.strftime("%d/%m/%Y")
+                else: data_str = str(data_pdf)
+                pdf.cell(0, 8, data_str, "B", 1)
+                
+                pdf.ln(2)
+                
+                # Linha 2: Estudante
+                pdf.set_font("Arial", "B", 11)
+                pdf.cell(25, 8, "Estudante:", 0, 0)
+                pdf.set_font("Arial", "", 11)
+                pdf.cell(0, 8, clean_pdf_text(data_diario.get('nome', '')), "B", 1)
+                
+                pdf.ln(2)
+                
+                # Linha 3: Ano e Período
+                pdf.set_font("Arial", "B", 11)
+                pdf.cell(45, 8, clean_pdf_text("Ano de Escolaridade:"), 0, 0)
+                pdf.set_font("Arial", "", 11)
+                pdf.cell(50, 8, clean_pdf_text(data_diario.get('ano_esc', '')), "B", 0)
+                
+                pdf.set_font("Arial", "B", 11)
+                pdf.cell(25, 8, clean_pdf_text("Período:"), 0, 0)
+                pdf.set_font("Arial", "", 11)
+                pdf.cell(0, 8, clean_pdf_text(data_diario.get('periodo', '')), "B", 1)
+                
+                pdf.ln(2)
+                
+                # Linha 4: Acompanhante
+                pdf.set_font("Arial", "B", 11)
+                pdf.cell(35, 8, clean_pdf_text("Acompanhante:"), 0, 0)
+                pdf.set_font("Arial", "", 11)
+                pdf.cell(0, 8, clean_pdf_text(data_diario.get('acompanhante', '')), "B", 1)
+                
+                pdf.ln(8)
+                
+                # Tabela de Descrição
+                pdf.set_font("Arial", "B", 12)
+                pdf.set_fill_color(200, 200, 200) # Cinza para o título da tabela
+                pdf.cell(0, 10, clean_pdf_text("Descrição das atividades realizadas com o estudante"), 1, 1, 'C', True)
+                
+                # Conteúdo da descrição
+                pdf.set_font("Arial", "", 11)
+                
+                texto_conteudo = ""
+                if data_diario.get('falta'):
+                    pdf.set_text_color(200, 0, 0) # Vermelho para falta
+                    texto_conteudo = "ESTUDANTE AUSENTE NESTA DATA.\n\n" + data_diario.get('descricao', '')
+                else:
+                    pdf.set_text_color(0, 0, 0)
+                    texto_conteudo = data_diario.get('descricao', '')
+                
+                # Caixa grande para o texto (borda em volta)
+                # Altura fixa ou dinâmica? Vamos fazer dinâmica com altura mínima
+                y_start = pdf.get_y()
+                pdf.multi_cell(0, 8, clean_pdf_text(texto_conteudo), 1, 'L')
+                
+                # Se o texto for curto, desenhar o resto do retângulo até o fim da página (estético)
+                y_end = pdf.get_y()
+                if y_end < 240:
+                    pdf.rect(15, y_end, 180, 240 - y_end)
+                
+                # Assinatura no rodapé
+                pdf.set_xy(15, 260)
+                pdf.set_font("Arial", "", 10)
+                pdf.set_text_color(0, 0, 0)
+                pdf.cell(90, 6, "_________________________________________", 0, 0, 'C')
+                pdf.cell(90, 6, "_________________________________________", 0, 1, 'C')
+                
+                pdf.cell(90, 5, "Assinatura do Acompanhante", 0, 0, 'C')
+                pdf.cell(90, 5, "Visto da Coordenação/Direção", 0, 1, 'C')
 
-
-
-
-
-
-
-
-
-
-
+                st.session_state.pdf_bytes_diario = get_pdf_bytes(pdf)
+                st.rerun()
+            
+            if 'pdf_bytes_diario' in st.session_state:
+                file_name_clean = data_diario.get('nome','aluno').replace(" ", "_")
+                data_clean = str(data_diario.get('data_relatorio', date.today()))
+                st.download_button("📥 BAIXAR PDF RELATÓRIO DIÁRIO", st.session_state.pdf_bytes_diario, f"Diario_{file_name_clean}_{data_clean}.pdf", "application/pdf", type="primary")
 

@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st            padding-top: 1rem !important;
 from fpdf import FPDF
 from datetime import datetime, date, timedelta, timezone
 import io
@@ -662,7 +662,7 @@ with st.sidebar:
     <style>
         section[data-testid="stSidebar"] > div {
             padding-top: -6rem !important;
-            padding-bottom: 2rem !important;
+            padding-bottom: -2rem !important;
         }
         [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
             gap: 1.2rem !important;
@@ -3466,6 +3466,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 
 
 

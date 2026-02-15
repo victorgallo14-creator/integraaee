@@ -2357,7 +2357,7 @@ elif app_mode == "👥 Gestão de Alunos":
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
 
-    # --- AVALIAÇÃO PEDAGÓGICA ---
+       # --- AVALIAÇÃO PEDAGÓGICA ---
     elif doc_mode == "Avaliação Pedagógica":
         st.markdown("""<div class="header-box"><div class="header-title">Avaliação Pedagógica: Apoio Escolar</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
@@ -2600,24 +2600,17 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.set_font("Arial", "B", 11); pdf.cell(40, 6, "Ano escolaridade:", 0, 0); pdf.set_font("Arial", "", 11)
                     pdf.cell(0, 6, clean_pdf_text(data_aval.get('ano_esc', '')), "B", 1); pdf.ln(4)
                     
-                    # Deficiencias - Lista Completa com X
+                    # Deficiencias - Apenas as selecionadas, conforme pedido
                     pdf.set_font("Arial", "", 9)
                     
-                    def get_mark(val, selected_list):
-                        return "(X)" if val in selected_list else "( )"
-                    
                     selected_defs = data_aval.get('defic_chk', [])
-                    def_str_list = []
-                    for d in defs_opts:
-                        def_str_list.append(f"{get_mark(d, selected_defs)} {d}")
-                    
-                    # Justificando na linha (aproximado)
-                    pdf.multi_cell(0, 5, clean_pdf_text("  ".join(def_str_list)), 0, 'L')
-                    
-                    if data_aval.get('defic_outra'):
-                        pdf.cell(0, 5, clean_pdf_text(f"Outra: {data_aval.get('defic_outra')}"), 0, 1)
+                    if selected_defs:
+                        for d in selected_defs:
+                            pdf.cell(0, 5, clean_pdf_text(f"(X) {d}"), 0, 1)
+                        if data_aval.get('defic_outra'):
+                            pdf.cell(0, 5, clean_pdf_text(f"(X) Outra: {data_aval.get('defic_outra')}"), 0, 1)
                     else:
-                        pdf.cell(0, 5, "Outra: _____________________________________________________________", 0, 1)
+                        pdf.cell(0, 5, clean_pdf_text("Nenhuma deficiência selecionada."), 0, 1)
                     pdf.ln(2)
                     
                     # PRESSUPOSTOS LEGAIS
@@ -2863,5 +2856,6 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
                 else: st.info("Sem histórico.")
             else: st.info("Histórico vazio.")
+
 
 

@@ -277,7 +277,7 @@ def login():
                 /* Painel Esquerdo (Arte) */
                 .login-art-box {
                     background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
-                    height: 600px; /* Altura ajustada */
+                    min-height: 600px; /* Altura ajustada */
                     border-radius: 16px 0 0 16px; /* Arredondado apenas na esquerda */
                     display: flex;
                     flex-direction: column;
@@ -290,11 +290,12 @@ def login():
                 }
                 
                 /* Painel Direito (Formulário) - Target the specific column wrapper (3rd column) */
-                div[data-testid="column"]:nth-of-type(3) {
+                div[data-testid="column"]:nth-of-type(3),
+                div[data-testid="stColumn"]:nth-of-type(3) {
                     background-color: white;
                     padding: 2rem 3rem !important;
                     border-radius: 0 16px 16px 0; /* Arredondado apenas na direita */
-                    height: 600px; /* Mesma altura da arte */
+                    min-height: 600px; /* Mesma altura da arte */
                     display: flex;
                     flex-direction: column;
                     justify-content: flex-start; /* Alinhado ao topo para abas */
@@ -3465,5 +3466,6 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 
 

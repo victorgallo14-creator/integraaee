@@ -2968,9 +2968,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.cell(210, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
                     pdf.cell(180, 6, clean_pdf_text("CEIEF RAFAEL AFFONSO LEITE"), 0, 1, 'C')
                     pdf.ln(8)
-                    pdf.set_font("Arial", "B", 14)
-                    pdf.set_fill_color(230, 230, 230)
-                    pdf.cell(0, 10, clean_pdf_text("RELATÓRIO DIÁRIO DE AÇÕES DE ACOMPANHAMENTO ESCOLAR"), 1, 1, 'C', True)
+                    pdf.set_font("Arial", "B", 16); pdf.cell(0, 10, clean_pdf_text("RELATÓRIO DIÁRIO DE AÇÕES DE ACOMPANHAMENTO ESCOLAR"), 0, 1, 'C')
                     pdf.ln(5)
                     
                     # Dados do Cabeçalho
@@ -3096,3 +3094,4 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+

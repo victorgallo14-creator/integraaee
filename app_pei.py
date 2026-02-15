@@ -2117,7 +2117,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 st.rerun()
             
             st.divider()
-            
+
             if st.button("👁️ GERAR PDI COMPLETO (PDF)"):
                 log_action(data_pdi.get('nome'), "Gerou PDF", "PDI Completo")
                 
@@ -2125,7 +2125,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.set_auto_page_break(auto=True, margin=15)
                 pdf.set_signature_footer(data_pdi.get('signatures', []), data_pdi.get('doc_uuid', ''))
                 
-                # --- CAPA ---
+                # --- CAPA PRINCIPAL ---
                 pdf.add_page()
                 if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 10, 10, 25)
                 pdf.set_y(15); pdf.set_font("Arial", "B", 14)
@@ -2145,6 +2145,12 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.ln(40)
                 pdf.set_font("Arial", "B", 14)
                 pdf.cell(0, 10, f"ANO: {datetime.now().year}", 0, 1, 'C')
+
+                # --- CAPA SECUNDÁRIA: ESTUDO DE CASO ---
+                pdf.add_page()
+                pdf.set_y(120) 
+                pdf.set_font("Arial", "B", 24)
+                pdf.cell(0, 10, "ESTUDO DE CASO", 0, 1, 'C')
 
                 # --- 1. DADOS GERAIS (Fonte: Estudo de Caso) ---
                 pdf.add_page()
@@ -3647,6 +3653,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

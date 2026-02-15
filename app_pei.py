@@ -32,14 +32,20 @@ hide_st_style = """
             
             /* --- COMPORTAMENTO DESKTOP (Largura > 992px) --- */
             @media (min-width: 992px) {
+                /* Esconde o header e trava a sidebar aberta */
                 header {visibility: hidden;}
                 [data-testid="stSidebarCollapseButton"] {display: none;}
             }
             
-            /* --- COMPORTAMENTO MOBILE (Largura <= 991px) --- */
+            /* --- COMPORTAMENTO MOBILE/TABLET (Largura <= 991px) --- */
             @media (max-width: 991px) {
+                /* Header visível para acessar o menu hambúrguer */
                 header {visibility: visible;}
-                .header-box { margin-top: 0px !important; }
+                
+                /* Ajustes para evitar que o conteúdo suba demais */
+                .header-box {
+                    margin-top: 0px !important;
+                }
             }
             </style>
             """
@@ -57,14 +63,18 @@ def load_db():
         return pd.DataFrame(columns=["nome", "tipo_doc", "dados_json", "id"])
 
 def safe_read(worksheet_name, columns):
+    """Lê uma aba com segurança, retornando vazio se falhar"""
     try:
         df = conn.read(worksheet=worksheet_name, ttl=0)
-        if df.empty: return pd.DataFrame(columns=columns)
+        # Se vier vazio, retornamos o DF com as colunas certas
+        if df.empty:
+             return pd.DataFrame(columns=columns)
         return df
     except:
         return pd.DataFrame(columns=columns)
 
 def safe_update(worksheet_name, data):
+    """Atualiza uma aba com segurança"""
     try:
         conn.update(worksheet=worksheet_name, data=data)
         return True
@@ -73,9 +83,11 @@ def safe_update(worksheet_name, data):
         return False
 
 def log_action(student_name, action, details=""):
+    """Registra uma ação no histórico do aluno."""
     try:
         user = st.session_state.get('usuario_nome', 'Desconhecido')
         df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
+        
         new_entry = {
             "Data_Hora": datetime.now().strftime("%d/%m/%Y %H:%M"),
             "Aluno": student_name,
@@ -83,13 +95,22 @@ def log_action(student_name, action, details=""):
             "Acao": action,
             "Detalhes": details
         }
+        
         df_hist = pd.concat([pd.DataFrame([new_entry]), df_hist], ignore_index=True)
         safe_update("Historico", df_hist)
     except Exception as e:
         print(f"Erro no log: {e}")
 
 def save_student(doc_type, name, data, section="Geral"):
+    """Salva ou atualiza garantindo que não duplique linhas"""
+    # Proteção de backend além do frontend
+    # Nota: is_monitor será definido após login(), mas esta função só é chamada via botões após login.
     is_monitor = st.session_state.get('user_role') == 'monitor'
+    
+    # Exceção: Monitores podem assinar documentos (salvar apenas a assinatura)
+    # A lógica de bloqueio deve ser tratada antes de chamar save_student se for edição de conteúdo
+    # Aqui permitimos salvar se for DIARIO ou se for apenas atualização de assinatura (tratado na logica da UI)
+    
     if is_monitor and doc_type != "DIARIO" and section != "Assinatura":
         st.error("Acesso negado: Monitores não podem editar este documento.")
         return
@@ -98,6 +119,7 @@ def save_student(doc_type, name, data, section="Geral"):
         df_atual = load_db()
         id_registro = f"{name} ({doc_type})"
         
+        # Garantir UUID
         if 'doc_uuid' not in data or not data['doc_uuid']:
             data['doc_uuid'] = str(uuid.uuid4()).upper()
 
@@ -123,16 +145,22 @@ def save_student(doc_type, name, data, section="Geral"):
             df_final = pd.concat([df_atual, pd.DataFrame([novo_registro])], ignore_index=True)
 
         conn.update(worksheet="Alunos", data=df_final)
+        
+        # Registra no histórico
         log_action(name, f"Salvou {doc_type}", f"Seção: {section}")
+        
         st.toast(f"✅ Alterações em {name} salvas na nuvem!", icon="💾")
+        
     except Exception as e:
         st.error(f"Erro ao salvar: {e}")
 
 def delete_student(student_name):
+    """Exclui um aluno do DataFrame e atualiza a planilha"""
     is_monitor = st.session_state.get('user_role') == 'monitor'
     if is_monitor:
         st.error("Acesso negado: Monitores não podem excluir registros.")
         return False
+        
     try:
         df = load_db()
         if "nome" in df.columns:
@@ -160,10 +188,11 @@ def get_pdf_bytes(pdf_instance):
 class OfficialPDF(FPDF):
     def __init__(self, orientation='P', unit='mm', format='A4'):
         super().__init__(orientation, unit, format)
-        self.signature_info = None
+        self.signature_info = None # Texto da assinatura
         self.doc_uuid = None
 
     def set_signature_footer(self, signatures_list, doc_uuid):
+        """Prepara o texto de validação para o rodapé"""
         self.doc_uuid = doc_uuid
         if signatures_list and len(signatures_list) > 0:
             names = [s.get('name', '').upper() for s in signatures_list]
@@ -171,46 +200,44 @@ class OfficialPDF(FPDF):
             self.signature_info = f"Assinado por {len(names)} pessoas: {names_str}"
         else:
             self.signature_info = "Documento gerado sem assinaturas digitais."
-
     def footer(self):
-        # 1. Posicionamento para o Bloco de Assinatura (Cinza)
-        # Calcula Y baseado na altura da página (self.h) para funcionar em Retrato e Paisagem
-        margin_bottom = 22 # Margem do fundo da página
-        y_box = self.h - margin_bottom
-        x_box = 10
-        w_box = self.w - 20 # Largura da página menos margens
-        box_h = 9 # Altura fixa reduzida para 2 linhas (Título + Link)
-
+        self.set_y(-25)
+        self.set_font('Arial', '', 8)
+        self.set_text_color(80, 80, 80)
+        
+        # Bloco de Assinatura Digital
         if self.doc_uuid:
-            self.set_y(y_box) # Move cursor para posição calculada
+            # Posicionamento dinâmico baseado na altura da página
+            # Garante que funciona corretamente tanto em Retrato quanto em Paisagem
+            box_h = 9  # Altura reduzida para ~2 linhas
+            margin_bottom = 22 # Distância da borda inferior
             
-            # Caixa Cinza
+            y_box = self.h - margin_bottom 
+            x_box = 10
+            w_box = self.w - 20 # Largura total (menos margens laterais de 10mm)
+
+            # Caixa cinza claro para validação
             self.set_fill_color(245, 245, 245)
-            self.set_draw_color(220, 220, 220)
-            self.rect(x_box, y_box, w_box, box_h, 'DF')
+            self.rect(x_box, y_box, w_box, box_h, 'F')
             
-            # Texto da Assinatura
+            # Texto
             self.set_xy(x_box + 2, y_box + 1.5)
             self.set_font('Arial', 'B', 7)
-            self.set_text_color(80, 80, 80)
+            if self.signature_info:
+                self.cell(0, 3, clean_pdf_text(self.signature_info), 0, 1, 'L')
+            else:
+                self.ln(3) # Espaço caso não tenha texto de assinatura
             
-            sig_text = self.signature_info if self.signature_info else "Sem assinaturas."
-            self.cell(0, 3, clean_pdf_text(sig_text), 0, 1, 'L')
-            
-            # Texto do Link de Validação
             self.set_x(x_box + 2)
             self.set_font('Arial', '', 7)
             link_txt = f"Para verificar a validade das assinaturas, acesse https://integra.streamlit.app e informe o código {self.doc_uuid}"
             self.cell(0, 3, clean_pdf_text(link_txt), 0, 1, 'L')
 
-        # 2. Rodapé Padrão (Endereço e Página)
-        self.set_y(-10) # 10mm do final
+        # Endereço Padrão (Abaixo da caixa)
+        self.set_y(-10)
         self.set_font('Arial', '', 8)
-        self.set_text_color(100, 100, 100)
-        
         addr = "Secretaria Municipal de Educação | Centro de Formação do Professor - Limeira-SP"
         self.cell(0, 5, clean_pdf_text(addr), 0, 0, 'C')
-        
         self.set_font('Arial', 'I', 8)
         self.cell(0, 5, clean_pdf_text(f'Página {self.page_no()}'), 0, 0, 'R')
 
@@ -218,8 +245,9 @@ class OfficialPDF(FPDF):
         self.set_font('Arial', 'B', 12); self.set_fill_color(240, 240, 240)
         self.cell(width, 8, clean_pdf_text(title), 1, 1, 'L', 1)
 
-# --- LOGIN ROBUSTO E CORRIGIDO ---
+# --- FUNÇÃO DE LOGIN COMPLETA E ROBUSTA (SME LIMEIRA) ---
 def login():
+    # Inicializa o estado de autenticação se não existir
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
     
@@ -227,105 +255,167 @@ def login():
         st.session_state.user_role = None
 
     if not st.session_state.authenticated:
-        # Estilos aplicados diretamente às colunas do Streamlit
-        # Isso evita divs quebradas envolvendo widgets
+        # --- CSS DA TELA DE LOGIN (NO-SCROLL LAYOUT) ---
         st.markdown("""
             <style>
+                /* Remove padding padrão do Streamlit para ocupar a tela toda */
+                .block-container {
+                    padding-top: 0rem !important;
+                    padding-bottom: 0rem !important;
+                    max-width: 100%;
+                    min-height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                }
+                
+                /* Fundo da Página */
                 [data-testid="stAppViewContainer"] {
                     background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
                 }
                 
-                /* Coluna da Esquerda (Arte) */
-                div[data-testid="column"]:nth-of-type(2) > div {
+                /* Painel Esquerdo (Arte) */
+                .login-art-box {
                     background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
-                    border-radius: 12px 0 0 12px;
-                    padding: 3rem 2rem;
-                    height: 550px;
+                    height: 600px; /* Altura ajustada */
+                    border-radius: 16px 0 0 16px; /* Arredondado apenas na esquerda */
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
                     align-items: center;
-                    text-align: center;
                     color: white;
-                    box-shadow: -5px 5px 15px rgba(0,0,0,0.1);
+                    padding: 40px;
+                    text-align: center;
+                    box-shadow: -5px 10px 25px rgba(37, 99, 235, 0.2);
                 }
                 
-                /* Coluna da Direita (Formulário) */
-                div[data-testid="column"]:nth-of-type(3) > div {
+                /* Painel Direito (Formulário) - Estilizando o próprio stForm */
+                .login-form-box {
                     background-color: white;
-                    border-radius: 0 12px 12px 0;
-                    padding: 3rem 2rem;
-                    height: 550px;
-                    box-shadow: 5px 5px 15px rgba(0,0,0,0.1);
+                    padding: 2rem 3rem;
+                    border-radius: 0 16px 16px 0; /* Arredondado apenas na direita */
+                    height: 600px; /* Mesma altura da arte */
                     display: flex;
                     flex-direction: column;
+                    justify-content: flex-start; /* Alinhado ao topo para abas */
+                    box-shadow: 5px 10px 25px rgba(0,0,0,0.05);
+                }
+
+                /* Tipografia */
+                .welcome-title {
+                    font-size: 1.8rem;
+                    font-weight: 700;
+                    color: #1e293b;
+                    margin-bottom: 5px;
+                }
+                .welcome-sub {
+                    font-size: 0.95rem;
+                    color: #64748b;
+                    margin-bottom: 20px;
                 }
                 
-                /* Ajuste de inputs para ficarem bonitos no fundo branco */
-                .stTextInput > div > div > input {
-                    background-color: #f8fafc;
+                /* Inputs Customizados */
+                .stTextInput label {
+                    font-size: 0.85rem;
+                    color: #475569;
+                    font-weight: 600;
                 }
                 
-                /* Ajustes Mobile */
-                @media (max-width: 900px) {
-                    div[data-testid="column"]:nth-of-type(2) > div {
-                        border-radius: 12px 12px 0 0;
-                        height: auto;
-                        padding: 2rem;
-                    }
-                    div[data-testid="column"]:nth-of-type(3) > div {
-                        border-radius: 0 0 12px 12px;
-                        height: auto;
-                    }
+                /* Aviso LGPD */
+                .lgpd-box {
+                    background-color: #fff7ed;
+                    border-left: 4px solid #f97316;
+                    padding: 10px;
+                    margin-top: 15px;
+                    margin-bottom: 15px;
+                    border-radius: 6px;
+                }
+                .lgpd-title {
+                    color: #9a3412;
+                    font-weight: 700;
+                    font-size: 0.75rem;
+                    display: flex; 
+                    align-items: center; 
+                    gap: 6px;
+                }
+                .lgpd-text {
+                    color: #9a3412;
+                    font-size: 0.7rem;
+                    margin-top: 2px;
+                    line-height: 1.2;
+                    text-align: justify; /* Texto justificado */
                 }
             </style>
         """, unsafe_allow_html=True)
         
-        st.write("") 
-        st.write("") 
-        
-        # Colunas: Spacer, Arte, Form, Spacer
-        # Proporção ajustada para centralizar
+        # Espaçamento para centralizar verticalmente na tela
+        st.write("")
+        st.write("")
+
+        # Layout em Colunas: Spacer, Arte, Form, Spacer
+        # Ajuste de proporção para ficar elegante
         c_pad1, c_art, c_form, c_pad2 = st.columns([1, 4, 4, 1])
         
+        # --- LADO ESQUERDO (ARTE AZUL) ---
         with c_art:
+            # Atenção: HTML sem indentação para evitar renderização de bloco de código
             st.markdown("""
-                <div style="font-size: 5rem; margin-bottom: 0.5rem;">🧠</div>
-                <h1 style="color: white; font-weight: 800; font-size: 3rem; margin: 0;">INTEGRA</h1>
-                <p style="font-size: 1.1rem; opacity: 0.9; margin-top: 5px;">Gestão de Educação<br>Especial Inclusiva</p>
-                <div style="margin-top: 30px; width: 80%; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 20px;">
-                    <p style="font-style: italic; font-size: 0.9rem;">
-                        "A inclusão acontece quando se aprende com as diferenças e não com as igualdades."
-                    </p>
-                </div>
-            """, unsafe_allow_html=True)
+<div class="login-art-box">
+    <div style="font-size: 6rem; margin-bottom: 1rem; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));">🧠</div>
+    <h1 style="color: white; font-weight: 800; font-size: 3.5rem; margin: 0; line-height: 1;">INTEGRA</h1>
+    <p style="font-size: 1.2rem; opacity: 0.9; font-weight: 300; margin-top: 10px;">Gestão de Educação<br>Especial Inclusiva</p>
+    <div style="margin-top: 40px; width: 100%;">
+        <hr style="border-color: rgba(255,255,255,0.3); margin-bottom: 20px;">
+        <p style="font-style: italic; font-size: 1rem; opacity: 0.9;">
+            "A inclusão acontece quando se aprende com as diferenças e não com as igualdades."
+        </p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
             
+        # --- LADO DIREITO (FORMULÁRIO BRANCO) ---
         with c_form:
-            tab_login, tab_validar = st.tabs(["🔐 Acesso", "✅ Validar"])
+            st.markdown('<div class="login-form-box">', unsafe_allow_html=True)
+            
+            # Abas de Login e Validação
+            tab_login, tab_validar = st.tabs(["🔐 Acesso ao Sistema", "✅ Validar Documento"])
             
             with tab_login:
-                st.markdown("### Bem-vindo(a)")
-                st.caption("Insira suas credenciais para acessar o sistema.")
-                
                 with st.form("login_form"):
-                    user_id = st.text_input("Matrícula", placeholder="Ex: 12345")
+                    # Layout Header: Texto à esquerda, Logo à direita (menor)
+                    c_head_txt, c_head_logo = st.columns([3, 1.2])
+                    
+                    with c_head_txt:
+                        st.markdown('<div class="welcome-title" style="margin-top: 0px;">Bem-vindo(a)</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="welcome-sub">Insira suas credenciais para acessar o sistema.</div>', unsafe_allow_html=True)
+                    
+                    with c_head_logo:
+                        if os.path.exists("logo_escola.png"):
+                            st.image("logo_escola.png", use_container_width=True)
+                    
+                    st.write("") # Espaço
+                    
+                    user_id = st.text_input("Matrícula Funcional", placeholder="Ex: 12345")
                     password = st.text_input("Senha", type="password", placeholder="••••••")
                     
                     st.markdown("""
-                        <div style="background:#fff7ed; border-left:3px solid #f97316; padding:8px; margin:10px 0; border-radius:4px;">
-                            <small style="color:#9a3412; font-weight:bold;">🔒 USO PROFISSIONAL</small><br>
-                            <small style="color:#9a3412;">Acesso monitorado. Protegido pela LGPD.</small>
+                        <div class="lgpd-box">
+                            <div class="lgpd-title">🔒 CONFIDENCIALIDADE E SIGILO</div>
+                            <div class="lgpd-text">
+                                Acesso Monitorado. Protegido pela LGPD. Uso estritamente profissional.
+                            </div>
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    if st.form_submit_button("ENTRAR", type="primary"):
+                    submit = st.form_submit_button("ACESSAR SISTEMA", type="primary")
+                    
+                    if submit:
                         try:
                             SENHA_MESTRA = st.secrets.get("credentials", {}).get("password", "admin")
                             user_id_limpo = str(user_id).strip()
                             df_professores = conn.read(worksheet="Professores", ttl=0)
-                            authenticated = False
+                            authenticated_as_prof = False
                             
-                            # Docente Check
                             if not df_professores.empty:
                                 df_professores['matricula'] = df_professores['matricula'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
                                 if password == SENHA_MESTRA and user_id_limpo in df_professores['matricula'].values:
@@ -334,12 +424,11 @@ def login():
                                     st.session_state.authenticated = True
                                     st.session_state.usuario_nome = nome_prof
                                     st.session_state.user_role = 'professor'
-                                    authenticated = True
-                                    st.toast(f"Bem-vindo(a), {nome_prof}!", icon="🔓")
-                                    time.sleep(0.5); st.rerun()
+                                    authenticated_as_prof = True
+                                    st.toast(f"Acesso Docente autorizado. Bem-vindo(a), {nome_prof}!", icon="🔓")
+                                    time.sleep(1); st.rerun()
 
-                            # Monitor Check
-                            if not authenticated:
+                            if not authenticated_as_prof:
                                 df_monitores = safe_read("Monitores", ["matricula", "nome"])
                                 if not df_monitores.empty:
                                     df_monitores['matricula'] = df_monitores['matricula'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
@@ -349,38 +438,51 @@ def login():
                                         st.session_state.authenticated = True
                                         st.session_state.usuario_nome = nome_mon
                                         st.session_state.user_role = 'monitor'
-                                        st.toast(f"Bem-vindo(a), {nome_mon}!", icon="🛡️")
-                                        time.sleep(0.5); st.rerun()
-                                    else: st.error("Credenciais inválidas.")
-                                else: st.error("Credenciais inválidas.")
+                                        st.toast(f"Acesso Monitor autorizado. Bem-vindo(a), {nome_mon}!", icon="🛡️")
+                                        time.sleep(1); st.rerun()
+                                    else:
+                                        st.error("Credenciais inválidas.")
+                                else:
+                                    st.error("Credenciais inválidas.")
                         except Exception as e:
-                            st.error(f"Erro: {e}")
+                            st.error(f"Erro técnico: {e}")
 
             with tab_validar:
-                st.write("Verifique a autenticidade de documentos.")
-                uuid_input = st.text_input("Código UUID", placeholder="Código do rodapé do PDF")
-                if st.button("Verificar"):
+                st.markdown("### Validação Pública")
+                st.caption("Insira o código UUID presente no rodapé do documento para verificar sua autenticidade e assinaturas.")
+                uuid_input = st.text_input("Código do Documento (UUID)", placeholder="Ex: 7D2B-5135...")
+                if st.button("Verificar Autenticidade", type="primary"):
                     if uuid_input:
                         try:
                             df_alunos = load_db()
-                            found = False
+                            encontrado = False
                             for _, row in df_alunos.iterrows():
                                 try:
                                     d = json.loads(row['dados_json'])
                                     if d.get('doc_uuid') == uuid_input.strip():
-                                        found = True
-                                        st.success("✅ DOCUMENTO VÁLIDO")
-                                        st.write(f"**Aluno:** {d.get('nome')}")
-                                        st.write(f"**Tipo:** {row['tipo_doc']}")
-                                        if d.get('signatures'):
-                                            for s in d['signatures']:
-                                                st.info(f"✍️ {s['name']} ({s.get('role','Pro')}) - {s['date']}")
-                                        else: st.warning("Sem assinaturas.")
+                                        encontrado = True
+                                        st.success("✅ DOCUMENTO VÁLIDO E AUTÊNTICO")
+                                        st.markdown(f"**Aluno:** {d.get('nome', 'N/A')}")
+                                        st.markdown(f"**Tipo:** {row['tipo_doc']}")
+                                        
+                                        assinaturas = d.get('signatures', [])
+                                        if assinaturas:
+                                            st.markdown("---")
+                                            st.markdown("### Assinaturas Digitais:")
+                                            for sig in assinaturas:
+                                                st.info(f"✍️ **{sig['name']}** ({sig.get('role', 'Profissional')})\n\n📅 Assinado em: {sig['date']}")
+                                        else:
+                                            st.warning("Este documento ainda não possui assinaturas digitais registradas.")
                                         break
                                 except: pass
-                            if not found: st.error("Código não encontrado.")
-                        except: st.error("Erro na verificação.")
-
+                            if not encontrado:
+                                st.error("❌ Documento não encontrado ou código inválido.")
+                        except Exception as e:
+                            st.error(f"Erro na busca: {e}")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Interrompe o carregamento do restante do app até que o login seja feito
         st.stop()
 
 # --- ATIVAÇÃO DO LOGIN ---
@@ -3363,5 +3465,3 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
-
-

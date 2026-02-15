@@ -55,6 +55,9 @@ def login():
     # Inicializa o estado de autenticação se não existir
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
+    
+    if "user_role" not in st.session_state:
+        st.session_state.user_role = None
 
     if not st.session_state.authenticated:
         # --- CSS DA TELA DE LOGIN (NO-SCROLL LAYOUT) ---
@@ -214,13 +217,15 @@ def login():
                     try:
                         # 1. Busca a senha mestre nos Secrets
                         SENHA_MESTRA = st.secrets.get("credentials", {}).get("password", "admin")
+                        user_id_limpo = str(user_id).strip()
                         
-                        # 2. Busca a lista de professores
+                        # 2. Tenta autenticar como Professor
                         df_professores = conn.read(worksheet="Professores", ttl=0)
+                        
+                        authenticated_as_prof = False
                         
                         if not df_professores.empty:
                             df_professores['matricula'] = df_professores['matricula'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
-                            user_id_limpo = str(user_id).strip()
                             
                             if password == SENHA_MESTRA and user_id_limpo in df_professores['matricula'].values:
                                 registro = df_professores[df_professores['matricula'] == user_id_limpo]
@@ -228,13 +233,32 @@ def login():
                                 
                                 st.session_state.authenticated = True
                                 st.session_state.usuario_nome = nome_prof
-                                st.toast(f"Acesso autorizado. Bem-vindo(a), {nome_prof}!", icon="🔓")
+                                st.session_state.user_role = 'professor'
+                                authenticated_as_prof = True
+                                st.toast(f"Acesso Docente autorizado. Bem-vindo(a), {nome_prof}!", icon="🔓")
                                 time.sleep(1)
                                 st.rerun()
+
+                        # 3. Se não for professor, tenta como Monitor
+                        if not authenticated_as_prof:
+                            df_monitores = safe_read("Monitores", ["matricula", "nome"])
+                            if not df_monitores.empty:
+                                df_monitores['matricula'] = df_monitores['matricula'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
+                                
+                                if password == "123" and user_id_limpo in df_monitores['matricula'].values:
+                                    registro = df_monitores[df_monitores['matricula'] == user_id_limpo]
+                                    nome_mon = registro['nome'].values[0]
+                                    
+                                    st.session_state.authenticated = True
+                                    st.session_state.usuario_nome = nome_mon
+                                    st.session_state.user_role = 'monitor'
+                                    st.toast(f"Acesso Monitor autorizado. Bem-vindo(a), {nome_mon}!", icon="🛡️")
+                                    time.sleep(1)
+                                    st.rerun()
+                                else:
+                                    st.error("Credenciais inválidas.")
                             else:
                                 st.error("Credenciais inválidas.")
-                        else:
-                            st.error("Erro de conexão com a base de dados.")
                             
                     except Exception as e:
                         st.error(f"Erro técnico: {e}")
@@ -244,6 +268,10 @@ def login():
 
 # --- ATIVAÇÃO DO LOGIN ---
 login()
+
+# --- DEFINIÇÃO DE PERMISSÕES ---
+user_role = st.session_state.get('user_role', 'professor')
+is_monitor = (user_role == 'monitor') # Flag para bloquear edições
 
 # --- ESTILO VISUAL DA INTERFACE (CSS MELHORADO E RESPONSIVO) ---
 st.markdown("""
@@ -391,6 +419,11 @@ def log_action(student_name, action, details=""):
 
 def save_student(doc_type, name, data, section="Geral"):
     """Salva ou atualiza garantindo que não duplique linhas"""
+    # Proteção de backend além do frontend
+    if is_monitor and doc_type != "DIARIO":
+        st.error("Acesso negado: Monitores não podem salvar este tipo de documento.")
+        return
+
     try:
         df_atual = load_db()
         id_registro = f"{name} ({doc_type})"
@@ -428,6 +461,10 @@ def save_student(doc_type, name, data, section="Geral"):
 
 def delete_student(student_name):
     """Exclui um aluno do DataFrame e atualiza a planilha"""
+    if is_monitor:
+        st.error("Acesso negado: Monitores não podem excluir registros.")
+        return False
+        
     try:
         df = load_db()
         if "nome" in df.columns:
@@ -573,6 +610,16 @@ with st.sidebar:
             color: #334155;
             text-align: center;
         }
+        .role-tag {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-top: 2px;
+            display: inline-block;
+        }
         .stRadio { margin-top: -5px; }
         div[data-baseweb="select"] { min-height: 32px; }
         hr { margin: 0.5em 0 !important; }
@@ -584,10 +631,17 @@ with st.sidebar:
     st.markdown('<div class="sidebar-sub">Gestão de Ed. Especial</div>', unsafe_allow_html=True)
 
     # 2. USUÁRIO
-    nome_prof = st.session_state.get('usuario_nome', 'Docente')
+    nome_prof = st.session_state.get('usuario_nome', 'Usuário')
+    role_label = "Monitor(a)" if is_monitor else "Docente/Admin"
     nomes = nome_prof.split()
     nome_curto = f"{nomes[0]} {nomes[-1]}" if len(nomes) > 1 else nomes[0]
-    st.markdown(f'<div class="user-slim">👤 <b>{nome_curto}</b></div>', unsafe_allow_html=True)
+    
+    st.markdown(f"""
+        <div style="text-align: center;">
+            <div class="user-slim">👤 <b>{nome_curto}</b></div>
+            <span class="role-tag">{role_label}</span>
+        </div>
+    """, unsafe_allow_html=True)
     
     st.divider()
 
@@ -658,7 +712,7 @@ with st.sidebar:
         st.divider()
         
         c_del1, c_del2 = st.columns(2)
-        if selected_student != "-- Novo Registro --":
+        if selected_student != "-- Novo Registro --" and not is_monitor:
             if c_del2.button("🗑️", type="secondary", help="Excluir Aluno"):
                 st.session_state.confirm_delete = True
 
@@ -669,15 +723,19 @@ with st.sidebar:
 
     # Confirmação de exclusão
     if st.session_state.get("confirm_delete"):
-        st.warning(f"Excluir {selected_student}?")
-        col_d1, col_d2 = st.columns(2)
-        if col_d1.button("✅ Sim"):
-            delete_student(selected_student)
-            st.session_state.confirm_delete = False
-            st.rerun()
-        if col_d2.button("❌ Não"):
-            st.session_state.confirm_delete = False
-            st.rerun()
+        if is_monitor:
+             st.session_state.confirm_delete = False
+             st.error("Monitores não podem excluir alunos.")
+        else:
+            st.warning(f"Excluir {selected_student}?")
+            col_d1, col_d2 = st.columns(2)
+            if col_d1.button("✅ Sim"):
+                delete_student(selected_student)
+                st.session_state.confirm_delete = False
+                st.rerun()
+            if col_d2.button("❌ Não"):
+                st.session_state.confirm_delete = False
+                st.rerun()
 
 # ==============================================================================
 # VIEW: DASHBOARD
@@ -800,20 +858,23 @@ if app_mode == "📊 Painel de Gestão":
         # --- MURAL DE AVISOS ---
         with c_aviso:
             st.markdown("### 📌 Mural de Avisos")
-            with st.form("form_recado"):
-                txt_recado = st.text_area("Novo Recado", height=80)
-                if st.form_submit_button("Publicar"):
-                    df_recados = safe_read("Recados", ["Data", "Autor", "Mensagem"])
-                    novo_recado = {
-                        "Data": datetime.now().strftime("%d/%m %H:%M"),
-                        "Autor": st.session_state.get('usuario_nome', 'Admin'),
-                        "Mensagem": txt_recado
-                    }
-                    df_recados = pd.concat([pd.DataFrame([novo_recado]), df_recados], ignore_index=True)
-                    safe_update("Recados", df_recados)
-                    st.cache_data.clear() # Limpa cache para atualizar
-                    time.sleep(1) # Aguarda propagação
-                    st.rerun()
+            if not is_monitor:
+                with st.form("form_recado"):
+                    txt_recado = st.text_area("Novo Recado", height=80)
+                    if st.form_submit_button("Publicar"):
+                        df_recados = safe_read("Recados", ["Data", "Autor", "Mensagem"])
+                        novo_recado = {
+                            "Data": datetime.now().strftime("%d/%m %H:%M"),
+                            "Autor": st.session_state.get('usuario_nome', 'Admin'),
+                            "Mensagem": txt_recado
+                        }
+                        df_recados = pd.concat([pd.DataFrame([novo_recado]), df_recados], ignore_index=True)
+                        safe_update("Recados", df_recados)
+                        st.cache_data.clear() # Limpa cache para atualizar
+                        time.sleep(1) # Aguarda propagação
+                        st.rerun()
+            else:
+                st.info("Apenas Docentes podem publicar avisos.")
             
             # Listar Recados
             df_recados = safe_read("Recados", ["Data", "Autor", "Mensagem"])
@@ -824,36 +885,40 @@ if app_mode == "📊 Painel de Gestão":
                         with c_msg:
                             st.info(f"**{row['Autor']}** ({row['Data']}):\n\n{row['Mensagem']}")
                         with c_del:
-                            if st.button("🗑️", key=f"del_rec_{index}", help="Excluir recado"):
-                                df_recados = df_recados.drop(index)
-                                safe_update("Recados", df_recados)
-                                st.cache_data.clear()
-                                time.sleep(0.5)
-                                st.rerun()
+                            if not is_monitor:
+                                if st.button("🗑️", key=f"del_rec_{index}", help="Excluir recado"):
+                                    df_recados = df_recados.drop(index)
+                                    safe_update("Recados", df_recados)
+                                    st.cache_data.clear()
+                                    time.sleep(0.5)
+                                    st.rerun()
             else:
                 st.write("Nenhum recado.")
 
         # --- AGENDA DA EQUIPE ---
         with c_agenda:
             st.markdown("### 📅 Agenda da Equipe")
-            with st.form("form_agenda"):
-                c_d, c_e = st.columns([1, 2])
-                data_evento = c_d.date_input("Data", format="DD/MM/YYYY")
-                desc_evento = c_e.text_input("Evento")
-                if st.form_submit_button("Agendar"):
-                    df_agenda = safe_read("Agenda", ["Data", "Evento", "Autor"])
-                    novo_evento = {
-                        "Data": data_evento.strftime("%Y-%m-%d"),
-                        "Evento": desc_evento,
-                        "Autor": st.session_state.get('usuario_nome', 'Admin')
-                    }
-                    df_agenda = pd.concat([df_agenda, pd.DataFrame([novo_evento])], ignore_index=True)
-                    # Ordenar por data
-                    df_agenda = df_agenda.sort_values(by="Data", ascending=False)
-                    safe_update("Agenda", df_agenda)
-                    st.cache_data.clear() # Limpa cache para atualizar
-                    time.sleep(1) # Aguarda propagação
-                    st.rerun()
+            if not is_monitor:
+                with st.form("form_agenda"):
+                    c_d, c_e = st.columns([1, 2])
+                    data_evento = c_d.date_input("Data", format="DD/MM/YYYY")
+                    desc_evento = c_e.text_input("Evento")
+                    if st.form_submit_button("Agendar"):
+                        df_agenda = safe_read("Agenda", ["Data", "Evento", "Autor"])
+                        novo_evento = {
+                            "Data": data_evento.strftime("%Y-%m-%d"),
+                            "Evento": desc_evento,
+                            "Autor": st.session_state.get('usuario_nome', 'Admin')
+                        }
+                        df_agenda = pd.concat([df_agenda, pd.DataFrame([novo_evento])], ignore_index=True)
+                        # Ordenar por data
+                        df_agenda = df_agenda.sort_values(by="Data", ascending=False)
+                        safe_update("Agenda", df_agenda)
+                        st.cache_data.clear() # Limpa cache para atualizar
+                        time.sleep(1) # Aguarda propagação
+                        st.rerun()
+            else:
+                st.info("Apenas Docentes podem adicionar eventos.")
             
             # Listar Agenda
             df_agenda = safe_read("Agenda", ["Data", "Evento", "Autor"])
@@ -869,12 +934,13 @@ if app_mode == "📊 Painel de Gestão":
                         with c_evt:
                             st.write(f"🗓️ **{d_fmt}** - {row['Evento']} _({row['Autor']})_")
                         with c_del_evt:
-                            if st.button("🗑️", key=f"del_agd_{index}", help="Excluir evento"):
-                                df_agenda = df_agenda.drop(index)
-                                safe_update("Agenda", df_agenda)
-                                st.cache_data.clear()
-                                time.sleep(0.5)
-                                st.rerun()
+                            if not is_monitor:
+                                if st.button("🗑️", key=f"del_agd_{index}", help="Excluir evento"):
+                                    df_agenda = df_agenda.drop(index)
+                                    safe_update("Agenda", df_agenda)
+                                    st.cache_data.clear()
+                                    time.sleep(0.5)
+                                    st.rerun()
             else:
                 st.write("Agenda vazia.")
 
@@ -883,6 +949,10 @@ if app_mode == "📊 Painel de Gestão":
 # ==============================================================================
 elif app_mode == "👥 Gestão de Alunos":
     
+    # Aviso de Modo Leitura
+    if is_monitor and doc_mode != "Relatório Diário":
+        st.info("👀 Modo Visualização: Monitores não podem editar este documento.")
+
     # PEI COM FORMULÁRIOS
     if doc_mode == "PEI":
         st.markdown(f"""<div class="header-box"><div class="header-title">Plano Educacional Individualizado - PEI</div></div>""", unsafe_allow_html=True)
@@ -907,14 +977,15 @@ elif app_mode == "👥 Gestão de Alunos":
                         try:
                             b = base64.b64decode(data['foto_base64'])
                             st.image(b, use_container_width=True)
-                            if st.checkbox("Remover", key="rem_foto_pei"):
-                                data['foto_base64'] = None
+                            if not is_monitor:
+                                if st.checkbox("Remover", key="rem_foto_pei"):
+                                    data['foto_base64'] = None
                         except:
                             st.error("Erro foto")
                     
                     # Upload
-                    uploaded_photo = st.file_uploader("Carregar", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key="up_foto_pei")
-                    if uploaded_photo:
+                    uploaded_photo = st.file_uploader("Carregar", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key="up_foto_pei", disabled=is_monitor)
+                    if uploaded_photo and not is_monitor:
                         try:
                             img = Image.open(uploaded_photo)
                             if img.mode != 'RGB': img = img.convert('RGB')
@@ -935,53 +1006,54 @@ elif app_mode == "👥 Gestão de Alunos":
                     if isinstance(d_val, str): 
                         try: d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
                         except: d_val = date.today()
-                    data['nasc'] = c2.date_input("Nascimento", value=d_val if d_val else date.today(), format="DD/MM/YYYY")
+                    data['nasc'] = c2.date_input("Nascimento", value=d_val if d_val else date.today(), format="DD/MM/YYYY", disabled=is_monitor)
                     
                     c3, c4 = st.columns(2)
-                    data['idade'] = c3.text_input("Idade", value=data.get('idade', ''))
-                    data['ano_esc'] = c4.text_input("Ano Escolar", value=data.get('ano_esc', ''))
+                    data['idade'] = c3.text_input("Idade", value=data.get('idade', ''), disabled=is_monitor)
+                    data['ano_esc'] = c4.text_input("Ano Escolar", value=data.get('ano_esc', ''), disabled=is_monitor)
                     
-                    data['mae'] = st.text_input("Nome da Mãe", value=data.get('mae', ''))
-                    data['pai'] = st.text_input("Nome do Pai", value=data.get('pai', ''))
-                    data['tel'] = st.text_input("Telefone", value=data.get('tel', ''))
+                    data['mae'] = st.text_input("Nome da Mãe", value=data.get('mae', ''), disabled=is_monitor)
+                    data['pai'] = st.text_input("Nome do Pai", value=data.get('pai', ''), disabled=is_monitor)
+                    data['tel'] = st.text_input("Telefone", value=data.get('tel', ''), disabled=is_monitor)
                 
                 st.markdown("**Docentes Responsáveis**")
                 d1, d2, d3 = st.columns(3)
-                data['prof_poli'] = d1.text_input("Polivalente/Regente", value=data.get('prof_poli', ''))
-                data['prof_aee'] = d2.text_input("Prof. AEE", value=data.get('prof_aee', ''))
-                data['prof_arte'] = d3.text_input("Arte", value=data.get('prof_arte', ''))
+                data['prof_poli'] = d1.text_input("Polivalente/Regente", value=data.get('prof_poli', ''), disabled=is_monitor)
+                data['prof_aee'] = d2.text_input("Prof. AEE", value=data.get('prof_aee', ''), disabled=is_monitor)
+                data['prof_arte'] = d3.text_input("Arte", value=data.get('prof_arte', ''), disabled=is_monitor)
                 
                 d4, d5, d6 = st.columns(3)
-                data['prof_ef'] = d4.text_input("Ed. Física", value=data.get('prof_ef', ''))
-                data['prof_tec'] = d5.text_input("Tecnologia", value=data.get('prof_tec', ''))
-                data['gestor'] = d6.text_input("Gestor Escolar", value=data.get('gestor', ''))
+                data['prof_ef'] = d4.text_input("Ed. Física", value=data.get('prof_ef', ''), disabled=is_monitor)
+                data['prof_tec'] = d5.text_input("Tecnologia", value=data.get('prof_tec', ''), disabled=is_monitor)
+                data['gestor'] = d6.text_input("Gestor Escolar", value=data.get('gestor', ''), disabled=is_monitor)
                 
                 dg1, dg2 = st.columns(2)
-                data['coord'] = dg1.text_input("Coordenação", value=data.get('coord', ''))
-                data['revisoes'] = st.text_input("Revisões", value=data.get('revisoes', ''))
+                data['coord'] = dg1.text_input("Coordenação", value=data.get('coord', ''), disabled=is_monitor)
+                data['revisoes'] = st.text_input("Revisões", value=data.get('revisoes', ''), disabled=is_monitor)
                 
                 elab_opts = ["1º Trimestre", "2º Trimestre", "3º Trimestre", "Anual"]
                 idx_elab = elab_opts.index(data['elab_per']) if data.get('elab_per') in elab_opts else 0
-                data['elab_per'] = st.selectbox("Período", elab_opts, index=idx_elab)
+                data['elab_per'] = st.selectbox("Período", elab_opts, index=idx_elab, disabled=is_monitor)
 
                 st.markdown("---")
-                if st.form_submit_button("💾 Salvar Identificação"):
-                    save_student("PEI", data.get('nome'), data, "Identificação")
+                if not is_monitor:
+                    if st.form_submit_button("💾 Salvar Identificação"):
+                        save_student("PEI", data.get('nome'), data, "Identificação")
 
         # --- ABA 2: SAÚDE ---
         with tabs[1]:
             with st.form("form_pei_saude"):
                 st.subheader("Informações de Saúde")
                 diag_idx = 0 if data.get('diag_status') == "Sim" else 1
-                data['diag_status'] = st.radio("Diagnóstico conclusivo?", ["Sim", "Não"], horizontal=True, index=diag_idx)
+                data['diag_status'] = st.radio("Diagnóstico conclusivo?", ["Sim", "Não"], horizontal=True, index=diag_idx, disabled=is_monitor)
                 
                 c_l1, c_l2 = st.columns(2)
                 ld_val = data.get('laudo_data')
                 if isinstance(ld_val, str): 
                     try: ld_val = datetime.strptime(ld_val, '%Y-%m-%d').date()
                     except: ld_val = date.today()
-                data['laudo_data'] = c_l1.date_input("Data do Laudo Médico", value=ld_val if ld_val else date.today(), format="DD/MM/YYYY")
-                data['laudo_medico'] = c_l2.text_input("Médico Responsável pelo Laudo", value=data.get('laudo_medico', ''))
+                data['laudo_data'] = c_l1.date_input("Data do Laudo Médico", value=ld_val if ld_val else date.today(), format="DD/MM/YYYY", disabled=is_monitor)
+                data['laudo_medico'] = c_l2.text_input("Médico Responsável pelo Laudo", value=data.get('laudo_medico', ''), disabled=is_monitor)
                 
                 st.markdown("Categorias de Diagnóstico:")
                 cats = ["Deficiência", "Transtorno do Neurodesenvolvimento", "Transtornos Aprendizagem", "AH/SD", "Outros"]
@@ -991,14 +1063,14 @@ elif app_mode == "👥 Gestão de Alunos":
                 for i, cat in enumerate(cats):
                     col = c_c1 if i % 2 == 0 else c_c2
                     is_checked = cat in data['diag_tipo']
-                    if col.checkbox(cat, value=is_checked, key=f"pei_chk_{i}"):
+                    if col.checkbox(cat, value=is_checked, key=f"pei_chk_{i}", disabled=is_monitor):
                         if cat not in data['diag_tipo']: data['diag_tipo'].append(cat)
                     else:
                         if cat in data['diag_tipo']: data['diag_tipo'].remove(cat)
                 
-                data['defic_txt'] = st.text_input("Descrição da Deficiência", value=data.get('defic_txt', ''))
-                data['neuro_txt'] = st.text_input("Descrição do Transtorno Neuro", value=data.get('neuro_txt', ''))
-                data['aprend_txt'] = st.text_input("Descrição do Transtorno de Aprendizagem", value=data.get('aprend_txt', ''))
+                data['defic_txt'] = st.text_input("Descrição da Deficiência", value=data.get('defic_txt', ''), disabled=is_monitor)
+                data['neuro_txt'] = st.text_input("Descrição do Transtorno Neuro", value=data.get('neuro_txt', ''), disabled=is_monitor)
+                data['aprend_txt'] = st.text_input("Descrição do Transtorno de Aprendizagem", value=data.get('aprend_txt', ''), disabled=is_monitor)
 
                 st.divider()
                 st.markdown("**Terapias que realiza**")
@@ -1010,25 +1082,26 @@ elif app_mode == "👥 Gestão de Alunos":
                     if esp not in data['terapias']: data['terapias'][esp] = {'realiza': False, 'dias': [], 'horario': ''}
                     
                     c_t1, c_t2, c_t3 = st.columns([1, 2, 2])
-                    data['terapias'][esp]['realiza'] = c_t1.checkbox("Realiza?", value=data['terapias'][esp].get('realiza', False), key=f"pei_terapias_{esp}")
+                    data['terapias'][esp]['realiza'] = c_t1.checkbox("Realiza?", value=data['terapias'][esp].get('realiza', False), key=f"pei_terapias_{esp}", disabled=is_monitor)
                     
-                    data['terapias'][esp]['dias'] = c_t2.multiselect("Dias", ["2ª", "3ª", "4ª", "5ª", "6ª", "Sábado", "Domingo"], default=data['terapias'][esp].get('dias', []), key=f"pei_dias_{esp}")
-                    data['terapias'][esp]['horario'] = c_t3.text_input("Horário", value=data['terapias'][esp].get('horario', ''), key=f"pei_hor_{esp}")
+                    data['terapias'][esp]['dias'] = c_t2.multiselect("Dias", ["2ª", "3ª", "4ª", "5ª", "6ª", "Sábado", "Domingo"], default=data['terapias'][esp].get('dias', []), key=f"pei_dias_{esp}", disabled=is_monitor)
+                    data['terapias'][esp]['horario'] = c_t3.text_input("Horário", value=data['terapias'][esp].get('horario', ''), key=f"pei_hor_{esp}", disabled=is_monitor)
                     
                     if esp == "Outros":
-                        data['terapias'][esp]['nome_custom'] = st.text_input("Especifique (Outros):", value=data['terapias'][esp].get('nome_custom', ''), key="pei_custom_name")
+                        data['terapias'][esp]['nome_custom'] = st.text_input("Especifique (Outros):", value=data['terapias'][esp].get('nome_custom', ''), key="pei_custom_name", disabled=is_monitor)
                     st.divider()
 
-                data['med_nome'] = st.text_area("Nome da(s) Medicação(ões)", value=data.get('med_nome', ''))
+                data['med_nome'] = st.text_area("Nome da(s) Medicação(ões)", value=data.get('med_nome', ''), disabled=is_monitor)
                 m1, m2 = st.columns(2)
-                data['med_hor'] = m1.text_input("Horário(s)", value=data.get('med_hor', ''))
-                data['med_doc'] = m2.text_input("Médico Responsável (Medicação)", value=data.get('med_doc', ''))
-                data['med_obj'] = st.text_area("Objetivo da medicação", value=data.get('med_obj', ''))
-                data['saude_extra'] = st.text_area("Outras informações de saúde:", value=data.get('saude_extra', ''))
+                data['med_hor'] = m1.text_input("Horário(s)", value=data.get('med_hor', ''), disabled=is_monitor)
+                data['med_doc'] = m2.text_input("Médico Responsável (Medicação)", value=data.get('med_doc', ''), disabled=is_monitor)
+                data['med_obj'] = st.text_area("Objetivo da medicação", value=data.get('med_obj', ''), disabled=is_monitor)
+                data['saude_extra'] = st.text_area("Outras informações de saúde:", value=data.get('saude_extra', ''), disabled=is_monitor)
 
                 st.markdown("---")
-                if st.form_submit_button("💾 Salvar Saúde"):
-                    save_student("PEI", data.get('nome'), data, "Saúde")
+                if not is_monitor:
+                    if st.form_submit_button("💾 Salvar Saúde"):
+                        save_student("PEI", data.get('nome'), data, "Saúde")
 
         # --- ABA 3: CONDUTA ---
         with tabs[2]:
@@ -1037,77 +1110,78 @@ elif app_mode == "👥 Gestão de Alunos":
                 st.markdown("### 🗣️ COMUNICAÇÃO")
                 com_opts = ["Oralmente", "Não comunica", "Não se aplica", "Comunicação alternativa"]
                 idx_com = com_opts.index(data['com_tipo']) if data.get('com_tipo') in com_opts else 0
-                data['com_tipo'] = st.selectbox("Como o estudante se comunica?", com_opts, index=idx_com)
-                data['com_alt_espec'] = st.text_input("Especifique (Comunicação alternativa):", value=data.get('com_alt_espec', ''))
+                data['com_tipo'] = st.selectbox("Como o estudante se comunica?", com_opts, index=idx_com, disabled=is_monitor)
+                data['com_alt_espec'] = st.text_input("Especifique (Comunicação alternativa):", value=data.get('com_alt_espec', ''), disabled=is_monitor)
                 
                 nec_idx = 0 if data.get('com_necessidades') == 'Sim' else 1
-                data['com_necessidades'] = st.radio("Expressa necessidades/desejos?", ["Sim", "Não"], horizontal=True, index=nec_idx)
-                data['com_necessidades_espec'] = st.text_input("Especifique necessidades:", value=data.get('com_necessidades_espec', ''))
+                data['com_necessidades'] = st.radio("Expressa necessidades/desejos?", ["Sim", "Não"], horizontal=True, index=nec_idx, disabled=is_monitor)
+                data['com_necessidades_espec'] = st.text_input("Especifique necessidades:", value=data.get('com_necessidades_espec', ''), disabled=is_monitor)
                 
                 cha_idx = 0 if data.get('com_chamado') == 'Sim' else 1
-                data['com_chamado'] = st.radio("Atende quando é chamado?", ["Sim", "Não"], horizontal=True, index=cha_idx)
-                data['com_chamado_espec'] = st.text_input("Especifique chamado:", value=data.get('com_chamado_espec', ''))
+                data['com_chamado'] = st.radio("Atende quando é chamado?", ["Sim", "Não"], horizontal=True, index=cha_idx, disabled=is_monitor)
+                data['com_chamado_espec'] = st.text_input("Especifique chamado:", value=data.get('com_chamado_espec', ''), disabled=is_monitor)
                 
                 cmd_idx = 0 if data.get('com_comandos') == 'Sim' else 1
-                data['com_comandos'] = st.radio("Responde a comandos simples?", ["Sim", "Não"], horizontal=True, index=cmd_idx)
-                data['com_comandos_espec'] = st.text_input("Especifique comandos:", value=data.get('com_comandos_espec', ''))
+                data['com_comandos'] = st.radio("Responde a comandos simples?", ["Sim", "Não"], horizontal=True, index=cmd_idx, disabled=is_monitor)
+                data['com_comandos_espec'] = st.text_input("Especifique comandos:", value=data.get('com_comandos_espec', ''), disabled=is_monitor)
 
                 st.divider()
                 st.markdown("### 🚶 LOCOMOÇÃO")
                 loc_r_idx = 1 if data.get('loc_reduzida') == 'Sim' else 0
-                data['loc_reduzida'] = st.radio("Possui mobilidade reduzida?", ["Não", "Sim"], horizontal=True, index=loc_r_idx)
-                data['loc_reduzida_espec'] = st.text_input("Especifique mobilidade:", value=data.get('loc_reduzida_espec', ''))
+                data['loc_reduzida'] = st.radio("Possui mobilidade reduzida?", ["Não", "Sim"], horizontal=True, index=loc_r_idx, disabled=is_monitor)
+                data['loc_reduzida_espec'] = st.text_input("Especifique mobilidade:", value=data.get('loc_reduzida_espec', ''), disabled=is_monitor)
                 
                 c_l1, c_l2 = st.columns(2)
                 amb_idx = 0 if data.get('loc_ambiente') == 'Sim' else 1
-                data['loc_ambiente'] = c_l1.radio("Locomove-se pela casa?", ["Sim", "Não"], horizontal=True, index=amb_idx)
+                data['loc_ambiente'] = c_l1.radio("Locomove-se pela casa?", ["Sim", "Não"], horizontal=True, index=amb_idx, disabled=is_monitor)
                 helper_idx = 0 if data.get('loc_ambiente_ajuda') == 'Com autonomia' else 1
-                data['loc_ambiente_ajuda'] = c_l2.selectbox("Grau:", ["Com autonomia", "Com ajuda"], index=helper_idx)
-                data['loc_ambiente_espec'] = st.text_input("Especifique locomoção:", value=data.get('loc_ambiente_espec', ''))
+                data['loc_ambiente_ajuda'] = c_l2.selectbox("Grau:", ["Com autonomia", "Com ajuda"], index=helper_idx, disabled=is_monitor)
+                data['loc_ambiente_espec'] = st.text_input("Especifique locomoção:", value=data.get('loc_ambiente_espec', ''), disabled=is_monitor)
 
                 st.divider()
                 st.markdown("### 🧼 AUTOCUIDADO E HIGIENE")
                 c_h1, c_h2 = st.columns(2)
                 wc_idx = 0 if data.get('hig_banheiro') == 'Sim' else 1
-                data['hig_banheiro'] = c_h1.radio("Utiliza o banheiro?", ["Sim", "Não"], horizontal=True, index=wc_idx)
+                data['hig_banheiro'] = c_h1.radio("Utiliza o banheiro?", ["Sim", "Não"], horizontal=True, index=wc_idx, disabled=is_monitor)
                 wc_help_idx = 0 if data.get('hig_banheiro_ajuda') == 'Com autonomia' else 1
-                data['hig_banheiro_ajuda'] = c_h2.selectbox("Ajuda banheiro:", ["Com autonomia", "Com ajuda"], index=wc_help_idx)
-                data['hig_banheiro_espec'] = st.text_input("Especifique banheiro:", value=data.get('hig_banheiro_espec', ''))
+                data['hig_banheiro_ajuda'] = c_h2.selectbox("Ajuda banheiro:", ["Com autonomia", "Com ajuda"], index=wc_help_idx, disabled=is_monitor)
+                data['hig_banheiro_espec'] = st.text_input("Especifique banheiro:", value=data.get('hig_banheiro_espec', ''), disabled=is_monitor)
                 
                 c_h3, c_h4 = st.columns(2)
                 tooth_idx = 0 if data.get('hig_dentes') == 'Sim' else 1
-                data['hig_dentes'] = c_h3.radio("Escova os dentes?", ["Sim", "Não"], horizontal=True, index=tooth_idx)
+                data['hig_dentes'] = c_h3.radio("Escova os dentes?", ["Sim", "Não"], horizontal=True, index=tooth_idx, disabled=is_monitor)
                 tooth_help_idx = 0 if data.get('hig_dentes_ajuda') == 'Com autonomia' else 1
-                data['hig_dentes_ajuda'] = c_h4.selectbox("Ajuda dentes:", ["Com autonomia", "Com ajuda"], index=tooth_help_idx)
-                data['hig_dentes_espec'] = st.text_input("Especifique dentes:", value=data.get('hig_dentes_espec', ''))
+                data['hig_dentes_ajuda'] = c_h4.selectbox("Ajuda dentes:", ["Com autonomia", "Com ajuda"], index=tooth_help_idx, disabled=is_monitor)
+                data['hig_dentes_espec'] = st.text_input("Especifique dentes:", value=data.get('hig_dentes_espec', ''), disabled=is_monitor)
 
                 st.divider()
                 st.markdown("### 🧩 COMPORTAMENTO")
-                data['beh_interesses'] = st.text_area("Interesses do estudante:", value=data.get('beh_interesses', ''))
-                data['beh_objetos_gosta'] = st.text_area("Objetos que gosta / Apego:", value=data.get('beh_objetos_gosta', ''))
-                data['beh_objetos_odeia'] = st.text_area("Objetos que não gosta / Aversão:", value=data.get('beh_objetos_odeia', ''))
-                data['beh_toque'] = st.text_area("Gosta de toque/abraço?", value=data.get('beh_toque', ''))
-                data['beh_calmo'] = st.text_area("O que o acalma?", value=data.get('beh_calmo', ''))
-                data['beh_atividades'] = st.text_area("Atividades prazerosas:", value=data.get('beh_atividades', ''))
-                data['beh_gatilhos'] = st.text_area("Gatilhos de crise:", value=data.get('beh_gatilhos', ''))
-                data['beh_crise_regula'] = st.text_area("Como se regula na crise?", value=data.get('beh_crise_regula', ''))
-                data['beh_desafios'] = st.text_area("Comportamentos desafiadores / Manejo:", value=data.get('beh_desafios', ''))
+                data['beh_interesses'] = st.text_area("Interesses do estudante:", value=data.get('beh_interesses', ''), disabled=is_monitor)
+                data['beh_objetos_gosta'] = st.text_area("Objetos que gosta / Apego:", value=data.get('beh_objetos_gosta', ''), disabled=is_monitor)
+                data['beh_objetos_odeia'] = st.text_area("Objetos que não gosta / Aversão:", value=data.get('beh_objetos_odeia', ''), disabled=is_monitor)
+                data['beh_toque'] = st.text_area("Gosta de toque/abraço?", value=data.get('beh_toque', ''), disabled=is_monitor)
+                data['beh_calmo'] = st.text_area("O que o acalma?", value=data.get('beh_calmo', ''), disabled=is_monitor)
+                data['beh_atividades'] = st.text_area("Atividades prazerosas:", value=data.get('beh_atividades', ''), disabled=is_monitor)
+                data['beh_gatilhos'] = st.text_area("Gatilhos de crise:", value=data.get('beh_gatilhos', ''), disabled=is_monitor)
+                data['beh_crise_regula'] = st.text_area("Como se regula na crise?", value=data.get('beh_crise_regula', ''), disabled=is_monitor)
+                data['beh_desafios'] = st.text_area("Comportamentos desafiadores / Manejo:", value=data.get('beh_desafios', ''), disabled=is_monitor)
                 
                 c_b1, c_b2 = st.columns([1, 2])
                 food_idx = 1 if data.get('beh_restricoes') == 'Sim' else 0
-                data['beh_restricoes'] = c_b1.radio("Restrições alimentares?", ["Não", "Sim"], horizontal=True, index=food_idx)
-                data['beh_restricoes_espec'] = c_b2.text_input("Especifique alimentação:", value=data.get('beh_restricoes_espec', ''))
+                data['beh_restricoes'] = c_b1.radio("Restrições alimentares?", ["Não", "Sim"], horizontal=True, index=food_idx, disabled=is_monitor)
+                data['beh_restricoes_espec'] = c_b2.text_input("Especifique alimentação:", value=data.get('beh_restricoes_espec', ''), disabled=is_monitor)
                 
                 c_b3, c_b4 = st.columns([1, 2])
                 water_idx = 0 if data.get('beh_autonomia_agua') == 'Sim' else 1
-                data['beh_autonomia_agua'] = c_b3.radio("Autonomia (água/comida)?", ["Sim", "Não"], horizontal=True, index=water_idx)
-                data['beh_autonomia_agua_espec'] = c_b4.text_input("Especifique autonomia:", value=data.get('beh_autonomia_agua_espec', ''))
+                data['beh_autonomia_agua'] = c_b3.radio("Autonomia (água/comida)?", ["Sim", "Não"], horizontal=True, index=water_idx, disabled=is_monitor)
+                data['beh_autonomia_agua_espec'] = c_b4.text_input("Especifique autonomia:", value=data.get('beh_autonomia_agua_espec', ''), disabled=is_monitor)
                 
-                data['beh_pertinentes'] = st.text_area("Outras informações:", value=data.get('beh_pertinentes', ''))
+                data['beh_pertinentes'] = st.text_area("Outras informações:", value=data.get('beh_pertinentes', ''), disabled=is_monitor)
 
                 st.markdown("---")
-                if st.form_submit_button("💾 Salvar Conduta"):
-                    save_student("PEI", data.get('nome'), data, "Conduta")
+                if not is_monitor:
+                    if st.form_submit_button("💾 Salvar Conduta"):
+                        save_student("PEI", data.get('nome'), data, "Conduta")
 
         # --- ABA 4: ESCOLAR ---
         with tabs[3]:
@@ -1117,43 +1191,44 @@ elif app_mode == "👥 Gestão de Alunos":
                 c_p1, c_p2 = st.columns([1, 2])
                 perm_opts = ["Sim - Por longo período", "Sim - Por curto período", "Não"]
                 idx_perm = perm_opts.index(data.get('dev_permanece')) if data.get('dev_permanece') in perm_opts else 0
-                data['dev_permanece'] = c_p1.selectbox("Permanece em sala?", perm_opts, index=idx_perm)
-                data['dev_permanece_espec'] = c_p2.text_input("Obs Permanência:", value=data.get('dev_permanece_espec', ''))
+                data['dev_permanece'] = c_p1.selectbox("Permanece em sala?", perm_opts, index=idx_perm, disabled=is_monitor)
+                data['dev_permanece_espec'] = c_p2.text_input("Obs Permanência:", value=data.get('dev_permanece_espec', ''), disabled=is_monitor)
 
                 c_i1, c_i2 = st.columns([1, 2])
                 int_idx = 0 if data.get('dev_integrado') == 'Sim' else 1
-                data['dev_integrado'] = c_i1.radio("Integrado ao ambiente?", ["Sim", "Não"], horizontal=True, index=int_idx)
-                data['dev_integrado_espec'] = c_i2.text_input("Obs Integração:", value=data.get('dev_integrado_espec', ''))
+                data['dev_integrado'] = c_i1.radio("Integrado ao ambiente?", ["Sim", "Não"], horizontal=True, index=int_idx, disabled=is_monitor)
+                data['dev_integrado_espec'] = c_i2.text_input("Obs Integração:", value=data.get('dev_integrado_espec', ''), disabled=is_monitor)
 
                 c_l1, c_l2 = st.columns([1, 2])
                 loc_opts = ["Sim - Com autonomia", "Sim - Com ajuda", "Não"]
                 idx_loc = loc_opts.index(data.get('dev_loc_escola')) if data.get('dev_loc_escola') in loc_opts else 0
-                data['dev_loc_escola'] = c_l1.selectbox("Locomove-se pela escola?", loc_opts, index=idx_loc)
-                data['dev_loc_escola_espec'] = c_l2.text_input("Obs Locomoção:", value=data.get('dev_loc_escola_espec', ''))
+                data['dev_loc_escola'] = c_l1.selectbox("Locomove-se pela escola?", loc_opts, index=idx_loc, disabled=is_monitor)
+                data['dev_loc_escola_espec'] = c_l2.text_input("Obs Locomoção:", value=data.get('dev_loc_escola_espec', ''), disabled=is_monitor)
 
                 c_t1, c_t2 = st.columns([1, 2])
                 tar_opts = ["Sim - Com autonomia", "Sim - Com ajuda", "Não"]
                 idx_tar = tar_opts.index(data.get('dev_tarefas')) if data.get('dev_tarefas') in tar_opts else 0
-                data['dev_tarefas'] = c_t1.selectbox("Realiza tarefas?", tar_opts, index=idx_tar)
-                data['dev_tarefas_espec'] = c_t2.text_input("Obs Tarefas:", value=data.get('dev_tarefas_espec', ''))
+                data['dev_tarefas'] = c_t1.selectbox("Realiza tarefas?", tar_opts, index=idx_tar, disabled=is_monitor)
+                data['dev_tarefas_espec'] = c_t2.text_input("Obs Tarefas:", value=data.get('dev_tarefas_espec', ''), disabled=is_monitor)
 
                 c_a1, c_a2 = st.columns([1, 2])
                 amg_idx = 0 if data.get('dev_amigos') == 'Sim' else 1
-                data['dev_amigos'] = c_a1.radio("Tem amigos?", ["Sim", "Não"], horizontal=True, index=amg_idx)
-                data['dev_amigos_espec'] = c_a2.text_input("Obs Amigos:", value=data.get('dev_amigos_espec', ''))
+                data['dev_amigos'] = c_a1.radio("Tem amigos?", ["Sim", "Não"], horizontal=True, index=amg_idx, disabled=is_monitor)
+                data['dev_amigos_espec'] = c_a2.text_input("Obs Amigos:", value=data.get('dev_amigos_espec', ''), disabled=is_monitor)
 
-                data['dev_colega_pref'] = st.radio("Tem colega predileto?", ["Sim", "Não"], horizontal=True, index=0 if data.get('dev_colega_pref') == 'Sim' else 1)
+                data['dev_colega_pref'] = st.radio("Tem colega predileto?", ["Sim", "Não"], horizontal=True, index=0 if data.get('dev_colega_pref') == 'Sim' else 1, disabled=is_monitor)
 
                 c_ia1, c_ia2 = st.columns([1, 2])
                 ia_idx = 0 if data.get('dev_participa') == 'Sim' else 1
-                data['dev_participa'] = c_ia1.radio("Participa/Interage?", ["Sim", "Não"], horizontal=True, index=ia_idx)
-                data['dev_participa_espec'] = c_ia2.text_input("Obs Interação:", value=data.get('dev_participa_espec', ''))
+                data['dev_participa'] = c_ia1.radio("Participa/Interage?", ["Sim", "Não"], horizontal=True, index=ia_idx, disabled=is_monitor)
+                data['dev_participa_espec'] = c_ia2.text_input("Obs Interação:", value=data.get('dev_participa_espec', ''), disabled=is_monitor)
 
-                data['dev_afetivo'] = st.text_area("Envolvimento afetivo/social da turma:", value=data.get('dev_afetivo', ''))
+                data['dev_afetivo'] = st.text_area("Envolvimento afetivo/social da turma:", value=data.get('dev_afetivo', ''), disabled=is_monitor)
 
                 st.markdown("---")
-                if st.form_submit_button("💾 Salvar Escolar"):
-                    save_student("PEI", data.get('nome'), data, "Escolar")
+                if not is_monitor:
+                    if st.form_submit_button("💾 Salvar Escolar"):
+                        save_student("PEI", data.get('nome'), data, "Escolar")
 
         # --- ABA 5: ACADÊMICO ---
         with tabs[4]:
@@ -1162,48 +1237,49 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 if pei_level == "Fundamental":
                     c_f1, c_f2 = st.columns(2)
-                    data['aval_port'] = c_f1.text_area("Língua Portuguesa", value=data.get('aval_port', ''))
-                    data['aval_mat'] = c_f2.text_area("Matemática", value=data.get('aval_mat', ''))
-                    data['aval_con_gerais'] = st.text_area("Conhecimentos Gerais", value=data.get('aval_con_gerais', ''))
+                    data['aval_port'] = c_f1.text_area("Língua Portuguesa", value=data.get('aval_port', ''), disabled=is_monitor)
+                    data['aval_mat'] = c_f2.text_area("Matemática", value=data.get('aval_mat', ''), disabled=is_monitor)
+                    data['aval_con_gerais'] = st.text_area("Conhecimentos Gerais", value=data.get('aval_con_gerais', ''), disabled=is_monitor)
 
                     st.markdown("**ARTE**")
-                    data['aval_arte_visuais'] = st.text_area("Artes Visuais", value=data.get('aval_arte_visuais', ''))
-                    data['aval_arte_musica'] = st.text_area("Música", value=data.get('aval_arte_musica', ''))
+                    data['aval_arte_visuais'] = st.text_area("Artes Visuais", value=data.get('aval_arte_visuais', ''), disabled=is_monitor)
+                    data['aval_arte_musica'] = st.text_area("Música", value=data.get('aval_arte_musica', ''), disabled=is_monitor)
                     c_a1, c_a2 = st.columns(2)
-                    data['aval_arte_teatro'] = c_a1.text_area("Teatro", value=data.get('aval_arte_teatro', ''))
-                    data['aval_arte_danca'] = c_a2.text_area("Dança", value=data.get('aval_arte_danca', ''))
+                    data['aval_arte_teatro'] = c_a1.text_area("Teatro", value=data.get('aval_arte_teatro', ''), disabled=is_monitor)
+                    data['aval_arte_danca'] = c_a2.text_area("Dança", value=data.get('aval_arte_danca', ''), disabled=is_monitor)
 
                     st.markdown("**EDUCAÇÃO FÍSICA**")
                     c_ef1, c_ef2 = st.columns(2)
-                    data['aval_ef_motoras'] = c_ef1.text_area("Habilidades Motoras", value=data.get('aval_ef_motoras', ''))
-                    data['aval_ef_corp_conhec'] = c_ef2.text_area("Conhecimento Corporal", value=data.get('aval_ef_corp_conhec', ''))
-                    data['aval_ef_exp'] = st.text_area("Exp. Corporais e Expressividade", value=data.get('aval_ef_exp', ''))
+                    data['aval_ef_motoras'] = c_ef1.text_area("Habilidades Motoras", value=data.get('aval_ef_motoras', ''), disabled=is_monitor)
+                    data['aval_ef_corp_conhec'] = c_ef2.text_area("Conhecimento Corporal", value=data.get('aval_ef_corp_conhec', ''), disabled=is_monitor)
+                    data['aval_ef_exp'] = st.text_area("Exp. Corporais e Expressividade", value=data.get('aval_ef_exp', ''), disabled=is_monitor)
                     
                     st.markdown("**LINGUAGENS E TECNOLOGIAS**")
-                    data['aval_ling_tec'] = st.text_area("Avaliação da disciplina:", value=data.get('aval_ling_tec', ''))
+                    data['aval_ling_tec'] = st.text_area("Avaliação da disciplina:", value=data.get('aval_ling_tec', ''), disabled=is_monitor)
                 else:
                     # Infantil
-                    data['aval_ling_verbal'] = st.text_area("Linguagem Verbal", value=data.get('aval_ling_verbal', ''))
-                    data['aval_ling_mat'] = st.text_area("Linguagem Matemática", value=data.get('aval_ling_mat', ''))
-                    data['aval_ind_soc'] = st.text_area("Indivíduo e Sociedade", value=data.get('aval_ind_soc', ''))
+                    data['aval_ling_verbal'] = st.text_area("Linguagem Verbal", value=data.get('aval_ling_verbal', ''), disabled=is_monitor)
+                    data['aval_ling_mat'] = st.text_area("Linguagem Matemática", value=data.get('aval_ling_mat', ''), disabled=is_monitor)
+                    data['aval_ind_soc'] = st.text_area("Indivíduo e Sociedade", value=data.get('aval_ind_soc', ''), disabled=is_monitor)
                     
                     st.markdown("**ARTE**")
-                    data['aval_arte_visuais'] = st.text_area("Artes Visuais", value=data.get('aval_arte_visuais', ''))
-                    data['aval_arte_musica'] = st.text_area("Música", value=data.get('aval_arte_musica', ''))
-                    data['aval_arte_teatro'] = st.text_area("Teatro", value=data.get('aval_arte_teatro', ''))
+                    data['aval_arte_visuais'] = st.text_area("Artes Visuais", value=data.get('aval_arte_visuais', ''), disabled=is_monitor)
+                    data['aval_arte_musica'] = st.text_area("Música", value=data.get('aval_arte_musica', ''), disabled=is_monitor)
+                    data['aval_arte_teatro'] = st.text_area("Teatro", value=data.get('aval_arte_teatro', ''), disabled=is_monitor)
 
                     st.markdown("**EDUCAÇÃO FÍSICA**")
                     c_ef1, c_ef2, c_ef3 = st.columns(3)
-                    data['aval_ef_jogos'] = c_ef1.text_area("Jogos/Brincadeiras", value=data.get('aval_ef_jogos', ''))
-                    data['aval_ef_ritmo'] = c_ef2.text_area("Ritmo", value=data.get('aval_ef_ritmo', ''))
-                    data['aval_ef_corp'] = c_ef3.text_area("Conhecimento Corporal", value=data.get('aval_ef_corp', ''))
+                    data['aval_ef_jogos'] = c_ef1.text_area("Jogos/Brincadeiras", value=data.get('aval_ef_jogos', ''), disabled=is_monitor)
+                    data['aval_ef_ritmo'] = c_ef2.text_area("Ritmo", value=data.get('aval_ef_ritmo', ''), disabled=is_monitor)
+                    data['aval_ef_corp'] = c_ef3.text_area("Conhecimento Corporal", value=data.get('aval_ef_corp', ''), disabled=is_monitor)
                     
                     st.markdown("**LINGUAGEM E TECNOLOGIAS**")
-                    data['aval_ling_tec'] = st.text_area("Avaliação da disciplina:", value=data.get('aval_ling_tec', ''))
+                    data['aval_ling_tec'] = st.text_area("Avaliação da disciplina:", value=data.get('aval_ling_tec', ''), disabled=is_monitor)
 
                 st.markdown("---")
-                if st.form_submit_button("💾 Salvar Acadêmico"):
-                    save_student("PEI", data.get('nome'), data, "Acadêmico")
+                if not is_monitor:
+                    if st.form_submit_button("💾 Salvar Acadêmico"):
+                        save_student("PEI", data.get('nome'), data, "Acadêmico")
 
         # --- ABA 6: METAS E FLEXIBILIZAÇÃO ---
         with tabs[5]:
@@ -1212,16 +1288,16 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 c_m1, c_m2 = st.columns(2)
                 st.subheader("Habilidades Sociais")
-                data['meta_social_obj'] = st.text_area("Metas (Sociais):", value=data.get('meta_social_obj', ''))
-                data['meta_social_est'] = st.text_area("Estratégias (Sociais):", value=data.get('meta_social_est', ''))
+                data['meta_social_obj'] = st.text_area("Metas (Sociais):", value=data.get('meta_social_obj', ''), disabled=is_monitor)
+                data['meta_social_est'] = st.text_area("Estratégias (Sociais):", value=data.get('meta_social_est', ''), disabled=is_monitor)
 
                 st.divider(); st.subheader("Autocuidado e Vida Prática")
-                data['meta_auto_obj'] = st.text_area("Metas (Autocuidado):", value=data.get('meta_auto_obj', ''))
-                data['meta_auto_est'] = st.text_area("Estratégias (Autocuidado):", value=data.get('meta_auto_est', ''))
+                data['meta_auto_obj'] = st.text_area("Metas (Autocuidado):", value=data.get('meta_auto_obj', ''), disabled=is_monitor)
+                data['meta_auto_est'] = st.text_area("Estratégias (Autocuidado):", value=data.get('meta_auto_est', ''), disabled=is_monitor)
 
                 st.divider(); st.subheader("Habilidades Acadêmicas")
-                data['meta_acad_obj'] = st.text_area("Metas (Acadêmicas):", value=data.get('meta_acad_obj', ''))
-                data['meta_acad_est'] = st.text_area("Estratégias (Acadêmicas):", value=data.get('meta_acad_est', ''))
+                data['meta_acad_obj'] = st.text_area("Metas (Acadêmicas):", value=data.get('meta_acad_obj', ''), disabled=is_monitor)
+                data['meta_acad_est'] = st.text_area("Estratégias (Acadêmicas):", value=data.get('meta_acad_est', ''), disabled=is_monitor)
 
                 st.header("7. Flexibilização Curricular")
                 if pei_level == "Fundamental":
@@ -1242,8 +1318,8 @@ elif app_mode == "👥 Gestão de Alunos":
                     
                     c1, c2, c3 = st.columns([2, 1, 1])
                     c1.write(disc)
-                    data['flex_matrix'][disc]['conteudo'] = c2.checkbox("Sim", key=f"flex_c_{disc}", value=data['flex_matrix'][disc]['conteudo'])
-                    data['flex_matrix'][disc]['metodologia'] = c3.checkbox("Sim", key=f"flex_m_{disc}", value=data['flex_matrix'][disc]['metodologia'])
+                    data['flex_matrix'][disc]['conteudo'] = c2.checkbox("Sim", key=f"flex_c_{disc}", value=data['flex_matrix'][disc]['conteudo'], disabled=is_monitor)
+                    data['flex_matrix'][disc]['metodologia'] = c3.checkbox("Sim", key=f"flex_m_{disc}", value=data['flex_matrix'][disc]['metodologia'], disabled=is_monitor)
 
                 st.divider()
                 st.subheader("7.2 Plano de Ensino Anual")
@@ -1261,24 +1337,29 @@ elif app_mode == "👥 Gestão de Alunos":
                             
                             p_ref = data['plano_ensino_tri'][tri][disc]
                             
-                            p_ref['obj'] = st.text_area(f"Objetivos ({disc})", value=p_ref['obj'], key=f"obj_{tri}_{disc}")
-                            p_ref['cont'] = st.text_area(f"Conteúdos ({disc})", value=p_ref['cont'], key=f"cont_{tri}_{disc}")
-                            p_ref['met'] = st.text_area(f"Metodologia ({disc})", value=p_ref['met'], key=f"met_{tri}_{disc}")
+                            p_ref['obj'] = st.text_area(f"Objetivos ({disc})", value=p_ref['obj'], key=f"obj_{tri}_{disc}", disabled=is_monitor)
+                            p_ref['cont'] = st.text_area(f"Conteúdos ({disc})", value=p_ref['cont'], key=f"cont_{tri}_{disc}", disabled=is_monitor)
+                            p_ref['met'] = st.text_area(f"Metodologia ({disc})", value=p_ref['met'], key=f"met_{tri}_{disc}", disabled=is_monitor)
 
                     st.markdown("---")
-                    data['plano_ensino_tri'][tri]['obs'] = st.text_area(f"Obs/Recomendações {tri}:", value=data['plano_ensino_tri'][tri].get('obs', ''), key=f"obs_{tri}")
+                    data['plano_ensino_tri'][tri]['obs'] = st.text_area(f"Obs/Recomendações {tri}:", value=data['plano_ensino_tri'][tri].get('obs', ''), key=f"obs_{tri}", disabled=is_monitor)
 
                 st.markdown("Considerações finais:")
-                data['plano_obs_geral'] = st.text_area("", value=data.get('plano_obs_geral', ''), key="obs_geral_pei")
+                data['plano_obs_geral'] = st.text_area("", value=data.get('plano_obs_geral', ''), key="obs_geral_pei", disabled=is_monitor)
 
                 st.markdown("---")
-                if st.form_submit_button("💾 Salvar Metas e Plano"):
-                    save_student("PEI", data.get('nome'), data, "Metas e Plano")
+                if not is_monitor:
+                    if st.form_submit_button("💾 Salvar Metas e Plano"):
+                        save_student("PEI", data.get('nome'), data, "Metas e Plano")
 
         # --- ABA 7: EMISSÃO ---
         with tabs[6]:
-            st.info("Antes de gerar o PDF, certifique-se de ter clicado em 'Salvar' nas abas anteriores.")
-            if st.button("💾 SALVAR PEI COMPLETO", type="primary"): save_student("PEI", data['nome'], data, "Completo")
+            if not is_monitor:
+                st.info("Antes de gerar o PDF, certifique-se de ter clicado em 'Salvar' nas abas anteriores.")
+                if st.button("💾 SALVAR PEI COMPLETO", type="primary"): save_student("PEI", data['nome'], data, "Completo")
+            else:
+                st.info("Modo Visualização.")
+
             if st.button("👁️ GERAR PDF COMPLETO"):
                 # Registrar ação de gerar PDF
                 log_action(data.get('nome'), "Gerou PDF", "PEI Completo")
@@ -1671,31 +1752,32 @@ elif app_mode == "👥 Gestão de Alunos":
                 data['nome'] = st.text_input("Nome Completo", value=data.get('nome', ''), disabled=True)
                 
                 c1, c2, c3 = st.columns([1, 1, 2])
-                data['ano_esc'] = c1.text_input("Ano Escolaridade", value=data.get('ano_esc', ''))
+                data['ano_esc'] = c1.text_input("Ano Escolaridade", value=data.get('ano_esc', ''), disabled=is_monitor)
                 
                 p_val = data.get('periodo') if data.get('periodo') in ["Manhã", "Tarde", "Integral"] else "Manhã"
                 idx_per = ["Manhã", "Tarde", "Integral"].index(p_val)
-                data['periodo'] = c2.selectbox("Período", ["Manhã", "Tarde", "Integral"], index=idx_per)
-                data['unidade'] = c3.text_input("Unidade Escolar", value=data.get('unidade', ''))
+                data['periodo'] = c2.selectbox("Período", ["Manhã", "Tarde", "Integral"], index=idx_per, disabled=is_monitor)
+                data['unidade'] = c3.text_input("Unidade Escolar", value=data.get('unidade', ''), disabled=is_monitor)
 
                 c4, c5 = st.columns([1, 1])
-                data['sexo'] = c4.radio("Sexo", ["Feminino", "Masculino"], horizontal=True, index=0 if data.get('sexo') == 'Feminino' else 1)
+                data['sexo'] = c4.radio("Sexo", ["Feminino", "Masculino"], horizontal=True, index=0 if data.get('sexo') == 'Feminino' else 1, disabled=is_monitor)
                 
                 d_nasc = data.get('d_nasc')
                 if isinstance(d_nasc, str):
                     try: d_nasc = datetime.strptime(d_nasc, '%Y-%m-%d').date()
                     except: d_nasc = date.today()
-                data['d_nasc'] = c5.date_input("Data de Nascimento", value=d_nasc if d_nasc else date.today(), format="DD/MM/YYYY")
+                data['d_nasc'] = c5.date_input("Data de Nascimento", value=d_nasc if d_nasc else date.today(), format="DD/MM/YYYY", disabled=is_monitor)
 
-                data['endereco'] = st.text_input("Endereço", value=data.get('endereco', ''))
+                data['endereco'] = st.text_input("Endereço", value=data.get('endereco', ''), disabled=is_monitor)
                 c6, c7, c8 = st.columns([2, 2, 2])
-                data['bairro'] = c6.text_input("Bairro", value=data.get('bairro', ''))
-                data['cidade'] = c7.text_input("Cidade", value=data.get('cidade', 'Limeira'))
-                data['telefones'] = c8.text_input("Telefones", value=data.get('telefones', ''))
+                data['bairro'] = c6.text_input("Bairro", value=data.get('bairro', ''), disabled=is_monitor)
+                data['cidade'] = c7.text_input("Cidade", value=data.get('cidade', 'Limeira'), disabled=is_monitor)
+                data['telefones'] = c8.text_input("Telefones", value=data.get('telefones', ''), disabled=is_monitor)
                 
                 st.markdown("---")
-                if st.form_submit_button("💾 Salvar Dados de Identificação"):
-                    save_student("CASO", data.get('nome'), data, "Identificação")
+                if not is_monitor:
+                    if st.form_submit_button("💾 Salvar Dados de Identificação"):
+                        save_student("CASO", data.get('nome'), data, "Identificação")
 
         # --- ABA 2: DADOS FAMILIARES ---
         with tabs[1]:
@@ -1704,17 +1786,17 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 st.markdown("**Pai**")
                 c_p1, c_p2, c_p3, c_p4 = st.columns([3, 2, 2, 2])
-                data['pai_nome'] = c_p1.text_input("Nome do Pai", value=data.get('pai_nome', ''))
-                data['pai_prof'] = c_p2.text_input("Profissão Pai", value=data.get('pai_prof', ''))
-                data['pai_esc'] = c_p3.text_input("Escolaridade Pai", value=data.get('pai_esc', ''))
-                data['pai_dn'] = c_p4.text_input("D.N. Pai", value=data.get('pai_dn', '')) 
+                data['pai_nome'] = c_p1.text_input("Nome do Pai", value=data.get('pai_nome', ''), disabled=is_monitor)
+                data['pai_prof'] = c_p2.text_input("Profissão Pai", value=data.get('pai_prof', ''), disabled=is_monitor)
+                data['pai_esc'] = c_p3.text_input("Escolaridade Pai", value=data.get('pai_esc', ''), disabled=is_monitor)
+                data['pai_dn'] = c_p4.text_input("D.N. Pai", value=data.get('pai_dn', ''), disabled=is_monitor) 
 
                 st.markdown("**Mãe**")
                 c_m1, c_m2, c_m3, c_m4 = st.columns([3, 2, 2, 2])
-                data['mae_nome'] = c_m1.text_input("Nome da Mãe", value=data.get('mae_nome', ''))
-                data['mae_prof'] = c_m2.text_input("Profissão Mãe", value=data.get('mae_prof', ''))
-                data['mae_esc'] = c_m3.text_input("Escolaridade Mãe", value=data.get('mae_esc', ''))
-                data['mae_dn'] = c_m4.text_input("D.N. Mãe", value=data.get('mae_dn', ''))
+                data['mae_nome'] = c_m1.text_input("Nome da Mãe", value=data.get('mae_nome', ''), disabled=is_monitor)
+                data['mae_prof'] = c_m2.text_input("Profissão Mãe", value=data.get('mae_prof', ''), disabled=is_monitor)
+                data['mae_esc'] = c_m3.text_input("Escolaridade Mãe", value=data.get('mae_esc', ''), disabled=is_monitor)
+                data['mae_dn'] = c_m4.text_input("D.N. Mãe", value=data.get('mae_dn', ''), disabled=is_monitor)
 
                 st.divider()
                 st.markdown("**Irmãos**")
@@ -1722,114 +1804,117 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 for i in range(4):
                     c_i1, c_i2, c_i3 = st.columns([3, 1, 2])
-                    data['irmaos'][i]['nome'] = c_i1.text_input(f"Nome Irmão {i+1}", value=data['irmaos'][i]['nome'])
-                    data['irmaos'][i]['idade'] = c_i2.text_input(f"Idade {i+1}", value=data['irmaos'][i]['idade'])
-                    data['irmaos'][i]['esc'] = c_i3.text_input(f"Escolaridade {i+1}", value=data['irmaos'][i]['esc'])
+                    data['irmaos'][i]['nome'] = c_i1.text_input(f"Nome Irmão {i+1}", value=data['irmaos'][i]['nome'], disabled=is_monitor)
+                    data['irmaos'][i]['idade'] = c_i2.text_input(f"Idade {i+1}", value=data['irmaos'][i]['idade'], disabled=is_monitor)
+                    data['irmaos'][i]['esc'] = c_i3.text_input(f"Escolaridade {i+1}", value=data['irmaos'][i]['esc'], disabled=is_monitor)
 
-                data['outros_familia'] = st.text_area("Outros (Moradores da casa):", value=data.get('outros_familia', ''))
-                data['quem_mora'] = st.text_input("Com quem mora?", value=data.get('quem_mora', ''))
+                data['outros_familia'] = st.text_area("Outros (Moradores da casa):", value=data.get('outros_familia', ''), disabled=is_monitor)
+                data['quem_mora'] = st.text_input("Com quem mora?", value=data.get('quem_mora', ''), disabled=is_monitor)
                 
                 c_conv1, c_conv2 = st.columns([1, 3])
-                data['convenio'] = c_conv1.radio("Possui convênio?", ["Sim", "Não"], horizontal=True, index=1 if data.get('convenio') == "Não" else 0)
-                data['convenio_qual'] = c_conv2.text_input("Qual convênio?", value=data.get('convenio_qual', ''))
+                data['convenio'] = c_conv1.radio("Possui convênio?", ["Sim", "Não"], horizontal=True, index=1 if data.get('convenio') == "Não" else 0, disabled=is_monitor)
+                data['convenio_qual'] = c_conv2.text_input("Qual convênio?", value=data.get('convenio_qual', ''), disabled=is_monitor)
                 
                 c_soc1, c_soc2 = st.columns([1, 3])
-                data['social'] = c_soc1.radio("Recebe benefício social?", ["Sim", "Não"], horizontal=True, index=1 if data.get('social') == "Não" else 0)
-                data['social_qual'] = c_soc2.text_input("Qual benefício?", value=data.get('social_qual', ''))
+                data['social'] = c_soc1.radio("Recebe benefício social?", ["Sim", "Não"], horizontal=True, index=1 if data.get('social') == "Não" else 0, disabled=is_monitor)
+                data['social_qual'] = c_soc2.text_input("Qual benefício?", value=data.get('social_qual', ''), disabled=is_monitor)
 
                 st.markdown("---")
-                if st.form_submit_button("💾 Salvar Dados Familiares"):
-                    save_student("CASO", data.get('nome'), data, "Família")
+                if not is_monitor:
+                    if st.form_submit_button("💾 Salvar Dados Familiares"):
+                        save_student("CASO", data.get('nome'), data, "Família")
 
         # --- ABA 3: HISTÓRICO ---
         with tabs[2]:
             with st.form("form_caso_historico"):
                 st.subheader("1.1.3 História Escolar")
-                data['hist_idade_entrou'] = st.text_input("Idade que entrou na escola:", value=data.get('hist_idade_entrou', ''))
-                data['hist_outra_escola'] = st.text_input("Já estudou em outra escola? Quais?", value=data.get('hist_outra_escola', ''))
-                data['hist_motivo_transf'] = st.text_input("Motivo da transferência:", value=data.get('hist_motivo_transf', ''))
-                data['hist_obs'] = st.text_area("Outras observações escolares:", value=data.get('hist_obs', ''))
+                data['hist_idade_entrou'] = st.text_input("Idade que entrou na escola:", value=data.get('hist_idade_entrou', ''), disabled=is_monitor)
+                data['hist_outra_escola'] = st.text_input("Já estudou em outra escola? Quais?", value=data.get('hist_outra_escola', ''), disabled=is_monitor)
+                data['hist_motivo_transf'] = st.text_input("Motivo da transferência:", value=data.get('hist_motivo_transf', ''), disabled=is_monitor)
+                data['hist_obs'] = st.text_area("Outras observações escolares:", value=data.get('hist_obs', ''), disabled=is_monitor)
 
                 st.divider()
                 st.subheader("1.2 Informações sobre Gestação")
                 
                 c_g1, c_g2 = st.columns(2)
-                data['gest_parentesco'] = c_g1.radio("Parentesco entre pais?", ["Sim", "Não"], horizontal=True, index=1 if data.get('gest_parentesco') == "Não" else 0)
-                data['gest_doenca'] = c_g2.text_input("Doença/trauma na gestação? Quais?", value=data.get('gest_doenca', ''))
+                data['gest_parentesco'] = c_g1.radio("Parentesco entre pais?", ["Sim", "Não"], horizontal=True, index=1 if data.get('gest_parentesco') == "Não" else 0, disabled=is_monitor)
+                data['gest_doenca'] = c_g2.text_input("Doença/trauma na gestação? Quais?", value=data.get('gest_doenca', ''), disabled=is_monitor)
                 
                 c_g3, c_g4 = st.columns(2)
-                data['gest_substancias'] = c_g3.radio("Uso de álcool/fumo/drogas?", ["Sim", "Não"], horizontal=True, index=1 if data.get('gest_substancias') == "Não" else 0)
-                data['gest_medicamentos'] = c_g4.text_input("Uso de medicamentos? Quais?", value=data.get('gest_medicamentos', ''))
+                data['gest_substancias'] = c_g3.radio("Uso de álcool/fumo/drogas?", ["Sim", "Não"], horizontal=True, index=1 if data.get('gest_substancias') == "Não" else 0, disabled=is_monitor)
+                data['gest_medicamentos'] = c_g4.text_input("Uso de medicamentos? Quais?", value=data.get('gest_medicamentos', ''), disabled=is_monitor)
 
-                data['parto_ocorrencia'] = st.text_input("Ocorrência no parto? Quais?", value=data.get('parto_ocorrencia', ''))
-                data['parto_incubadora'] = st.text_input("Incubadora? Motivo?", value=data.get('parto_incubadora', ''))
+                data['parto_ocorrencia'] = st.text_input("Ocorrência no parto? Quais?", value=data.get('parto_ocorrencia', ''), disabled=is_monitor)
+                data['parto_incubadora'] = st.text_input("Incubadora? Motivo?", value=data.get('parto_incubadora', ''), disabled=is_monitor)
                 
                 c_p1, c_p2 = st.columns(2)
-                data['parto_prematuro'] = c_p1.radio("Prematuro?", ["Sim", "Não"], horizontal=True, index=1 if data.get('parto_prematuro') == "Não" else 0)
-                data['parto_uti'] = c_p2.radio("Ficou em UTI?", ["Sim", "Não"], horizontal=True, index=1 if data.get('parto_uti') == "Não" else 0)
+                data['parto_prematuro'] = c_p1.radio("Prematuro?", ["Sim", "Não"], horizontal=True, index=1 if data.get('parto_prematuro') == "Não" else 0, disabled=is_monitor)
+                data['parto_uti'] = c_p2.radio("Ficou em UTI?", ["Sim", "Não"], horizontal=True, index=1 if data.get('parto_uti') == "Não" else 0, disabled=is_monitor)
 
                 c_d1, c_d2, c_d3 = st.columns(3)
-                data['dev_tempo_gest'] = c_d1.text_input("Tempo Gestação", value=data.get('dev_tempo_gest', ''))
-                data['dev_peso'] = c_d2.text_input("Peso", value=data.get('dev_peso', ''))
-                data['dev_normal_1ano'] = c_d3.radio("Desenv. normal 1º ano?", ["Sim", "Não"], horizontal=True, index=0 if data.get('dev_normal_1ano') == "Sim" else 1)
+                data['dev_tempo_gest'] = c_d1.text_input("Tempo Gestação", value=data.get('dev_tempo_gest', ''), disabled=is_monitor)
+                data['dev_peso'] = c_d2.text_input("Peso", value=data.get('dev_peso', ''), disabled=is_monitor)
+                data['dev_normal_1ano'] = c_d3.radio("Desenv. normal 1º ano?", ["Sim", "Não"], horizontal=True, index=0 if data.get('dev_normal_1ano') == "Sim" else 1, disabled=is_monitor)
                 
-                data['dev_atraso'] = st.text_input("Atraso importante? Quais?", value=data.get('dev_atraso', ''))
+                data['dev_atraso'] = st.text_input("Atraso importante? Quais?", value=data.get('dev_atraso', ''), disabled=is_monitor)
                 c_m1, c_m2 = st.columns(2)
-                data['dev_idade_andar'] = c_m1.text_input("Idade começou a andar?", value=data.get('dev_idade_andar', ''))
-                data['dev_idade_falar'] = c_m2.text_input("Idade começou a falar?", value=data.get('dev_idade_falar', ''))
+                data['dev_idade_andar'] = c_m1.text_input("Idade começou a andar?", value=data.get('dev_idade_andar', ''), disabled=is_monitor)
+                data['dev_idade_falar'] = c_m2.text_input("Idade começou a falar?", value=data.get('dev_idade_falar', ''), disabled=is_monitor)
 
                 st.markdown("---")
-                data['diag_possui'] = st.text_input("Possui diagnóstico? Qual?", value=data.get('diag_possui', ''))
-                data['diag_reacao'] = st.text_input("Reação da família:", value=data.get('diag_reacao', ''))
+                data['diag_possui'] = st.text_input("Possui diagnóstico? Qual?", value=data.get('diag_possui', ''), disabled=is_monitor)
+                data['diag_reacao'] = st.text_input("Reação da família:", value=data.get('diag_reacao', ''), disabled=is_monitor)
                 c_dx1, c_dx2 = st.columns(2)
-                data['diag_data'] = c_dx1.text_input("Data do diagnóstico:", value=data.get('diag_data', ''))
-                data['diag_origem'] = c_dx2.text_input("Origem da informação:", value=data.get('diag_origem', ''))
+                data['diag_data'] = c_dx1.text_input("Data do diagnóstico:", value=data.get('diag_data', ''), disabled=is_monitor)
+                data['diag_origem'] = c_dx2.text_input("Origem da informação:", value=data.get('diag_origem', ''), disabled=is_monitor)
                 
                 c_fam1, c_fam2 = st.columns(2)
-                data['fam_deficiencia'] = c_fam1.text_input("Pessoa com deficiência na família?", value=data.get('fam_deficiencia', ''))
-                data['fam_altas_hab'] = c_fam2.radio("Pessoa com AH/SD na família?", ["Sim", "Não"], horizontal=True, index=1 if data.get('fam_altas_hab') == "Não" else 0)
+                data['fam_deficiencia'] = c_fam1.text_input("Pessoa com deficiência na família?", value=data.get('fam_deficiencia', ''), disabled=is_monitor)
+                data['fam_altas_hab'] = c_fam2.radio("Pessoa com AH/SD na família?", ["Sim", "Não"], horizontal=True, index=1 if data.get('fam_altas_hab') == "Não" else 0, disabled=is_monitor)
                 
                 st.markdown("---")
-                if st.form_submit_button("💾 Salvar Dados de Histórico"):
-                    save_student("CASO", data.get('nome'), data, "Histórico")
+                if not is_monitor:
+                    if st.form_submit_button("💾 Salvar Dados de Histórico"):
+                        save_student("CASO", data.get('nome'), data, "Histórico")
 
         # --- ABA 4: SAÚDE ---
         with tabs[3]:
             with st.form("form_caso_saude"):
                 st.subheader("1.3 Informações sobre Saúde")
-                data['saude_prob'] = st.text_input("Problema de saúde? Quais?", value=data.get('saude_prob', ''))
-                data['saude_internacao'] = st.text_input("Internação? Motivos?", value=data.get('saude_internacao', ''))
-                data['saude_restricao'] = st.text_input("Restrição/Seletividade alimentar?", value=data.get('saude_restricao', ''))
+                data['saude_prob'] = st.text_input("Problema de saúde? Quais?", value=data.get('saude_prob', ''), disabled=is_monitor)
+                data['saude_internacao'] = st.text_input("Internação? Motivos?", value=data.get('saude_internacao', ''), disabled=is_monitor)
+                data['saude_restricao'] = st.text_input("Restrição/Seletividade alimentar?", value=data.get('saude_restricao', ''), disabled=is_monitor)
                 
                 st.markdown("**Medicamentos Controlados**")
-                data['med_uso'] = st.radio("Faz uso?", ["Sim", "Não"], horizontal=True, index=1 if data.get('med_uso') == "Não" else 0)
-                data['med_quais'] = st.text_input("Quais medicamentos?", value=data.get('med_quais', ''))
+                data['med_uso'] = st.radio("Faz uso?", ["Sim", "Não"], horizontal=True, index=1 if data.get('med_uso') == "Não" else 0, disabled=is_monitor)
+                data['med_quais'] = st.text_input("Quais medicamentos?", value=data.get('med_quais', ''), disabled=is_monitor)
                 c_med1, c_med2, c_med3 = st.columns(3)
-                data['med_hor'] = c_med1.text_input("Horário", value=data.get('med_hor', ''))
-                data['med_dos'] = c_med2.text_input("Dosagem", value=data.get('med_dos', ''))
-                data['med_ini'] = c_med3.text_input("Início", value=data.get('med_ini', ''))
+                data['med_hor'] = c_med1.text_input("Horário", value=data.get('med_hor', ''), disabled=is_monitor)
+                data['med_dos'] = c_med2.text_input("Dosagem", value=data.get('med_dos', ''), disabled=is_monitor)
+                data['med_ini'] = c_med3.text_input("Início", value=data.get('med_ini', ''), disabled=is_monitor)
 
                 st.divider()
                 c_esf1, c_esf2 = st.columns(2)
-                data['esf_urina'] = c_esf1.checkbox("Controla Urina", value=data.get('esf_urina', False))
-                data['esf_fezes'] = c_esf2.checkbox("Controla Fezes", value=data.get('esf_fezes', False))
-                data['esf_idade'] = st.text_input("Com qual idade controlou?", value=data.get('esf_idade', ''))
-                data['sono'] = st.text_input("Dorme bem? Obs:", value=data.get('sono', ''))
-                data['medico_ultimo'] = st.text_input("Última visita ao médico:", value=data.get('medico_ultimo', ''))
+                data['esf_urina'] = c_esf1.checkbox("Controla Urina", value=data.get('esf_urina', False), disabled=is_monitor)
+                data['esf_fezes'] = c_esf2.checkbox("Controla Fezes", value=data.get('esf_fezes', False), disabled=is_monitor)
+                data['esf_idade'] = st.text_input("Com qual idade controlou?", value=data.get('esf_idade', ''), disabled=is_monitor)
+                data['sono'] = st.text_input("Dorme bem? Obs:", value=data.get('sono', ''), disabled=is_monitor)
+                data['medico_ultimo'] = st.text_input("Última visita ao médico:", value=data.get('medico_ultimo', ''), disabled=is_monitor)
 
                 st.markdown("**Atendimento Clínico Extraescolar**")
                 clinicas_opts = ["APAE", "ARIL", "CEMA", "Família Azul", "CAPS", "Amb. Saúde Mental", "João Fischer D.A.", "João Fischer D.V."]
                 prof_opts = ["Fonoaudiólogo", "Terapeuta Ocupacional", "Psicólogo", "Psicopedagogo", "Fisioterapeuta"]
                 
-                data['clinicas'] = st.multiselect("Selecione os atendimentos:", clinicas_opts + prof_opts, default=data.get('clinicas', []))
-                data['clinicas_med_esp'] = st.text_input("Área médica (Especialidade):", value=data.get('clinicas_med_esp', ''))
-                data['clinicas_nome'] = st.text_input("Nome da Clínica/Profissional:", value=data.get('clinicas_nome', ''))
+                data['clinicas'] = st.multiselect("Selecione os atendimentos:", clinicas_opts + prof_opts, default=data.get('clinicas', []), disabled=is_monitor)
+                data['clinicas_med_esp'] = st.text_input("Área médica (Especialidade):", value=data.get('clinicas_med_esp', ''), disabled=is_monitor)
+                data['clinicas_nome'] = st.text_input("Nome da Clínica/Profissional:", value=data.get('clinicas_nome', ''), disabled=is_monitor)
                 
-                data['saude_obs_geral'] = st.text_area("Outras observações de saúde:", value=data.get('saude_obs_geral', ''))
+                data['saude_obs_geral'] = st.text_area("Outras observações de saúde:", value=data.get('saude_obs_geral', ''), disabled=is_monitor)
 
                 st.markdown("---")
-                if st.form_submit_button("💾 Salvar Dados de Saúde"):
-                    save_student("CASO", data.get('nome'), data, "Saúde")
+                if not is_monitor:
+                    if st.form_submit_button("💾 Salvar Dados de Saúde"):
+                        save_student("CASO", data.get('nome'), data, "Saúde")
 
         # --- ABA 5: COMPORTAMENTO ---
         with tabs[4]:
@@ -1857,32 +1942,36 @@ elif app_mode == "👥 Gestão de Alunos":
                     key_base = item[:10].replace(" ", "").replace("?", "")
                     
                     opt = data['checklist'].get(f"{key_base}_opt", "Não")
-                    data['checklist'][f"{key_base}_opt"] = col_a.radio("Opção", ["Sim", "Não"], key=f"rad_f_{i}", horizontal=True, label_visibility="collapsed", index=0 if opt == "Sim" else 1)
+                    data['checklist'][f"{key_base}_opt"] = col_a.radio("Opção", ["Sim", "Não"], key=f"rad_f_{i}", horizontal=True, label_visibility="collapsed", index=0 if opt == "Sim" else 1, disabled=is_monitor)
                     
-                    data['checklist'][f"{key_base}_obs"] = col_b.text_input("Obs:", value=data['checklist'].get(f"{key_base}_obs", ""), key=f"obs_f_{i}")
+                    data['checklist'][f"{key_base}_obs"] = col_b.text_input("Obs:", value=data['checklist'].get(f"{key_base}_obs", ""), key=f"obs_f_{i}", disabled=is_monitor)
                     st.divider()
 
                 st.subheader("Dados da Entrevista")
                 c_e1, c_e2, c_e3 = st.columns(3)
-                data['entrevista_prof'] = c_e1.text_input("Prof. Responsável", value=data.get('entrevista_prof', ''))
-                data['entrevista_resp'] = c_e2.text_input("Responsável info", value=data.get('entrevista_resp', ''))
+                data['entrevista_prof'] = c_e1.text_input("Prof. Responsável", value=data.get('entrevista_prof', ''), disabled=is_monitor)
+                data['entrevista_resp'] = c_e2.text_input("Responsável info", value=data.get('entrevista_resp', ''), disabled=is_monitor)
                 
                 d_ent = data.get('entrevista_data')
                 if isinstance(d_ent, str): 
                      try: d_ent = datetime.strptime(d_ent, '%Y-%m-%d').date()
                      except: d_ent = date.today()
-                data['entrevista_data'] = c_e3.date_input("Data", value=d_ent if d_ent else date.today(), format="DD/MM/YYYY")
+                data['entrevista_data'] = c_e3.date_input("Data", value=d_ent if d_ent else date.today(), format="DD/MM/YYYY", disabled=is_monitor)
                 
-                data['entrevista_extra'] = st.text_area("Outras informações relevantes:", value=data.get('entrevista_extra', ''))
+                data['entrevista_extra'] = st.text_area("Outras informações relevantes:", value=data.get('entrevista_extra', ''), disabled=is_monitor)
                 
                 st.markdown("---")
-                if st.form_submit_button("💾 Salvar Comportamento"):
-                    save_student("CASO", data.get('nome'), data, "Comportamento")
+                if not is_monitor:
+                    if st.form_submit_button("💾 Salvar Comportamento"):
+                        save_student("CASO", data.get('nome'), data, "Comportamento")
 
         # --- ABA 6: GERAR PDF (ESTUDO DE CASO) ---
         with tabs[5]:
-            if st.button("💾 SALVAR ESTUDO DE CASO", type="primary"): 
-                save_student("CASO", data.get('nome', 'aluno'), data, "Completo")
+            if not is_monitor:
+                if st.button("💾 SALVAR ESTUDO DE CASO", type="primary"): 
+                    save_student("CASO", data.get('nome', 'aluno'), data, "Completo")
+            else:
+                st.info("Modo Visualização.")
 
             if st.button("👁️ GERAR PDF"):
                 # Registrar ação de gerar PDF
@@ -2171,45 +2260,46 @@ elif app_mode == "👥 Gestão de Alunos":
                 st.subheader("Configuração do Protocolo")
                 st.caption("Preencha manualmente ou utilize o botão abaixo para importar informações do PEI do aluno, convertendo-as automaticamente para a 1ª pessoa.")
                 
-                if st.form_submit_button("🔄 Preencher Automaticamente com dados do PEI"):
-                    # Mapeamento e conversão simples para 1ª pessoa
-                    if data_pei:
-                        # Sobre Mim
-                        defic = data_pei.get('defic_txt', '') or data_pei.get('neuro_txt', '')
-                        data_conduta['conduta_sobre_mim'] = f"Olá, meu nome é {data_pei.get('nome', '')}. Tenho {data_pei.get('idade', '')} anos. Estou matriculado no {data_pei.get('ano_esc', '')} ano. {defic}"
-                        
-                        # Coisas que eu gosto
-                        gostos = []
-                        if data_pei.get('beh_interesses'): gostos.append(data_pei.get('beh_interesses'))
-                        if data_pei.get('beh_objetos_gosta'): gostos.append(data_pei.get('beh_objetos_gosta'))
-                        if data_pei.get('beh_atividades'): gostos.append(data_pei.get('beh_atividades'))
-                        data_conduta['conduta_gosto'] = "\n".join(gostos)
-                        
-                        # Coisas que não gosto
-                        nao_gosto = []
-                        if data_pei.get('beh_objetos_odeia'): nao_gosto.append(data_pei.get('beh_objetos_odeia'))
-                        if data_pei.get('beh_gatilhos'): nao_gosto.append(f"Fico chateado/nervoso quando: {data_pei.get('beh_gatilhos')}")
-                        data_conduta['conduta_nao_gosto'] = "\n".join(nao_gosto)
-                        
-                        # Como me comunico
-                        data_conduta['conduta_comunico'] = f"Eu me comunico: {data_pei.get('com_tipo', '')}. {data_pei.get('com_alt_espec', '')}"
-                        
-                        # Como me ajudar
-                        ajuda = []
-                        if data_pei.get('beh_crise_regula'): ajuda.append(f"Para me regular: {data_pei.get('beh_crise_regula')}")
-                        if data_pei.get('beh_calmo'): ajuda.append(f"O que me acalma: {data_pei.get('beh_calmo')}")
-                        data_conduta['conduta_ajuda'] = "\n".join(ajuda)
-                        
-                        # Habilidades
-                        habs = []
-                        if data_pei.get('hig_banheiro'): habs.append(f"Uso do banheiro: {data_pei.get('hig_banheiro')}")
-                        if data_pei.get('hig_dentes'): habs.append(f"Escovação: {data_pei.get('hig_dentes')}")
-                        if data_pei.get('dev_tarefas'): habs.append(f"Tarefas: {data_pei.get('dev_tarefas')}")
-                        data_conduta['conduta_habilidades'] = "\n".join(habs)
-                        
-                        st.success("Dados importados do PEI com sucesso! Revise abaixo.")
-                    else:
-                        st.warning("Dados do PEI não encontrados para este aluno.")
+                if not is_monitor:
+                    if st.form_submit_button("🔄 Preencher Automaticamente com dados do PEI"):
+                        # Mapeamento e conversão simples para 1ª pessoa
+                        if data_pei:
+                            # Sobre Mim
+                            defic = data_pei.get('defic_txt', '') or data_pei.get('neuro_txt', '')
+                            data_conduta['conduta_sobre_mim'] = f"Olá, meu nome é {data_pei.get('nome', '')}. Tenho {data_pei.get('idade', '')} anos. Estou matriculado no {data_pei.get('ano_esc', '')} ano. {defic}"
+                            
+                            # Coisas que eu gosto
+                            gostos = []
+                            if data_pei.get('beh_interesses'): gostos.append(data_pei.get('beh_interesses'))
+                            if data_pei.get('beh_objetos_gosta'): gostos.append(data_pei.get('beh_objetos_gosta'))
+                            if data_pei.get('beh_atividades'): gostos.append(data_pei.get('beh_atividades'))
+                            data_conduta['conduta_gosto'] = "\n".join(gostos)
+                            
+                            # Coisas que não gosto
+                            nao_gosto = []
+                            if data_pei.get('beh_objetos_odeia'): nao_gosto.append(data_pei.get('beh_objetos_odeia'))
+                            if data_pei.get('beh_gatilhos'): nao_gosto.append(f"Fico chateado/nervoso quando: {data_pei.get('beh_gatilhos')}")
+                            data_conduta['conduta_nao_gosto'] = "\n".join(nao_gosto)
+                            
+                            # Como me comunico
+                            data_conduta['conduta_comunico'] = f"Eu me comunico: {data_pei.get('com_tipo', '')}. {data_pei.get('com_alt_espec', '')}"
+                            
+                            # Como me ajudar
+                            ajuda = []
+                            if data_pei.get('beh_crise_regula'): ajuda.append(f"Para me regular: {data_pei.get('beh_crise_regula')}")
+                            if data_pei.get('beh_calmo'): ajuda.append(f"O que me acalma: {data_pei.get('beh_calmo')}")
+                            data_conduta['conduta_ajuda'] = "\n".join(ajuda)
+                            
+                            # Habilidades
+                            habs = []
+                            if data_pei.get('hig_banheiro'): habs.append(f"Uso do banheiro: {data_pei.get('hig_banheiro')}")
+                            if data_pei.get('hig_dentes'): habs.append(f"Escovação: {data_pei.get('hig_dentes')}")
+                            if data_pei.get('dev_tarefas'): habs.append(f"Tarefas: {data_pei.get('dev_tarefas')}")
+                            data_conduta['conduta_habilidades'] = "\n".join(habs)
+                            
+                            st.success("Dados importados do PEI com sucesso! Revise abaixo.")
+                        else:
+                            st.warning("Dados do PEI não encontrados para este aluno.")
 
                 # Campos do Formulário
                 c1, c2 = st.columns([3, 1])
@@ -2219,29 +2309,30 @@ elif app_mode == "👥 Gestão de Alunos":
                 if isinstance(d_val, str): 
                     try: d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
                     except: d_val = date.today()
-                data_conduta['nasc'] = c2.date_input("Nascimento", value=d_val if d_val else date.today(), format="DD/MM/YYYY")
+                data_conduta['nasc'] = c2.date_input("Nascimento", value=d_val if d_val else date.today(), format="DD/MM/YYYY", disabled=is_monitor)
                 
-                data_conduta['ano_esc'] = st.text_input("Ano de Escolaridade", value=data_pei.get('ano_esc', data_conduta.get('ano_esc','')))
+                data_conduta['ano_esc'] = st.text_input("Ano de Escolaridade", value=data_pei.get('ano_esc', data_conduta.get('ano_esc','')), disabled=is_monitor)
                 
                 st.divider()
                 
                 c_g, c_s = st.columns(2)
-                data_conduta['conduta_gosto'] = c_g.text_area("Coisas que eu gosto (Laranja)", value=data_conduta.get('conduta_gosto', ''), height=150)
-                data_conduta['conduta_sobre_mim'] = c_s.text_area("Sobre mim (Verde)", value=data_conduta.get('conduta_sobre_mim', ''), height=150)
+                data_conduta['conduta_gosto'] = c_g.text_area("Coisas que eu gosto (Laranja)", value=data_conduta.get('conduta_gosto', ''), height=150, disabled=is_monitor)
+                data_conduta['conduta_sobre_mim'] = c_s.text_area("Sobre mim (Verde)", value=data_conduta.get('conduta_sobre_mim', ''), height=150, disabled=is_monitor)
                 
                 c_ng, c_com = st.columns(2)
-                data_conduta['conduta_nao_gosto'] = c_ng.text_area("Coisas que eu não gosto (Vermelho)", value=data_conduta.get('conduta_nao_gosto', ''), height=150)
-                data_conduta['conduta_comunico'] = c_com.text_area("Como me comunico (Roxo)", value=data_conduta.get('conduta_comunico', ''), height=150)
+                data_conduta['conduta_nao_gosto'] = c_ng.text_area("Coisas que eu não gosto (Vermelho)", value=data_conduta.get('conduta_nao_gosto', ''), height=150, disabled=is_monitor)
+                data_conduta['conduta_comunico'] = c_com.text_area("Como me comunico (Roxo)", value=data_conduta.get('conduta_comunico', ''), height=150, disabled=is_monitor)
                 
                 c_aj, c_hab = st.columns(2)
-                data_conduta['conduta_ajuda'] = c_aj.text_area("Como me ajudar (Azul)", value=data_conduta.get('conduta_ajuda', ''), height=150)
-                data_conduta['conduta_habilidades'] = c_hab.text_area("Habilidades / Eu posso (Amarelo)", value=data_conduta.get('conduta_habilidades', ''), height=150)
+                data_conduta['conduta_ajuda'] = c_aj.text_area("Como me ajudar (Azul)", value=data_conduta.get('conduta_ajuda', ''), height=150, disabled=is_monitor)
+                data_conduta['conduta_habilidades'] = c_hab.text_area("Habilidades / Eu posso (Amarelo)", value=data_conduta.get('conduta_habilidades', ''), height=150, disabled=is_monitor)
 
                 st.markdown("---")
                 c_save, c_pdf = st.columns(2)
                 
-                if c_save.form_submit_button("💾 Salvar Protocolo"):
-                    save_student("CONDUTA", data_conduta.get('nome', 'aluno'), data_conduta, "Protocolo")
+                if not is_monitor:
+                    if c_save.form_submit_button("💾 Salvar Protocolo"):
+                        save_student("CONDUTA", data_conduta.get('nome', 'aluno'), data_conduta, "Protocolo")
                 
                 if c_pdf.form_submit_button("👁️ Gerar PDF"):
                     log_action(data_conduta.get('nome'), "Gerou PDF", "Protocolo de Conduta")
@@ -2448,128 +2539,130 @@ elif app_mode == "👥 Gestão de Alunos":
                 st.subheader("Configuração da Avaliação")
                 st.caption("Utilize o botão abaixo para importar informações já preenchidas no PEI e Estudo de Caso.")
                 
-                if st.form_submit_button("🔄 Preencher Automaticamente"):
-                    if data_pei or data_caso:
-                        data_aval['nome'] = data_pei.get('nome') or data_caso.get('nome', '')
-                        data_aval['nasc'] = data_pei.get('nasc') or data_caso.get('d_nasc', '')
-                        data_aval['ano_esc'] = data_pei.get('ano_esc') or data_caso.get('ano_esc', '')
-                        data_aval['defic_chk'] = data_pei.get('diag_tipo', [])
-                        
-                        aspectos = []
-                        if data_pei.get('prof_poli'): aspectos.append(f"Polivalente: {data_pei.get('prof_poli')}")
-                        if data_pei.get('prof_aee'): aspectos.append(f"AEE: {data_pei.get('prof_aee')}")
-                        if data_pei.get('flex_matrix'): aspectos.append("Possui flexibilização curricular registrada no PEI.")
-                        data_aval['aspectos_gerais'] = "\n".join(aspectos)
-                        
-                        if data_pei.get('beh_autonomia_agua') == 'Sim': data_aval['alim_nivel'] = opts_alim[0]
-                        if data_pei.get('hig_banheiro') == 'Sim': data_aval['hig_nivel'] = opts_hig[0]
-                        if data_pei.get('loc_reduzida') == 'Não': data_aval['loc_nivel'] = [opts_loc[0]]
-                        
-                        st.success("Dados importados com sucesso!")
-                    else:
-                        st.warning("Sem dados prévios para importar.")
+                if not is_monitor:
+                    if st.form_submit_button("🔄 Preencher Automaticamente"):
+                        if data_pei or data_caso:
+                            data_aval['nome'] = data_pei.get('nome') or data_caso.get('nome', '')
+                            data_aval['nasc'] = data_pei.get('nasc') or data_caso.get('d_nasc', '')
+                            data_aval['ano_esc'] = data_pei.get('ano_esc') or data_caso.get('ano_esc', '')
+                            data_aval['defic_chk'] = data_pei.get('diag_tipo', [])
+                            
+                            aspectos = []
+                            if data_pei.get('prof_poli'): aspectos.append(f"Polivalente: {data_pei.get('prof_poli')}")
+                            if data_pei.get('prof_aee'): aspectos.append(f"AEE: {data_pei.get('prof_aee')}")
+                            if data_pei.get('flex_matrix'): aspectos.append("Possui flexibilização curricular registrada no PEI.")
+                            data_aval['aspectos_gerais'] = "\n".join(aspectos)
+                            
+                            if data_pei.get('beh_autonomia_agua') == 'Sim': data_aval['alim_nivel'] = opts_alim[0]
+                            if data_pei.get('hig_banheiro') == 'Sim': data_aval['hig_nivel'] = opts_hig[0]
+                            if data_pei.get('loc_reduzida') == 'Não': data_aval['loc_nivel'] = [opts_loc[0]]
+                            
+                            st.success("Dados importados com sucesso!")
+                        else:
+                            st.warning("Sem dados prévios para importar.")
 
                 # --- CAMPOS DO FORMULÁRIO ---
                 st.markdown("### Identificação")
                 c_nom, c_ano = st.columns([3, 1])
                 data_aval['nome'] = c_nom.text_input("Estudante", value=data_aval.get('nome', ''), disabled=True)
-                data_aval['ano_esc'] = c_ano.text_input("Ano Escolaridade", value=data_aval.get('ano_esc', ''))
+                data_aval['ano_esc'] = c_ano.text_input("Ano Escolaridade", value=data_aval.get('ano_esc', ''), disabled=is_monitor)
                 
                 st.markdown("**Deficiências (Marque as opções):**")
-                data_aval['defic_chk'] = st.multiselect("Selecione:", defs_opts, default=data_aval.get('defic_chk', []))
-                data_aval['defic_outra'] = st.text_input("Outra:", value=data_aval.get('defic_outra', ''))
+                data_aval['defic_chk'] = st.multiselect("Selecione:", defs_opts, default=data_aval.get('defic_chk', []), disabled=is_monitor)
+                data_aval['defic_outra'] = st.text_input("Outra:", value=data_aval.get('defic_outra', ''), disabled=is_monitor)
                 
                 st.markdown("---")
                 st.markdown("### Aspectos Gerais da Vida Escolar")
-                data_aval['aspectos_gerais'] = st.text_area("Relatar data matrícula, plano atendimento, docentes, AEE, PDI...", value=data_aval.get('aspectos_gerais', ''), height=100)
+                data_aval['aspectos_gerais'] = st.text_area("Relatar data matrícula, plano atendimento, docentes, AEE, PDI...", value=data_aval.get('aspectos_gerais', ''), height=100, disabled=is_monitor)
                 
                 with st.expander("Parte I - Habilidades de Vida Diária", expanded=True):
                     c_a, c_h = st.columns(2)
                     with c_a:
                         st.markdown("**1. Alimentação**")
                         idx_alim = opts_alim.index(data_aval.get('alim_nivel')) if data_aval.get('alim_nivel') in opts_alim else 0
-                        data_aval['alim_nivel'] = st.radio("Nível Alimentação", opts_alim, index=idx_alim, key="rad_alim")
-                        data_aval['alim_obs'] = st.text_input("Obs Alimentação:", value=data_aval.get('alim_obs', ''))
+                        data_aval['alim_nivel'] = st.radio("Nível Alimentação", opts_alim, index=idx_alim, key="rad_alim", disabled=is_monitor)
+                        data_aval['alim_obs'] = st.text_input("Obs Alimentação:", value=data_aval.get('alim_obs', ''), disabled=is_monitor)
                     
                     with c_h:
                         st.markdown("**2. Higiene**")
                         idx_hig = opts_hig.index(data_aval.get('hig_nivel')) if data_aval.get('hig_nivel') in opts_hig else 0
-                        data_aval['hig_nivel'] = st.radio("Nível Higiene", opts_hig, index=idx_hig, key="rad_hig")
-                        data_aval['hig_obs'] = st.text_input("Obs Higiene:", value=data_aval.get('hig_obs', ''))
+                        data_aval['hig_nivel'] = st.radio("Nível Higiene", opts_hig, index=idx_hig, key="rad_hig", disabled=is_monitor)
+                        data_aval['hig_obs'] = st.text_input("Obs Higiene:", value=data_aval.get('hig_obs', ''), disabled=is_monitor)
                     
                     st.markdown("**3. Locomoção (Selecione todos que se aplicam)**")
-                    data_aval['loc_nivel'] = st.multiselect("Itens:", opts_loc, default=data_aval.get('loc_nivel', []))
-                    data_aval['loc_obs'] = st.text_input("Obs Locomoção:", value=data_aval.get('loc_obs', ''))
+                    data_aval['loc_nivel'] = st.multiselect("Itens:", opts_loc, default=data_aval.get('loc_nivel', []), disabled=is_monitor)
+                    data_aval['loc_obs'] = st.text_input("Obs Locomoção:", value=data_aval.get('loc_obs', ''), disabled=is_monitor)
 
                 with st.expander("Parte II - Habilidades Sociais e de Interação"):
                     st.markdown("**4. Comportamento**")
                     idx_comp = opts_comp.index(data_aval.get('comportamento')) if data_aval.get('comportamento') in opts_comp else 0
-                    data_aval['comportamento'] = st.radio("Nível Comportamento", opts_comp, index=idx_comp)
-                    data_aval['comp_obs'] = st.text_input("Obs Comportamento:", value=data_aval.get('comp_obs', ''))
+                    data_aval['comportamento'] = st.radio("Nível Comportamento", opts_comp, index=idx_comp, disabled=is_monitor)
+                    data_aval['comp_obs'] = st.text_input("Obs Comportamento:", value=data_aval.get('comp_obs', ''), disabled=is_monitor)
                     
                     st.divider()
                     st.markdown("**5. Participação em Grupo**")
                     idx_part = opts_part.index(data_aval.get('part_grupo')) if data_aval.get('part_grupo') in opts_part else 0
-                    data_aval['part_grupo'] = st.radio("Nível Participação", opts_part, index=idx_part)
-                    data_aval['part_obs'] = st.text_input("Obs Participação:", value=data_aval.get('part_obs', ''))
+                    data_aval['part_grupo'] = st.radio("Nível Participação", opts_part, index=idx_part, disabled=is_monitor)
+                    data_aval['part_obs'] = st.text_input("Obs Participação:", value=data_aval.get('part_obs', ''), disabled=is_monitor)
                     
                     st.divider()
                     st.markdown("**6. Interação**")
                     idx_int = opts_int.index(data_aval.get('interacao')) if data_aval.get('interacao') in opts_int else 0
-                    data_aval['interacao'] = st.radio("Nível Interação", opts_int, index=idx_int)
+                    data_aval['interacao'] = st.radio("Nível Interação", opts_int, index=idx_int, disabled=is_monitor)
                     if data_aval['interacao'] == "Outros":
-                        data_aval['interacao_outros'] = st.text_input("Especifique (Interação):", value=data_aval.get('interacao_outros', ''))
+                        data_aval['interacao_outros'] = st.text_input("Especifique (Interação):", value=data_aval.get('interacao_outros', ''), disabled=is_monitor)
 
                 with st.expander("Parte III - Habilidades Pedagógicas"):
                     st.markdown("**7. Rotina Sala de Aula**")
                     idx_rot = opts_rot.index(data_aval.get('rotina')) if data_aval.get('rotina') in opts_rot else 0
-                    data_aval['rotina'] = st.radio("Nível Rotina", opts_rot, index=idx_rot)
-                    data_aval['rotina_obs'] = st.text_input("Obs Rotina:", value=data_aval.get('rotina_obs', ''))
+                    data_aval['rotina'] = st.radio("Nível Rotina", opts_rot, index=idx_rot, disabled=is_monitor)
+                    data_aval['rotina_obs'] = st.text_input("Obs Rotina:", value=data_aval.get('rotina_obs', ''), disabled=is_monitor)
                     
                     st.divider()
                     st.markdown("**8. Atividades Pedagógicas**")
                     idx_ativ = opts_ativ.index(data_aval.get('ativ_pedag')) if data_aval.get('ativ_pedag') in opts_ativ else 0
-                    data_aval['ativ_pedag'] = st.radio("Nível Atividades", opts_ativ, index=idx_ativ)
+                    data_aval['ativ_pedag'] = st.radio("Nível Atividades", opts_ativ, index=idx_ativ, disabled=is_monitor)
 
                 with st.expander("Parte IV - Habilidades de Comunicação e Atenção"):
                     c_com1, c_com2 = st.columns(2)
                     with c_com1:
                         st.markdown("**9. Atenção Sustentada**")
                         idx_as = opts_at_sust.index(data_aval.get('atencao_sust')) if data_aval.get('atencao_sust') in opts_at_sust else 0
-                        data_aval['atencao_sust'] = st.radio("Sustentada", opts_at_sust, index=idx_as, key="at_sust")
+                        data_aval['atencao_sust'] = st.radio("Sustentada", opts_at_sust, index=idx_as, key="at_sust", disabled=is_monitor)
                         
                         st.markdown("**11. Atenção Seletiva**")
                         idx_asel = opts_at_sel.index(data_aval.get('atencao_sel')) if data_aval.get('atencao_sel') in opts_at_sel else 0
-                        data_aval['atencao_sel'] = st.radio("Seletiva", opts_at_sel, index=idx_asel, key="at_sel")
+                        data_aval['atencao_sel'] = st.radio("Seletiva", opts_at_sel, index=idx_asel, key="at_sel", disabled=is_monitor)
                     
                     with c_com2:
                         st.markdown("**10. Atenção Dividida**")
                         idx_ad = opts_at_div.index(data_aval.get('atencao_div')) if data_aval.get('atencao_div') in opts_at_div else 0
-                        data_aval['atencao_div'] = st.radio("Dividida", opts_at_div, index=idx_ad, key="at_div")
+                        data_aval['atencao_div'] = st.radio("Dividida", opts_at_div, index=idx_ad, key="at_div", disabled=is_monitor)
                     
                     st.divider()
                     st.markdown("**12. Linguagem (Marque todas que se aplicam)**")
-                    data_aval['linguagem'] = st.multiselect("Linguagem:", opts_ling, default=data_aval.get('linguagem', []))
-                    data_aval['ling_obs'] = st.text_input("Obs Linguagem:", value=data_aval.get('ling_obs', ''))
+                    data_aval['linguagem'] = st.multiselect("Linguagem:", opts_ling, default=data_aval.get('linguagem', []), disabled=is_monitor)
+                    data_aval['ling_obs'] = st.text_input("Obs Linguagem:", value=data_aval.get('ling_obs', ''), disabled=is_monitor)
 
                 st.markdown("### Conclusão e Responsáveis")
-                data_aval['conclusao_nivel'] = st.selectbox("Nível de Apoio Concluído", ["Não necessita de apoio", "Nível 1", "Nível 2", "Nível 3"], index=0)
-                data_aval['apoio_existente'] = st.text_input("Se este apoio já é oferecido, explicitar aqui:", value=data_aval.get('apoio_existente', ''))
+                data_aval['conclusao_nivel'] = st.selectbox("Nível de Apoio Concluído", ["Não necessita de apoio", "Nível 1", "Nível 2", "Nível 3"], index=0, disabled=is_monitor)
+                data_aval['apoio_existente'] = st.text_input("Se este apoio já é oferecido, explicitar aqui:", value=data_aval.get('apoio_existente', ''), disabled=is_monitor)
                 
                 c_resp1, c_resp2 = st.columns(2)
-                data_aval['resp_sala'] = c_resp1.text_input("Prof. Sala Regular", value=data_aval.get('resp_sala', ''))
-                data_aval['resp_arte'] = c_resp2.text_input("Prof. Arte", value=data_aval.get('resp_arte', ''))
-                data_aval['resp_ef'] = c_resp1.text_input("Prof. Ed. Física", value=data_aval.get('resp_ef', ''))
-                data_aval['resp_ee'] = c_resp2.text_input("Prof. Ed. Especial", value=data_aval.get('resp_ee', ''))
-                data_aval['resp_dir'] = c_resp1.text_input("Direção Escolar", value=data_aval.get('resp_dir', ''))
-                data_aval['resp_coord'] = c_resp2.text_input("Coordenação", value=data_aval.get('resp_coord', ''))
+                data_aval['resp_sala'] = c_resp1.text_input("Prof. Sala Regular", value=data_aval.get('resp_sala', ''), disabled=is_monitor)
+                data_aval['resp_arte'] = c_resp2.text_input("Prof. Arte", value=data_aval.get('resp_arte', ''), disabled=is_monitor)
+                data_aval['resp_ef'] = c_resp1.text_input("Prof. Ed. Física", value=data_aval.get('resp_ef', ''), disabled=is_monitor)
+                data_aval['resp_ee'] = c_resp2.text_input("Prof. Ed. Especial", value=data_aval.get('resp_ee', ''), disabled=is_monitor)
+                data_aval['resp_dir'] = c_resp1.text_input("Direção Escolar", value=data_aval.get('resp_dir', ''), disabled=is_monitor)
+                data_aval['resp_coord'] = c_resp2.text_input("Coordenação", value=data_aval.get('resp_coord', ''), disabled=is_monitor)
                 
-                data_aval['data_emissao'] = st.date_input("Data Emissão", value=date.today(), format="DD/MM/YYYY")
+                data_aval['data_emissao'] = st.date_input("Data Emissão", value=date.today(), format="DD/MM/YYYY", disabled=is_monitor)
 
                 st.markdown("---")
                 c_sv, c_pd = st.columns(2)
-                if c_sv.form_submit_button("💾 Salvar Avaliação"):
-                    save_student("AVALIACAO", data_aval.get('nome', 'aluno'), data_aval, "Avaliação")
+                if not is_monitor:
+                    if c_sv.form_submit_button("💾 Salvar Avaliação"):
+                        save_student("AVALIACAO", data_aval.get('nome', 'aluno'), data_aval, "Avaliação")
                 
                 if c_pd.form_submit_button("👁️ Gerar PDF Avaliação"):
                     # --- PDF GENERATION EXPERT MODE ---
@@ -3087,10 +3180,3 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
-
-
-
-
-
-
-

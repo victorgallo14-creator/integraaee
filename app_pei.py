@@ -1983,85 +1983,18 @@ elif app_mode == "👥 Gestão de Alunos":
             }
         }
 
-        # Tabs de Navegação
+        # Tabs de Navegação - Dados Gerais e Avaliação Geral removidos da edição (usam Estudo de Caso)
         tabs = st.tabs([
-            "1. Dados Gerais", 
-            "2. Contexto Escolar",
-            "3. Plano AEE",
-            "4. Avaliação Pedagógica (Metas)",
-            "5. Assinaturas & PDF"
+            "1. Contexto Escolar",
+            "2. Plano AEE",
+            "3. Avaliação Pedagógica (Metas)",
+            "4. Assinaturas & PDF"
         ])
+        
+        st.info("ℹ️ Os dados de **Identificação**, **Família**, **Histórico** e **Avaliação Geral (Saúde/Família)** são importados automaticamente do módulo **Estudo de Caso**. Edite-os lá se necessário.")
 
-        # --- ABA 1: DADOS GERAIS ---
+        # --- ABA 1: CONTEXTO ESCOLAR (Antiga ABA 2) ---
         with tabs[0]:
-            with st.form("pdi_dados_gerais"):
-                st.subheader("1.1 Identificação")
-                c1, c2 = st.columns([3, 1])
-                data_pdi['nome'] = c1.text_input("Nome Completo", value=data_pdi.get('nome', data_pei.get('nome', '')), disabled=True)
-                
-                d_val = data_pdi.get('d_nasc') or data_pei.get('nasc')
-                if isinstance(d_val, str): 
-                    try: d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
-                    except: d_val = date.today()
-                data_pdi['d_nasc'] = c2.date_input("Data de Nascimento", value=d_val if d_val else date.today(), format="DD/MM/YYYY", disabled=is_monitor)
-
-                c3, c4, c5 = st.columns([2, 1, 1])
-                data_pdi['endereco'] = c3.text_input("Endereço Residencial", value=data_pdi.get('endereco', data_case.get('endereco', '')), disabled=is_monitor)
-                data_pdi['bairro'] = c4.text_input("Bairro", value=data_pdi.get('bairro', data_case.get('bairro', '')), disabled=is_monitor)
-                data_pdi['cidade'] = c5.text_input("Cidade", value=data_pdi.get('cidade', 'Limeira'), disabled=is_monitor)
-                data_pdi['telefones'] = st.text_input("Telefones", value=data_pdi.get('telefones', data_case.get('telefones', '')), disabled=is_monitor)
-                
-                c6, c7 = st.columns([1, 1])
-                data_pdi['sexo'] = c6.selectbox("Gênero", ["Masculino", "Feminino"], index=0 if data_pdi.get('sexo')=='Masculino' else 1, disabled=is_monitor)
-                
-                st.subheader("1.3 e 1.4 Informação Escolar")
-                ce1, ce2 = st.columns([2, 2])
-                data_pdi['unidade'] = ce1.text_input("Unidade Escolar", value=data_pdi.get('unidade', data_case.get('unidade', '')), disabled=is_monitor)
-                data_pdi['esc_endereco'] = ce2.text_input("Endereço Escola", value=data_pdi.get('esc_endereco', ''), disabled=is_monitor)
-                
-                ce3, ce4 = st.columns(2)
-                data_pdi['ano_esc'] = ce3.text_input("Ano Escolar (Classe)", value=data_pdi.get('ano_esc', data_pei.get('ano_esc', '')), disabled=is_monitor)
-                data_pdi['esc_turno'] = ce4.text_input("Turno", value=data_pdi.get('esc_turno', ''), disabled=is_monitor)
-                
-                ce5, ce6 = st.columns(2)
-                data_pdi['hist_idade_entrou'] = ce5.text_input("Idade que entrou na escola", value=data_pdi.get('hist_idade_entrou', ''), disabled=is_monitor)
-                data_pdi['hist_outras'] = ce6.text_input("Já estudou em outra escola? Quais?", value=data_pdi.get('hist_outras', ''), disabled=is_monitor)
-                data_pdi['hist_motivo'] = st.text_input("Motivo da transferência", value=data_pdi.get('hist_motivo', ''), disabled=is_monitor)
-                data_pdi['hist_obs'] = st.text_area("Outras observações sobre histórico escolar", value=data_pdi.get('hist_obs', ''), disabled=is_monitor)
-
-                st.subheader("1.2 Dados Familiares")
-                st.markdown("**PAI**")
-                cf1, cf2, cf3, cf4 = st.columns([2, 1, 1, 1])
-                data_pdi['pai_nome'] = cf1.text_input("Nome do Pai", value=data_pdi.get('pai_nome', data_case.get('pai_nome', '')), disabled=is_monitor)
-                data_pdi['pai_prof'] = cf2.text_input("Profissão Pai", value=data_pdi.get('pai_prof', data_case.get('pai_prof', '')), disabled=is_monitor)
-                data_pdi['pai_esc'] = cf3.text_input("Escolaridade Pai", value=data_pdi.get('pai_esc', data_case.get('pai_esc', '')), disabled=is_monitor)
-                data_pdi['pai_d_nasc'] = cf4.text_input("Nasc. Pai", value=data_pdi.get('pai_d_nasc', ''), placeholder="dd/mm/aaaa", disabled=is_monitor)
-
-                st.markdown("**MÃE**")
-                cm1, cm2, cm3, cm4 = st.columns([2, 1, 1, 1])
-                data_pdi['mae_nome'] = cm1.text_input("Nome da Mãe", value=data_pdi.get('mae_nome', data_case.get('mae_nome', '')), disabled=is_monitor)
-                data_pdi['mae_prof'] = cm2.text_input("Profissão Mãe", value=data_pdi.get('mae_prof', data_case.get('mae_prof', '')), disabled=is_monitor)
-                data_pdi['mae_esc'] = cm3.text_input("Escolaridade Mãe", value=data_pdi.get('mae_esc', data_case.get('mae_esc', '')), disabled=is_monitor)
-                data_pdi['mae_d_nasc'] = cm4.text_input("Nasc. Mãe", value=data_pdi.get('mae_d_nasc', ''), placeholder="dd/mm/aaaa", disabled=is_monitor)
-                
-                st.markdown("**IRMÃOS**")
-                if 'irmaos' not in data_pdi: data_pdi['irmaos'] = data_case.get('irmaos', [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)])
-                
-                for i in range(len(data_pdi['irmaos'])):
-                    ci1, ci2, ci3 = st.columns([2, 1, 2])
-                    data_pdi['irmaos'][i]['nome'] = ci1.text_input(f"Irmão {i+1} Nome", value=data_pdi['irmaos'][i]['nome'], key=f"pdi_ir_n_{i}", disabled=is_monitor)
-                    data_pdi['irmaos'][i]['idade'] = ci2.text_input(f"Idade {i+1}", value=data_pdi['irmaos'][i]['idade'], key=f"pdi_ir_i_{i}", disabled=is_monitor)
-                    data_pdi['irmaos'][i]['esc'] = ci3.text_input(f"Escolaridade {i+1}", value=data_pdi['irmaos'][i]['esc'], key=f"pdi_ir_e_{i}", disabled=is_monitor)
-
-                c_qm, c_conv = st.columns(2)
-                data_pdi['quem_mora'] = c_qm.text_input("Com quem mora?", value=data_pdi.get('quem_mora', data_case.get('quem_mora', '')), disabled=is_monitor)
-                data_pdi['convenio'] = c_conv.text_input("Convênio Médico", value=data_pdi.get('convenio', data_case.get('convenio', '')), disabled=is_monitor)
-
-                if st.form_submit_button("💾 Salvar Dados Gerais"):
-                    save_student("PDI", data_pdi.get('nome'), data_pdi, "Dados Gerais")
-
-        # --- ABA 2: CONTEXTO ESCOLAR ---
-        with tabs[1]:
             with st.form("pdi_contexto_escolar"):
                 st.header("2.2 Âmbito Escolar (Aspectos Gerais)")
                 
@@ -2108,8 +2041,8 @@ elif app_mode == "👥 Gestão de Alunos":
                 if st.form_submit_button("💾 Salvar Contexto Escolar"):
                     save_student("PDI", data_pdi.get('nome'), data_pdi, "Contexto Escolar")
 
-        # --- ABA 3: PLANO AEE ---
-        with tabs[2]:
+        # --- ABA 2: PLANO AEE ---
+        with tabs[1]:
             with st.form("pdi_plano_aee"):
                 st.header("3. Plano de AEE")
                 
@@ -2136,8 +2069,8 @@ elif app_mode == "👥 Gestão de Alunos":
                 if st.form_submit_button("💾 Salvar Plano AEE"):
                     save_student("PDI", data_pdi.get('nome'), data_pdi, "Plano AEE")
 
-        # --- ABA 4: ÁREAS DE DESENVOLVIMENTO (GRID DE METAS) ---
-        with tabs[3]:
+        # --- ABA 3: ÁREAS DE DESENVOLVIMENTO (GRID DE METAS) ---
+        with tabs[2]:
             st.header("1. Avaliação Pedagógica (Objetivos e Metas)")
             st.info("Preencha o quadro: Diagnóstico (Inicial), Percurso (Durante) e Final.")
             
@@ -2167,8 +2100,8 @@ elif app_mode == "👥 Gestão de Alunos":
                 if st.form_submit_button("💾 Salvar Metas e Objetivos"):
                     save_student("PDI", data_pdi.get('nome'), data_pdi, "Metas PDI")
 
-        # --- ABA 5: ASSINATURAS E PDF ---
-        with tabs[4]:
+        # --- ABA 4: ASSINATURAS E PDF ---
+        with tabs[3]:
             st.subheader("Finalização")
             
             # Assinaturas
@@ -2213,59 +2146,59 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.set_font("Arial", "B", 14)
                 pdf.cell(0, 10, f"ANO: {datetime.now().year}", 0, 1, 'C')
 
-                # --- 1. DADOS GERAIS ---
+                # --- 1. DADOS GERAIS (Fonte: Estudo de Caso) ---
                 pdf.add_page()
                 pdf.section_title("1. DADOS GERAIS DO ESTUDANTE", width=0)
                 pdf.ln(5)
                 
                 # 1.1 ID
                 pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "1.1 IDENTIFICAÇÃO", 0, 1)
-                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "Nome:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('nome', '')), "B", 1)
-                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "Nascimento:", 0); pdf.set_font("Arial", "", 10); pdf.cell(50, 6, clean_pdf_text(str(data_pdi.get('d_nasc', ''))), "B", 0)
-                pdf.set_font("Arial", "B", 10); pdf.cell(20, 6, "Gênero:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('sexo', '')), "B", 1)
-                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "Endereço:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('endereco', '')), "B", 1)
-                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "Bairro/Cid:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(f"{data_pdi.get('bairro', '')} / {data_pdi.get('cidade', '')}"), "B", 1)
-                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "Telefones:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('telefones', '')), "B", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "Nome:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_case.get('nome', data_pdi.get('nome', ''))), "B", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "Nascimento:", 0); pdf.set_font("Arial", "", 10); pdf.cell(50, 6, clean_pdf_text(str(data_case.get('d_nasc', data_pdi.get('d_nasc', '')))), "B", 0)
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 6, "Gênero:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_case.get('sexo', data_pdi.get('sexo', ''))), "B", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "Endereço:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_case.get('endereco', '')), "B", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "Bairro/Cid:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(f"{data_case.get('bairro', '')} / {data_case.get('cidade', '')}"), "B", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "Telefones:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_case.get('telefones', '')), "B", 1)
 
                 pdf.ln(5)
                 # 1.2 FAMILIA
                 pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "1.2 DADOS FAMILIARES", 0, 1)
                 
                 pdf.set_font("Arial", "B", 10); pdf.cell(10, 6, "Pai:", 0); pdf.set_font("Arial", "", 10)
-                pdf.cell(80, 6, clean_pdf_text(data_pdi.get('pai_nome', '')), "B", 0)
+                pdf.cell(80, 6, clean_pdf_text(data_case.get('pai_nome', '')), "B", 0)
                 pdf.set_font("Arial", "B", 10); pdf.cell(15, 6, "Prof:", 0); pdf.set_font("Arial", "", 10)
-                pdf.cell(40, 6, clean_pdf_text(data_pdi.get('pai_prof', '')), "B", 0)
+                pdf.cell(40, 6, clean_pdf_text(data_case.get('pai_prof', '')), "B", 0)
                 pdf.set_font("Arial", "B", 10); pdf.cell(25, 6, "Nasc:", 0); pdf.set_font("Arial", "", 10)
-                pdf.cell(0, 6, clean_pdf_text(data_pdi.get('pai_d_nasc', '')), "B", 1)
+                pdf.cell(0, 6, clean_pdf_text(data_case.get('pai_d_nasc', '')), "B", 1)
                 
                 pdf.set_font("Arial", "B", 10); pdf.cell(10, 6, "Mãe:", 0); pdf.set_font("Arial", "", 10)
-                pdf.cell(80, 6, clean_pdf_text(data_pdi.get('mae_nome', '')), "B", 0)
+                pdf.cell(80, 6, clean_pdf_text(data_case.get('mae_nome', '')), "B", 0)
                 pdf.set_font("Arial", "B", 10); pdf.cell(15, 6, "Prof:", 0); pdf.set_font("Arial", "", 10)
-                pdf.cell(40, 6, clean_pdf_text(data_pdi.get('mae_prof', '')), "B", 0)
+                pdf.cell(40, 6, clean_pdf_text(data_case.get('mae_prof', '')), "B", 0)
                 pdf.set_font("Arial", "B", 10); pdf.cell(25, 6, "Nasc:", 0); pdf.set_font("Arial", "", 10)
-                pdf.cell(0, 6, clean_pdf_text(data_pdi.get('mae_d_nasc', '')), "B", 1)
+                pdf.cell(0, 6, clean_pdf_text(data_case.get('mae_d_nasc', '')), "B", 1)
 
                 pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "Irmãos:", 0, 1); pdf.set_font("Arial", "", 9)
-                for i in data_pdi.get('irmaos', []):
+                for i in data_case.get('irmaos', []):
                     if i['nome']: pdf.cell(0, 5, clean_pdf_text(f"- {i['nome']} ({i['idade']}) | Escolaridade: {i['esc']}"), 0, 1)
                 
-                pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(40, 6, "Com quem mora:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('quem_mora', '')), "B", 1)
-                pdf.set_font("Arial", "B", 10); pdf.cell(40, 6, "Convênio Médico:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('convenio', '')), "B", 1)
+                pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(40, 6, "Com quem mora:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_case.get('quem_mora', '')), "B", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(40, 6, "Convênio Médico:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_case.get('convenio', '')), "B", 1)
 
                 pdf.ln(5)
                 # 1.3 HISTORIA ESCOLAR
                 pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "1.3/1.4 INFORMAÇÃO E HISTÓRIA ESCOLAR", 0, 1)
-                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "Unidade:", 0); pdf.set_font("Arial", "", 10); pdf.cell(90, 6, clean_pdf_text(data_pdi.get('unidade', '')), "B", 0)
-                pdf.set_font("Arial", "B", 10); pdf.cell(20, 6, "Turno:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('esc_turno', '')), "B", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "Unidade:", 0); pdf.set_font("Arial", "", 10); pdf.cell(90, 6, clean_pdf_text(data_case.get('unidade', '')), "B", 0)
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 6, "Turno:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_case.get('esc_turno', '')), "B", 1)
                 
-                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "End. Escola:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('esc_endereco', '')), "B", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "End. Escola:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_case.get('esc_endereco', '')), "B", 1)
                 
-                pdf.set_font("Arial", "B", 10); pdf.cell(40, 6, "Idade entrou escola:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('hist_idade_entrou', '')), "B", 1)
-                pdf.set_font("Arial", "B", 10); pdf.cell(40, 6, "Outras escolas:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('hist_outras', '')), "B", 1)
-                pdf.set_font("Arial", "B", 10); pdf.cell(40, 6, "Motivo transf.:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('hist_motivo', '')), "B", 1)
-                pdf.multi_cell(0, 5, clean_pdf_text(f"Obs: {data_pdi.get('hist_obs','')}"))
+                pdf.set_font("Arial", "B", 10); pdf.cell(40, 6, "Idade entrou escola:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_case.get('hist_idade_entrou', '')), "B", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(40, 6, "Outras escolas:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_case.get('hist_outras', '')), "B", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(40, 6, "Motivo transf.:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_case.get('hist_motivo', '')), "B", 1)
+                pdf.multi_cell(0, 5, clean_pdf_text(f"Obs: {data_case.get('hist_obs','')}"))
 
-                # --- 2. AVALIAÇÃO GERAL ---
+                # --- 2. AVALIAÇÃO GERAL (Fonte: Estudo de Caso) ---
                 pdf.add_page()
                 pdf.section_title("2. AVALIAÇÃO GERAL - FAMÍLIA E SAÚDE", width=0)
                 pdf.ln(5)
@@ -2321,7 +2254,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.set_font("Arial", "", 9)
                 pdf.multi_cell(0, 5, clean_pdf_text(f"Relacionamento: {data_case.get('fam_relacionamento')}\nCastigo: {data_case.get('fam_castigo')}\nCarinho: {data_case.get('fam_carinho')}\nLazer: {data_case.get('fam_lazer')}\nCômodos/Casa: {data_case.get('fam_comodos')}\nLição (Local/Hora): {data_case.get('fam_licao_local')}\nVícios: {data_case.get('fam_vicios')}\nBenefício: {data_case.get('fam_beneficio')}"), 1)
 
-                # --- 2.2 ESCOLA ---
+                # --- 2.2 ESCOLA (Fonte: PDI) ---
                 pdf.add_page()
                 pdf.section_title("2.2 ÂMBITO ESCOLAR E AVALIAÇÃO DO PROFESSOR", width=0)
                 pdf.ln(5)
@@ -3714,6 +3647,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

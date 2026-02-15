@@ -4421,7 +4421,7 @@ elif app_mode == "👥 Gestão de Alunos":
             
 
      # --- RELATÓRIO DIÁRIO ---
-    elif doc_mode == "Relatório Diário":
+    elif doc_mode == "Relatório de Acompanhamento":
         st.markdown("""<div class="header-box"><div class="header-title">Relatório Diário de Acompanhamento</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
         
@@ -4683,6 +4683,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 
 
 

@@ -2198,7 +2198,7 @@ elif app_mode == "👥 Gestão de Alunos":
             "Item 2: Plano AEE",
             "Item 3: Avaliação Pedagógica",
             "Item 4: Objetivos a Atingir",
-            "PDF Final"
+            "PDF Final",
             "Histórico"
         ])
         
@@ -4412,6 +4412,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

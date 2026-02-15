@@ -2569,14 +2569,25 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf = OfficialPDF('P', 'mm', 'A4'); pdf.add_page(); pdf.set_margins(15, 15, 15)
                     
                     # Header
-                    if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)
-                    if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 170, 6, 25)
+                    # Cabeçalho Oficial
+                    pdf.set_xy(15, 10)
+                    if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 20)
+                    if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 175, 8, 20)
 
-                    pdf.set_xy(0, 15); pdf.set_font("Arial", "B", 12)
-                    pdf.cell(210, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
-                    pdf.cell(210, 6, clean_pdf_text("CEIEF RAFAEL AFFONSO LEITE"), 0, 1, 'C')
+                    pdf.set_font("Arial", "", 11)
+                    pdf.set_xy(0, 10)
+                    pdf.cell(0, 5, clean_pdf_text("Secretaria Municipal de"), 0, 1, 'C')
+                    pdf.set_font("Arial", "B", 14)
+                    pdf.cell(0, 6, clean_pdf_text("EDUCAÇÃO"), 0, 1, 'C')
                     
-                    pdf.ln(8); pdf.set_font("Arial", "B", 14)
+                    pdf.ln(2)
+                    pdf.set_font("Arial", "", 9)
+                    pdf.cell(0, 4, clean_pdf_text("Secretaria Municipal de Educação"), 0, 1, 'C')
+                    pdf.cell(0, 4, clean_pdf_text("Centro de Formação do Professor- Rua João Kuhl Filho, S/N – Parque da Cidade"), 0, 1, 'C')
+                    pdf.cell(0, 4, clean_pdf_text("CEP – 13480-731 www.limeira.sp.gov.br Limeira-SP"), 0, 1, 'C')
+                    
+                    pdf.ln(5)
+                    pdf.set_font("Arial", "B", 12)
                     pdf.multi_cell(0, 6, clean_pdf_text("AVALIAÇÃO PEDAGÓGICA: APOIO ESCOLAR PARA ESTUDANTE COM DEFICIÊNCIA"), 0, 'C')
                     pdf.ln(5)
                     
@@ -2626,6 +2637,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("Em casos de comprovada necessidade, a pessoa com transtorno do espectro autista incluída nas classes comuns de ensino regular, nos termos do inciso IV do art. 2º , terá direito a acompanhante especializado."))
                     pdf.ln(6)
                     pdf.set_left_margin(15)
+                    pdf.set_x(15)
                     
                     # 2
                     pdf.set_font("Arial", "", 9)
@@ -2638,6 +2650,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("pessoa que exerce atividades de alimentação, higiene e locomoção do estudante com deficiência e atua em todas as atividades escolares nas quais se fizer necessária, em todos os níveis e modalidades de ensino, em instituições públicas e privadas, excluídas as técnicas ou os procedimentos identificados com profissões legalmente estabelecidas;"))
                     pdf.ln(6)
                     pdf.set_left_margin(15)
+                    pdf.set_x(15)
                     
                     # 3
                     pdf.set_font("Arial", "", 9)
@@ -2650,18 +2663,15 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("Para a identificação das necessidades educacionais especiais dos alunos e a tomada de decisões quanto ao atendimento necessário, a escola deve realizar, com assessoramento técnico, avaliação do aluno no processo de ensino e aprendizagem, contando, para tal, com:"))
                     pdf.ln(5)
                     
-                    # Incisos (Indent 1.5 + 2.0 = 3.5cm -> 35 + 15margin = 50mm? No, 15margin + 15indent + 20indent = 50mm from page edge)
-                    # User requested 1.5cm indent for law, then +2cm for incisos.
-                    # Margin is 15mm.
-                    # Art 6 indent: 15 + 15 = 30mm.
-                    # Incisos indent: 30 + 20 = 50mm.
+                    # Incisos (Indent 1.5 + 2.0 = 3.5cm -> 35 + 15margin = 50mm)
                     pdf.set_left_margin(50)
                     
                     pdf.set_x(50); pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("I - ")); pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("a experiência de seu corpo docente, seus diretores, coordenadores, orientadores e supervisores educacionais;")); pdf.ln(5)
                     pdf.set_x(50); pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("II - ")); pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("o setor responsável pela educação especial do respectivo sistema;")); pdf.ln(5)
                     pdf.set_x(50); pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("III - ")); pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("a colaboração da família e a cooperação dos serviços de Saúde, Assistência Social, Trabalho, Justiça e Esporte, bem como do Ministério Público, quando necessário.” (grifamos e negritamos)")); pdf.ln(6)
                     
-                    pdf.set_left_margin(15) # Restore
+                    pdf.set_left_margin(15) # Restore margin
+                    pdf.set_x(15) # Ensure cursor is correct
                     
                     # Aspectos Gerais
                     pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "ASPECTOS GERAIS DA VIDA ESCOLAR DO ESTUDANTE:", 0, 1)
@@ -2677,13 +2687,14 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.ln(5)
                     pdf.set_font("Arial", "B", 12); pdf.cell(0, 8, clean_pdf_text("AVALIAÇÃO PEDAGÓGICA"), 0, 1, 'C')
                     
-                    # Helper function to print all options with selection
+                    # Helper function to print all options with selection safely
                     def print_full_options(pdf, opts, selected_val, obs_key=None, obs_val=None):
                         pdf.set_font("Arial", "", 10)
+                        width = 180 # Explicit width (210 - 15 - 15) to avoid calculation errors
                         for opt in opts:
                             mark = "(X)" if selected_val == opt else "( )"
                             # Handle long text
-                            pdf.multi_cell(0, 5, clean_pdf_text(f"{mark} {opt}"), 0, 'L')
+                            pdf.multi_cell(width, 5, clean_pdf_text(f"{mark} {opt}"), 0, 'L')
                         
                         if obs_key:
                             obs_text = obs_val if obs_val else "________________________________________________________________"
@@ -2704,7 +2715,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     sel_loc = data_aval.get('loc_nivel', [])
                     for opt in opts_loc:
                         mark = "(X)" if opt in sel_loc else "( )"
-                        pdf.cell(0, 5, clean_pdf_text(f"{mark} {opt}"), 0, 1)
+                        pdf.multi_cell(180, 5, clean_pdf_text(f"{mark} {opt}"), 0, 'L')
                     
                     obs_loc = data_aval.get('loc_obs') if data_aval.get('loc_obs') else "________________________________________________________________"
                     pdf.cell(0, 6, clean_pdf_text(f"Obs: {obs_loc}"), 0, 1)
@@ -2760,7 +2771,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     sel_ling = data_aval.get('linguagem', [])
                     for opt in opts_ling:
                         mark = "(X)" if opt in sel_ling else "( )"
-                        pdf.multi_cell(0, 5, clean_pdf_text(f"{mark} {opt}"), 0, 'L')
+                        pdf.multi_cell(180, 5, clean_pdf_text(f"{mark} {opt}"), 0, 'L')
                     
                     obs_ling = data_aval.get('ling_obs') if data_aval.get('ling_obs') else "_____________________________________________________________________________"
                     pdf.cell(0, 6, clean_pdf_text(f"OBS: {obs_ling}"), 0, 1)
@@ -2852,4 +2863,5 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
                 else: st.info("Sem histórico.")
             else: st.info("Histórico vazio.")
+
 

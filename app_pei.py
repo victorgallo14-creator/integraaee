@@ -2572,27 +2572,19 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 if c_pd.form_submit_button("👁️ Gerar PDF Avaliação"):
                     # --- PDF GENERATION EXPERT MODE ---
-                    pdf = OfficialPDF('P', 'mm', 'A4'); pdf.add_page(); pdf.set_margins(15, 15, 15)
+                    pdf = OfficialPDF('P', 'mm', 'A4')
+                    pdf.add_page(); pdf.set_margins(15, 15, 15)
                     
                     # 1. HEADER (FIXED CEIEF RAFAEL AFFONSO LEITE)
-                    pdf.set_xy(15, 10)
-                    if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 20)
-                    if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 175, 8, 20)
+                    if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)
+                    if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 170, 6, 25)
 
-                    pdf.set_font("Arial", "B", 12)
-                    pdf.set_xy(0, 10)
-                    pdf.cell(0, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
-                    pdf.set_font("Arial", "B", 14)
-                    pdf.cell(0, 8, clean_pdf_text("CEIEF RAFAEL AFFONSO LEITE"), 0, 1, 'C')
-                    
+                    pdf.set_xy(0, 15); pdf.set_font("Arial", "B", 12)
+                    pdf.cell(210, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
+                    pdf.cell(180, 6, clean_pdf_text("CEIEF RAFAEL AFFONSO LEITE"), 0, 1, 'C')
+                    pdf.ln(8)
+                    pdf.set_font("Arial", "B", 16); pdf.cell(0, 10, clean_pdf_text("AVALIAÇÃO PEDAGÓGICA: APOIO ESCOLAR PARA ESTUDANTE COM DEFICIÊNCIA"), 0, 1, 'C')
                     pdf.ln(5)
-                    pdf.set_fill_color(0, 0, 0)
-                    pdf.rect(15, pdf.get_y(), 180, 0.5, 'F')
-                    pdf.ln(3)
-
-                    pdf.set_font("Arial", "B", 12)
-                    pdf.multi_cell(0, 6, clean_pdf_text("AVALIAÇÃO PEDAGÓGICA: APOIO ESCOLAR PARA ESTUDANTE COM DEFICIÊNCIA"), 0, 'C')
-                    pdf.ln(3)
                     
                     # 2. IDENTIFICATION
                     pdf.set_font("Arial", "B", 10); pdf.cell(20, 6, "Estudante:", 0, 0)
@@ -3094,6 +3086,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 
 
 

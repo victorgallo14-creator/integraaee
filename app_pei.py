@@ -1946,7 +1946,7 @@ elif app_mode == "👥 Gestão de Alunos":
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
 
-    # --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
+     # --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
     if doc_mode == "PDI":
         st.markdown(f"""<div class="header-box"><div class="header-title">PDI - Plano de Desenvolvimento Individual</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
@@ -1954,62 +1954,220 @@ elif app_mode == "👥 Gestão de Alunos":
         data_pdi = st.session_state.data_pdi
         data_case = st.session_state.get('data_case', {})
         
-        # --- DEFINIÇÃO DOS CHECKLISTS ESPECÍFICOS ---
+        # --- DEFINIÇÃO DOS CHECKLISTS ESPECÍFICOS (ATUALIZADO) ---
         checklist_options = {
-            "sis_monetario": ["Não reconhece o sistema monetário", "Reconhece o sistema monetário", "Atribui poder de compra"],
+            "sis_monetario": ["Não reconhece o sistema monetário.", "Reconhece o sistema monetário.", "Atribui poder de compra."],
             "brincar_funcional": ["Sim", "Não"],
-            "brincar_explora": ["Explora espontaneamente", "Necessita de modelo/direcionamento"],
+            "brincar_explora": ["Explora os brinquedos espontaneamente.", "Necessita de modelo / direcionamento para explorar os brinquedos."],
             "brincar_criativa": ["Sim", "Não"],
             "brincar_funcoes": ["Sim", "Não"],
-            "memoria_curto": ["Não realiza jogo de memória", "Realiza jogo de memória", "Relembra sequência de cores", "Relembra sequência de números", "Relembra sequência de objetos", "Relembra sentenças simples", "Relembra sentenças complexas"],
-            "memoria_episodica": ["Relembra fatos do cotidiano", "Necessita de ajuda para relembrar", "Não relembra fatos do cotidiano"],
-            "memoria_semantica": ["Relaciona significado c/ objeto", "Necessita de apoio para relacionar", "Não relaciona"],
-            "atencao_sustentada": ["Mantém por longo período", "Mantém por longo período c/ apoio", "Não mantém por longo período"],
-            "atencao_dividida": ["Mantém em dois estímulos", "Mantém em algumas situações", "Não mantém em dois estímulos"],
-            "atencao_seletiva": ["Mantém ignorando estímulos", "Mantém ignorando estímulos c/ apoio", "Não mantém com outros estímulos"],
-            "vm_desenho": ["Não reproduz", "Reproduz diferente do modelo", "Reproduz semelhante ao modelo"],
+            "memoria_curto": [
+                "Não realiza jogo de memória.",
+                "Realiza jogo de memória com _____ peças.",
+                "Relembra sequência de até ______ cores.",
+                "Relembra sequência de até ______ números.",
+                "Relembra sequência de até ______ objetos.",
+                "Relembra sentenças simples.",
+                "Relembra sentenças complexas."
+            ],
+            "memoria_episodica": [
+                "Relembra fatos do cotidiano.",
+                "Necessita de ajuda para relembrar fatos do cotidiano.",
+                "Não relembra fatos do cotidiano."
+            ],
+            "memoria_semantica": [
+                "Relaciona o significado da palavra com o objeto.",
+                "Necessita de apoio para relacionar o significado da palavra com o objeto.",
+                "Não relaciona."
+            ],
+            "atencao_sustentada": [
+                "Mantém atenção por longo período de tempo.",
+                "Mantém atenção por longo período de tempo com apoio.",
+                "Não mantém atenção por longo período de tempo."
+            ],
+            "atencao_dividida": [
+                "Mantém atenção em dois estímulos diferentes.",
+                "Mantém atenção em dois estímulos diferentes em algumas situações.",
+                "Não mantém atenção em dois estímulos diferentes."
+            ],
+            "atencao_seletiva": [
+                "Mantém atenção na tarefa ignorando estímulos externos.",
+                "Mantém atenção na tarefa ignorando estímulos externos com apoio.",
+                "Não mantém atenção na tarefa com a presença de outros estímulos."
+            ],
+            "vm_desenho": [
+                "Não reproduz.",
+                "Reproduz diferente do modelo.",
+                "Reproduz semelhante ao modelo."
+            ],
             "vm_limite_folha": ["Sim", "Não", "Com apoio"],
             "vm_limite_pintura": ["Sim", "Não", "Com apoio"],
             "vm_rasgar": ["Sim", "Não", "Com apoio"],
-            "vm_tesoura": ["Não realiza recorte", "Utiliza com dificuldade", "Utiliza de modo satisfatório"],
-            "vm_cola": ["Não consegue", "Usa muita cola", "Adequado"],
-            "vm_encaixe": ["Não realiza", "Realiza só com apoio", "Realiza encaixe simples", "Realiza encaixe complexos"],
-            "vm_reproducao": ["Não reproduz", "Reproduz diferente do modelo", "Reproduz semelhante ao modelo"],
-            "vm_quebra_cabeca": ["Não realiza", "Realiza por tentativa e erro", "Realiza por visualização"],
-            "mf_punho": ["Não apresenta", "Apresenta em alguns momentos", "Apresenta satisfatoriamente"],
-            "mf_pinca": ["Não apresenta", "Apresenta em alguns momentos", "Apresenta satisfatoriamente"],
-            "mf_preensao": ["Segura com autonomia", "Necessita de apoio", "Preensão palmar", "Preensão digital", "Manuseia massinha/argila"],
+            "vm_tesoura": [
+                "Não realiza recorte com tesoura.",
+                "Utiliza tesoura com dificuldade.",
+                "Utiliza tesoura de modo satisfatório."
+            ],
+            "vm_cola": ["Não consegue.", "Usa muita cola.", "Adequado."],
+            "vm_encaixe": [
+                "Não realiza.",
+                "Realiza encaixe só com apoio.",
+                "Realiza encaixe simples.",
+                "Realiza encaixe mais complexos.",
+                "Outros: _____________________"
+            ],
+            "vm_reproducao": [
+                "Não reproduz.",
+                "Reproduz diferente do modelo.",
+                "Reproduz semelhante ao modelo."
+            ],
+            "vm_quebra_cabeca": [
+                "Não realiza.",
+                "Realiza por tentativa e erro.",
+                "Realiza por visualização."
+            ],
+            "mf_punho": ["Não apresenta.", "Apresenta em alguns momentos.", "Apresenta satisfatoriamente."],
+            "mf_pinca": ["Não apresenta.", "Apresenta em alguns momentos.", "Apresenta satisfatoriamente."],
+            "mf_preensao": [
+                "Segura o lápis/pincel com autonomia.",
+                "Necessita de apoio para segurar o lápis/pincel.",
+                "Apresenta preensão palmar.",
+                "Apresenta preensão digital.",
+                "Manuseia massinha/argila.",
+                "Outros: _____________________"
+            ],
             "mg_tronco_sentado": ["Sim", "Não"],
             "mg_tronco_pe": ["Sim", "Não"],
-            "mg_locomocao": ["Atualmente acamado", "Usa cadeira de rodas", "Possui prótese/órtese", "Usa andador", "Usa bengala", "Se arrasta/engatinha", "Marcha com dificuldade", "Marcha adequada"],
-            "mg_equilibrio": ["Anda sobre linha reta", "Anda sobre linha sinuosa", "Corre em linha reta", "Corre em linha sinuosa", "Equilibra-se em um pé só", "Posição do avião", "Saltos com dois pés", "Saltos com um pé só", "Lança bola com as mãos", "Chuta bola com os pés", "Sobe escadas c/ apoio", "Sobe escadas c/ autonomia"],
+            "mg_postura_opts": ["Cabeça muito próxima à folha.", "Outros: _____________________"],
+            "mg_mao_apoio": ["Não utiliza.", "Utiliza quando necessário.", "Outros: _____________________"],
+            "mg_locomocao": [
+                "Atualmente acamado.",
+                "Faz uso de cadeira de rodas.",
+                "Possui prótese/órtese",
+                "Faz uso de andador.",
+                "Faz uso de bengala.",
+                "Se arrasta/engatinha.",
+                "Apresenta marcha com dificuldade.",
+                "Apresenta marcha adequada.",
+                "Outros: _____________________"
+            ],
+            "mg_equilibrio": [
+                "Anda sobre linha reta.",
+                "Anda sobre linha sinuosa.",
+                "Corre em linha reta.",
+                "Corre em linha sinuosa.",
+                "Equilibra-se em um pé só.",
+                "Realiza posição do avião.",
+                "Realiza saltos com os dois pés.",
+                "Realiza saltos com um pé só.",
+                "Lança bola com as mãos.",
+                "Chuta bola com os pés.",
+                "Necessita de apoio para subir escadas.",
+                "Sobe escadas com autonomia.",
+                "Outros: _____________________"
+            ],
             "ec_imagem": ["Sim", "Não"],
-            "ec_partes": ["Não identifica/nomeia", "Só identifica partes gerais", "Só identifica/nomeia gerais", "Identifica gerais e específicas", "Identifica/nomeia gerais e específicas"],
+            "ec_partes": [
+                "Não identifica ou nomeia as partes do corpo.",
+                "Só identifica partes gerais.",
+                "Só identifica e nomeia partes gerais.",
+                "Identifica partes gerais e específicas.",
+                "Identifica e nomeia partes gerais e específicas."
+            ],
             "ec_funcoes": ["Sim", "Não"],
             "ec_imitar": ["Sim", "Não"],
             "ec_desenho": ["Sim", "Não"],
-            "ec_lateralidade": ["Direita", "Esquerda", "Sem definição"],
-            "ec_identifica_lat": ["Direita", "Esquerda"],
+            "ec_dominancia": ["Direita", "Esquerda", "Sem definição"],
+            "ec_identifica": ["Direita", "Esquerda"],
             "ec_dois_lados": ["Sim", "Não"],
-            "avd_alimentacao": ["É independente", "Necessita de apoio parcial", "Necessita de apoio total"],
-            "avd_higiene": ["Usa sonda", "Usa bolsa de colostomia", "Usa fraldas", "Necessita de apoio total", "Necessita de apoio parcial", "É independente"],
-            "avd_objetos": ["Faz uso funcional", "Necessita de apoio parcial", "Necessita de total apoio"],
-            "avd_locomocao": ["Se locomove com independência", "Necessita de apoio para locomoção"],
-            "ps_interacao": ["Adequada com crianças", "Adequada com adultos", "Satisfatória", "Inadequada"],
-            "ps_iniciativa_dialogo": ["Não", "Sim, mas reduzida", "Adequada"],
-            "ps_iniciativa_ativ": ["Não", "Sim, mas reduzida", "Adequada"],
-            "vp_nome": ["Não", "Sim, mas só o prenome", "Sim, o nome completo"],
-            "vp_sim_nao": ["Sim", "Não"], 
-            "ling_verbal": ["Não faz uso de palavras", "Faz uso de palavras", "Apresenta trocas fonéticas", "Expressa pensamentos/ideias", "Faz relatos sequência lógica", "Estabelece diálogo", "Inventa frases/histórias", "Descreve cenas com sentido", "Reconta histórias"],
-            "ling_compreensiva": ["Processa inf. orais simples", "Processa inf. orais complexas", "Não processa inf. orais", "Compreende inf. textuais", "Compreende contexto história"],
-            "ling_gestual": ["Utiliza apenas gestual", "Utiliza parcialmente", "Não utiliza"],
-            "ling_ecolalia": ["Não fala de forma ecolálica", "Apresenta ecolalia", "Apresenta em alguns momentos"],
-            "ling_escrita": ["Não escreve convencionalmente", "Não distingue desenho/letras", "Distingue desenho/letras", "Escreve letras aleatórias", "Identifica e nomeia letras", "Escreve seu nome", "Relaciona som/grafia", "Escreve palavras canônicas", "Escreve palavras não-canônicas", "Dificuldades na segmentação", "Escreve frases simples", "Escreve textos simples", "Apresenta desorganização textual", "Apresenta trocas fonéticas"],
-            "ling_leitura": ["Não realiza leitura", "Domina sequência alfabética", "Identifica seu nome", "Leitura palavras canônicas", "Leitura canônicas e não-canônicas", "Leitura frases/textos c/ dificuldade", "Leitura frases/textos c/ fluência", "Não compreende o que lê", "Compreende o que lê c/ apoio", "Compreende o que lê"],
-            "libras_aparelho": ["OD", "OE", "Ambos", "Nenhum"],
+            "avd_alimentacao": ["É independente.", "Necessita de apoio parcial.", "Necessita de apoio total."],
+            "avd_higiene": ["Usa sonda.", "Usa bolsa de colostomia.", "Usa fraldas.", "Necessita de apoio total.", "Necessita de apoio parcial.", "É independente."],
+            "avd_objetos": ["Faz uso funcional.", "Necessita de apoio parcial.", "Necessita de total apoio."],
+            "avd_locomocao": ["Se locomove com independência.", "Necessita de apoio para locomoção."],
+            "ps_interacao": [
+                "Adequada com as crianças.",
+                "Adequada com adultos.",
+                "Satisfatória.",
+                "Inadequada.",
+                "Outros: _____________________"
+            ],
+            "ps_iniciativa_dialogo": [
+                "Não.",
+                "Sim, mas reduzida.",
+                "Adequada.",
+                "Outros: _____________________"
+            ],
+            "ps_iniciativa_ativ": ["Não.", "Sim, mas reduzida.", "Adequada."],
+            "ps_comps": [
+                "Timidez", "Insegurança", "Agressividade", "Resistência", "Apatia", "Respeita regras e limites", "Chora facilmente", "Impulsividade",
+                "Agitação", "Ansiedade", "Cooperação", "Desinteresse", "Comportamento infantilizado", "Tiques", "Contato visual"
+            ],
+            "vp_nome": ["Não.", "Sim, mas só o prenome.", "Sim, o nome completo."],
+            "vp_sim_nao": ["Sim", "Não"],
+            "vp_niver": ["Sim", "Não", "Só o mês"],
+            "ling_verbal": [
+                "Não faz uso de palavras para se comunicar.",
+                "Faz uso de palavras para se comunicar.",
+                "Apresenta trocas fonéticas orais.",
+                "Consegue expressar e explicar seus pensamentos ideias e desejos.",
+                "Faz relatos do cotidiano numa sequência lógica.",
+                "Estabelece diálogo com troca de turno.",
+                "Inventa frases ou histórias.",
+                "Descreve cenas com sentido.",
+                "Reconta histórias com sentido e sequência lógica.",
+                "Outros: _____________________"
+            ],
+            "ling_compreensiva": [
+                "Compreende e processa informações orais simples.",
+                "Compreende e processa informações orais complexas.",
+                "Não compreende e não processa informações orais.",
+                "Compreende informações textuais.",
+                "Compreende o contexto de uma história."
+            ],
+            "ling_gestual": ["Utiliza apenas linguagem gestual.", "Utiliza linguagem gestual parcialmente.", "Não utiliza linguagem gestual."],
+            "ling_ecolalia": ["Não fala de forma ecolálica.", "Apresenta ecolalia.", "Apresenta ecolalia em alguns momentos."],
+            "ling_escrita": [
+                "Não escreve convencionalmente.",
+                "Não distingue desenho, letras e números",
+                "Distingue desenho, letras e números",
+                "Escreva letras de forma aleatórias.",
+                "Identifica e nomeia as letras.",
+                "Escreve seu nome.",
+                "Relaciona som/grafia.",
+                "Escreve apenas palavras canônicas.",
+                "Escreve palavras não-canônicas.",
+                "Apresenta dificuldades na segmentação.",
+                "Escreve frases simples.",
+                "Escreve textos simples.",
+                "Apresenta desorganização textual.",
+                "Apresenta trocas fonéticas."
+            ],
+            "ling_leitura": [
+                "Não realiza leitura.",
+                "Domina sequência alfabética.",
+                "Identifica seu nome.",
+                "Realiza leitura apenas de palavras canônicas.",
+                "Realiza leitura de palavras canônicas e não-canônicas.",
+                "Realiza leitura de frases e textos com dificuldade.",
+                "Realiza leitura de frases e textos com fluência.",
+                "Não compreende o que lê.",
+                "Compreende o que lê com apoio.",
+                "Compreende o que lê.",
+                "Outros: _____________________"
+            ],
+            "libras_aparelho": ["OD", "OE"],
+            "libras_implante": ["OD", "OE"],
             "libras_com": ["Não", "Básico", "Fluente"],
-            "braille": ["Com autonomia", "Com apoio", "Com dificuldade"],
-            "com_alt": ["Apontamentos", "Piscar dos olhos", "Comunicação alternativa", "Compreende via CA"]
+            "libras_compreende": ["Sim", "Não"],
+            "braille_esc": ["Com autonomia.", "Com apoio.", "Com dificuldade."],
+            "braille_leit": ["Com autonomia.", "Com apoio.", "Com dificuldade."],
+            "com_alt": [
+                "Comunica-se através de apontamentos.",
+                "Comunica-se através do piscar dos olhos.",
+                "Comunica-se através de comunicação alternativa.",
+                "Compreende e processa informações através de comunicação alternativa.",
+                "Outros: _____________________"
+            ]
         }
 
         # Estrutura para Objetivos Específicos
@@ -2063,7 +2221,6 @@ elif app_mode == "👥 Gestão de Alunos":
                 st.divider()
                 st.subheader("2.3 Organização do AEE")
                 
-                # Removed Frequency as requested
                 data_pdi['aee_tempo'] = st.text_input("Tempo de Atendimento", value=data_pdi.get('aee_tempo', '50 minutos'), disabled=is_monitor)
                 
                 data_pdi['aee_tipo'] = st.radio("Local/Modalidade", ["Sala de Recursos Multifuncionais", "Trabalho Colaborativo", "Itinerante", "Domiciliar"], horizontal=True, disabled=is_monitor)
@@ -2152,10 +2309,13 @@ elif app_mode == "👥 Gestão de Alunos":
                     render_evolution_row("Estabilidade Punho", "mf_punho", checklist_options["mf_punho"])
                     render_evolution_row("Pinça", "mf_pinca", checklist_options["mf_pinca"])
                     render_evolution_row("Preensão", "mf_preensao", checklist_options["mf_preensao"])
-                
+                    data_pdi['mf_obs'] = st.text_input("Observações Motora Fina", value=data_pdi.get('mf_obs',''), disabled=is_monitor)
+
                 with st.expander("3.2.2 Coordenação Global", expanded=False):
                     render_evolution_row("Postura (Sentado)", "mg_sentado", checklist_options["mg_tronco_sentado"])
                     render_evolution_row("Postura (Pé)", "mg_pe", checklist_options["mg_tronco_pe"])
+                    render_evolution_row("Outros (Postura)", "mg_postura_opts", checklist_options["mg_postura_opts"])
+                    render_evolution_row("Mão de Apoio", "mg_mao_apoio", checklist_options["mg_mao_apoio"])
                     render_evolution_row("Locomoção", "mg_loc", checklist_options["mg_locomocao"])
                     render_evolution_row("Equilíbrio", "mg_eq", checklist_options["mg_equilibrio"])
                     data_pdi['mg_obs'] = st.text_input("Observações Motor Global", value=data_pdi.get('mg_obs',''), disabled=is_monitor)
@@ -2166,9 +2326,10 @@ elif app_mode == "👥 Gestão de Alunos":
                     render_evolution_row("Funções Partes", "ec_func", checklist_options["ec_funcoes"])
                     render_evolution_row("Imitação", "ec_imit", checklist_options["ec_imitar"])
                     render_evolution_row("Desenho Humano", "ec_des", checklist_options["ec_desenho"])
-                    render_evolution_row("Dominância Lateral", "ec_lat", checklist_options["ec_lateralidade"])
-                    render_evolution_row("Identifica Lateralidade", "ec_id_lat", checklist_options["ec_identifica_lat"])
+                    render_evolution_row("Dominância Lateral", "ec_lat", checklist_options["ec_dominancia"])
+                    render_evolution_row("Identifica Lateralidade", "ec_id_lat", checklist_options["ec_identifica"])
                     render_evolution_row("Uso dois lados", "ec_dois", checklist_options["ec_dois_lados"])
+                    data_pdi['ec_obs'] = st.text_input("Observações Esquema Corporal", value=data_pdi.get('ec_obs',''), disabled=is_monitor)
 
                 with st.expander("3.2.4 Autonomia / AVD", expanded=False):
                     render_evolution_row("Alimentação", "avd_alim", checklist_options["avd_alimentacao"])
@@ -2185,16 +2346,18 @@ elif app_mode == "👥 Gestão de Alunos":
                     render_evolution_row("Iniciativa Atividade", "ps_ini_a", checklist_options["ps_iniciativa_ativ"])
                     
                     st.markdown("**Comportamentos Apresentados:**")
-                    ps_opts = ["Timidez", "Insegurança", "Agressividade", "Resistência", "Apatia", "Respeita Regras", "Chora fácil", "Impulsividade", "Agitação", "Ansiedade", "Cooperação", "Desinteresse", "Infantilizado", "Tiques", "Contato Visual"]
-                    data_pdi['ps_comps'] = st.multiselect("Selecione:", ps_opts, default=data_pdi.get('ps_comps',[]), disabled=is_monitor)
+                    data_pdi['ps_comps'] = st.multiselect("Selecione:", checklist_options["ps_comps"], default=data_pdi.get('ps_comps',[]), disabled=is_monitor)
                     
                     st.markdown("**Vida Prática:**")
                     render_evolution_row("Sabe Nome?", "vp_nome", checklist_options["vp_nome"])
                     render_evolution_row("Sabe Idade?", "vp_idade", checklist_options["vp_sim_nao"])
-                    render_evolution_row("Sabe Aniversário?", "vp_niver", checklist_options["vp_sim_nao"])
+                    render_evolution_row("Sabe Aniversário?", "vp_niver", checklist_options["vp_niver"])
                     render_evolution_row("Nomeia Familiares?", "vp_fam", checklist_options["vp_sim_nao"])
                     render_evolution_row("Nomeia Profs?", "vp_prof", checklist_options["vp_sim_nao"])
+                    render_evolution_row("Nomeia Escola?", "vp_escola", checklist_options["vp_sim_nao"])
+                    render_evolution_row("Sabe Ano Escolar?", "vp_ano_esc", checklist_options["vp_sim_nao"])
                     render_evolution_row("Sabe Endereço?", "vp_end", checklist_options["vp_sim_nao"])
+                    data_pdi['vp_outros'] = st.text_input("Outros (Vida Prática)", value=data_pdi.get('vp_outros',''), disabled=is_monitor)
 
                 # 3.4 LINGUAGEM
                 st.subheader("3.4 LINGUAGEM")
@@ -2207,11 +2370,13 @@ elif app_mode == "👥 Gestão de Alunos":
                     render_evolution_row("Leitura", "ling_leit", checklist_options["ling_leitura"])
 
                 with st.expander("3.4.2 LIBRAS e Com. Alternativa", expanded=False):
-                    render_evolution_row("Aparelho/Implante", "lib_ap", checklist_options["libras_aparelho"])
+                    render_evolution_row("Aparelho Auditivo", "lib_ap", checklist_options["libras_aparelho"])
+                    render_evolution_row("Implante Coclear", "lib_imp", checklist_options["libras_implante"])
                     render_evolution_row("Comunicação LIBRAS", "lib_com", checklist_options["libras_com"])
-                    render_evolution_row("Compreensão LIBRAS", "lib_comp", checklist_options["vp_sim_nao"])
-                    render_evolution_row("Escrita Braille", "braille_esc", checklist_options["braille"])
-                    render_evolution_row("Leitura Braille", "braille_leit", checklist_options["braille"])
+                    render_evolution_row("Compreensão LIBRAS", "lib_comp", checklist_options["libras_compreende"])
+                    render_evolution_row("Escrita Braille", "braille_esc", checklist_options["braille_esc"])
+                    render_evolution_row("Leitura Braille", "braille_leit", checklist_options["braille_leit"])
+                    data_pdi['libras_outros'] = st.text_input("Outros (Libras/Braille)", value=data_pdi.get('libras_outros',''), disabled=is_monitor)
                     render_evolution_row("Com. Alternativa", "ca_uso", checklist_options["com_alt"])
 
                 if st.form_submit_button("💾 Salvar Avaliação Pedagógica"):
@@ -2679,12 +2844,12 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.5 MEMÓRIA DE CURTO PRAZO", 0, 1)
                 print_check_evolution("Memória Curto Prazo", "mem_curto")
+                print_obs('memoria_obs')
                 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.6 MEMÓRIA DE LONGO PRAZO", 0, 1)
                 print_check_evolution("Episódica", "mem_episodica")
                 print_check_evolution("Semântica", "mem_semantica")
-                print_obs('memoria_obs')
-
+                
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.7 ATENÇÃO", 0, 1)
                 print_check_evolution("Sustentada", "at_sust")
                 print_check_evolution("Dividida", "at_div")
@@ -2695,12 +2860,12 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_check_evolution("Desenho", "vm_desenho")
                 print_check_evolution("Limites Folha", "vm_l_folha")
                 print_check_evolution("Limites Pintura", "vm_l_pint")
-                print_check_evolution("Recorte/Rasgar", "vm_rasgar")
+                print_check_evolution("Recorte (Rasgar)", "vm_rasgar")
                 print_check_evolution("Uso Tesoura", "vm_tesoura")
                 print_check_evolution("Uso Cola", "vm_cola")
                 print_check_evolution("Encaixes", "vm_encaixe")
                 print_check_evolution("Reprodução de Figuras", "vm_reproducao")
-                print_check_evolution("Quebra-Cabeça", "vm_qc")
+                print_check_evolution("Quebra-Cabeça", "vm_quebra_cabeca")
                 print_obs('vm_obs')
 
                 # 1.4 Motor
@@ -2709,10 +2874,13 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_check_evolution("Estabilidade Punho", "mf_punho")
                 print_check_evolution("Pinça", "mf_pinca")
                 print_check_evolution("Preensão", "mf_preensao")
+                print_obs('mf_obs')
                 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.4.2 COORDENAÇÃO MOTORA GLOBAL", 0, 1)
                 print_check_evolution("Postura (Sentado)", "mg_sentado")
                 print_check_evolution("Postura (Pé)", "mg_pe")
+                print_check_evolution("Outros (Postura)", "mg_postura_opts")
+                print_check_evolution("Mão de Apoio", "mg_mao_apoio")
                 print_check_evolution("Locomoção", "mg_loc")
                 print_check_evolution("Equilíbrio", "mg_eq")
                 print_obs('mg_obs')
@@ -2723,9 +2891,10 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_check_evolution("Funções Partes", "ec_func")
                 print_check_evolution("Imitação", "ec_imit")
                 print_check_evolution("Desenho Humano", "ec_des")
-                print_check_evolution("Lateralidade", "ec_lat")
-                print_check_evolution("Ident. Lateralidade", "ec_id_lat")
+                print_check_evolution("Dominância Lateral", "ec_dominancia")
+                print_check_evolution("Identifica Lateralidade", "ec_identifica")
                 print_check_evolution("Uso dois lados", "ec_dois")
+                print_obs('ec_obs')
                 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.4.4 AUTONOMIA / AVD", 0, 1)
                 print_check_evolution("Alimentação", "avd_alim")
@@ -2741,10 +2910,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_check_evolution("1.5.2 Iniciativa (Atividade)", "ps_ini_a")
                 
                 pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.5.3 Comportamentos Apresentados", 0, 1)
-                comps = data_pdi.get('ps_comps',[])
-                if comps:
-                    pdf.set_font("Arial", "", 9)
-                    pdf.multi_cell(0, 5, clean_pdf_text(", ".join(comps)), 1, 'L')
+                print_check_evolution("Comportamentos", "ps_comps")
                 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.5.4 Vida Prática", 0, 1)
                 print_check_evolution("Sabe Nome", "vp_nome")
@@ -2752,7 +2918,10 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_check_evolution("Sabe Aniversário", "vp_niver")
                 print_check_evolution("Nomeia Familiares", "vp_fam")
                 print_check_evolution("Nomeia Profs", "vp_prof")
+                print_check_evolution("Nomeia Escola", "vp_escola")
+                print_check_evolution("Sabe Ano Escolar", "vp_ano_esc")
                 print_check_evolution("Sabe Endereço", "vp_end")
+                print_obs('vp_outros')
                 
                 # 1.6 Linguagem
                 pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "1.6 LINGUAGEM", 0, 1)
@@ -2764,10 +2933,14 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_check_evolution("1.6.6 Leitura", "ling_leit")
                 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.6.7 LIBRAS e 1.6.8 Comunicação Alternativa", 0, 1)
-                print_check_evolution("Aparelho/Implante", "lib_ap")
-                print_check_evolution("Com. Libras", "lib_com")
-                print_check_evolution("Braille", "braille_esc")
-                print_check_evolution("Com. Alternativa", "ca_uso")
+                print_check_evolution("Aparelho Auditivo", "libras_aparelho")
+                print_check_evolution("Implante Coclear", "libras_implante")
+                print_check_evolution("Com. Libras", "libras_com")
+                print_check_evolution("Compreensão Libras", "libras_compreende")
+                print_check_evolution("Escrita Braille", "braille_esc")
+                print_check_evolution("Leitura Braille", "braille_leit")
+                print_obs('libras_outros')
+                print_check_evolution("Com. Alternativa", "com_alt")
 
                 # --- 2. AÇÕES NECESSÁRIAS E ORGANIZAÇÃO ---
                 pdf.add_page()
@@ -4131,6 +4304,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

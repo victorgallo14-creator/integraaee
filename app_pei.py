@@ -2357,7 +2357,8 @@ elif app_mode == "👥 Gestão de Alunos":
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
 
-      # --- AVALIAÇÃO PEDAGÓGICA ---
+
+    # --- AVALIAÇÃO PEDAGÓGICA ---
     elif doc_mode == "Avaliação Pedagógica":
         st.markdown("""<div class="header-box"><div class="header-title">Avaliação Pedagógica: Apoio Escolar</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
@@ -2618,26 +2619,26 @@ elif app_mode == "👥 Gestão de Alunos":
                         pdf.cell(0, 5, clean_pdf_text("Nenhuma deficiência selecionada."), 0, 1)
                     pdf.ln(3)
                     
-                    # 4. LEGAL TEXT (INTEGRAL)
+                    # 4. LEGAL TEXT (INTEGRAL) - CORRECTION 1: Justify ('J')
                     pdf.set_font("Arial", "B", 10)
                     pdf.cell(0, 6, clean_pdf_text("PRESSUPOSTOS LEGAIS:"), 0, 1, 'L')
                     pdf.set_font("Arial", "", 8)
                     
-                    pdf.multi_cell(0, 4, clean_pdf_text("1- Lei nº 12.764/2012, em seu artigo 3º que trata dos direitos da pessoa com transtorno do espectro autista indica:"), 0, 'L')
+                    pdf.multi_cell(0, 4, clean_pdf_text("1- Lei nº 12.764/2012, em seu artigo 3º que trata dos direitos da pessoa com transtorno do espectro autista indica:"), 0, 'J')
                     pdf.set_x(25)
-                    pdf.multi_cell(160, 4, clean_pdf_text("Parágrafo único. Em casos de comprovada necessidade, a pessoa com transtorno do espectro autista incluída nas classes comuns de ensino regular, nos termos do inciso IV do art. 2º, terá direito a acompanhante especializado."), 0, 'L')
+                    pdf.multi_cell(160, 4, clean_pdf_text("Parágrafo único. Em casos de comprovada necessidade, a pessoa com transtorno do espectro autista incluída nas classes comuns de ensino regular, nos termos do inciso IV do art. 2º, terá direito a acompanhante especializado."), 0, 'J')
                     pdf.ln(2)
 
-                    pdf.multi_cell(0, 4, clean_pdf_text("2- Lei Brasileira de Inclusão da Pessoa com Deficiência (LBI) no art. 3º, inciso XIII, descreve as ações referentes ao apoio:"), 0, 'L')
+                    pdf.multi_cell(0, 4, clean_pdf_text("2- Lei Brasileira de Inclusão da Pessoa com Deficiência (LBI) no art. 3º, inciso XIII, descreve as ações referentes ao apoio:"), 0, 'J')
                     pdf.set_x(25)
-                    pdf.multi_cell(160, 4, clean_pdf_text("XIII - profissional de apoio escolar: pessoa que exerce atividades de alimentação, higiene e locomoção do estudante com deficiência e atua em todas as atividades escolares nas quais se fizer necessária, em todos os níveis e modalidades de ensino, em instituições públicas e privadas, excluídas as técnicas ou os procedimentos identificados com profissões legalmente estabelecidas;"), 0, 'L')
+                    pdf.multi_cell(160, 4, clean_pdf_text("XIII - profissional de apoio escolar: pessoa que exerce atividades de alimentação, higiene e locomoção do estudante com deficiência e atua em todas as atividades escolares nas quais se fizer necessária, em todos os níveis e modalidades de ensino, em instituições públicas e privadas, excluídas as técnicas ou os procedimentos identificados com profissões legalmente estabelecidas;"), 0, 'J')
                     pdf.ln(2)
 
-                    pdf.multi_cell(0, 4, clean_pdf_text("3- CNE/CEB nº 02/01, do Conselho Nacional de Educação, que Instituiu as Diretrizes Nacionais para a Educação Especial na Educação Básica, cujo artigo 6º assim dispõe:"), 0, 'L')
+                    pdf.multi_cell(0, 4, clean_pdf_text("3- CNE/CEB nº 02/01, do Conselho Nacional de Educação, que Instituiu as Diretrizes Nacionais para a Educação Especial na Educação Básica, cujo artigo 6º assim dispõe:"), 0, 'J')
                     pdf.set_x(25)
-                    pdf.multi_cell(160, 4, clean_pdf_text("Art. 6º Para a identificação das necessidades educacionais especiais dos alunos e a tomada de decisões quanto ao atendimento necessário, a escola deve realizar, com assessoramento técnico, avaliação do aluno no processo de ensino e aprendizagem, contando, para tal, com:"), 0, 'L')
+                    pdf.multi_cell(160, 4, clean_pdf_text("Art. 6º Para a identificação das necessidades educacionais especiais dos alunos e a tomada de decisões quanto ao atendimento necessário, a escola deve realizar, com assessoramento técnico, avaliação do aluno no processo de ensino e aprendizagem, contando, para tal, com:"), 0, 'J')
                     pdf.set_x(35)
-                    pdf.multi_cell(150, 4, clean_pdf_text("I – a experiência de seu corpo docente, seus diretores, coordenadores, orientadores e supervisores educacionais;\nII – o setor responsável pela educação especial do respectivo sistema;\nIII – a colaboração da família e a cooperação dos serviços de Saúde, Assistência Social, Trabalho, Justiça e Esporte, bem como do Ministério Público, quando necessário."), 0, 'L')
+                    pdf.multi_cell(150, 4, clean_pdf_text("I – a experiência de seu corpo docente, seus diretores, coordenadores, orientadores e supervisores educacionais;\nII – o setor responsável pela educação especial do respectivo sistema;\nIII – a colaboração da família e a cooperação dos serviços de Saúde, Assistência Social, Trabalho, Justiça e Esporte, bem como do Ministério Público, quando necessário."), 0, 'J')
                     pdf.ln(4)
 
                     # 5. GENERAL ASPECTS
@@ -2646,7 +2647,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.cell(0, 7, clean_pdf_text("ASPECTOS GERAIS DA VIDA ESCOLAR DO ESTUDANTE"), 1, 1, 'L', True)
                     pdf.set_font("Arial", "", 10); pdf.set_fill_color(255, 255, 255)
                     text_general = data_aval.get('aspectos_gerais') if data_aval.get('aspectos_gerais') else " "
-                    pdf.multi_cell(0, 5, clean_pdf_text(text_general), 1, 'L')
+                    pdf.multi_cell(0, 5, clean_pdf_text(text_general), 1, 'J') # Changed to Justify
                     pdf.ln(5)
 
                     def print_section_header_fix(pdf, title):
@@ -2669,9 +2670,10 @@ elif app_mode == "👥 Gestão de Alunos":
                                 pdf.line(x, y+4, x+3, y+1)
                             pdf.set_xy(x + 5, y)
                             pdf.multi_cell(175, 5, clean_pdf_text(opt), 0, 'L')
+                        # CORRECTION 2: Use multi_cell for Observations to handle overflow and justify text
                         if obs:
                             pdf.set_x(15)
-                            pdf.cell(0, 6, clean_pdf_text(f"Obs: {obs}"), 0, 1)
+                            pdf.multi_cell(0, 5, clean_pdf_text(f"Obs: {obs}"), 0, 'J')
                         pdf.ln(2)
 
                     # PART I
@@ -2723,11 +2725,12 @@ elif app_mode == "👥 Gestão de Alunos":
                         pdf.set_fill_color(240, 240, 240) if fill else pdf.set_fill_color(255, 255, 255)
                         pdf.rect(x, y, 60, height, 'F'); pdf.rect(x, y, 60, height)
                         pdf.set_font("Arial", "B", 9)
-                        pdf.set_xy(x, y); pdf.multi_cell(60, 5, clean_pdf_text(col1), 0, 'L')
+                        pdf.set_xy(x, y); pdf.multi_cell(60, 5, clean_pdf_text(col1), 0, 'C') # Centered Level Header
                         pdf.set_xy(x + 60, y)
                         pdf.rect(x+60, y, 120, height, 'F'); pdf.rect(x+60, y, 120, height)
                         pdf.set_font("Arial", "", 9)
-                        pdf.multi_cell(120, 5, clean_pdf_text(col2), 0, 'L')
+                        # CORRECTION 3: Justify text in the table
+                        pdf.multi_cell(120, 5, clean_pdf_text(col2), 0, 'J') 
                         pdf.set_xy(x, y + height)
 
                     print_zebra_row_fix(pdf, "Não há necessidade de apoio", "O estudante apresenta autonomia. As ações disponibilizadas aos demais estudantes são suficientes, acrescidas de ações do AEE.", 20, False)
@@ -2749,28 +2752,42 @@ elif app_mode == "👥 Gestão de Alunos":
 
                     pdf.ln(10)
                     if pdf.get_y() > 240: pdf.add_page()
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("Responsáveis pela avaliação (Nome e Assinatura):"), 0, 1); pdf.ln(10)
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("Responsáveis pela avaliação (Nome e Assinatura):"), 0, 1); pdf.ln(5)
                     
-                    y = pdf.get_y(); pdf.set_font("Arial", "", 8)
-                    pdf.line(10, y, 65, y); pdf.line(75, y, 130, y); pdf.line(140, y, 195, y)
-                    pdf.text(10, y+4, clean_pdf_text(f"Prof. Sala Regular: {data_aval.get('resp_sala','')}"))
-                    pdf.text(75, y+4, clean_pdf_text(f"Prof. Ed. Física: {data_aval.get('resp_ef','')}"))
-                    pdf.text(140, y+4, clean_pdf_text(f"Prof. Arte: {data_aval.get('resp_arte','')}"))
+                    # CORRECTION 5: Signatures - Name on one line, Role below it.
+                    def draw_signature_block(pdf, x, y, width, name, role):
+                        pdf.line(x, y, x + width, y)
+                        pdf.set_xy(x, y + 2)
+                        pdf.set_font("Arial", "", 9)
+                        pdf.multi_cell(width, 4, clean_pdf_text(name), 0, 'C')
+                        pdf.set_xy(x, pdf.get_y()) # Move to next line naturally
+                        pdf.set_font("Arial", "I", 8) # Italic for role looks professional
+                        pdf.multi_cell(width, 4, clean_pdf_text(role), 0, 'C')
+
+                    y_sig_1 = pdf.get_y()
+                    draw_signature_block(pdf, 10, y_sig_1, 55, data_aval.get('resp_sala',''), "Prof. Sala Regular")
+                    draw_signature_block(pdf, 75, y_sig_1, 55, data_aval.get('resp_ef',''), "Prof. Ed. Física")
+                    draw_signature_block(pdf, 140, y_sig_1, 55, data_aval.get('resp_arte',''), "Prof. Arte")
                     
-                    pdf.ln(20); y = pdf.get_y()
-                    pdf.line(10, y, 65, y); pdf.line(75, y, 130, y); pdf.line(140, y, 195, y)
-                    pdf.text(10, y+4, clean_pdf_text(f"Equipe Gestora: {data_aval.get('resp_dir','')}"))
-                    pdf.text(75, y+4, clean_pdf_text(f"Prof. Ed. Especial: {data_aval.get('resp_ee','')}"))
-                    pdf.text(140, y+4, clean_pdf_text(f"Coordenação: {data_aval.get('resp_coord','')}"))
+                    # Add space for next row
+                    pdf.set_xy(10, y_sig_1 + 25)
+                    y_sig_2 = pdf.get_y()
                     
-                    pdf.ln(15); pdf.set_font("Arial", "", 10)
-                    pdf.cell(0, 6, clean_pdf_text(f"Limeira, {data_aval.get('data_emissao', date.today()).strftime('%d/%m/%Y')}."), 0, 1, 'C')
+                    draw_signature_block(pdf, 10, y_sig_2, 55, data_aval.get('resp_dir',''), "Equipe Gestora")
+                    draw_signature_block(pdf, 75, y_sig_2, 55, data_aval.get('resp_ee',''), "Prof. Ed. Especial")
+                    draw_signature_block(pdf, 140, y_sig_2, 55, data_aval.get('resp_coord',''), "Coordenação")
+                    
+                    pdf.ln(25); pdf.set_font("Arial", "", 10)
+                    # CORRECTION 4: Left align date ('L') instead of Center ('C')
+                    pdf.cell(0, 6, clean_pdf_text(f"Limeira, {data_aval.get('data_emissao', date.today()).strftime('%d/%m/%Y')}."), 0, 1, 'L')
 
                     st.session_state.pdf_bytes_aval = get_pdf_bytes(pdf)
                     st.rerun()
 
             if 'pdf_bytes_aval' in st.session_state:
                 st.download_button("📥 BAIXAR PDF AVALIAÇÃO", st.session_state.pdf_bytes_aval, f"Avaliacao_{data_aval.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
+        
 
                 
         # --- ABA HISTÓRICO ---
@@ -2783,6 +2800,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
                 else: st.info("Sem histórico.")
             else: st.info("Histórico vazio.")
+
 
 
 

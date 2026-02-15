@@ -1946,7 +1946,7 @@ elif app_mode == "👥 Gestão de Alunos":
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
 
-       # --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
+    # --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
     if doc_mode == "PDI":
         st.markdown(f"""<div class="header-box"><div class="header-title">PDI - Plano de Desenvolvimento Individual</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
@@ -2038,7 +2038,7 @@ elif app_mode == "👥 Gestão de Alunos":
         tabs = st.tabs([
             "Item 2: Plano AEE",
             "Item 3: Avaliação Pedagógica",
-            "Item 6: Objetivos a Atingir",
+            "Item 4: Objetivos a Atingir",
             "PDF Final"
         ])
         
@@ -2075,36 +2075,31 @@ elif app_mode == "👥 Gestão de Alunos":
         # --- ABA 2: AVALIAÇÃO PEDAGÓGICA (CHECKLISTS) ---
         with tabs[1]:
             st.header("3. Objetivos e Metas (Avaliação Pedagógica)")
-            st.caption("Selecione a situação do aluno em cada fase: Diagnóstico (Inicial), Percurso (Durante) e Final.")
+            st.caption("Preencha a situação do aluno: Diagnóstico (Multiseleção), Percurso (Texto) e Final (Texto).")
 
             def render_evolution_row(label, key_base, option_list):
-                """Helper para renderizar 3 selectboxes (Diag, Proc, Final)"""
+                """Helper para renderizar: Diag (Multiselect), Proc (Text), Final (Text)"""
                 st.markdown(f"**{label}**")
                 c1, c2, c3 = st.columns(3)
                 
                 # Retrieve saved values
-                v_diag = data_pdi.get(f"{key_base}_diag", None)
-                v_proc = data_pdi.get(f"{key_base}_proc", None)
-                v_final = data_pdi.get(f"{key_base}_final", None)
+                v_diag = data_pdi.get(f"{key_base}_diag", [])
+                if not isinstance(v_diag, list): v_diag = [] # Safe check
 
-                # Add a "Selecione..." option at the start
-                opts = ["-"] + option_list
-                
-                i_diag = opts.index(v_diag) if v_diag in opts else 0
-                i_proc = opts.index(v_proc) if v_proc in opts else 0
-                i_final = opts.index(v_final) if v_final in opts else 0
+                v_proc = data_pdi.get(f"{key_base}_proc", "")
+                v_final = data_pdi.get(f"{key_base}_final", "")
 
-                data_pdi[f"{key_base}_diag"] = c1.selectbox("Diagnóstico", opts, index=i_diag, key=f"d_{key_base}", disabled=is_monitor, label_visibility="collapsed")
-                data_pdi[f"{key_base}_proc"] = c2.selectbox("Percurso", opts, index=i_proc, key=f"p_{key_base}", disabled=is_monitor, label_visibility="collapsed")
-                data_pdi[f"{key_base}_final"] = c3.selectbox("Final", opts, index=i_final, key=f"f_{key_base}", disabled=is_monitor, label_visibility="collapsed")
+                data_pdi[f"{key_base}_diag"] = c1.multiselect("Resultados da Avaliação Diagnóstica", option_list, default=v_diag, key=f"d_{key_base}", disabled=is_monitor)
+                data_pdi[f"{key_base}_proc"] = c2.text_area("Resultados da Avaliação de Percurso", value=v_proc, key=f"p_{key_base}", height=120, disabled=is_monitor)
+                data_pdi[f"{key_base}_final"] = c3.text_area("Resultados da Avaliação Final", value=v_final, key=f"f_{key_base}", height=120, disabled=is_monitor)
                 st.divider()
 
             def render_text_grid(label, key_base):
                 st.markdown(f"**{label}**")
                 c1, c2, c3 = st.columns(3)
-                data_pdi[f"{key_base}_diag"] = c1.text_area("Diagnóstico", value=data_pdi.get(f"{key_base}_diag", ""), key=f"d_{key_base}", height=68, disabled=is_monitor)
-                data_pdi[f"{key_base}_proc"] = c2.text_area("Percurso", value=data_pdi.get(f"{key_base}_proc", ""), key=f"p_{key_base}", height=68, disabled=is_monitor)
-                data_pdi[f"{key_base}_final"] = c3.text_area("Final", value=data_pdi.get(f"{key_base}_final", ""), key=f"f_{key_base}", height=68, disabled=is_monitor)
+                data_pdi[f"{key_base}_diag"] = c1.text_area("Resultados da Avaliação Diagnóstica", value=data_pdi.get(f"{key_base}_diag", ""), key=f"d_{key_base}", height=120, disabled=is_monitor)
+                data_pdi[f"{key_base}_proc"] = c2.text_area("Resultados da Avaliação de Percurso", value=data_pdi.get(f"{key_base}_proc", ""), key=f"p_{key_base}", height=120, disabled=is_monitor)
+                data_pdi[f"{key_base}_final"] = c3.text_area("Resultados da Avaliação Final", value=data_pdi.get(f"{key_base}_final", ""), key=f"f_{key_base}", height=120, disabled=is_monitor)
                 st.divider()
 
             with st.form("pdi_avaliacao_form"):
@@ -2222,9 +2217,9 @@ elif app_mode == "👥 Gestão de Alunos":
                 if st.form_submit_button("💾 Salvar Avaliação Pedagógica"):
                     save_student("PDI", data_pdi.get('nome'), data_pdi, "Avaliação Pedagógica")
 
-        # --- ABA 3: OBJETIVOS E METAS (ITEM 6 - DETALHADO) ---
+        # --- ABA 3: OBJETIVOS E METAS (ITEM 4 - DETALHADO) ---
         with tabs[2]:
-            st.header("6. Objetivos a serem Atingidos")
+            st.header("4. Objetivos a serem Atingidos")
             st.info("Descreva os objetivos específicos para cada área de desenvolvimento.")
             
             with st.form("pdi_objetivos_detalhado"):
@@ -2528,41 +2523,113 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.add_page()
                 pdf.section_title("3. OBJETIVOS E METAS (AVALIAÇÃO PEDAGÓGICA)", width=0)
                 pdf.ln(5)
+                
+                # Column Headers
+                pdf.set_font("Arial", "B", 8)
+                pdf.set_fill_color(220, 220, 220)
+                w_col = 63
+                pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Diagnóstica"), 1, 0, 'C', True)
+                pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação de Percurso"), 1, 0, 'C', True)
+                pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Final"), 1, 1, 'C', True)
 
                 def print_check_evolution(title, key):
-                    if pdf.get_y() > 240: pdf.add_page()
-                    d = data_pdi.get(f"{key}_diag", "-")
-                    p = data_pdi.get(f"{key}_proc", "-")
-                    f = data_pdi.get(f"{key}_final", "-")
+                    d_list = data_pdi.get(f"{key}_diag", [])
+                    if isinstance(d_list, str): d_list = [d_list] 
+                    d_text = "\n".join(d_list) if d_list else "-"
                     
-                    pdf.set_font("Arial", "B", 9); pdf.cell(70, 6, clean_pdf_text(title), 1, 0, 'L')
+                    p_text = data_pdi.get(f"{key}_proc", "")
+                    f_text = data_pdi.get(f"{key}_final", "")
+                    
+                    # Estimate height
+                    w_col = 63
                     pdf.set_font("Arial", "", 8)
-                    pdf.cell(40, 6, clean_pdf_text(f"D: {d}"), 1, 0, 'C')
-                    pdf.cell(40, 6, clean_pdf_text(f"P: {p}"), 1, 0, 'C')
-                    pdf.cell(40, 6, clean_pdf_text(f"F: {f}"), 1, 1, 'C')
-
-                def print_text_evolution(title, key):
-                    if pdf.get_y() > 240: pdf.add_page()
-                    d = data_pdi.get(f"{key}_diag", "")
-                    p = data_pdi.get(f"{key}_proc", "")
-                    f = data_pdi.get(f"{key}_final", "")
                     
-                    # Title row
+                    # Calc height roughly
+                    def get_h(txt):
+                         if not txt: return 5
+                         lines = 1 + txt.count('\n') + int(pdf.get_string_width(txt)/w_col)
+                         return max(5, lines * 4) + 2
+                    
+                    h_max = max(get_h(d_text), get_h(p_text), get_h(f_text), 10)
+                    
+                    if pdf.get_y() + h_max + 8 > 270: 
+                        pdf.add_page()
+                        # Reprint headers
+                        pdf.set_font("Arial", "B", 8)
+                        pdf.set_fill_color(220, 220, 220)
+                        pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Diagnóstica"), 1, 0, 'C', True)
+                        pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação de Percurso"), 1, 0, 'C', True)
+                        pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Final"), 1, 1, 'C', True)
+
+                    # Title Row
                     pdf.set_font("Arial", "B", 9)
                     pdf.set_fill_color(240, 240, 240)
                     pdf.cell(0, 6, clean_pdf_text(title), 1, 1, 'L', True)
                     
-                    # Content rows
-                    pdf.set_font("Arial", "", 9)
+                    y_start = pdf.get_y()
+                    pdf.set_font("Arial", "", 8)
                     
-                    # Reset X to margin to avoid indentation issues
-                    pdf.set_x(10)
-                    pdf.multi_cell(0, 5, clean_pdf_text(f"Diagnóstico: {d}"), 1, 'L')
-                    pdf.set_x(10)
-                    pdf.multi_cell(0, 5, clean_pdf_text(f"Percurso: {p}"), 1, 'L')
-                    pdf.set_x(10)
-                    pdf.multi_cell(0, 5, clean_pdf_text(f"Final: {f}"), 1, 'L')
-                    pdf.ln(2)
+                    pdf.set_xy(10, y_start)
+                    pdf.multi_cell(w_col, 4, clean_pdf_text(d_text), 0, 'L')
+                    
+                    pdf.set_xy(10 + w_col, y_start)
+                    pdf.multi_cell(w_col, 4, clean_pdf_text(p_text), 0, 'L')
+                    
+                    pdf.set_xy(10 + 2*w_col, y_start)
+                    pdf.multi_cell(w_col, 4, clean_pdf_text(f_text), 0, 'L')
+                    
+                    # Borders
+                    pdf.rect(10, y_start, w_col, h_max)
+                    pdf.rect(10 + w_col, y_start, w_col, h_max)
+                    pdf.rect(10 + 2*w_col, y_start, w_col, h_max)
+                    
+                    pdf.set_y(y_start + h_max)
+
+                def print_text_evolution(title, key):
+                    d = data_pdi.get(f"{key}_diag", "")
+                    p = data_pdi.get(f"{key}_proc", "")
+                    f = data_pdi.get(f"{key}_final", "")
+                    
+                    w_col = 63
+                    pdf.set_font("Arial", "", 8)
+                    def get_h(txt):
+                         if not txt: return 5
+                         lines = 1 + txt.count('\n') + int(pdf.get_string_width(txt)/w_col)
+                         return max(5, lines * 4) + 2
+                    
+                    h_max = max(get_h(d), get_h(p), get_h(f), 10)
+                    
+                    if pdf.get_y() + h_max + 8 > 270: 
+                        pdf.add_page()
+                        # Reprint headers
+                        pdf.set_font("Arial", "B", 8)
+                        pdf.set_fill_color(220, 220, 220)
+                        pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Diagnóstica"), 1, 0, 'C', True)
+                        pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação de Percurso"), 1, 0, 'C', True)
+                        pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Final"), 1, 1, 'C', True)
+
+                    # Title Row
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.set_fill_color(240, 240, 240)
+                    pdf.cell(0, 6, clean_pdf_text(title), 1, 1, 'L', True)
+                    
+                    y_start = pdf.get_y()
+                    pdf.set_font("Arial", "", 8)
+                    
+                    pdf.set_xy(10, y_start)
+                    pdf.multi_cell(w_col, 4, clean_pdf_text(d), 0, 'L')
+                    
+                    pdf.set_xy(10 + w_col, y_start)
+                    pdf.multi_cell(w_col, 4, clean_pdf_text(p), 0, 'L')
+                    
+                    pdf.set_xy(10 + 2*w_col, y_start)
+                    pdf.multi_cell(w_col, 4, clean_pdf_text(f), 0, 'L')
+                    
+                    pdf.rect(10, y_start, w_col, h_max)
+                    pdf.rect(10 + w_col, y_start, w_col, h_max)
+                    pdf.rect(10 + 2*w_col, y_start, w_col, h_max)
+                    
+                    pdf.set_y(y_start + h_max)
 
                 # 3.1 Cognitivo
                 pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "3.1 DESENVOLVIMENTO COGNITIVO", 0, 1)
@@ -2621,7 +2688,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_check_evolution("Interação", "ps_int")
                 print_check_evolution("Iniciativa Diálogo", "ps_ini_d")
                 print_check_evolution("Iniciativa Ativ.", "ps_ini_a")
-                pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(f"Comportamentos: {', '.join(data_pdi.get('ps_comps',[]))}"))
+                pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(f"Comportamentos: {', '.join(data_pdi.get('ps_comps',[]))}"), 1)
                 print_check_evolution("Sabe Nome", "vp_nome")
                 print_check_evolution("Sabe Idade", "vp_idade")
                 
@@ -2640,16 +2707,9 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_check_evolution("Braille", "braille_esc")
                 print_check_evolution("Com. Alternativa", "ca_uso")
 
-                # --- 4 e 5: Headers ---
+                # --- 4. OBJETIVOS ---
                 pdf.add_page()
-                pdf.section_title("4. PLANEJAMENTO MENSAL", width=0)
-                pdf.ln(20)
-                pdf.section_title("5. REGISTROS (Frequência, Encaminhamentos, Relatórios)", width=0)
-                pdf.ln(20)
-
-                # --- 6. OBJETIVOS ---
-                pdf.add_page()
-                pdf.section_title("6. OBJETIVOS A SEREM ATINGIDOS", width=0)
+                pdf.section_title("4. OBJETIVOS A SEREM ATINGIDOS", width=0)
                 pdf.ln(5)
                 
                 for category, subcats in objectives_structure.items():
@@ -3995,6 +4055,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

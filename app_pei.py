@@ -1954,7 +1954,7 @@ elif app_mode == "👥 Gestão de Alunos":
         data_pdi = st.session_state.data_pdi
         data_case = st.session_state.get('data_case', {})
         
-        # --- DEFINIÇÃO DOS CHECKLISTS ESPECÍFICOS (Texto exato do documento) ---
+        # --- DEFINIÇÃO DOS CHECKLISTS ESPECÍFICOS ---
         checklist_options = {
             "sis_monetario": ["Não reconhece o sistema monetário", "Reconhece o sistema monetário", "Atribui poder de compra"],
             "brincar_funcional": ["Sim", "Não"],
@@ -2012,7 +2012,7 @@ elif app_mode == "👥 Gestão de Alunos":
             "com_alt": ["Apontamentos", "Piscar dos olhos", "Comunicação alternativa", "Compreende via CA"]
         }
 
-        # Estrutura para Objetivos Específicos (Item 6)
+        # Estrutura para Objetivos Específicos (Item 6, agora 4)
         objectives_structure = {
             "DESENVOLVIMENTO COGNITIVO": {
                 "PERCEPÇÃO": ["Visual", "Auditiva", "Tátil", "Espacial / Lateralidade", "Temporal / Ritmo / Sequência lógica"],
@@ -2034,7 +2034,7 @@ elif app_mode == "👥 Gestão de Alunos":
             }
         }
 
-        # Tabs de Navegação Atualizadas
+        # Tabs de Navegação
         tabs = st.tabs([
             "Item 2: Plano AEE",
             "Item 3: Avaliação Pedagógica",
@@ -2084,7 +2084,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 # Retrieve saved values
                 v_diag = data_pdi.get(f"{key_base}_diag", [])
-                if not isinstance(v_diag, list): v_diag = [] # Safe check
+                if not isinstance(v_diag, list): v_diag = [] 
 
                 v_proc = data_pdi.get(f"{key_base}_proc", "")
                 v_final = data_pdi.get(f"{key_base}_final", "")
@@ -2501,6 +2501,15 @@ elif app_mode == "👥 Gestão de Alunos":
                 # RETOMADA DO PDI
                 # ==========================================================
 
+                # --- CAPA SECUNDÁRIA: PLANO DE AEE ---
+                pdf.add_page()
+                pdf.set_y(100)
+                pdf.set_font("Arial", "B", 20)
+                pdf.cell(0, 10, clean_pdf_text("PLANO DE AEE"), 0, 1, 'C')
+                pdf.ln(5)
+                pdf.cell(0, 10, clean_pdf_text("ATENDIMENTO EDUCACIONAL"), 0, 1, 'C')
+                pdf.cell(0, 10, clean_pdf_text("ESPECIALIZADO"), 0, 1, 'C')
+
                 # --- 2. PLANO DE AEE & AÇÕES NECESSÁRIAS ---
                 pdf.add_page()
                 pdf.section_title("2. PLANO DE AEE & AÇÕES NECESSÁRIAS", width=0)
@@ -2533,9 +2542,20 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Final"), 1, 1, 'C', True)
 
                 def print_check_evolution(title, key):
-                    d_list = data_pdi.get(f"{key}_diag", [])
-                    if isinstance(d_list, str): d_list = [d_list] 
-                    d_text = "\n".join(d_list) if d_list else "-"
+                    # Logic to show all options with checkboxes
+                    possible_opts = checklist_options.get(key, [])
+                    selected_opts = data_pdi.get(f"{key}_diag", [])
+                    if isinstance(selected_opts, str): selected_opts = [selected_opts]
+                    if not selected_opts: selected_opts = []
+
+                    if possible_opts:
+                        d_lines = []
+                        for opt in possible_opts:
+                            mark = "[X]" if opt in selected_opts else "[ ]"
+                            d_lines.append(f"{mark} {opt}")
+                        d_text = "\n".join(d_lines)
+                    else:
+                        d_text = "\n".join(selected_opts) if selected_opts else "-"
                     
                     p_text = data_pdi.get(f"{key}_proc", "")
                     f_text = data_pdi.get(f"{key}_final", "")
@@ -4055,6 +4075,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

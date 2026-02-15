@@ -662,10 +662,10 @@ with st.sidebar:
     <style>
         section[data-testid="stSidebar"] > div {
             padding-top: -10rem !important;
-            padding-bottom: -2rem !important;
+            padding-bottom: -8rem !important;
         }
         [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-            gap: -1.2rem !important;
+            gap: 1.2rem !important;
         }
         .sidebar-title {
             font-size: 1.1rem;
@@ -3466,6 +3466,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 
 
 

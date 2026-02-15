@@ -1946,7 +1946,7 @@ elif app_mode == "👥 Gestão de Alunos":
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
 
-       # --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
+    # --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
     if doc_mode == "PDI":
         st.markdown(f"""<div class="header-box"><div class="header-title">PDI - Plano de Desenvolvimento Individual</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
@@ -1954,74 +1954,95 @@ elif app_mode == "👥 Gestão de Alunos":
         data_pdi = st.session_state.data_pdi
         data_case = st.session_state.get('data_case', {})
         
-        # --- DEFINIÇÃO DOS CHECKLISTS ESPECÍFICOS ---
-        # Formato: Chave -> [Lista de Opções]
+        # --- DEFINIÇÃO DOS CHECKLISTS ESPECÍFICOS (Texto exato do documento) ---
         checklist_options = {
-            "sis_monetario": ["Não reconhece", "Reconhece", "Atribui poder de compra"],
+            "sis_monetario": ["Não reconhece o sistema monetário", "Reconhece o sistema monetário", "Atribui poder de compra"],
             "brincar_funcional": ["Sim", "Não"],
-            "brincar_explora": ["Espontaneamente", "Necessita modelo/direcionamento"],
+            "brincar_explora": ["Explora espontaneamente", "Necessita de modelo/direcionamento"],
             "brincar_criativa": ["Sim", "Não"],
             "brincar_funcoes": ["Sim", "Não"],
-            "memoria_curto": ["Não realiza jogo", "Realiza jogo memória", "Seq. cores", "Seq. números", "Seq. objetos", "Sentenças simples", "Sentenças complexas"],
-            "memoria_episodica": ["Relembra fatos", "Relembra c/ ajuda", "Não relembra"],
-            "memoria_semantica": ["Relaciona", "Relaciona c/ apoio", "Não relaciona"],
-            "atencao_sustentada": ["Mantém", "Mantém c/ apoio", "Não mantém"],
-            "atencao_dividida": ["Mantém", "Mantém algumas situações", "Não mantém"],
-            "atencao_seletiva": ["Mantém ignorando estímulos", "Mantém c/ apoio", "Não mantém"],
-            "vm_desenho": ["Não reproduz", "Reproduz diferente", "Reproduz semelhante"],
+            "memoria_curto": ["Não realiza jogo de memória", "Realiza jogo de memória", "Relembra sequência de cores", "Relembra sequência de números", "Relembra sequência de objetos", "Relembra sentenças simples", "Relembra sentenças complexas"],
+            "memoria_episodica": ["Relembra fatos do cotidiano", "Necessita de ajuda para relembrar", "Não relembra fatos do cotidiano"],
+            "memoria_semantica": ["Relaciona significado c/ objeto", "Necessita de apoio para relacionar", "Não relaciona"],
+            "atencao_sustentada": ["Mantém por longo período", "Mantém por longo período c/ apoio", "Não mantém por longo período"],
+            "atencao_dividida": ["Mantém em dois estímulos", "Mantém em algumas situações", "Não mantém em dois estímulos"],
+            "atencao_seletiva": ["Mantém ignorando estímulos", "Mantém ignorando estímulos c/ apoio", "Não mantém com outros estímulos"],
+            "vm_desenho": ["Não reproduz", "Reproduz diferente do modelo", "Reproduz semelhante ao modelo"],
             "vm_limite_folha": ["Sim", "Não", "Com apoio"],
             "vm_limite_pintura": ["Sim", "Não", "Com apoio"],
             "vm_rasgar": ["Sim", "Não", "Com apoio"],
-            "vm_tesoura": ["Não realiza", "Com dificuldade", "Satisfatório"],
+            "vm_tesoura": ["Não realiza recorte", "Utiliza com dificuldade", "Utiliza de modo satisfatório"],
             "vm_cola": ["Não consegue", "Usa muita cola", "Adequado"],
-            "vm_encaixe": ["Não realiza", "Só c/ apoio", "Simples", "Complexos"],
-            "vm_reproducao": ["Não reproduz", "Diferente modelo", "Semelhante modelo"],
-            "vm_quebra_cabeca": ["Não realiza", "Tentativa e erro", "Visualização"],
-            "mf_punho": ["Não apresenta", "Alguns momentos", "Satisfatório"],
-            "mf_pinca": ["Não apresenta", "Alguns momentos", "Satisfatório"],
-            "mf_preensao": ["Autonomia", "Com apoio", "Palmar", "Digital", "Manuseia massinha"],
+            "vm_encaixe": ["Não realiza", "Realiza só com apoio", "Realiza encaixe simples", "Realiza encaixe complexos"],
+            "vm_reproducao": ["Não reproduz", "Reproduz diferente do modelo", "Reproduz semelhante ao modelo"],
+            "vm_quebra_cabeca": ["Não realiza", "Realiza por tentativa e erro", "Realiza por visualização"],
+            "mf_punho": ["Não apresenta", "Apresenta em alguns momentos", "Apresenta satisfatoriamente"],
+            "mf_pinca": ["Não apresenta", "Apresenta em alguns momentos", "Apresenta satisfatoriamente"],
+            "mf_preensao": ["Segura com autonomia", "Necessita de apoio", "Preensão palmar", "Preensão digital", "Manuseia massinha/argila"],
             "mg_tronco_sentado": ["Sim", "Não"],
             "mg_tronco_pe": ["Sim", "Não"],
-            "mg_locomocao": ["Acamado", "Cadeira rodas", "Prótese/Órtese", "Andador", "Bengala", "Arrasta/Engatinha", "Marcha c/ dificuladade", "Marcha adequada"],
-            "mg_equilibrio": ["Anda linha reta", "Anda linha sinuosa", "Corre linha reta", "Corre linha sinuosa", "Pé só", "Posição avião", "Salto 2 pés", "Salto 1 pé", "Lança bola mão", "Chuta bola pé", "Escada c/ apoio", "Escada autonomia"],
+            "mg_locomocao": ["Atualmente acamado", "Usa cadeira de rodas", "Possui prótese/órtese", "Usa andador", "Usa bengala", "Se arrasta/engatinha", "Marcha com dificuldade", "Marcha adequada"],
+            "mg_equilibrio": ["Anda sobre linha reta", "Anda sobre linha sinuosa", "Corre em linha reta", "Corre em linha sinuosa", "Equilibra-se em um pé só", "Posição do avião", "Saltos com dois pés", "Saltos com um pé só", "Lança bola com as mãos", "Chuta bola com os pés", "Sobe escadas c/ apoio", "Sobe escadas c/ autonomia"],
             "ec_imagem": ["Sim", "Não"],
-            "ec_partes": ["Não identifica", "Só partes gerais", "Nomeia partes gerais", "Identifica gerais/específicas", "Nomeia gerais/específicas"],
+            "ec_partes": ["Não identifica/nomeia", "Só identifica partes gerais", "Só identifica/nomeia gerais", "Identifica gerais e específicas", "Identifica/nomeia gerais e específicas"],
             "ec_funcoes": ["Sim", "Não"],
             "ec_imitar": ["Sim", "Não"],
-            "ec_desenho": ["Adequado", "Inadequado"],
+            "ec_desenho": ["Sim", "Não"],
             "ec_lateralidade": ["Direita", "Esquerda", "Sem definição"],
-            "ec_identifica_lat": ["Direita", "Esquerda", "Não identifica"],
+            "ec_identifica_lat": ["Direita", "Esquerda"],
             "ec_dois_lados": ["Sim", "Não"],
-            "avd_alimentacao": ["Independente", "Apoio parcial", "Apoio total"],
-            "avd_higiene": ["Sonda", "Colostomia", "Fraldas", "Apoio total", "Apoio parcial", "Independente"],
-            "avd_objetos": ["Uso funcional", "Apoio parcial", "Apoio total"],
-            "avd_locomocao": ["Independente", "Com apoio"],
-            "ps_interacao": ["Adequada crianças", "Adequada adultos", "Satisfatória", "Inadequada"],
-            "ps_iniciativa_dialogo": ["Não", "Sim, reduzida", "Adequada"],
-            "ps_iniciativa_ativ": ["Não", "Sim, reduzida", "Adequada"],
-            "vp_nome": ["Não", "Só prenome", "Completo"],
-            "vp_sim_nao": ["Sim", "Não"], # Genérico para perguntas de sim/não
-            "ling_verbal": ["Não usa palavras", "Usa palavras", "Trocas fonéticas", "Expressa pensamentos", "Relatos lógicos", "Diálogo", "Inventa frases", "Descreve cenas", "Reconta histórias"],
-            "ling_compreensiva": ["Simples", "Complexas", "Não processa", "Textuais", "Contexto história"],
-            "ling_gestual": ["Apenas gestual", "Parcialmente", "Não utiliza"],
-            "ling_ecolalia": ["Não", "Sim", "Alguns momentos"],
-            "ling_escrita": ["Não convencional", "Não distingue", "Distingue", "Letras aleatórias", "Nomeia letras", "Escreve nome", "Som/Grafia", "Palavras canônicas", "Palavras não-canônicas", "Dificuldade segmentação", "Frases simples", "Textos simples", "Desorganização", "Trocas fonéticas"],
-            "ling_leitura": ["Não realiza", "Alfabeto", "Identifica nome", "Palavras canônicas", "Palavras não-canônicas", "Frases/textos dif.", "Frases/textos fluência", "Não compreende", "Compreende c/ apoio", "Compreende"],
+            "avd_alimentacao": ["É independente", "Necessita de apoio parcial", "Necessita de apoio total"],
+            "avd_higiene": ["Usa sonda", "Usa bolsa de colostomia", "Usa fraldas", "Necessita de apoio total", "Necessita de apoio parcial", "É independente"],
+            "avd_objetos": ["Faz uso funcional", "Necessita de apoio parcial", "Necessita de total apoio"],
+            "avd_locomocao": ["Se locomove com independência", "Necessita de apoio para locomoção"],
+            "ps_interacao": ["Adequada com crianças", "Adequada com adultos", "Satisfatória", "Inadequada"],
+            "ps_iniciativa_dialogo": ["Não", "Sim, mas reduzida", "Adequada"],
+            "ps_iniciativa_ativ": ["Não", "Sim, mas reduzida", "Adequada"],
+            "vp_nome": ["Não", "Sim, mas só o prenome", "Sim, o nome completo"],
+            "vp_sim_nao": ["Sim", "Não"], 
+            "ling_verbal": ["Não faz uso de palavras", "Faz uso de palavras", "Apresenta trocas fonéticas", "Expressa pensamentos/ideias", "Faz relatos sequência lógica", "Estabelece diálogo", "Inventa frases/histórias", "Descreve cenas com sentido", "Reconta histórias"],
+            "ling_compreensiva": ["Processa inf. orais simples", "Processa inf. orais complexas", "Não processa inf. orais", "Compreende inf. textuais", "Compreende contexto história"],
+            "ling_gestual": ["Utiliza apenas gestual", "Utiliza parcialmente", "Não utiliza"],
+            "ling_ecolalia": ["Não fala de forma ecolálica", "Apresenta ecolalia", "Apresenta em alguns momentos"],
+            "ling_escrita": ["Não escreve convencionalmente", "Não distingue desenho/letras", "Distingue desenho/letras", "Escreve letras aleatórias", "Identifica e nomeia letras", "Escreve seu nome", "Relaciona som/grafia", "Escreve palavras canônicas", "Escreve palavras não-canônicas", "Dificuldades na segmentação", "Escreve frases simples", "Escreve textos simples", "Apresenta desorganização textual", "Apresenta trocas fonéticas"],
+            "ling_leitura": ["Não realiza leitura", "Domina sequência alfabética", "Identifica seu nome", "Leitura palavras canônicas", "Leitura canônicas e não-canônicas", "Leitura frases/textos c/ dificuldade", "Leitura frases/textos c/ fluência", "Não compreende o que lê", "Compreende o que lê c/ apoio", "Compreende o que lê"],
             "libras_aparelho": ["OD", "OE", "Ambos", "Nenhum"],
             "libras_com": ["Não", "Básico", "Fluente"],
-            "braille": ["Autonomia", "Apoio", "Dificuldade"],
-            "com_alt": ["Apontamentos", "Piscar", "Com. Alternativa", "Compreende CA"]
+            "braille": ["Com autonomia", "Com apoio", "Com dificuldade"],
+            "com_alt": ["Apontamentos", "Piscar dos olhos", "Comunicação alternativa", "Compreende via CA"]
         }
 
-        # Tabs de Navegação
+        # Estrutura para Objetivos Específicos (Item 6)
+        objectives_structure = {
+            "DESENVOLVIMENTO COGNITIVO": {
+                "PERCEPÇÃO": ["Visual", "Auditiva", "Tátil", "Espacial / Lateralidade", "Temporal / Ritmo / Sequência lógica"],
+                "RACIOCÍNIO LÓGICO": ["Correspondência", "Comparação", "Classificação", "Sequenciação", "Seriação", "Inclusão", "Conservação", "Resolução de situações-problema"],
+                "OUTROS": ["Sistema Monetário", "Capacidade de Brincar", "Memória", "Atenção"]
+            },
+            "DESENVOLVIMENTO MOTOR": {
+                "COORDENAÇÃO MOTORA FINA": ["Estabilidade de punho", "Movimento de pinça", "Preensão"],
+                "COORDENAÇÃO MOTORA GLOBAL": ["Postura", "Mão de apoio", "Locomoção", "Equilíbrio"],
+                "COORDENAÇÃO VISO-MOTORA": ["Desenho", "Limites da folha e desenho", "Recorte", "Uso de cola", "Encaixes", "Reprodução de figuras", "Quebra-cabeça"],
+                "ESQUEMA CORPORAL": ["Imagem corporal", "Partes do corpo e funções", "Lateralidade"],
+                "AVD": ["Alimentação", "Higiene", "Uso funcional dos objetos", "Locomoção na escola"]
+            },
+            "FUNÇÃO PESSOAL E SOCIAL": {
+                "GERAL": ["Interação", "Iniciativa", "Comportamento", "Vida Prática"]
+            },
+            "LINGUAGEM": {
+                "GERAL": ["Verbal", "Compreensiva", "Gestual", "Ecolalia", "Escrita", "Leitura", "Libras / Braille / CA"]
+            }
+        }
+
+        # Tabs de Navegação Atualizadas
         tabs = st.tabs([
-            "1. Plano AEE",
-            "2. Avaliação Pedagógica",
-            "3. Objetivos & Metas",
-            "4. PDF Final"
+            "Item 2: Plano AEE",
+            "Item 3: Avaliação Pedagógica",
+            "Item 6: Objetivos a Atingir",
+            "PDF Final"
         ])
         
-        st.info("ℹ️ Os dados de **Identificação**, **Família**, **Histórico** e **Avaliação Geral** são importados automaticamente do módulo **Estudo de Caso**.")
+        st.info("ℹ️ Os dados de **Identificação**, **Família**, **Histórico** e **Avaliação Geral** são importados automaticamente do módulo **Estudo de Caso** (Item 1).")
 
         # --- ABA 1: PLANO AEE ---
         with tabs[0]:
@@ -2053,7 +2074,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         # --- ABA 2: AVALIAÇÃO PEDAGÓGICA (CHECKLISTS) ---
         with tabs[1]:
-            st.header("3. Avaliação Pedagógica")
+            st.header("3. Objetivos e Metas (Avaliação Pedagógica)")
             st.caption("Selecione a situação do aluno em cada fase: Diagnóstico (Inicial), Percurso (Durante) e Final.")
 
             def render_evolution_row(label, key_base, option_list):
@@ -2201,45 +2222,26 @@ elif app_mode == "👥 Gestão de Alunos":
                 if st.form_submit_button("💾 Salvar Avaliação Pedagógica"):
                     save_student("PDI", data_pdi.get('nome'), data_pdi, "Avaliação Pedagógica")
 
-        # --- ABA 3: OBJETIVOS E METAS (NOVO) ---
+        # --- ABA 3: OBJETIVOS E METAS (ITEM 6 - DETALHADO) ---
         with tabs[2]:
-            st.header("4. Objetivos a serem Atingidos")
-            st.info("Selecione as áreas que serão foco de trabalho e descreva os objetivos específicos.")
+            st.header("6. Objetivos a serem Atingidos")
+            st.info("Descreva os objetivos específicos para cada área de desenvolvimento.")
             
-            with st.form("pdi_objetivos"):
-                obj_areas = [
-                    "Desenvolvimento Cognitivo - Percepção",
-                    "Desenvolvimento Cognitivo - Raciocínio Lógico",
-                    "Sistema Monetário",
-                    "Capacidade de Brincar",
-                    "Memória",
-                    "Atenção",
-                    "Coordenação Viso-motora",
-                    "Desenvolvimento Motor Fino",
-                    "Desenvolvimento Motor Global",
-                    "Esquema Corporal",
-                    "Autonomia / AVD",
-                    "Função Pessoal e Social",
-                    "Linguagem Verbal/Oral",
-                    "Leitura e Escrita",
-                    "Libras / Braille / CA"
-                ]
-                
-                if 'obj_selected' not in data_pdi: data_pdi['obj_selected'] = []
-                
-                st.markdown("**Áreas de Foco:**")
-                for area in obj_areas:
-                    checked = area in data_pdi['obj_selected']
-                    if st.checkbox(area, value=checked, key=f"obj_chk_{area}", disabled=is_monitor):
-                        if area not in data_pdi['obj_selected']: data_pdi['obj_selected'].append(area)
-                    else:
-                        if area in data_pdi['obj_selected']: data_pdi['obj_selected'].remove(area)
-                
-                st.markdown("**Descrição dos Objetivos Específicos:**")
-                data_pdi['objetivos_texto'] = st.text_area("Descreva as metas para o período:", value=data_pdi.get('objetivos_texto', ''), height=200, disabled=is_monitor)
+            with st.form("pdi_objetivos_detalhado"):
+                if 'goals_specific' not in data_pdi: data_pdi['goals_specific'] = {}
+
+                for category, subcats in objectives_structure.items():
+                    with st.expander(f"📍 {category}", expanded=False):
+                        for subcat_name, items_list in subcats.items():
+                            st.markdown(f"**{subcat_name}**")
+                            for item in items_list:
+                                item_key = f"goal_{category}_{subcat_name}_{item}".replace(" ", "_").lower()
+                                val = data_pdi['goals_specific'].get(item_key, "")
+                                data_pdi['goals_specific'][item_key] = st.text_input(f"{item}:", value=val, disabled=is_monitor)
+                            st.divider()
 
                 if st.form_submit_button("💾 Salvar Objetivos"):
-                    save_student("PDI", data_pdi.get('nome'), data_pdi, "Objetivos")
+                    save_student("PDI", data_pdi.get('nome'), data_pdi, "Objetivos Detalhados")
 
         # --- ABA 4: PDF ---
         with tabs[3]:
@@ -2522,9 +2524,9 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.cell(0, 6, clean_pdf_text(f"Frequência: {data_pdi.get('aee_freq')} | Tempo: {data_pdi.get('aee_tempo')}"), 1, 1)
                 pdf.cell(0, 6, clean_pdf_text(f"Modalidade: {data_pdi.get('aee_tipo')} | Composição: {data_pdi.get('aee_comp')}"), 1, 1)
 
-                # --- 3. METAS E CHECKLISTS ---
+                # --- 3. AVALIAÇÃO PEDAGÓGICA (RESULTADOS) ---
                 pdf.add_page()
-                pdf.section_title("3. AVALIAÇÃO PEDAGÓGICA (RESULTADOS)", width=0)
+                pdf.section_title("3. OBJETIVOS E METAS (AVALIAÇÃO PEDAGÓGICA)", width=0)
                 pdf.ln(5)
 
                 def print_check_evolution(title, key):
@@ -2548,15 +2550,9 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.set_font("Arial", "B", 9); pdf.set_fill_color(240, 240, 240)
                     pdf.cell(0, 6, clean_pdf_text(title), 1, 1, 'L', True)
                     pdf.set_font("Arial", "", 8)
-                    # Simple grid
-                    w = 63; h = 20
-                    pdf.rect(pdf.get_x(), pdf.get_y(), w, h); pdf.multi_cell(w, 5, clean_pdf_text(d), 0)
-                    pdf.set_xy(pdf.get_x()+w, pdf.get_y()-20) # This simple positioning assumes fixed height for simplicity in this massive block, 
-                    # but real implementation would need dynamic calc like before. Reverting to dynamic calc:
                     
-                    y_start = pdf.get_y() - 5 # Adjustment because multi_cell advances line
-                    # Let's just print simple lines for text evolution to save space
-                    pdf.set_xy(10, pdf.get_y()); pdf.cell(0,0,"",0,1) # Reset
+                    y_start = pdf.get_y() - 5 
+                    pdf.set_xy(10, pdf.get_y()); pdf.cell(0,0,"",0,1) 
                     pdf.multi_cell(0, 5, clean_pdf_text(f"Diagnóstico: {d}"))
                     pdf.multi_cell(0, 5, clean_pdf_text(f"Percurso: {p}"))
                     pdf.multi_cell(0, 5, clean_pdf_text(f"Final: {f}"))
@@ -2638,20 +2634,63 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_check_evolution("Braille", "braille_esc")
                 print_check_evolution("Com. Alternativa", "ca_uso")
 
-                # --- 4. OBJETIVOS ---
+                # --- 4 e 5: Headers ---
                 pdf.add_page()
-                pdf.section_title("4. OBJETIVOS A SEREM ATINGIDOS", width=0)
+                pdf.section_title("4. PLANEJAMENTO MENSAL", width=0)
+                pdf.ln(20)
+                pdf.section_title("5. REGISTROS (Frequência, Encaminhamentos, Relatórios)", width=0)
+                pdf.ln(20)
+
+                # --- 6. OBJETIVOS ---
+                pdf.add_page()
+                pdf.section_title("6. OBJETIVOS A SEREM ATINGIDOS", width=0)
                 pdf.ln(5)
                 
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "Áreas de Foco Selecionadas:", 0, 1)
-                pdf.set_font("Arial", "", 10)
-                for area in data_pdi.get('obj_selected', []):
-                    pdf.cell(0, 6, clean_pdf_text(f"- {area}"), 0, 1)
-                
-                pdf.ln(5)
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "Descrição dos Objetivos Específicos:", 0, 1)
-                pdf.set_font("Arial", "", 10)
-                pdf.multi_cell(0, 6, clean_pdf_text(data_pdi.get('objetivos_texto', '')))
+                for category, subcats in objectives_structure.items():
+                    if pdf.get_y() > 250: pdf.add_page()
+                    pdf.set_fill_color(200, 200, 200) # Darker grey for category
+                    pdf.set_font("Arial", "B", 10)
+                    pdf.cell(0, 8, clean_pdf_text(category), 1, 1, 'C', True)
+                    
+                    for subcat_name, items_list in subcats.items():
+                        if subcat_name != "GERAL" and subcat_name != "OUTROS":
+                            pdf.set_fill_color(240, 240, 240) # Lighter grey for subcategory
+                            pdf.cell(0, 6, clean_pdf_text(subcat_name), 1, 1, 'C', True)
+                        
+                        for item in items_list:
+                             if pdf.get_y() > 250: pdf.add_page()
+                             # Render Row: Label | Content
+                             item_key = f"goal_{category}_{subcat_name}_{item}".replace(" ", "_").lower()
+                             content = data_pdi['goals_specific'].get(item_key, "")
+                             
+                             # Calculate height based on content
+                             pdf.set_font("Arial", "B", 9)
+                             label_w = 60
+                             pdf.cell(label_w, 8, clean_pdf_text(item), 1, 0, 'L')
+                             
+                             pdf.set_font("Arial", "", 9)
+                             # Use multi_cell for content to wrap
+                             x = pdf.get_x(); y = pdf.get_y()
+                             pdf.multi_cell(0, 8, clean_pdf_text(content), 1, 'L')
+                             # Draw border around the multi_cell area if needed or just line
+                             pdf.rect(x, y, 190-label_w, 8) # Simple rect assuming single line height for visual consistency or just let multi_cell handle it. 
+                             # Since multi_cell moves cursor down, we need to be careful with layout. 
+                             # A simpler approach for this specific "table" look:
+                             # Just line break after multi_cell is enough if we don't strictly need vertical grid lines for the text area, 
+                             # but the user reference shows a table.
+                             # Let's fix the layout for variable height:
+                             # Re-do:
+                             pdf.set_xy(x - label_w, y) # Go back to start of line
+                             
+                             # Calc max height
+                             h_content = max(8, pdf.get_string_width(content) / (190-label_w) * 5 + 8)
+                             
+                             pdf.set_font("Arial", "B", 9)
+                             pdf.cell(label_w, h_content, clean_pdf_text(item), 1, 0, 'L')
+                             
+                             pdf.set_font("Arial", "", 9)
+                             pdf.multi_cell(0, h_content, clean_pdf_text(content), 1, 'L')
+
 
                 st.session_state.pdf_bytes_pdi = get_pdf_bytes(pdf)
                 st.rerun()
@@ -3946,6 +3985,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

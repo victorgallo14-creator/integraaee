@@ -1946,7 +1946,8 @@ elif app_mode == "👥 Gestão de Alunos":
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
 
-     # --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
+   
+    # --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
     if doc_mode == "PDI":
         st.markdown(f"""<div class="header-box"><div class="header-title">PDI - Plano de Desenvolvimento Individual</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
@@ -2243,6 +2244,9 @@ elif app_mode == "👥 Gestão de Alunos":
                 v_diag = data_pdi.get(f"{key_base}_diag", [])
                 if not isinstance(v_diag, list): v_diag = [] 
 
+                # Filter defaults to ensure they exist in option_list (avoids StreamlitAPIException on schema change)
+                v_diag = [x for x in v_diag if x in option_list]
+
                 v_proc = data_pdi.get(f"{key_base}_proc", "")
                 v_final = data_pdi.get(f"{key_base}_final", "")
 
@@ -2300,7 +2304,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     render_evolution_row("Uso Cola", "vm_cola", checklist_options["vm_cola"])
                     render_evolution_row("Encaixes", "vm_encaixe", checklist_options["vm_encaixe"])
                     render_evolution_row("Reprodução Figuras", "vm_reproducao", checklist_options["vm_reproducao"])
-                    render_evolution_row("Quebra-Cabeça", "vm_qc", checklist_options["vm_quebra_cabeca"])
+                    render_evolution_row("Quebra-Cabeça", "vm_quebra_cabeca", checklist_options["vm_quebra_cabeca"])
                     data_pdi['vm_obs'] = st.text_input("Observações Viso-Motora", value=data_pdi.get('vm_obs',''), disabled=is_monitor)
 
                 # 3.2 DESENVOLVIMENTO MOTOR
@@ -2346,7 +2350,12 @@ elif app_mode == "👥 Gestão de Alunos":
                     render_evolution_row("Iniciativa Atividade", "ps_ini_a", checklist_options["ps_iniciativa_ativ"])
                     
                     st.markdown("**Comportamentos Apresentados:**")
-                    data_pdi['ps_comps'] = st.multiselect("Selecione:", checklist_options["ps_comps"], default=data_pdi.get('ps_comps',[]), disabled=is_monitor)
+                    # Filter defaults for comps
+                    v_comps = data_pdi.get('ps_comps', [])
+                    if not isinstance(v_comps, list): v_comps = []
+                    v_comps = [x for x in v_comps if x in checklist_options["ps_comps"]]
+                    
+                    data_pdi['ps_comps'] = st.multiselect("Selecione:", checklist_options["ps_comps"], default=v_comps, disabled=is_monitor)
                     
                     st.markdown("**Vida Prática:**")
                     render_evolution_row("Sabe Nome?", "vp_nome", checklist_options["vp_nome"])
@@ -4304,6 +4313,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

@@ -2729,4 +2729,3 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
                 else: st.info("Sem histórico.")
             else: st.info("Histórico vazio.")
-

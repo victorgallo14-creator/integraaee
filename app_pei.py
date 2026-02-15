@@ -2199,6 +2199,7 @@ elif app_mode == "👥 Gestão de Alunos":
             "Item 3: Avaliação Pedagógica",
             "Item 4: Objetivos a Atingir",
             "PDF Final"
+            "Histórico"
         ])
         
         st.info("ℹ️ Os dados de **Identificação**, **Família**, **Histórico** e **Avaliação Geral** são importados automaticamente do módulo **Estudo de Caso** (Item 1).")
@@ -4411,6 +4412,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

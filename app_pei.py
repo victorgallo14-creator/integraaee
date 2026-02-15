@@ -10,6 +10,7 @@ from PIL import Image
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 import time
+import uuid
 
 # --- CONEXÃO COM GOOGLE SHEETS ---
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -106,14 +107,22 @@ def save_student(doc_type, name, data, section="Geral"):
     # Nota: is_monitor será definido após login(), mas esta função só é chamada via botões após login.
     is_monitor = st.session_state.get('user_role') == 'monitor'
     
-    if is_monitor and doc_type != "DIARIO":
-        st.error("Acesso negado: Monitores não podem salvar este tipo de documento.")
+    # Exceção: Monitores podem assinar documentos (salvar apenas a assinatura)
+    # A lógica de bloqueio deve ser tratada antes de chamar save_student se for edição de conteúdo
+    # Aqui permitimos salvar se for DIARIO ou se for apenas atualização de assinatura (tratado na logica da UI)
+    
+    if is_monitor and doc_type != "DIARIO" and section != "Assinatura":
+        st.error("Acesso negado: Monitores não podem editar este documento.")
         return
 
     try:
         df_atual = load_db()
         id_registro = f"{name} ({doc_type})"
         
+        # Garantir UUID
+        if 'doc_uuid' not in data or not data['doc_uuid']:
+            data['doc_uuid'] = str(uuid.uuid4()).upper()
+
         def serializar_datas(obj):
             if isinstance(obj, (date, datetime)): return obj.strftime("%Y-%m-%d")
             if isinstance(obj, dict): return {k: serializar_datas(v) for k, v in obj.items()}
@@ -175,13 +184,57 @@ def get_pdf_bytes(pdf_instance):
     try: return bytes(pdf_instance.output(dest='S').encode('latin-1'))
     except: return bytes(pdf_instance.output(dest='S'))
 
-# --- CLASSE PDF CUSTOMIZADA ---
+# --- CLASSE PDF CUSTOMIZADA COM ASSINATURA ---
 class OfficialPDF(FPDF):
+    def __init__(self, orientation='P', unit='mm', format='A4'):
+        super().__init__(orientation, unit, format)
+        self.signature_info = None # Texto da assinatura
+        self.doc_uuid = None
+
+    def set_signature_footer(self, signatures_list, doc_uuid):
+        """Prepara o texto de validação para o rodapé"""
+        self.doc_uuid = doc_uuid
+        if signatures_list and len(signatures_list) > 0:
+            names = [s.get('name', '').upper() for s in signatures_list]
+            names_str = ", ".join(names[:-1]) + " e " + names[-1] if len(names) > 1 else names[0]
+            self.signature_info = f"Assinado por {len(names)} pessoas: {names_str}"
+        else:
+            self.signature_info = "Documento gerado sem assinaturas digitais."
+
     def footer(self):
-        self.set_y(-20); self.set_font('Arial', '', 9); self.set_text_color(80, 80, 80)
+        self.set_y(-25)
+        self.set_font('Arial', '', 8)
+        self.set_text_color(80, 80, 80)
+        
+        # Bloco de Assinatura Digital
+        if self.doc_uuid:
+            # Caixa cinza claro para validação
+            self.set_fill_color(245, 245, 245)
+            self.rect(10, 275 if self.def_orientation == 'P' else 190, 190 if self.def_orientation == 'P' else 277, 12, 'F')
+            
+            # Texto
+            self.set_xy(12, 276 if self.def_orientation == 'P' else 191)
+            self.set_font('Arial', 'B', 7)
+            if self.signature_info:
+                self.cell(0, 3, clean_pdf_text(self.signature_info), 0, 1, 'L')
+            
+            self.set_x(12)
+            self.set_font('Arial', '', 7)
+            link_txt = f"Para verificar a validade das assinaturas, acesse https://limeira.1doc.com.br/verificacao/{self.doc_uuid} e informe o código {self.doc_uuid}"
+            self.cell(0, 3, clean_pdf_text(link_txt), 0, 1, 'L')
+            
+            # Logo Cérebro Pequeno (Simulação)
+            self.set_xy(-25, 276 if self.def_orientation == 'P' else 191)
+            self.set_font('Arial', '', 14)
+            self.cell(10, 10, clean_pdf_text("🧠"), 0, 0, 'C')
+
+        # Endereço Padrão (Abaixo da caixa)
+        self.set_y(-10)
+        self.set_font('Arial', '', 8)
         addr = "Secretaria Municipal de Educação | Centro de Formação do Professor - Limeira-SP"
-        self.cell(0, 5, clean_pdf_text(addr), 0, 1, 'C')
-        self.set_font('Arial', 'I', 8); self.cell(0, 5, clean_pdf_text(f'Página {self.page_no()}'), 0, 0, 'R')
+        self.cell(0, 5, clean_pdf_text(addr), 0, 0, 'C')
+        self.set_font('Arial', 'I', 8)
+        self.cell(0, 5, clean_pdf_text(f'Página {self.page_no()}'), 0, 0, 'R')
 
     def section_title(self, title, width=0):
         self.set_font('Arial', 'B', 12); self.set_fill_color(240, 240, 240)
@@ -219,7 +272,7 @@ def login():
                 /* Painel Esquerdo (Arte) */
                 .login-art-box {
                     background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
-                    height: 550px; /* Altura ajustada para centralizar melhor */
+                    height: 600px; /* Altura ajustada */
                     border-radius: 16px 0 0 16px; /* Arredondado apenas na esquerda */
                     display: flex;
                     flex-direction: column;
@@ -232,15 +285,14 @@ def login():
                 }
                 
                 /* Painel Direito (Formulário) - Estilizando o próprio stForm */
-                div[data-testid="stForm"] {
+                .login-form-box {
                     background-color: white;
-                    border: none;
                     padding: 2rem 3rem;
                     border-radius: 0 16px 16px 0; /* Arredondado apenas na direita */
-                    height: 550px; /* Mesma altura da arte */
+                    height: 600px; /* Mesma altura da arte */
                     display: flex;
                     flex-direction: column;
-                    justify-content: center;
+                    justify-content: flex-start; /* Alinhado ao topo para abas */
                     box-shadow: 5px 10px 25px rgba(0,0,0,0.05);
                 }
 
@@ -318,88 +370,112 @@ def login():
             
         # --- LADO DIREITO (FORMULÁRIO BRANCO) ---
         with c_form:
-            # Usando st.form como o container do cartão branco
-            with st.form("login_form"):
-                
-                # Layout Header: Texto à esquerda, Logo à direita (menor)
-                c_head_txt, c_head_logo = st.columns([3, 1.2])
-                
-                with c_head_txt:
-                    st.markdown('<div class="welcome-title" style="margin-top: 0px;">Bem-vindo(a)</div>', unsafe_allow_html=True)
-                    st.markdown('<div class="welcome-sub">Insira suas credenciais para acessar o sistema.</div>', unsafe_allow_html=True)
-                
-                with c_head_logo:
-                    if os.path.exists("logo_escola.png"):
-                        # Logo alinhado à direita no layout de colunas
-                        st.image("logo_escola.png", use_container_width=True)
-                
-                st.write("") # Espaço
-                
-                user_id = st.text_input("Matrícula Funcional", placeholder="Ex: 12345")
-                password = st.text_input("Senha", type="password", placeholder="••••••")
-                
-                st.markdown("""
-                    <div class="lgpd-box">
-                        <div class="lgpd-title">🔒 CONFIDENCIALIDADE E SIGILO</div>
-                        <div class="lgpd-text">
-                            Acesso Monitorado. Este sistema contém informações confidenciais e dados sensíveis protegidos pela Lei Geral de Proteção de Dados (LGPD). O uso é estritamente destinado a finalidades pedagógicas e administrativas. 
-                            Ao prosseguir, você declara estar ciente de que todas as ações são registradas, podendo haver auditoria para garantia da segurança, integridade e conformidade dos dados. A utilização indevida acarretará responsabilização conforme a legislação vigente.
+            st.markdown('<div class="login-form-box">', unsafe_allow_html=True)
+            
+            # Abas de Login e Validação
+            tab_login, tab_validar = st.tabs(["🔐 Acesso ao Sistema", "✅ Validar Documento"])
+            
+            with tab_login:
+                with st.form("login_form"):
+                    # Layout Header: Texto à esquerda, Logo à direita (menor)
+                    c_head_txt, c_head_logo = st.columns([3, 1.2])
+                    
+                    with c_head_txt:
+                        st.markdown('<div class="welcome-title" style="margin-top: 0px;">Bem-vindo(a)</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="welcome-sub">Insira suas credenciais para acessar o sistema.</div>', unsafe_allow_html=True)
+                    
+                    with c_head_logo:
+                        if os.path.exists("logo_escola.png"):
+                            st.image("logo_escola.png", use_container_width=True)
+                    
+                    st.write("") # Espaço
+                    
+                    user_id = st.text_input("Matrícula Funcional", placeholder="Ex: 12345")
+                    password = st.text_input("Senha", type="password", placeholder="••••••")
+                    
+                    st.markdown("""
+                        <div class="lgpd-box">
+                            <div class="lgpd-title">🔒 CONFIDENCIALIDADE E SIGILO</div>
+                            <div class="lgpd-text">
+                                Acesso Monitorado. Protegido pela LGPD. Uso estritamente profissional.
+                            </div>
                         </div>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                submit = st.form_submit_button("ACESSAR SISTEMA", type="primary")
-                
-                if submit:
-                    try:
-                        # 1. Busca a senha mestre nos Secrets
-                        SENHA_MESTRA = st.secrets.get("credentials", {}).get("password", "admin")
-                        user_id_limpo = str(user_id).strip()
-                        
-                        # 2. Tenta autenticar como Professor
-                        df_professores = conn.read(worksheet="Professores", ttl=0)
-                        
-                        authenticated_as_prof = False
-                        
-                        if not df_professores.empty:
-                            df_professores['matricula'] = df_professores['matricula'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
+                    """, unsafe_allow_html=True)
+                    
+                    submit = st.form_submit_button("ACESSAR SISTEMA", type="primary")
+                    
+                    if submit:
+                        try:
+                            SENHA_MESTRA = st.secrets.get("credentials", {}).get("password", "admin")
+                            user_id_limpo = str(user_id).strip()
+                            df_professores = conn.read(worksheet="Professores", ttl=0)
+                            authenticated_as_prof = False
                             
-                            if password == SENHA_MESTRA and user_id_limpo in df_professores['matricula'].values:
-                                registro = df_professores[df_professores['matricula'] == user_id_limpo]
-                                nome_prof = registro['nome'].values[0]
-                                
-                                st.session_state.authenticated = True
-                                st.session_state.usuario_nome = nome_prof
-                                st.session_state.user_role = 'professor'
-                                authenticated_as_prof = True
-                                st.toast(f"Acesso Docente autorizado. Bem-vindo(a), {nome_prof}!", icon="🔓")
-                                time.sleep(1)
-                                st.rerun()
-
-                        # 3. Se não for professor, tenta como Monitor
-                        if not authenticated_as_prof:
-                            # Note: safe_read is now defined above login
-                            df_monitores = safe_read("Monitores", ["matricula", "nome"])
-                            if not df_monitores.empty:
-                                df_monitores['matricula'] = df_monitores['matricula'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
-                                
-                                if password == "123" and user_id_limpo in df_monitores['matricula'].values:
-                                    registro = df_monitores[df_monitores['matricula'] == user_id_limpo]
-                                    nome_mon = registro['nome'].values[0]
-                                    
+                            if not df_professores.empty:
+                                df_professores['matricula'] = df_professores['matricula'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
+                                if password == SENHA_MESTRA and user_id_limpo in df_professores['matricula'].values:
+                                    registro = df_professores[df_professores['matricula'] == user_id_limpo]
+                                    nome_prof = registro['nome'].values[0]
                                     st.session_state.authenticated = True
-                                    st.session_state.usuario_nome = nome_mon
-                                    st.session_state.user_role = 'monitor'
-                                    st.toast(f"Acesso Monitor autorizado. Bem-vindo(a), {nome_mon}!", icon="🛡️")
-                                    time.sleep(1)
-                                    st.rerun()
+                                    st.session_state.usuario_nome = nome_prof
+                                    st.session_state.user_role = 'professor'
+                                    authenticated_as_prof = True
+                                    st.toast(f"Acesso Docente autorizado. Bem-vindo(a), {nome_prof}!", icon="🔓")
+                                    time.sleep(1); st.rerun()
+
+                            if not authenticated_as_prof:
+                                df_monitores = safe_read("Monitores", ["matricula", "nome"])
+                                if not df_monitores.empty:
+                                    df_monitores['matricula'] = df_monitores['matricula'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
+                                    if password == "123" and user_id_limpo in df_monitores['matricula'].values:
+                                        registro = df_monitores[df_monitores['matricula'] == user_id_limpo]
+                                        nome_mon = registro['nome'].values[0]
+                                        st.session_state.authenticated = True
+                                        st.session_state.usuario_nome = nome_mon
+                                        st.session_state.user_role = 'monitor'
+                                        st.toast(f"Acesso Monitor autorizado. Bem-vindo(a), {nome_mon}!", icon="🛡️")
+                                        time.sleep(1); st.rerun()
+                                    else:
+                                        st.error("Credenciais inválidas.")
                                 else:
                                     st.error("Credenciais inválidas.")
-                            else:
-                                st.error("Credenciais inválidas.")
-                            
-                    except Exception as e:
-                        st.error(f"Erro técnico: {e}")
+                        except Exception as e:
+                            st.error(f"Erro técnico: {e}")
+
+            with tab_validar:
+                st.markdown("### Validação Pública")
+                st.caption("Insira o código UUID presente no rodapé do documento para verificar sua autenticidade e assinaturas.")
+                uuid_input = st.text_input("Código do Documento (UUID)", placeholder="Ex: 7D2B-5135...")
+                if st.button("Verificar Autenticidade", type="primary"):
+                    if uuid_input:
+                        try:
+                            df_alunos = load_db()
+                            encontrado = False
+                            for _, row in df_alunos.iterrows():
+                                try:
+                                    d = json.loads(row['dados_json'])
+                                    if d.get('doc_uuid') == uuid_input.strip():
+                                        encontrado = True
+                                        st.success("✅ DOCUMENTO VÁLIDO E AUTÊNTICO")
+                                        st.markdown(f"**Aluno:** {d.get('nome', 'N/A')}")
+                                        st.markdown(f"**Tipo:** {row['tipo_doc']}")
+                                        
+                                        assinaturas = d.get('signatures', [])
+                                        if assinaturas:
+                                            st.markdown("---")
+                                            st.markdown("### Assinaturas Digitais:")
+                                            for sig in assinaturas:
+                                                st.info(f"✍️ **{sig['name']}** ({sig.get('role', 'Profissional')})\n\n📅 Assinado em: {sig['date']}")
+                                        else:
+                                            st.warning("Este documento ainda não possui assinaturas digitais registradas.")
+                                        break
+                                except: pass
+                            if not encontrado:
+                                st.error("❌ Documento não encontrado ou código inválido.")
+                        except Exception as e:
+                            st.error(f"Erro na busca: {e}")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
         
         # Interrompe o carregamento do restante do app até que o login seja feito
         st.stop()
@@ -766,6 +842,43 @@ if app_mode == "📊 Painel de Gestão":
     
     df_dash = load_db()
     
+    # --- CHECK DE ASSINATURAS PENDENTES ---
+    pending_docs = []
+    user_name_lower = st.session_state.get('usuario_nome', '').strip().lower()
+    
+    if not df_dash.empty and user_name_lower:
+        for idx, row in df_dash.iterrows():
+            try:
+                d = json.loads(row['dados_json'])
+                doc_uuid = d.get('doc_uuid')
+                signatures = d.get('signatures', [])
+                signed_names = [s.get('name', '').strip().lower() for s in signatures]
+                
+                # Check fields for possible citation
+                fields_to_check = [
+                    'prof_poli', 'prof_aee', 'prof_arte', 'prof_ef', 'prof_tec', 'gestor', 'coord', # PEI
+                    'resp_sala', 'resp_ee', 'resp_dir', # Avaliação
+                    'acompanhante' # Diario
+                ]
+                
+                found_role = None
+                for f in fields_to_check:
+                    val = d.get(f)
+                    if val and isinstance(val, str) and user_name_lower in val.strip().lower():
+                        found_role = f
+                        break
+                
+                if found_role and user_name_lower not in signed_names:
+                    pending_docs.append(f"{row['nome']} - {row['tipo_doc']}")
+            except: pass
+
+    if pending_docs:
+        st.warning(f"⚠️ **Atenção:** Você foi citado em {len(pending_docs)} documento(s) e necessita assinar digitalmente.")
+        with st.expander("Ver documentos pendentes"):
+            for p in pending_docs:
+                st.write(f"- {p}")
+        st.divider()
+    
     # --- CÁLCULO DE MÉTRICAS ---
     # Contagem de alunos únicos
     if not df_dash.empty and "nome" in df_dash.columns:
@@ -960,7 +1073,7 @@ elif app_mode == "👥 Gestão de Alunos":
         
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
 
-        tabs = st.tabs(["1. Identificação", "2. Saúde", "3. Conduta", "4. Escolar", "5. Acadêmico", "6. Metas/Flex", "7. Emissão", "8. Histórico"])
+        tabs = st.tabs(["1. Identificação", "2. Saúde", "3. Conduta", "4. Escolar", "5. Acadêmico", "6. Metas/Flex", "7. Assinaturas (NOVO)", "8. Emissão", "9. Histórico"])
         data = st.session_state.data_pei
 
         # --- ABA 1: IDENTIFICAÇÃO ---
@@ -1353,8 +1466,79 @@ elif app_mode == "👥 Gestão de Alunos":
                     if st.form_submit_button("💾 Salvar Metas e Plano"):
                         save_student("PEI", data.get('nome'), data, "Metas e Plano")
 
-        # --- ABA 7: EMISSÃO ---
+        # --- ABA 7: ASSINATURAS (NOVO) ---
         with tabs[6]:
+            st.subheader("Assinaturas Digitais")
+            st.caption(f"Código Único do Documento: {data.get('doc_uuid', 'Não gerado ainda')}")
+            
+            # Identify required signers based on content
+            required_roles = []
+            if data.get('prof_poli'): required_roles.append({'role': 'Prof. Polivalente', 'name': data['prof_poli']})
+            if data.get('prof_aee'): required_roles.append({'role': 'Prof. AEE', 'name': data['prof_aee']})
+            if data.get('prof_arte'): required_roles.append({'role': 'Prof. Arte', 'name': data['prof_arte']})
+            if data.get('prof_ef'): required_roles.append({'role': 'Prof. Ed. Física', 'name': data['prof_ef']})
+            if data.get('prof_tec'): required_roles.append({'role': 'Prof. Tecnologia', 'name': data['prof_tec']})
+            if data.get('gestor'): required_roles.append({'role': 'Gestor Escolar', 'name': data['gestor']})
+            if data.get('coord'): required_roles.append({'role': 'Coordenação', 'name': data['coord']})
+            
+            # Show list of signatories
+            if required_roles:
+                st.markdown("##### Profissionais Citados no Documento")
+                for r in required_roles:
+                    st.write(f"- **{r['role']}:** {r['name']}")
+            else:
+                st.info("Nenhum profissional identificado automaticamente nos campos.")
+
+            st.divider()
+            
+            # Current Signatures
+            current_signatures = data.get('signatures', [])
+            if current_signatures:
+                st.success("✅ Documento assinado por:")
+                for sig in current_signatures:
+                    st.write(f"✍️ **{sig['name']}** ({sig.get('role', 'Profissional')}) em {sig['date']}")
+            else:
+                st.warning("Nenhuma assinatura registrada.")
+
+            st.divider()
+            
+            # Signing Action
+            user_name = st.session_state.get('usuario_nome', '')
+            user_role_sys = "Monitor" if is_monitor else "Docente/Gestor"
+            
+            # Check if user matches any role
+            match_role = "Profissional"
+            is_cited = False
+            for r in required_roles:
+                if user_name.strip().lower() in r['name'].strip().lower():
+                    is_cited = True
+                    match_role = r['role']
+                    break
+            
+            st.markdown(f"**Assinar como:** {user_name} ({match_role})")
+            
+            # Check if already signed
+            already_signed = any(s['name'] == user_name for s in current_signatures)
+            
+            if already_signed:
+                st.info("Você já assinou este documento.")
+            else:
+                if st.button("🖊️ Assinar Digitalmente"):
+                    new_sig = {
+                        "name": user_name,
+                        "role": match_role,
+                        "date": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+                        "hash": str(uuid.uuid4())
+                    }
+                    if 'signatures' not in data: data['signatures'] = []
+                    data['signatures'].append(new_sig)
+                    
+                    # Salva apenas a assinatura
+                    save_student("PEI", data.get('nome'), data, "Assinatura")
+                    st.rerun()
+
+        # --- ABA 8: EMISSÃO ---
+        with tabs[7]:
             if not is_monitor:
                 st.info("Antes de gerar o PDF, certifique-se de ter clicado em 'Salvar' nas abas anteriores.")
                 if st.button("💾 SALVAR PEI COMPLETO", type="primary"): save_student("PEI", data['nome'], data, "Completo")
@@ -1366,6 +1550,9 @@ elif app_mode == "👥 Gestão de Alunos":
                 log_action(data.get('nome'), "Gerou PDF", "PEI Completo")
                 
                 pdf = OfficialPDF('L', 'mm', 'A4'); pdf.add_page(); pdf.set_margins(10, 10, 10)
+                
+                # SET SIGNATURE FOOTER
+                pdf.set_signature_footer(data.get('signatures', []), data.get('doc_uuid', ''))
                 
                 # --- PÁGINA 1 ---
                 if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 10, 8, 25)
@@ -1680,6 +1867,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 if pdf.get_y() > 230: pdf.add_page(); pdf.ln(15)
                 pdf.set_font("Arial", "", 8)
                 
+                # Exibe assinaturas tradicionais (linhas)
                 def draw_signature(x_pos, y_pos, nome, cargo):
                     pdf.line(x_pos, y_pos, x_pos + 70, y_pos)
                     pdf.set_xy(x_pos, y_pos + 2)
@@ -1709,8 +1897,8 @@ elif app_mode == "👥 Gestão de Alunos":
             if 'pdf_bytes' in st.session_state:
                 st.download_button("📥 BAIXAR PEI COMPLETO", st.session_state.pdf_bytes, f"PEI_{data.get('nome','aluno')}.pdf", "application/pdf", type="primary")
 
-        # --- ABA 8: HISTÓRICO ---
-        with tabs[7]:
+        # --- ABA 9: HISTÓRICO ---
+        with tabs[8]:
             st.subheader("Histórico de Atividades")
             st.caption("Registro de alterações, salvamentos e geração de documentos.")
             
@@ -1744,7 +1932,7 @@ elif app_mode == "👥 Gestão de Alunos":
         
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
 
-        tabs = st.tabs(["1. Identificação", "2. Família", "3. Histórico", "4. Saúde", "5. Comportamento", "6. Gerar PDF", "7. Histórico"])
+        tabs = st.tabs(["1. Identificação", "2. Família", "3. Histórico", "4. Saúde", "5. Comportamento", "6. Assinaturas (NOVO)", "7. Gerar PDF", "8. Histórico"])
 
         # --- ABA 1: IDENTIFICAÇÃO ---
         with tabs[0]:
@@ -1966,8 +2154,64 @@ elif app_mode == "👥 Gestão de Alunos":
                     if st.form_submit_button("💾 Salvar Comportamento"):
                         save_student("CASO", data.get('nome'), data, "Comportamento")
 
-        # --- ABA 6: GERAR PDF (ESTUDO DE CASO) ---
+        # --- ABA 6: ASSINATURAS (NOVO) ---
         with tabs[5]:
+            st.subheader("Assinaturas Digitais")
+            st.caption(f"Código Único do Documento: {data.get('doc_uuid', 'Não gerado ainda')}")
+            
+            # Roles for Caso
+            required_roles = []
+            if data.get('entrevista_prof'): required_roles.append({'role': 'Prof. Entrevistador', 'name': data['entrevista_prof']})
+            if data.get('entrevista_resp'): required_roles.append({'role': 'Responsável (Família)', 'name': data['entrevista_resp']})
+            
+            # Show list of signatories
+            if required_roles:
+                st.markdown("##### Profissionais/Responsáveis Citados")
+                for r in required_roles:
+                    st.write(f"- **{r['role']}:** {r['name']}")
+            else:
+                st.info("Nenhum profissional identificado automaticamente.")
+
+            st.divider()
+            
+            # Current Signatures
+            current_signatures = data.get('signatures', [])
+            if current_signatures:
+                st.success("✅ Documento assinado por:")
+                for sig in current_signatures:
+                    st.write(f"✍️ **{sig['name']}** ({sig.get('role', 'Profissional')}) em {sig['date']}")
+            else:
+                st.warning("Nenhuma assinatura registrada.")
+
+            st.divider()
+            
+            user_name = st.session_state.get('usuario_nome', '')
+            match_role = "Profissional"
+            already_signed = any(s['name'] == user_name for s in current_signatures)
+            
+            if already_signed:
+                st.info("Você já assinou este documento.")
+            else:
+                if st.button("🖊️ Assinar Digitalmente", key="btn_sign_caso"):
+                    # Tenta descobrir o papel
+                    for r in required_roles:
+                        if user_name.strip().lower() in r['name'].strip().lower():
+                            match_role = r['role']
+                            break
+                    
+                    new_sig = {
+                        "name": user_name,
+                        "role": match_role,
+                        "date": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+                        "hash": str(uuid.uuid4())
+                    }
+                    if 'signatures' not in data: data['signatures'] = []
+                    data['signatures'].append(new_sig)
+                    save_student("CASO", data.get('nome'), data, "Assinatura")
+                    st.rerun()
+
+        # --- ABA 7: GERAR PDF (ESTUDO DE CASO) ---
+        with tabs[6]:
             if not is_monitor:
                 if st.button("💾 SALVAR ESTUDO DE CASO", type="primary"): 
                     save_student("CASO", data.get('nome', 'aluno'), data, "Completo")
@@ -1981,6 +2225,9 @@ elif app_mode == "👥 Gestão de Alunos":
                 # Cria PDF em Retrato ('P')
                 pdf = OfficialPDF('P', 'mm', 'A4')
                 pdf.add_page(); pdf.set_margins(15, 15, 15)
+                
+                # SET SIGNATURE FOOTER
+                pdf.set_signature_footer(data.get('signatures', []), data.get('doc_uuid', ''))
                 
                 # --- CABEÇALHO ---
                 if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)
@@ -2226,8 +2473,8 @@ elif app_mode == "👥 Gestão de Alunos":
             if 'pdf_bytes_caso' in st.session_state:
                 st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
 
-        # --- ABA 7: HISTÓRICO ---
-        with tabs[6]:
+        # --- ABA 8: HISTÓRICO ---
+        with tabs[7]:
             st.subheader("Histórico de Atividades")
             st.caption("Registro de alterações, salvamentos e geração de documentos.")
             
@@ -2347,6 +2594,9 @@ elif app_mode == "👥 Gestão de Alunos":
                     
                     pdf = OfficialPDF('P', 'mm', 'A4')
                     pdf.add_page(); pdf.set_margins(10, 10, 10)
+                    
+                    # SET SIGNATURE FOOTER
+                    pdf.set_signature_footer(data.get('signatures', []), data.get('doc_uuid', ''))
                     
                     # --- CABEÇALHO ---
                     if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 10, 8, 20)
@@ -2682,6 +2932,9 @@ elif app_mode == "👥 Gestão de Alunos":
                     # --- PDF GENERATION EXPERT MODE ---
                     pdf = OfficialPDF('P', 'mm', 'A4')
                     pdf.add_page(); pdf.set_margins(15, 15, 15)
+                    
+                    # SET SIGNATURE FOOTER
+                    pdf.set_signature_footer(data.get('signatures', []), data.get('doc_uuid', ''))
                     
                     # 1. HEADER (FIXED CEIEF RAFAEL AFFONSO LEITE)
                     if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)
@@ -3034,6 +3287,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         with tab_gen:
             st.subheader("Emissão de Relatório Mensal")
+            st.caption(f"Código Único do Documento: {data_diario.get('doc_uuid', 'Será gerado na emissão')}")
             
             c_m, c_y = st.columns(2)
             meses = {1:"Janeiro", 2:"Fevereiro", 3:"Março", 4:"Abril", 5:"Maio", 6:"Junho", 7:"Julho", 8:"Agosto", 9:"Setembro", 10:"Outubro", 11:"Novembro", 12:"Dezembro"}
@@ -3053,11 +3307,23 @@ elif app_mode == "👥 Gestão de Alunos":
                 if not logs_mensais:
                     st.warning("Não há registros salvos para o período selecionado.")
                 else:
+                    # Garantir UUID se não tiver
+                    if 'doc_uuid' not in data_diario or not data_diario['doc_uuid']:
+                        data_diario['doc_uuid'] = str(uuid.uuid4()).upper()
+                        save_student("DIARIO", data_diario.get('nome', 'aluno'), data_diario, "Geração UUID")
+
                     log_action(data_diario.get('nome'), "Gerou PDF", f"Relatório Mensal {mes_sel}/{ano_sel}")
                     
                     # Cria PDF em Retrato ('P')
                     pdf = OfficialPDF('P', 'mm', 'A4')
                     pdf.add_page(); pdf.set_margins(15, 15, 15)
+                    
+                    # SET SIGNATURE FOOTER (Diario has different signature handling, but let's standardize verification)
+                    # For Diário, signatures are usually just the accompanying professional printed
+                    signatures_mock = []
+                    if data_diario.get('acompanhante'):
+                        signatures_mock.append({'name': data_diario.get('acompanhante'), 'role': 'Acompanhante'})
+                    pdf.set_signature_footer(signatures_mock, data_diario.get('doc_uuid'))
                     
                     # --- CABEÇALHO ---
                     if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)

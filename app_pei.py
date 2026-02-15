@@ -1947,7 +1947,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 st.info("O histórico está vazio ou aluno não selecionado.")
 
    
-    # --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
+     # --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
     if doc_mode == "PDI":
         st.markdown(f"""<div class="header-box"><div class="header-title">PDI - Plano de Desenvolvimento Individual</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
@@ -1956,35 +1956,32 @@ elif app_mode == "👥 Gestão de Alunos":
         data_case = st.session_state.get('data_case', {})
         data_pei = st.session_state.get('data_pei', {})
         
-        # --- ESTRUTURA DE OBJETIVOS (GOALS) DO PDI ---
+        # --- ESTRUTURA DE OBJETIVOS (GOALS) DO PDI (ATUALIZADA) ---
         pdi_sections = {
-            "1.3 DESENVOLVIMENTO COGNITIVO": {
-                "1.3.1 Percepção": ["Visual", "Auditiva", "Tátil", "Espacial / Lateralidade", "Temporal / Ritmo / Sequência lógica"],
-                "1.3.2 Raciocínio Lógico": ["Correspondência", "Comparação", "Classificação", "Sequenciação", "Seriação", "Inclusão", "Conservação", "Resolução de situações-problema"],
-                "1.3.3 Sistema Monetário": ["Reconhecimento e Uso", "Atribui poder de compra"],
-                "1.3.4 Capacidade de Brincar": ["Uso funcional dos brinquedos", "Exploração espontânea", "Criação de brincadeiras/simbolismo"],
-                "1.3.5/6 Memória": ["Curto Prazo (Visual/Auditiva)", "Longo Prazo (Episódica/Semântica)"],
-                "1.3.7 Atenção": ["Sustentada", "Dividida", "Seletiva"],
-                "1.3.8 Coordenação Viso-motora": ["Desenho", "Respeito a limites (pintura/desenho)", "Recorte (uso da tesoura)", "Uso de cola", "Encaixes", "Reprodução de figuras", "Quebra-cabeça"]
+            "3.1 DESENVOLVIMENTO COGNITIVO": {
+                "3.1.1 Percepção": ["Visual", "Auditiva", "Tátil", "Espacial / Lateralidade", "Temporal / Ritmo / Sequência lógica"],
+                "3.1.2 Raciocínio Lógico": ["Correspondência", "Comparação", "Classificação", "Sequenciação", "Seriação", "Inclusão", "Conservação", "Resolução de situações-problema"],
+                "3.1.3 Sistema Monetário e Maturidade Simbólica": ["Sistema monetário", "Maturidade simbólica"],
+                "3.1.4 Memória": ["Curto Prazo", "Longo Prazo (Episódica)", "Longo Prazo (Semântica)"],
+                "3.1.5 Atenção": ["Sustentada", "Dividida", "Seletiva"],
+                "3.1.6 Coordenação Viso-motora (olho-mão)": ["Desenho", "Limites da folha e do desenho", "Recorte", "Uso de cola", "Encaixes", "Reprodução de figuras", "Quebra-cabeça"]
             },
-            "1.4 DESENVOLVIMENTO MOTOR": {
-                "1.4.1 Motora Fina": ["Estabilidade de punho", "Movimento de pinça", "Preensão", "Postura e Mão de apoio"],
-                "1.4.2 Motora Global": ["Locomoção", "Equilíbrio estático e dinâmico"],
-                "1.4.3 Esquema Corporal": ["Identificação da imagem corporal", "Nomeação de partes do corpo", "Imitação de movimentos", "Dominância lateral"],
-                "1.4.4 Autonomia / AVD": ["Alimentação", "Higiene (controle esfíncter/fraldas)", "Uso funcional de objetos", "Locomoção independente"]
+            "3.2 DESENVOLVIMENTO MOTOR": {
+                "3.2.1 Coordenação Motora Fina": ["Estabilidade de punho", "Movimento de pinça", "Preensão"],
+                "3.2.2 Coordenação Motora Global": ["Postura", "Mão de apoio", "Locomoção", "Equilíbrio"],
+                "3.2.3 Esquema e Imagem Corporal": ["Esquema e imagem corporal"],
+                "3.2.4 Autonomia / Vida Prática": ["Alimentação", "Higiene", "Uso funcional dos objetos", "Locomoção pelos ambientes da escola", "Vida prática"]
             },
-            "1.5 FUNÇÃO PESSOAL E SOCIAL": {
-                "1.5.1 Interação e Comportamento": ["Interação com crianças e adultos", "Comportamentos (agressividade, timidez, etc)", "Respeito a regras"],
-                "1.5.4 Vida Prática": ["Reconhecimento de dados pessoais (nome, idade, endereço)"]
+            "3.3 FUNÇÃO PESSOAL E SOCIAL": {
+                "3.3.1 Interação e Comportamento": ["Interação", "Iniciativa", "Comportamentos apresentados"]
             },
-            "1.6 LINGUAGEM": {
-                "Comunicação": ["1.6.1 Verbal (Oralidade)", "1.6.2 Compreensão", "1.6.3 Gestual", "1.6.4 Ecolalia"],
-                "Letramento": ["1.6.5 Escrita (Hipótese, Traçado)", "1.6.6 Leitura (Decodificação, Compreensão)"],
-                "Outros Sistemas": ["1.6.7 Libras / Braille", "1.6.8 Comunicação Alternativa"]
+            "3.4 LINGUAGEM": {
+                "3.4.1 Linguagem": ["Verbal", "Compreensiva", "Gestual", "Ecolalia", "Escrita", "Leitura"],
+                "3.4.2 Outros Recursos": ["LIBRAS", "Comunicação Alternativa"]
             }
         }
 
-        # Tabs de Navegação - Contexto Escolar removido da edição (já consta no Estudo de Caso)
+        # Tabs de Navegação
         tabs = st.tabs([
             "1. Plano AEE",
             "2. Avaliação Pedagógica (Metas)",
@@ -1996,21 +1993,21 @@ elif app_mode == "👥 Gestão de Alunos":
         # --- ABA 1: PLANO AEE ---
         with tabs[0]:
             with st.form("pdi_plano_aee"):
-                st.header("3. Plano de AEE")
+                st.header("2. Plano de AEE & Ações Necessárias")
                 
-                st.subheader("1.1 e 1.2 Avaliação Pedagógica Inicial")
-                data_pdi['potencialidades'] = st.text_area("1.1 Potencialidades do Estudante", value=data_pdi.get('potencialidades', ''), disabled=is_monitor)
-                data_pdi['areas_interesse'] = st.text_area("1.2 Áreas de Interesse", value=data_pdi.get('areas_interesse', ''), disabled=is_monitor)
+                st.subheader("2.1 Avaliação Pedagógica Inicial")
+                data_pdi['potencialidades'] = st.text_area("Potencialidades do Estudante", value=data_pdi.get('potencialidades', ''), disabled=is_monitor)
+                data_pdi['areas_interesse'] = st.text_area("Áreas de Interesse", value=data_pdi.get('areas_interesse', ''), disabled=is_monitor)
                 
                 st.divider()
-                st.subheader("2. Ações Necessárias")
+                st.subheader("2.2 Ações Necessárias")
                 data_pdi['acao_escola'] = st.text_area("Âmbito Escola", value=data_pdi.get('acao_escola', ''), disabled=is_monitor)
                 data_pdi['acao_sala'] = st.text_area("Âmbito Sala de Aula", value=data_pdi.get('acao_sala', ''), disabled=is_monitor)
                 data_pdi['acao_familia'] = st.text_area("Âmbito Família", value=data_pdi.get('acao_familia', ''), disabled=is_monitor)
                 data_pdi['acao_saude'] = st.text_area("Âmbito Saúde", value=data_pdi.get('acao_saude', ''), disabled=is_monitor)
 
                 st.divider()
-                st.subheader("3. Organização do AEE")
+                st.subheader("2.3 Organização do AEE")
                 c_a1, c_a2 = st.columns(2)
                 data_pdi['aee_freq'] = c_a1.selectbox("Frequência Semanal", ["1 vez", "2 vezes", "3 vezes", "4 vezes"], disabled=is_monitor)
                 data_pdi['aee_tempo'] = c_a2.text_input("Tempo de Atendimento", value=data_pdi.get('aee_tempo', '50 minutos'), disabled=is_monitor)
@@ -2023,7 +2020,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         # --- ABA 2: ÁREAS DE DESENVOLVIMENTO (GRID DE METAS) ---
         with tabs[1]:
-            st.header("1. Avaliação Pedagógica (Objetivos e Metas)")
+            st.header("3. Objetivos e Metas (Avaliação Pedagógica)")
             st.info("Preencha o quadro: Diagnóstico (Inicial), Percurso (Durante) e Final.")
             
             with st.form("pdi_metas_grid"):
@@ -2340,27 +2337,27 @@ elif app_mode == "👥 Gestão de Alunos":
                 # RETOMADA DO PDI
                 # ==========================================================
 
-                # --- 3. PLANO AEE ---
+                # --- 2. PLANO DE AEE & AÇÕES NECESSÁRIAS ---
                 pdf.add_page()
-                pdf.section_title("3. PLANO DE AEE & AÇÕES NECESSÁRIAS", width=0)
+                pdf.section_title("2. PLANO DE AEE & AÇÕES NECESSÁRIAS", width=0)
                 pdf.ln(5)
                 
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "1. AVALIAÇÃO PEDAGÓGICA (Potencialidades/Interesses):", 0, 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "2.1 AVALIAÇÃO PEDAGÓGICA INICIAL (Potencialidades/Interesses):", 0, 1)
                 pdf.set_font("Arial", "", 10)
                 pdf.multi_cell(0, 5, clean_pdf_text(f"Potencialidades: {data_pdi.get('potencialidades', '')}\n\nÁreas de Interesse: {data_pdi.get('areas_interesse', '')}"), 1)
 
                 pdf.ln(5)
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "2. AÇÕES NECESSÁRIAS:", 0, 1); pdf.set_font("Arial", "", 10)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "2.2 AÇÕES NECESSÁRIAS:", 0, 1); pdf.set_font("Arial", "", 10)
                 pdf.multi_cell(0, 5, clean_pdf_text(f"ESCOLA: {data_pdi.get('acao_escola')}\n\nSALA DE AULA: {data_pdi.get('acao_sala')}\n\nFAMÍLIA: {data_pdi.get('acao_familia')}\n\nSAÚDE: {data_pdi.get('acao_saude')}"), 1)
 
                 pdf.ln(5)
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "3. ORGANIZAÇÃO DO AEE:", 0, 1); pdf.set_font("Arial", "", 10)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "2.3 ORGANIZAÇÃO DO AEE:", 0, 1); pdf.set_font("Arial", "", 10)
                 pdf.cell(0, 6, clean_pdf_text(f"Frequência: {data_pdi.get('aee_freq')} | Tempo: {data_pdi.get('aee_tempo')}"), 1, 1)
                 pdf.cell(0, 6, clean_pdf_text(f"Modalidade: {data_pdi.get('aee_tipo')} | Composição: {data_pdi.get('aee_comp')}"), 1, 1)
 
-                # --- 6. METAS (GRID) ---
+                # --- 3. METAS ---
                 pdf.add_page()
-                pdf.section_title("6. OBJETIVOS E METAS (AVALIAÇÃO PEDAGÓGICA)", width=0)
+                pdf.section_title("3. OBJETIVOS E METAS (AVALIAÇÃO PEDAGÓGICA)", width=0)
                 pdf.ln(5)
 
                 def draw_goal_row(title, diag, proc, final):
@@ -3696,6 +3693,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

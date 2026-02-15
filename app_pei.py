@@ -799,7 +799,7 @@ with st.sidebar:
         st.markdown('<p class="section-label">📂 Tipo de Documento</p>', unsafe_allow_html=True)
         doc_sub_mode = st.radio(
             "Modo Doc", 
-            ["PEI", "PDI", "Estudo de Caso", "Protocolo de Conduta", "Avaliação Pedagógica", "Relatório Diário"], 
+            ["Estudo de Caso", "PEI", "PDI", "Protocolo de Conduta", "Avaliação de Apoio", "Relatório de Acompanhamento"],
             index=default_doc_idx, 
             key="doc_option",
             label_visibility="collapsed"
@@ -3937,7 +3937,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
 
     # --- AVALIAÇÃO PEDAGÓGICA ---
-    elif doc_mode == "Avaliação Pedagógica":
+    elif doc_mode == "Avaliação de Apoio":
         st.markdown("""<div class="header-box"><div class="header-title">Avaliação Pedagógica: Apoio Escolar</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
         
@@ -4412,6 +4412,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

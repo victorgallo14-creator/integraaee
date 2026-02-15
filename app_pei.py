@@ -2405,7 +2405,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
 
         # --- ABA 6: HISTÓRICO ---
-        with tabs_pdi[7]:
+        with tabs[7]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
             if not df_hist.empty and data_pdi.get('nome'):
@@ -3689,5 +3689,6 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 

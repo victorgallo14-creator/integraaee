@@ -665,7 +665,7 @@ with st.sidebar:
             padding-bottom: -2rem !important;
         }
         [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-            gap: 1.2rem !important;
+            gap: -1.2rem !important;
         }
         .sidebar-title {
             font-size: 1.1rem;
@@ -3466,6 +3466,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 
 
 

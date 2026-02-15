@@ -1986,11 +1986,10 @@ elif app_mode == "👥 Gestão de Alunos":
         # Tabs de Navegação
         tabs = st.tabs([
             "1. Dados Gerais", 
-            "2. Avaliação Geral (Família/Saúde)", 
-            "3. Contexto Escolar",
-            "4. Plano AEE",
-            "5. Avaliação Pedagógica (Metas)",
-            "6. Assinaturas & PDF"
+            "2. Contexto Escolar",
+            "3. Plano AEE",
+            "4. Avaliação Pedagógica (Metas)",
+            "5. Assinaturas & PDF"
         ])
 
         # --- ABA 1: DADOS GERAIS ---
@@ -2061,105 +2060,8 @@ elif app_mode == "👥 Gestão de Alunos":
                 if st.form_submit_button("💾 Salvar Dados Gerais"):
                     save_student("PDI", data_pdi.get('nome'), data_pdi, "Dados Gerais")
 
-        # --- ABA 2: AVALIAÇÃO GERAL (FAMÍLIA E SAÚDE) ---
+        # --- ABA 2: CONTEXTO ESCOLAR ---
         with tabs[1]:
-            with st.form("pdi_aval_geral"):
-                st.header("2. Avaliação Geral")
-                
-                st.subheader("2.1.1 Gestação, Parto e Desenvolvimento")
-                c_g1, c_g2 = st.columns(2)
-                data_pdi['gest_planejada'] = c_g1.radio("Gravidez planejada?", ["Sim", "Não"], horizontal=True, index=0 if data_pdi.get('gest_planejada')=='Sim' else 1, disabled=is_monitor)
-                data_pdi['parentesco'] = c_g2.radio("Parentesco entre pais?", ["Sim", "Não"], horizontal=True, index=0 if data_pdi.get('parentesco')=='Sim' else 1, disabled=is_monitor)
-                
-                data_pdi['gest_doenca'] = st.text_input("Doença/Trauma na gestação? Quais?", value=data_pdi.get('gest_doenca', ''), disabled=is_monitor)
-                
-                st.markdown("**Uso de substâncias na gestação**")
-                c_sub1, c_sub2, c_sub3 = st.columns(3)
-                data_pdi['gest_substancias'] = c_sub1.radio("Mãe: Álcool/Fumo/Drogas?", ["Sim", "Não"], horizontal=True, index=0 if data_pdi.get('gest_substancias')=='Sim' else 1, disabled=is_monitor)
-                data_pdi['gest_medicamentos'] = c_sub2.radio("Mãe: Medicamentos?", ["Sim", "Não"], horizontal=True, index=0 if data_pdi.get('gest_medicamentos')=='Sim' else 1, disabled=is_monitor)
-                data_pdi['gest_alcool_pai'] = c_sub3.radio("Pai: Álcool antes gestação?", ["Sim", "Não"], horizontal=True, index=0 if data_pdi.get('gest_alcool_pai')=='Sim' else 1, disabled=is_monitor)
-                
-                data_pdi['parto_obs'] = st.text_input("Ocorrência no parto?", value=data_pdi.get('parto_obs', ''), disabled=is_monitor)
-                c_p1, c_p2 = st.columns(2)
-                data_pdi['parto_incubadora'] = c_p1.radio("Incubadora?", ["Sim", "Não"], horizontal=True, index=0 if data_pdi.get('parto_incubadora')=='Sim' else 1, disabled=is_monitor)
-                data_pdi['parto_prematuro'] = c_p2.radio("Prematuro?", ["Sim", "Não"], horizontal=True, index=0 if data_pdi.get('parto_prematuro')=='Sim' else 1, disabled=is_monitor)
-                
-                st.markdown("**Desenvolvimento**")
-                c_dev1, c_dev2 = st.columns(2)
-                data_pdi['dev_normal_1ano'] = c_dev1.radio("Desenvolvimento normal 1º ano?", ["Sim", "Não"], horizontal=True, index=0 if data_pdi.get('dev_normal_1ano')=='Sim' else 1, disabled=is_monitor)
-                data_pdi['dev_atraso'] = c_dev2.radio("Atraso importante?", ["Sim", "Não"], horizontal=True, index=0 if data_pdi.get('dev_atraso')=='Sim' else 1, disabled=is_monitor)
-
-                c_dev3, c_dev4 = st.columns(2)
-                data_pdi['dev_andou'] = c_dev3.text_input("Idade que andou", value=data_pdi.get('dev_andou', ''), disabled=is_monitor)
-                data_pdi['dev_falou'] = c_dev4.text_input("Idade que falou", value=data_pdi.get('dev_falou', ''), disabled=is_monitor)
-                
-                st.markdown("**Diagnóstico**")
-                data_pdi['diag_txt'] = st.text_input("Diagnóstico Médico", value=data_pdi.get('diag_txt', data_pei.get('defic_txt', '')), disabled=is_monitor)
-                data_pdi['diag_reacao'] = st.text_input("Reação da família", value=data_pdi.get('diag_reacao', ''), disabled=is_monitor)
-                c_d1, c_d2 = st.columns(2)
-                data_pdi['diag_data'] = c_d1.text_input("Data Diagnóstico", value=data_pdi.get('diag_data', ''), disabled=is_monitor)
-                data_pdi['diag_origem'] = c_d2.text_input("Origem informação", value=data_pdi.get('diag_origem', ''), disabled=is_monitor)
-                data_pdi['fam_deficiencia'] = st.text_input("Pessoa com deficiência na família?", value=data_pdi.get('fam_deficiencia', ''), disabled=is_monitor)
-                data_pdi['fam_interview'] = st.text_input("Entrevista (Quem realizou/Entrevistado/Data)", value=data_pdi.get('fam_interview', ''), disabled=is_monitor)
-
-                st.divider()
-                st.subheader("2.1.2 Saúde")
-                data_pdi['saude_problema'] = st.text_input("Problema de saúde atual?", value=data_pdi.get('saude_problema', ''), disabled=is_monitor)
-                data_pdi['saude_internacao'] = st.text_input("Internações?", value=data_pdi.get('saude_internacao', ''), disabled=is_monitor)
-                data_pdi['saude_doenca_infancia'] = st.text_input("Doença da infância?", value=data_pdi.get('saude_doenca_infancia', ''), disabled=is_monitor)
-                data_pdi['saude_restricao_alimentar'] = st.text_input("Restrição alimentar?", value=data_pdi.get('saude_restricao_alimentar', ''), disabled=is_monitor)
-                data_pdi['saude_medicamentos'] = st.text_input("Medicamentos controlados?", value=data_pdi.get('saude_medicamentos', data_pei.get('med_nome', '')), disabled=is_monitor)
-                data_pdi['saude_esfincter'] = st.text_input("Controle esfíncter (urina/fezes)?", value=data_pdi.get('saude_esfincter', ''), disabled=is_monitor)
-                data_pdi['saude_sono'] = st.text_input("Dorme bem?", value=data_pdi.get('saude_sono', ''), disabled=is_monitor)
-                data_pdi['saude_ultimo_medico'] = st.text_input("Última visita médica", value=data_pdi.get('saude_ultimo_medico', ''), disabled=is_monitor)
-                
-                st.markdown("**Atendimento Clínico Extraescolar**")
-                opts_clinica = ["APAE", "ARIL", "CEMA", "CAPS", "João Fischer D.A.", "João Fischer D.V.", "Fonoaudiólogo", "Terapeuta Ocupacional", "Psicólogo", "Psicopedagogo", "Assistente social", "Fisioterapeuta", "Neurologista"]
-                data_pdi['saude_clinicas'] = st.multiselect("Recebe atendimento em:", opts_clinica, default=data_pdi.get('saude_clinicas', []), disabled=is_monitor)
-
-                st.divider()
-                st.subheader("2.1.3 Compreensão da Família (Checklist)")
-                fam_questions = [
-                    ("fam_dificuldade_escolar", "Dificuldade com conteúdo escolar?"),
-                    ("fam_licao_sozinho", "Realiza lição de casa sozinho?"),
-                    ("fam_memoria", "Tem boa memória?"),
-                    ("fam_limpeza", "Apresenta limpeza e capricho?"),
-                    ("fam_organizado", "É organizado com seus materiais?"),
-                ]
-                for key, label in fam_questions:
-                    c_q, c_o = st.columns([2, 3])
-                    val = data_pdi.get(key, "Não")
-                    data_pdi[key] = c_q.radio(label, ["Sim", "Não"], horizontal=True, key=f"rad_{key}", index=0 if val=="Sim" else 1, disabled=is_monitor)
-                    data_pdi[f"{key}_obs"] = c_o.text_input("Obs", value=data_pdi.get(f"{key}_obs", ""), key=f"obs_{key}", disabled=is_monitor)
-                
-                st.markdown("**Questões Comportamentais**")
-                data_pdi['fam_agressividade'] = st.text_input("Apresenta agressividade? (Qual?)", value=data_pdi.get('fam_agressividade', ''), disabled=is_monitor)
-                data_pdi['fam_regras'] = st.text_input("Aceita ordens de forma tranquila?", value=data_pdi.get('fam_regras', ''), disabled=is_monitor)
-                data_pdi['fam_ajuda'] = st.text_input("Busca/Aceita ajuda?", value=data_pdi.get('fam_ajuda', ''), disabled=is_monitor)
-                data_pdi['fam_finaliza'] = st.text_input("Finaliza suas tarefas?", value=data_pdi.get('fam_finaliza', ''), disabled=is_monitor)
-                data_pdi['fam_mudanca'] = st.text_input("Aceita alterações no ambiente?", value=data_pdi.get('fam_mudanca', ''), disabled=is_monitor)
-                data_pdi['fam_medo_mania'] = st.text_input("Tem algum medo ou mania?", value=data_pdi.get('fam_medo_mania', ''), disabled=is_monitor)
-                data_pdi['fam_interesses'] = st.text_input("Área/Assunto de interesse/Brinquedos preferidos", value=data_pdi.get('fam_interesses', ''), disabled=is_monitor)
-                data_pdi['fam_problemas'] = st.text_input("Resolve problemas do cotidiano?", value=data_pdi.get('fam_problemas', ''), disabled=is_monitor)
-                data_pdi['fam_amigos'] = st.text_input("Tem amigos? Brinca sozinho?", value=data_pdi.get('fam_amigos', ''), disabled=is_monitor)
-                data_pdi['fam_expectativa'] = st.text_area("Expectativa da família em relação à escola", value=data_pdi.get('fam_expectativa', ''), disabled=is_monitor)
-
-                st.divider()
-                st.subheader("2.1.4 Convívio Familiar")
-                data_pdi['fam_relacionamento'] = st.text_input("Relacionamento familiar", value=data_pdi.get('fam_relacionamento', ''), disabled=is_monitor)
-                data_pdi['fam_castigo'] = st.text_input("Formas de castigo/repreensão", value=data_pdi.get('fam_castigo', ''), disabled=is_monitor)
-                data_pdi['fam_carinho'] = st.text_input("Formas de carinho/acolhimento", value=data_pdi.get('fam_carinho', ''), disabled=is_monitor)
-                data_pdi['fam_lazer'] = st.text_input("Atividades de lazer", value=data_pdi.get('fam_lazer', ''), disabled=is_monitor)
-                data_pdi['fam_comodos'] = st.text_input("Quantos cômodos tem a casa?", value=data_pdi.get('fam_comodos', ''), disabled=is_monitor)
-                data_pdi['fam_licao_local'] = st.text_input("Lugar/Horário para lição?", value=data_pdi.get('fam_licao_local', ''), disabled=is_monitor)
-                data_pdi['fam_vicios'] = st.text_input("Uso de fumo/álcool/drogas na família?", value=data_pdi.get('fam_vicios', ''), disabled=is_monitor)
-                data_pdi['fam_beneficio'] = st.text_input("Recebem benefício?", value=data_pdi.get('fam_beneficio', ''), disabled=is_monitor)
-                
-                if st.form_submit_button("💾 Salvar Avaliação Geral"):
-                    save_student("PDI", data_pdi.get('nome'), data_pdi, "Avaliação Geral")
-
-        # --- ABA 3: CONTEXTO ESCOLAR ---
-        with tabs[2]:
             with st.form("pdi_contexto_escolar"):
                 st.header("2.2 Âmbito Escolar (Aspectos Gerais)")
                 
@@ -2206,8 +2108,8 @@ elif app_mode == "👥 Gestão de Alunos":
                 if st.form_submit_button("💾 Salvar Contexto Escolar"):
                     save_student("PDI", data_pdi.get('nome'), data_pdi, "Contexto Escolar")
 
-        # --- ABA 4: PLANO AEE ---
-        with tabs[3]:
+        # --- ABA 3: PLANO AEE ---
+        with tabs[2]:
             with st.form("pdi_plano_aee"):
                 st.header("3. Plano de AEE")
                 
@@ -2234,8 +2136,8 @@ elif app_mode == "👥 Gestão de Alunos":
                 if st.form_submit_button("💾 Salvar Plano AEE"):
                     save_student("PDI", data_pdi.get('nome'), data_pdi, "Plano AEE")
 
-        # --- ABA 5: ÁREAS DE DESENVOLVIMENTO (GRID DE METAS) ---
-        with tabs[4]:
+        # --- ABA 4: ÁREAS DE DESENVOLVIMENTO (GRID DE METAS) ---
+        with tabs[3]:
             st.header("1. Avaliação Pedagógica (Objetivos e Metas)")
             st.info("Preencha o quadro: Diagnóstico (Inicial), Percurso (Durante) e Final.")
             
@@ -2265,8 +2167,8 @@ elif app_mode == "👥 Gestão de Alunos":
                 if st.form_submit_button("💾 Salvar Metas e Objetivos"):
                     save_student("PDI", data_pdi.get('nome'), data_pdi, "Metas PDI")
 
-        # --- ABA 6: ASSINATURAS E PDF ---
-        with tabs[5]:
+        # --- ABA 5: ASSINATURAS E PDF ---
+        with tabs[4]:
             st.subheader("Finalização")
             
             # Assinaturas
@@ -2374,30 +2276,30 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.cell(0, 6, clean_pdf_text(obs), 1, 1)
 
                 pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "2.1.1 GESTAÇÃO, PARTO E DESENVOLVIMENTO", 0, 1)
-                print_check_row("Gravidez planejada?", data_pdi.get('gest_planejada'))
-                print_check_row("Parentesco entre pais?", data_pdi.get('parentesco'))
-                print_check_row("Mãe: Substâncias (álcool/fumo)?", data_pdi.get('gest_substancias'))
-                print_check_row("Mãe: Medicamentos?", data_pdi.get('gest_medicamentos'))
-                print_check_row("Pai: Álcool antes gestação?", data_pdi.get('gest_alcool_pai'))
+                print_check_row("Gravidez planejada?", data_case.get('gest_planejada'))
+                print_check_row("Parentesco entre pais?", data_case.get('parentesco'))
+                print_check_row("Mãe: Substâncias (álcool/fumo)?", data_case.get('gest_substancias'))
+                print_check_row("Mãe: Medicamentos?", data_case.get('gest_medicamentos'))
+                print_check_row("Pai: Álcool antes gestação?", data_case.get('gest_alcool_pai'))
                 
-                pdf.ln(1); pdf.set_font("Arial", "B", 9); pdf.cell(0, 5, clean_pdf_text(f"Doença/Trauma gestação: {data_pdi.get('gest_doenca')}"), 0, 1)
-                pdf.cell(0, 5, clean_pdf_text(f"Parto (Ocorrências): {data_pdi.get('parto_obs')}"), 0, 1)
-                pdf.cell(0, 5, clean_pdf_text(f"Incubadora: {data_pdi.get('parto_incubadora')} | Prematuro: {data_pdi.get('parto_prematuro')}"), 0, 1)
+                pdf.ln(1); pdf.set_font("Arial", "B", 9); pdf.cell(0, 5, clean_pdf_text(f"Doença/Trauma gestação: {data_case.get('gest_doenca')}"), 0, 1)
+                pdf.cell(0, 5, clean_pdf_text(f"Parto (Ocorrências): {data_case.get('parto_obs')}"), 0, 1)
+                pdf.cell(0, 5, clean_pdf_text(f"Incubadora: {data_case.get('parto_incubadora')} | Prematuro: {data_case.get('parto_prematuro')}"), 0, 1)
                 
                 pdf.ln(2)
                 pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "Marcos do Desenvolvimento e Diagnóstico:", 0, 1)
                 pdf.set_font("Arial", "", 9)
-                pdf.cell(0, 5, clean_pdf_text(f"Dev. Normal 1º ano: {data_pdi.get('dev_normal_1ano')} | Atraso Importante: {data_pdi.get('dev_atraso')}"), 0, 1)
-                pdf.cell(0, 5, clean_pdf_text(f"Idade Andou: {data_pdi.get('dev_andou')} | Idade Falou: {data_pdi.get('dev_falou')}"), 0, 1)
-                pdf.cell(0, 5, clean_pdf_text(f"Diagnóstico: {data_pdi.get('diag_txt')} | Data: {data_pdi.get('diag_data')}"), 0, 1)
-                pdf.cell(0, 5, clean_pdf_text(f"Origem Info: {data_pdi.get('diag_origem')} | Deficiência na Família: {data_pdi.get('fam_deficiencia')}"), 0, 1)
-                pdf.multi_cell(0, 5, clean_pdf_text(f"Reação Família: {data_pdi.get('diag_reacao')}"))
-                pdf.ln(1); pdf.set_font("Arial", "I", 8); pdf.cell(0, 5, clean_pdf_text(f"Dados Entrevista: {data_pdi.get('fam_interview')}"), 0, 1)
+                pdf.cell(0, 5, clean_pdf_text(f"Dev. Normal 1º ano: {data_case.get('dev_normal_1ano')} | Atraso Importante: {data_case.get('dev_atraso')}"), 0, 1)
+                pdf.cell(0, 5, clean_pdf_text(f"Idade Andou: {data_case.get('dev_andou')} | Idade Falou: {data_case.get('dev_falou')}"), 0, 1)
+                pdf.cell(0, 5, clean_pdf_text(f"Diagnóstico: {data_case.get('diag_txt')} | Data: {data_case.get('diag_data')}"), 0, 1)
+                pdf.cell(0, 5, clean_pdf_text(f"Origem Info: {data_case.get('diag_origem')} | Deficiência na Família: {data_case.get('fam_deficiencia')}"), 0, 1)
+                pdf.multi_cell(0, 5, clean_pdf_text(f"Reação Família: {data_case.get('diag_reacao')}"))
+                pdf.ln(1); pdf.set_font("Arial", "I", 8); pdf.cell(0, 5, clean_pdf_text(f"Dados Entrevista: {data_case.get('fam_interview')}"), 0, 1)
 
                 pdf.ln(4)
                 pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "2.1.2 INFORMAÇÕES DE SAÚDE", 0, 1)
                 pdf.set_font("Arial", "", 9)
-                pdf.multi_cell(0, 5, clean_pdf_text(f"Problema Saúde: {data_pdi.get('saude_problema')}\nInternação: {data_pdi.get('saude_internacao')}\nDoença Infância: {data_pdi.get('saude_doenca_infancia')}\nRestrição Alimentar: {data_pdi.get('saude_restricao_alimentar')}\nMedicamentos: {data_pdi.get('saude_medicamentos')}\nEsfíncter: {data_pdi.get('saude_esfincter')}\nSono: {data_pdi.get('saude_sono')}\nÚltimo Médico: {data_pdi.get('saude_ultimo_medico')}\nAtendimentos: {', '.join(data_pdi.get('saude_clinicas', []))}"), 1)
+                pdf.multi_cell(0, 5, clean_pdf_text(f"Problema Saúde: {data_case.get('saude_problema')}\nInternação: {data_case.get('saude_internacao')}\nDoença Infância: {data_case.get('saude_doenca_infancia')}\nRestrição Alimentar: {data_case.get('saude_restricao_alimentar')}\nMedicamentos: {data_case.get('saude_medicamentos')}\nEsfíncter: {data_case.get('saude_esfincter')}\nSono: {data_case.get('saude_sono')}\nÚltimo Médico: {data_case.get('saude_ultimo_medico')}\nAtendimentos: {', '.join(data_case.get('saude_clinicas', []))}"), 1)
 
                 pdf.add_page()
                 pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "2.1.3 COMPREENSÃO DA FAMÍLIA (COGNITIVO/COMPORTAMENTO)", 0, 1)
@@ -2409,15 +2311,15 @@ elif app_mode == "👥 Gestão de Alunos":
                     ("fam_organizado", "Organizado?"),
                 ]
                 for k, l in fam_q:
-                    print_check_row(l, data_pdi.get(k), data_pdi.get(f"{k}_obs", ""))
+                    print_check_row(l, data_case.get(k), data_case.get(f"{k}_obs", ""))
                 
                 pdf.ln(2); pdf.set_font("Arial", "", 9)
-                pdf.multi_cell(0, 5, clean_pdf_text(f"Agressividade: {data_pdi.get('fam_agressividade')}\nRegras: {data_pdi.get('fam_regras')}\nAjuda: {data_pdi.get('fam_ajuda')}\nFinaliza Tarefas: {data_pdi.get('fam_finaliza')}\nMudanças: {data_pdi.get('fam_mudanca')}\nMedo/Mania: {data_pdi.get('fam_medo_mania')}\nInteresses: {data_pdi.get('fam_interesses')}\nProblemas Cotidiano: {data_pdi.get('fam_problemas')}\nAmigos: {data_pdi.get('fam_amigos')}\nExpectativa: {data_pdi.get('fam_expectativa')}"), 1)
+                pdf.multi_cell(0, 5, clean_pdf_text(f"Agressividade: {data_case.get('fam_agressividade')}\nRegras: {data_case.get('fam_regras')}\nAjuda: {data_case.get('fam_ajuda')}\nFinaliza Tarefas: {data_case.get('fam_finaliza')}\nMudanças: {data_case.get('fam_mudanca')}\nMedo/Mania: {data_case.get('fam_medo_mania')}\nInteresses: {data_case.get('fam_interesses')}\nProblemas Cotidiano: {data_case.get('fam_problemas')}\nAmigos: {data_case.get('fam_amigos')}\nExpectativa: {data_case.get('fam_expectativa')}"), 1)
 
                 pdf.ln(4)
                 pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "2.1.4 CONVÍVIO FAMILIAR", 0, 1)
                 pdf.set_font("Arial", "", 9)
-                pdf.multi_cell(0, 5, clean_pdf_text(f"Relacionamento: {data_pdi.get('fam_relacionamento')}\nCastigo: {data_pdi.get('fam_castigo')}\nCarinho: {data_pdi.get('fam_carinho')}\nLazer: {data_pdi.get('fam_lazer')}\nCômodos/Casa: {data_pdi.get('fam_comodos')}\nLição (Local/Hora): {data_pdi.get('fam_licao_local')}\nVícios: {data_pdi.get('fam_vicios')}\nBenefício: {data_pdi.get('fam_beneficio')}"), 1)
+                pdf.multi_cell(0, 5, clean_pdf_text(f"Relacionamento: {data_case.get('fam_relacionamento')}\nCastigo: {data_case.get('fam_castigo')}\nCarinho: {data_case.get('fam_carinho')}\nLazer: {data_case.get('fam_lazer')}\nCômodos/Casa: {data_case.get('fam_comodos')}\nLição (Local/Hora): {data_case.get('fam_licao_local')}\nVícios: {data_case.get('fam_vicios')}\nBenefício: {data_case.get('fam_beneficio')}"), 1)
 
                 # --- 2.2 ESCOLA ---
                 pdf.add_page()
@@ -2524,6 +2426,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
             if 'pdf_bytes_pdi' in st.session_state:
                 st.download_button("📥 BAIXAR PDI COMPLETO", st.session_state.pdf_bytes_pdi, f"PDI_{data_pdi.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
         # --- ABA 6: HISTÓRICO ---
@@ -3811,6 +3714,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

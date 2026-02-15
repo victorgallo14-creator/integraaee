@@ -1946,228 +1946,463 @@ elif app_mode == "👥 Gestão de Alunos":
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
 
-    # PDI COM FORMULÁRIOS
-    elif doc_mode == "PDI":
-        st.markdown(f"""<div class="header-box"><div class="header-title">Plano de Desenvolvimento Individual (PDI)</div></div>""", unsafe_allow_html=True)
+     # --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL ---
+    if doc_mode == "PDI":
+        st.markdown(f"""<div class="header-box"><div class="header-title">PDI - Plano de Desenvolvimento Individual</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
 
-        tabs_pdi = st.tabs(["1. Contexto", "2. Plano de Metas", "3. Avaliação", "4. Assinaturas", "5. Emissão", "6. Histórico"])
         data_pdi = st.session_state.data_pdi
-
-        # --- ABA 1: CONTEXTO ---
-        with tabs_pdi[0]:
-            with st.form("form_pdi_contexto") if not is_monitor else st.container():
-                st.subheader("1. Diagnóstico e Contexto")
-                st.caption("Importe dados do PEI ou preencha manualmente as potencialidades e desafios.")
-
-                if not is_monitor:
-                    if st.form_submit_button("🔄 Importar Dados Básicos (PEI)"):
-                        data_pei = st.session_state.get('data_pei', {})
-                        if data_pei.get('nome'):
-                            data_pdi['nome'] = data_pei.get('nome')
-                            data_pdi['nasc'] = data_pei.get('nasc')
-                            data_pdi['ano_esc'] = data_pei.get('ano_esc')
-                            st.success("Dados importados com sucesso!")
-                        else:
-                            st.warning("Dados do PEI não encontrados.")
-
-                c1, c2 = st.columns([3, 1])
-                data_pdi['nome'] = c1.text_input("Nome do Estudante", value=data_pdi.get('nome', ''), disabled=True)
-                data_pdi['ano_esc'] = c2.text_input("Ano Escolar", value=data_pdi.get('ano_esc', ''), disabled=is_monitor)
-
-                st.divider()
-                st.markdown("### Habilidades e Desafios")
-                
-                c_str, c_cha = st.columns(2)
-                data_pdi['pdi_fortalezas'] = c_str.text_area("Potencialidades / O que o aluno já sabe:", value=data_pdi.get('pdi_fortalezas', ''), height=200, help="Descreva habilidades, interesses e pontos fortes.", disabled=is_monitor)
-                data_pdi['pdi_desafios'] = c_cha.text_area("Desafios / Barreiras de Aprendizagem:", value=data_pdi.get('pdi_desafios', ''), height=200, help="Descreva as principais dificuldades e barreiras.", disabled=is_monitor)
-
-                if not is_monitor:
-                    st.markdown("---")
-                    if st.form_submit_button("💾 Salvar Contexto"):
-                        save_student("PDI", data_pdi.get('nome'), data_pdi, "Contexto")
-
-        # --- ABA 2: PLANO DE METAS ---
-        with tabs_pdi[1]:
-            with st.form("form_pdi_metas") if not is_monitor else st.container():
-                st.subheader("2. Metas e Estratégias")
-                st.info("Defina até 5 metas prioritárias para o período.")
-                
-                if 'metas' not in data_pdi:
-                    data_pdi['metas'] = [{'objetivo': '', 'prazo': '', 'estrategia': '', 'status': 'Pendente'} for _ in range(5)]
-
-                for i in range(5):
-                    with st.expander(f"Meta {i+1}", expanded=(i==0)):
-                        c_meta, c_prazo = st.columns([3, 1])
-                        data_pdi['metas'][i]['objetivo'] = c_meta.text_input(f"Objetivo (Meta {i+1})", value=data_pdi['metas'][i]['objetivo'], placeholder="Ex: Reconhecer as letras do nome...", key=f"pdi_obj_{i}", disabled=is_monitor)
-                        data_pdi['metas'][i]['prazo'] = c_prazo.text_input(f"Prazo", value=data_pdi['metas'][i]['prazo'], placeholder="Ex: 3 meses", key=f"pdi_prazo_{i}", disabled=is_monitor)
-                        
-                        c_est, c_stat = st.columns([3, 1])
-                        data_pdi['metas'][i]['estrategia'] = c_est.text_area(f"Estratégia / Metodologia", value=data_pdi['metas'][i]['estrategia'], height=68, key=f"pdi_est_{i}", disabled=is_monitor)
-                        
-                        st_idx = 0
-                        st_opts = ["Pendente", "Em Andamento", "Alcançado", "Não Alcançado"]
-                        if data_pdi['metas'][i]['status'] in st_opts:
-                            st_idx = st_opts.index(data_pdi['metas'][i]['status'])
-                        data_pdi['metas'][i]['status'] = c_stat.selectbox(f"Status", st_opts, index=st_idx, key=f"pdi_st_{i}", disabled=is_monitor)
-
-                if not is_monitor:
-                    st.markdown("---")
-                    if st.form_submit_button("💾 Salvar Metas"):
-                        save_student("PDI", data_pdi.get('nome'), data_pdi, "Metas")
-
-        # --- ABA 3: AVALIAÇÃO ---
-        with tabs_pdi[2]:
-            with st.form("form_pdi_aval") if not is_monitor else st.container():
-                st.subheader("3. Recursos e Avaliação")
-                
-                data_pdi['pdi_recursos'] = st.text_area("Recursos Necessários (Materiais, Humanos, Tecnológicos):", value=data_pdi.get('pdi_recursos', ''), height=100, disabled=is_monitor)
-                
-                c_per, c_blank = st.columns([1, 2])
-                p_opts = ["Mensal", "Bimestral", "Trimestral", "Semestral", "Anual"]
-                p_idx = p_opts.index(data_pdi.get('pdi_periodo')) if data_pdi.get('pdi_periodo') in p_opts else 2
-                data_pdi['pdi_periodo'] = c_per.selectbox("Período de Avaliação", p_opts, index=p_idx, disabled=is_monitor)
-                
-                data_pdi['pdi_obs'] = st.text_area("Anotações de Progresso / Resultados Finais:", value=data_pdi.get('pdi_obs', ''), height=150, disabled=is_monitor)
-
-                if not is_monitor:
-                    st.markdown("---")
-                    if st.form_submit_button("💾 Salvar Avaliação"):
-                        save_student("PDI", data_pdi.get('nome'), data_pdi, "Avaliação")
-
-        # --- ABA 4: ASSINATURAS ---
-        with tabs_pdi[3]:
-            st.subheader("Assinaturas Digitais")
-            st.caption(f"Código Único do Documento: {data_pdi.get('doc_uuid', 'Não gerado ainda')}")
+        data_case = st.session_state.get('data_case', {})
+        data_pei = st.session_state.get('data_pei', {})
+        
+        # Helper para renderizar linhas da tabela de avaliação
+        def render_aval_row(titulo, key_prefix):
+            st.markdown(f"**{titulo}**")
+            c1, c2, c3 = st.columns(3)
+            # Init dict if needed
+            if 'aval_grid' not in data_pdi: data_pdi['aval_grid'] = {}
+            if key_prefix not in data_pdi['aval_grid']: data_pdi['aval_grid'][key_prefix] = {'diag': '', 'proc': '', 'final': ''}
             
-            # Roles for PDI (Generic)
-            required_roles = [
-                {'role': 'Professor Responsável', 'name': st.session_state.get('usuario_nome', '')},
-                {'role': 'Coordenação', 'name': ''} 
-            ]
-            
-            # Current Signatures
-            current_signatures = data_pdi.get('signatures', [])
-            if current_signatures:
-                st.success("✅ Documento assinado por:")
-                for sig in current_signatures:
-                    st.write(f"✍️ **{sig['name']}** ({sig.get('role', 'Profissional')}) em {sig['date']}")
-            else:
-                st.warning("Nenhuma assinatura registrada.")
-
+            data_pdi['aval_grid'][key_prefix]['diag'] = c1.text_area("Avaliação Diagnóstica", value=data_pdi['aval_grid'][key_prefix]['diag'], key=f"{key_prefix}_d", height=70, disabled=is_monitor)
+            data_pdi['aval_grid'][key_prefix]['proc'] = c2.text_area("Avaliação de Percurso", value=data_pdi['aval_grid'][key_prefix]['proc'], key=f"{key_prefix}_p", height=70, disabled=is_monitor)
+            data_pdi['aval_grid'][key_prefix]['final'] = c3.text_area("Avaliação Final", value=data_pdi['aval_grid'][key_prefix]['final'], key=f"{key_prefix}_f", height=70, disabled=is_monitor)
             st.divider()
-            
-            user_name = st.session_state.get('usuario_nome', '')
-            match_role = "Professor/Profissional"
-            already_signed = any(s['name'] == user_name for s in current_signatures)
-            
-            if already_signed:
-                st.info("Você já assinou este documento.")
-            else:
-                if st.button("🖊️ Assinar Digitalmente (PDI)"):
-                    new_sig = {
-                        "name": user_name,
-                        "role": match_role,
-                        "date": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-                        "hash": str(uuid.uuid4())
-                    }
-                    if 'signatures' not in data_pdi: data_pdi['signatures'] = []
-                    data_pdi['signatures'].append(new_sig)
-                    save_student("PDI", data_pdi.get('nome'), data_pdi, "Assinatura")
+
+        # Botão de Importação Integrada
+        if not is_monitor:
+            with st.expander("🔄 Importar Dados Integrados (PEI + Estudo de Caso)"):
+                st.caption("Esta ação preencherá campos vazios do PDI com informações já registradas nos outros documentos.")
+                if st.button("Executar Importação"):
+                    # Identificação
+                    if not data_pdi.get('nome'): data_pdi['nome'] = data_pei.get('nome') or data_case.get('nome')
+                    if not data_pdi.get('ano_esc'): data_pdi['ano_esc'] = data_pei.get('ano_esc') or data_case.get('ano_esc')
+                    if not data_pdi.get('d_nasc'): data_pdi['d_nasc'] = data_pei.get('nasc') or data_case.get('d_nasc')
+                    
+                    # Família (Caso)
+                    fields_case = ['pai_nome', 'pai_prof', 'mae_nome', 'mae_prof', 'irmaos', 'endereco', 'bairro', 'telefones', 'quem_mora']
+                    for f in fields_case:
+                        if not data_pdi.get(f): data_pdi[f] = data_case.get(f)
+                    
+                    # Saúde/Histórico (Caso + PEI)
+                    if not data_pdi.get('diag_txt'): data_pdi['diag_txt'] = data_pei.get('defic_txt') or data_case.get('diag_possui')
+                    
+                    st.success("Dados importados! Verifique as abas abaixo.")
+                    time.sleep(1)
                     st.rerun()
 
-        # --- ABA 5: EMISSÃO ---
-        with tabs_pdi[4]:
-            if not is_monitor:
-                if st.button("💾 SALVAR PDI COMPLETO", type="primary"): save_student("PDI", data_pdi.get('nome', 'aluno'), data_pdi, "Completo")
-            else:
-                st.info("Modo Visualização.")
+        tabs = st.tabs([
+            "1. Identificação & Família",
+            "2. Histórico & Saúde", 
+            "3. Contexto Escolar", 
+            "4. Avaliação Pedagógica",
+            "5. Linguagem & Social",
+            "6. Plano AEE & Metas",
+            "7. Assinaturas & PDF"
+        ])
 
-            if st.button("👁️ GERAR PDF PDI"):
+        # --- ABA 1: IDENTIFICAÇÃO & FAMÍLIA ---
+        with tabs[0]:
+            with st.form("pdi_identificacao"):
+                st.subheader("1. Identificação")
+                c1, c2 = st.columns([3, 1])
+                data_pdi['nome'] = c1.text_input("Estudante", value=data_pdi.get('nome', ''), disabled=True)
+                data_pdi['ano_esc'] = c2.text_input("Ano/Turma", value=data_pdi.get('ano_esc', ''), disabled=is_monitor)
+                
+                c3, c4, c5 = st.columns([1, 1, 2])
+                data_pdi['sexo'] = c3.selectbox("Gênero", ["Masculino", "Feminino"], index=0 if data_pdi.get('sexo')=='Masculino' else 1, disabled=is_monitor)
+                
+                d_val = data_pdi.get('d_nasc')
+                if isinstance(d_val, str): 
+                    try: d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
+                    except: d_val = date.today()
+                data_pdi['d_nasc'] = c4.date_input("Nascimento", value=d_val if d_val else date.today(), format="DD/MM/YYYY", disabled=is_monitor)
+                data_pdi['unidade'] = c5.text_input("Unidade Escolar", value=data_pdi.get('unidade', ''), disabled=is_monitor)
+
+                st.markdown("---")
+                st.subheader("1.2 Dados Familiares")
+                c_pai1, c_pai2 = st.columns(2)
+                data_pdi['pai_nome'] = c_pai1.text_input("Nome do Pai", value=data_pdi.get('pai_nome', ''), disabled=is_monitor)
+                data_pdi['pai_prof'] = c_pai2.text_input("Profissão Pai", value=data_pdi.get('pai_prof', ''), disabled=is_monitor)
+                
+                c_mae1, c_mae2 = st.columns(2)
+                data_pdi['mae_nome'] = c_mae1.text_input("Nome da Mãe", value=data_pdi.get('mae_nome', ''), disabled=is_monitor)
+                data_pdi['mae_prof'] = c_mae2.text_input("Profissão Mãe", value=data_pdi.get('mae_prof', ''), disabled=is_monitor)
+
+                st.markdown("**Irmãos**")
+                if 'irmaos' not in data_pdi: data_pdi['irmaos'] = [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)]
+                for i in range(4):
+                    ci1, ci2, ci3 = st.columns([3, 1, 2])
+                    data_pdi['irmaos'][i]['nome'] = ci1.text_input(f"Nome {i+1}", value=data_pdi['irmaos'][i]['nome'], disabled=is_monitor)
+                    data_pdi['irmaos'][i]['idade'] = ci2.text_input(f"Idade {i+1}", value=data_pdi['irmaos'][i]['idade'], disabled=is_monitor)
+                    data_pdi['irmaos'][i]['esc'] = ci3.text_input(f"Escolaridade {i+1}", value=data_pdi['irmaos'][i]['esc'], disabled=is_monitor)
+                
+                data_pdi['quem_mora'] = st.text_input("Com quem mora?", value=data_pdi.get('quem_mora', ''), disabled=is_monitor)
+                
+                # Checkbox conditions
+                st.markdown("##### Condições Socioeconômicas e Convívio")
+                data_pdi['rel_fam'] = st.text_input("Há um bom relacionamento familiar?", value=data_pdi.get('rel_fam', ''), disabled=is_monitor)
+                data_pdi['lazer_fam'] = st.text_input("Família tem atividades de lazer?", value=data_pdi.get('lazer_fam', ''), disabled=is_monitor)
+                data_pdi['local_estudo'] = st.text_input("Há lugar/horário para lição de casa?", value=data_pdi.get('local_estudo', ''), disabled=is_monitor)
+                data_pdi['vicios_fam'] = st.text_input("Uso de fumo/álcool/drogas na família?", value=data_pdi.get('vicios_fam', ''), disabled=is_monitor)
+
+                if st.form_submit_button("💾 Salvar Identificação"):
+                    save_student("PDI", data_pdi.get('nome'), data_pdi, "Identificação")
+
+        # --- ABA 2: HISTÓRICO & SAÚDE ---
+        with tabs[1]:
+            with st.form("pdi_saude"):
+                st.subheader("1.3 Informação Escolar & Histórico")
+                data_pdi['hist_idade_entrou'] = st.text_input("Idade que entrou na escola", value=data_pdi.get('hist_idade_entrou', ''), disabled=is_monitor)
+                data_pdi['hist_outras'] = st.text_input("Estudou em outra escola? Quais?", value=data_pdi.get('hist_outras', ''), disabled=is_monitor)
+                
+                st.markdown("---")
+                st.subheader("2.1 Âmbito Familiar - Avaliação Geral")
+                
+                # Gestação e Parto (Resumido do PDI)
+                c_g1, c_g2 = st.columns(2)
+                data_pdi['gravidez_planejada'] = c_g1.radio("Gravidez planejada?", ["Sim", "Não"], horizontal=True, index=0 if data_pdi.get('gravidez_planejada')=='Sim' else 1, disabled=is_monitor)
+                data_pdi['parentesco_pais'] = c_g2.radio("Parentesco entre pais?", ["Sim", "Não"], horizontal=True, index=0 if data_pdi.get('parentesco_pais')=='Sim' else 1, disabled=is_monitor)
+                
+                data_pdi['gest_ocorrencias'] = st.text_area("Ocorrências na gestação (doença, trauma, substâncias):", value=data_pdi.get('gest_ocorrencias', ''), disabled=is_monitor)
+                data_pdi['parto_obs'] = st.text_area("Ocorrências no parto / Incubadora / Prematuro:", value=data_pdi.get('parto_obs', ''), disabled=is_monitor)
+                
+                st.markdown("**Saúde Atual**")
+                data_pdi['diag_txt'] = st.text_input("Possui diagnóstico? Qual?", value=data_pdi.get('diag_txt', ''), disabled=is_monitor)
+                data_pdi['problema_saude'] = st.text_input("Problema de saúde atual?", value=data_pdi.get('problema_saude', ''), disabled=is_monitor)
+                data_pdi['medicamentos'] = st.text_input("Uso de medicamentos controlados?", value=data_pdi.get('medicamentos', ''), disabled=is_monitor)
+                
+                st.markdown("**Atendimentos Clínicos (Marque)**")
+                clins = ["Fonoaudiólogo", "Terapeuta Ocupacional", "Psicólogo", "Psicopedagogo", "Fisioterapeuta", "Neurologista"]
+                data_pdi['atendimentos_extra'] = st.multiselect("Recebe atendimento:", clins, default=data_pdi.get('atendimentos_extra', []), disabled=is_monitor)
+
+                if st.form_submit_button("💾 Salvar Histórico/Saúde"):
+                    save_student("PDI", data_pdi.get('nome'), data_pdi, "Saúde")
+
+        # --- ABA 3: CONTEXTO ESCOLAR ---
+        with tabs[2]:
+            with st.form("pdi_contexto"):
+                st.subheader("2.2 Âmbito Escolar - Aspectos Gerais")
+                
+                st.markdown("**Acessibilidade**")
+                c_ac1, c_ac2 = st.columns(2)
+                data_pdi['nec_arq'] = c_ac1.selectbox("Necessita adaptação arquitetônica?", ["Não", "Sim, já possui", "Sim, necessita providenciar"], index=0, disabled=is_monitor)
+                data_pdi['nec_mob'] = c_ac2.selectbox("Necessita mobiliário específico?", ["Não", "Sim, já possui", "Sim, necessita providenciar"], index=0, disabled=is_monitor)
+                data_pdi['nec_rec'] = st.selectbox("Utiliza recurso/equipamento acessibilidade?", ["Não", "Sim, já possui", "Sim, necessita providenciar"], index=0, disabled=is_monitor)
+                
+                st.divider()
+                st.subheader("2.3 Compreensão do Professor (Comportamento)")
+                # Checklist simples
+                check_items = [
+                    ("atende_chamado", "Atende quando é chamado?"),
+                    ("comandos_simples", "Responde a comandos simples?"),
+                    ("integrado", "Está integrado ao ambiente escolar?"),
+                    ("tarefas_autonomia", "Realiza tarefas com autonomia?"),
+                    ("gosta_escola", "O aluno gosta da escola?"),
+                    ("expressa_nec", "Expressa necessidades e desejos?"),
+                    ("pede_ajuda", "Costuma pedir/aceitar ajuda?"),
+                    ("agressividade", "Apresenta agressividade?")
+                ]
+                
+                for key, label in check_items:
+                    col_a, col_b = st.columns([2, 1])
+                    col_a.write(label)
+                    val = data_pdi.get(f'comp_{key}', 'Não')
+                    data_pdi[f'comp_{key}'] = col_b.radio(f"opt_{key}", ["Sim", "Não"], horizontal=True, index=0 if val=='Sim' else 1, label_visibility="collapsed", disabled=is_monitor)
+                
+                st.markdown("**Percepção do Professor**")
+                data_pdi['prof_habilidades'] = st.text_area("Principais habilidades/potencialidades percebidas:", value=data_pdi.get('prof_habilidades', ''), disabled=is_monitor)
+                data_pdi['prof_dificuldades'] = st.text_area("Tarefas mais difíceis para o aluno:", value=data_pdi.get('prof_dificuldades', ''), disabled=is_monitor)
+                data_pdi['prof_interacao'] = st.text_area("Envolvimento com a turma:", value=data_pdi.get('prof_interacao', ''), disabled=is_monitor)
+                data_pdi['prof_crise'] = st.text_area("Reação em casos de negação/frustração (Descontrole):", value=data_pdi.get('prof_crise', ''), disabled=is_monitor)
+
+                if st.form_submit_button("💾 Salvar Contexto Escolar"):
+                    save_student("PDI", data_pdi.get('nome'), data_pdi, "Contexto Escolar")
+
+        # --- ABA 4: AVALIAÇÃO PEDAGÓGICA (GRID) ---
+        with tabs[3]:
+            st.header("1. Avaliação Pedagógica do Estudante")
+            st.info("Preencha o quadro: Diagnóstico (Inicial), Percurso (Durante) e Final.")
+            
+            with st.form("pdi_aval_ped"):
+                
+                # 1.1 e 1.2
+                data_pdi['aval_potencialidades'] = st.text_area("1.1 Potencialidades Gerais", value=data_pdi.get('aval_potencialidades', ''), height=80, disabled=is_monitor)
+                data_pdi['aval_interesses'] = st.text_area("1.2 Áreas de Interesse", value=data_pdi.get('aval_interesses', ''), height=80, disabled=is_monitor)
+                
+                st.subheader("1.3 Desenvolvimento Cognitivo")
+                
+                with st.expander("1.3.1 Percepção (Visual, Auditiva, Tátil...)", expanded=True):
+                    render_aval_row("Visual", "perc_visual")
+                    render_aval_row("Auditiva", "perc_auditiva")
+                    render_aval_row("Tátil", "perc_tatil")
+                    render_aval_row("Espacial", "perc_espacial")
+                    render_aval_row("Temporal / Ritmo", "perc_temporal")
+
+                with st.expander("1.3.2 Raciocínio Lógico"):
+                    render_aval_row("Correspondência", "rac_corresp")
+                    render_aval_row("Comparação", "rac_comp")
+                    render_aval_row("Classificação", "rac_class")
+                    render_aval_row("Sequenciação", "rac_seq")
+                    render_aval_row("Seriação", "rac_seria")
+                    render_aval_row("Conservação", "rac_conserv")
+                    render_aval_row("Resolução de Problemas", "rac_problemas")
+                
+                with st.expander("1.3.3 a 1.3.7 Memória e Atenção"):
+                    render_aval_row("Sistema Monetário", "sis_monetario")
+                    render_aval_row("Brincar / Simbólico", "brincar")
+                    render_aval_row("Memória Curto Prazo", "mem_curto")
+                    render_aval_row("Memória Longo Prazo", "mem_longo")
+                    render_aval_row("Atenção Sustentada", "at_sust")
+                    render_aval_row("Atenção Dividida", "at_div")
+                    render_aval_row("Atenção Seletiva", "at_sel")
+
+                st.subheader("1.4 Desenvolvimento Motor")
+                with st.expander("Coordenação Fina e Global"):
+                    render_aval_row("Coord. Viso-motora (Desenho)", "mot_desenho")
+                    render_aval_row("Recorte / Tesoura", "mot_recorte")
+                    render_aval_row("Uso de Cola", "mot_cola")
+                    render_aval_row("Encaixes / Quebra-cabeça", "mot_encaixe")
+                    render_aval_row("Estabilidade de Punho", "mot_punho")
+                    render_aval_row("Movimento de Pinça", "mot_pinca")
+                    render_aval_row("Postura (Sentado/Em pé)", "mot_postura")
+                    render_aval_row("Locomoção / Equilíbrio", "mot_locomocao")
+                    render_aval_row("Esquema Corporal", "mot_esquema")
+
+                st.subheader("Autonomia / AVD")
+                with st.expander("Alimentação e Higiene"):
+                    render_aval_row("Alimentação", "avd_alim")
+                    render_aval_row("Higiene", "avd_higiene")
+                    render_aval_row("Uso funcional de objetos", "avd_objetos")
+
+                if st.form_submit_button("💾 Salvar Avaliação Pedagógica"):
+                    save_student("PDI", data_pdi.get('nome'), data_pdi, "Aval. Pedagógica")
+
+        # --- ABA 5: LINGUAGEM & SOCIAL ---
+        with tabs[4]:
+            with st.form("pdi_ling_social"):
+                st.subheader("1.5 Função Pessoal e Social")
+                render_aval_row("Interação", "soc_interacao")
+                render_aval_row("Iniciativa", "soc_iniciativa")
+                
+                st.markdown("**1.5.3 Comportamentos Apresentados**")
+                # Multi-select style checklist for behaviors
+                opts_beh = ["timidez", "insegurança", "agressividade", "resistência", "apatia", "respeita regras", "agitação", "ansiedade", "contato visual"]
+                data_pdi['soc_comportamentos'] = st.multiselect("Selecione:", opts_beh, default=data_pdi.get('soc_comportamentos', []), disabled=is_monitor)
+                
+                render_aval_row("Vida Prática (Nome, identidade)", "soc_vida")
+
+                st.subheader("1.6 Linguagem")
+                render_aval_row("Verbal", "ling_verbal")
+                render_aval_row("Compreensiva", "ling_comp")
+                render_aval_row("Gestual", "ling_gestual")
+                render_aval_row("Ecolalia", "ling_ecolalia")
+                render_aval_row("Escrita", "ling_escrita")
+                render_aval_row("Leitura", "ling_leitura")
+                render_aval_row("LIBRAS / Com. Alternativa", "ling_libras")
+
+                if st.form_submit_button("💾 Salvar Linguagem"):
+                    save_student("PDI", data_pdi.get('nome'), data_pdi, "Linguagem")
+
+        # --- ABA 6: PLANO AEE & METAS ---
+        with tabs[5]:
+            with st.form("pdi_plano"):
+                st.header("2. Ações Necessárias (Escola, Família, Saúde)")
+                c1, c2 = st.columns(2)
+                data_pdi['acao_escola'] = c1.text_area("Ação Escola/Sala Aula", value=data_pdi.get('acao_escola', ''), disabled=is_monitor)
+                data_pdi['acao_familia'] = c2.text_area("Ação Família", value=data_pdi.get('acao_familia', ''), disabled=is_monitor)
+                data_pdi['acao_saude'] = st.text_area("Ação Saúde", value=data_pdi.get('acao_saude', ''), disabled=is_monitor)
+
+                st.header("3. Organização do AEE")
+                c_f1, c_f2 = st.columns(2)
+                data_pdi['aee_freq'] = c_f1.selectbox("Frequência Semanal", ["1 vez", "2 vezes", "3 vezes", "4 vezes"], disabled=is_monitor)
+                data_pdi['aee_tempo'] = c_f2.text_input("Tempo de Atendimento", value=data_pdi.get('aee_tempo', '50 minutos'), disabled=is_monitor)
+                
+                data_pdi['aee_tipo'] = st.radio("Tipo", ["Sala de Recursos Multifuncionais", "Trabalho Colaborativo", "Itinerante", "Domiciliar"], horizontal=True, disabled=is_monitor)
+                data_pdi['aee_composicao'] = st.radio("Composição", ["Individual", "Grupal"], horizontal=True, disabled=is_monitor)
+                
+                st.markdown("**6. OBJETIVOS A SEREM ATINGIDOS (Resumo)**")
+                # Only generic text area here because detailed goals are in the evaluation grid logic
+                data_pdi['objetivos_gerais'] = st.text_area("Descreva os objetivos prioritários para o ano:", value=data_pdi.get('objetivos_gerais', ''), height=100, disabled=is_monitor)
+
+                if st.form_submit_button("💾 Salvar Plano AEE"):
+                    save_student("PDI", data_pdi.get('nome'), data_pdi, "Plano AEE")
+
+        # --- ABA 7: ASSINATURAS & PDF ---
+        with tabs[6]:
+            st.subheader("Emissão do PDI")
+            
+            # Assinatura Digital
+            current_signatures = data_pdi.get('signatures', [])
+            if current_signatures:
+                st.success(f"Assinado por: {', '.join([s['name'] for s in current_signatures])}")
+            
+            if st.button("🖊️ Assinar Digitalmente"):
+                new_sig = {"name": st.session_state.get('usuario_nome',''), "date": datetime.now().strftime("%d/%m/%Y"), "role": "Professor AEE"}
+                if 'signatures' not in data_pdi: data_pdi['signatures'] = []
+                data_pdi['signatures'].append(new_sig)
+                save_student("PDI", data_pdi.get('nome'), data_pdi, "Assinatura")
+                st.rerun()
+
+            st.divider()
+            if st.button("👁️ GERAR PDI COMPLETO (PDF)"):
                 log_action(data_pdi.get('nome'), "Gerou PDF", "PDI Completo")
                 
-                pdf = OfficialPDF('P', 'mm', 'A4'); pdf.add_page(); pdf.set_margins(15, 15, 15)
+                pdf = OfficialPDF('P', 'mm', 'A4')
+                pdf.set_auto_page_break(auto=True, margin=15)
                 pdf.set_signature_footer(data_pdi.get('signatures', []), data_pdi.get('doc_uuid', ''))
                 
-                # HEADER
-                if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)
-                pdf.set_xy(0, 15); pdf.set_font("Arial", "B", 12)
-                pdf.cell(210, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
-                pdf.cell(210, 6, clean_pdf_text("SECRETARIA MUNICIPAL DE EDUCAÇÃO"), 0, 1, 'C')
+                # --- CAPA ---
+                pdf.add_page()
+                if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 10, 10, 25)
+                pdf.set_y(15); pdf.set_font("Arial", "B", 14)
+                pdf.cell(0, 10, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
+                pdf.cell(0, 10, clean_pdf_text("SECRETARIA MUNICIPAL DE EDUCAÇÃO"), 0, 1, 'C')
+                
+                pdf.ln(40)
+                pdf.set_font("Arial", "B", 30)
+                pdf.cell(0, 20, "PDI", 0, 1, 'C')
+                pdf.set_font("Arial", "B", 20)
+                pdf.cell(0, 15, "PLANO DE DESENVOLVIMENTO", 0, 1, 'C')
+                pdf.cell(0, 15, "INDIVIDUAL", 0, 1, 'C')
+                
+                pdf.ln(20)
+                pdf.set_font("Arial", "", 16)
+                pdf.cell(0, 10, "Estudo de Caso e Plano de AEE", 0, 1, 'C')
+                
+                pdf.ln(40)
+                pdf.set_font("Arial", "B", 14)
+                pdf.cell(0, 10, f"ANO: {datetime.now().year}", 0, 1, 'C')
+
+                # --- 1. DADOS GERAIS ---
+                pdf.add_page()
+                pdf.section_title("1. DADOS GERAIS DO ESTUDANTE", width=0)
+                pdf.ln(5)
+                
+                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "Nome:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('nome', '')), "B", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "Nascimento:", 0); pdf.set_font("Arial", "", 10); pdf.cell(50, 6, clean_pdf_text(str(data_pdi.get('d_nasc', ''))), "B", 0)
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 6, "Gênero:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('sexo', '')), "B", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(30, 6, "Unidade:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('unidade', '')), "B", 1)
+
+                pdf.ln(5)
+                pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, "1.2 DADOS FAMILIARES", 0, 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 6, "Pai:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('pai_nome', '')), "B", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 6, "Mãe:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('mae_nome', '')), "B", 1)
+                
+                pdf.ln(3)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "Irmãos:", 0, 1)
+                pdf.set_font("Arial", "", 9)
+                for i in data_pdi.get('irmaos', []):
+                    if i['nome']: pdf.cell(0, 5, clean_pdf_text(f"- {i['nome']} ({i['idade']})"), 0, 1)
+
+                pdf.ln(5)
+                pdf.section_title("1.3 INFORMAÇÃO ESCOLAR E HISTÓRIA", width=0)
+                pdf.ln(3)
+                pdf.set_font("Arial", "B", 10); pdf.cell(50, 6, "Idade entrou na escola:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('hist_idade_entrou', '')), "B", 1)
+                
+                pdf.ln(5)
+                pdf.section_title("2. AVALIAÇÃO GERAL (FAMÍLIA/SAÚDE)", width=0)
+                pdf.ln(3)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "Gestação e Parto:", 0, 1); pdf.set_font("Arial", "", 10)
+                pdf.multi_cell(0, 5, clean_pdf_text(data_pdi.get('gest_ocorrencias', 'Sem ocorrências.')), 1)
+                
+                pdf.ln(3)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "Diagnóstico / Saúde:", 0, 1); pdf.set_font("Arial", "", 10)
+                pdf.multi_cell(0, 5, clean_pdf_text(f"Diagnóstico: {data_pdi.get('diag_txt')}\nProblemas atuais: {data_pdi.get('problema_saude')}\nMedicamentos: {data_pdi.get('medicamentos')}"), 1)
+
+                pdf.ln(5)
+                pdf.section_title("2.2 ÂMBITO ESCOLAR E COMPORTAMENTO", width=0)
+                pdf.ln(3)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "Acessibilidade:", 0, 1); pdf.set_font("Arial", "", 10)
+                pdf.multi_cell(0, 5, clean_pdf_text(f"Arquitetônica: {data_pdi.get('nec_arq')}\nMobiliário: {data_pdi.get('nec_mob')}"), 1)
+                
+                pdf.ln(3)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "Percepção do Professor:", 0, 1); pdf.set_font("Arial", "", 10)
+                pdf.multi_cell(0, 5, clean_pdf_text(f"Habilidades: {data_pdi.get('prof_habilidades')}\nDificuldades: {data_pdi.get('prof_dificuldades')}\nInteração: {data_pdi.get('prof_interacao')}"), 1)
+
+                # --- PLANO AEE ---
+                pdf.add_page()
+                pdf.section_title("PLANO DE AEE - ATENDIMENTO EDUCACIONAL ESPECIALIZADO", width=0)
+                pdf.ln(5)
+                
+                # GRID AVALIAÇÃO
+                def draw_aval_grid(title, key_prefix):
+                    if pdf.get_y() > 220: pdf.add_page()
+                    pdf.set_font("Arial", "B", 10); pdf.set_fill_color(220, 220, 220)
+                    pdf.cell(0, 7, clean_pdf_text(title), 1, 1, 'L', True)
+                    
+                    pdf.set_font("Arial", "B", 9); pdf.set_fill_color(240, 240, 240)
+                    w = 63
+                    pdf.cell(w, 6, "Avaliação Diagnóstica", 1, 0, 'C', True)
+                    pdf.cell(w, 6, "Avaliação de Percurso", 1, 0, 'C', True)
+                    pdf.cell(w, 6, "Avaliação Final", 1, 1, 'C', True)
+                    
+                    grid_data = data_pdi.get('aval_grid', {}).get(key_prefix, {'diag':'', 'proc':'', 'final':''})
+                    
+                    # Calculate max height
+                    pdf.set_font("Arial", "", 9)
+                    h_d = pdf.get_string_width(grid_data['diag']) / w * 5 + 10
+                    h_p = pdf.get_string_width(grid_data['proc']) / w * 5 + 10
+                    h_f = pdf.get_string_width(grid_data['final']) / w * 5 + 10
+                    h = max(15, h_d, h_p, h_f)
+                    h = min(h, 60) # Limit max height
+                    
+                    x = pdf.get_x(); y = pdf.get_y()
+                    pdf.rect(x, y, w, h); pdf.multi_cell(w, 5, clean_pdf_text(grid_data['diag']), 0)
+                    pdf.set_xy(x+w, y); pdf.rect(x+w, y, w, h); pdf.multi_cell(w, 5, clean_pdf_text(grid_data['proc']), 0)
+                    pdf.set_xy(x+2*w, y); pdf.rect(x+2*w, y, w, h); pdf.multi_cell(w, 5, clean_pdf_text(grid_data['final']), 0)
+                    pdf.set_xy(x, y+h)
+                    pdf.ln(2)
+
+                st.info("Gerando tabelas de avaliação...")
+                
+                pdf.section_title("1. AVALIAÇÃO PEDAGÓGICA", width=0)
+                pdf.ln(2)
+                draw_aval_grid("1.3.1 Percepção Visual", "perc_visual")
+                draw_aval_grid("1.3.1 Percepção Auditiva", "perc_auditiva")
+                draw_aval_grid("1.3.2 Raciocínio - Correspondência", "rac_corresp")
+                draw_aval_grid("1.3.2 Raciocínio - Comparação", "rac_comp")
+                draw_aval_grid("1.3.5 Memória Curto Prazo", "mem_curto")
+                draw_aval_grid("1.3.7 Atenção Sustentada", "at_sust")
+                
+                pdf.add_page()
+                pdf.section_title("1.4 DESENVOLVIMENTO MOTOR", width=0)
+                pdf.ln(2)
+                draw_aval_grid("Coordenação Viso-motora", "mot_desenho")
+                draw_aval_grid("Recorte", "mot_recorte")
+                draw_aval_grid("Locomoção", "mot_locomocao")
+                draw_aval_grid("Esquema Corporal", "mot_esquema")
+                
+                pdf.add_page()
+                pdf.section_title("1.5 FUNÇÃO PESSOAL / SOCIAL E LINGUAGEM", width=0)
+                pdf.ln(2)
+                draw_aval_grid("Interação", "soc_interacao")
+                draw_aval_grid("Vida Prática", "soc_vida")
+                draw_aval_grid("Linguagem Verbal", "ling_verbal")
+                draw_aval_grid("Leitura", "ling_leitura")
+
+                # --- METAS ---
+                pdf.add_page()
+                pdf.section_title("2. AÇÕES E ORGANIZAÇÃO", width=0)
+                pdf.ln(5)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "Ações Necessárias (Escola/Família/Saúde):", 0, 1); pdf.set_font("Arial", "", 10)
+                pdf.multi_cell(0, 5, clean_pdf_text(f"Escola: {data_pdi.get('acao_escola')}\nFamília: {data_pdi.get('acao_familia')}\nSaúde: {data_pdi.get('acao_saude')}"), 1)
+                
+                pdf.ln(5)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "Frequência AEE:", 0, 1); pdf.set_font("Arial", "", 10)
+                pdf.cell(0, 6, clean_pdf_text(f"{data_pdi.get('aee_freq')} | {data_pdi.get('aee_tempo')} | {data_pdi.get('aee_tipo')}"), 1, 1)
+
                 pdf.ln(10)
-                pdf.set_font("Arial", "B", 16); pdf.cell(0, 10, clean_pdf_text("PLANO DE DESENVOLVIMENTO INDIVIDUAL (PDI)"), 0, 1, 'C')
-                pdf.ln(5)
-
-                # IDENTIFICAÇÃO
-                pdf.section_title("1. IDENTIFICAÇÃO", width=0)
-                pdf.ln(2)
-                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Estudante:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data_pdi.get('nome', '')), "B", 1)
-                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Ano:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data_pdi.get('ano_esc', '')), "B", 1)
-                pdf.ln(4)
-
-                # CONTEXTO
-                pdf.section_title("2. DIAGNÓSTICO E CONTEXTO", width=0)
-                pdf.ln(2)
-                pdf.set_font("Arial", "B", 11); pdf.set_fill_color(240, 240, 240)
-                pdf.cell(0, 8, clean_pdf_text("POTENCIALIDADES / HABILIDADES"), 1, 1, 'L', True)
-                pdf.set_font("Arial", "", 10)
-                pdf.multi_cell(0, 5, clean_pdf_text(data_pdi.get('pdi_fortalezas', '---')), 1, 'L')
-                pdf.ln(2)
-                
-                pdf.set_font("Arial", "B", 11); pdf.set_fill_color(240, 240, 240)
-                pdf.cell(0, 8, clean_pdf_text("DESAFIOS / BARREIRAS"), 1, 1, 'L', True)
-                pdf.set_font("Arial", "", 10)
-                pdf.multi_cell(0, 5, clean_pdf_text(data_pdi.get('pdi_desafios', '---')), 1, 'L')
-                pdf.ln(5)
-
-                # METAS
-                if pdf.get_y() > 220: pdf.add_page()
-                pdf.section_title("3. PLANO DE METAS", width=0)
-                pdf.ln(2)
-                
-                for i, meta in enumerate(data_pdi.get('metas', [])):
-                    if meta['objetivo']:
-                        if pdf.get_y() > 230: pdf.add_page()
-                        pdf.set_font("Arial", "B", 10); pdf.set_fill_color(230, 230, 230)
-                        pdf.cell(0, 7, clean_pdf_text(f"META {i+1}: {meta['objetivo']}"), 1, 1, 'L', True)
-                        
-                        pdf.set_font("Arial", "B", 9); pdf.cell(20, 6, "Prazo:", "L"); pdf.set_font("Arial", "", 9); pdf.cell(40, 6, clean_pdf_text(meta['prazo']), "R")
-                        pdf.set_font("Arial", "B", 9); pdf.cell(20, 6, "Status:", "L"); pdf.set_font("Arial", "", 9); pdf.cell(0, 6, clean_pdf_text(meta['status']), "R", 1)
-                        
-                        pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, clean_pdf_text("Estratégias / Metodologia:"), "LR", 1)
-                        pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(meta['estrategia']), "LBR")
-                        pdf.ln(2)
-
-                # RECURSOS E AVALIAÇÃO
-                if pdf.get_y() > 220: pdf.add_page()
-                pdf.ln(4)
-                pdf.section_title("4. RECURSOS E AVALIAÇÃO", width=0)
-                pdf.ln(2)
-                
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("Recursos Necessários:"), 0, 1)
-                pdf.set_font("Arial", "", 10); pdf.multi_cell(0, 5, clean_pdf_text(data_pdi.get('pdi_recursos', '---')), 1)
-                pdf.ln(2)
-                
-                pdf.set_font("Arial", "B", 10); pdf.cell(40, 6, clean_pdf_text("Período de Avaliação:"), 0, 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('pdi_periodo', '')), 0, 1)
-                pdf.ln(2)
-                
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("Anotações de Progresso / Resultados:"), 0, 1)
-                pdf.set_font("Arial", "", 10); pdf.multi_cell(0, 5, clean_pdf_text(data_pdi.get('pdi_obs', '---')), 1)
-
-                # ASSINATURAS
-                pdf.ln(15)
-                if pdf.get_y() > 250: pdf.add_page()
-                
                 y = pdf.get_y()
                 pdf.line(20, y, 90, y); pdf.line(110, y, 190, y)
-                pdf.set_xy(20, y+2); pdf.cell(70, 5, "Professor Responsável", 0, 0, 'C')
-                pdf.set_xy(110, y+2); pdf.cell(80, 5, "Coordenação / Direção", 0, 1, 'C')
+                pdf.set_xy(20, y+2); pdf.cell(70, 5, "Professor AEE", 0, 0, 'C')
+                pdf.set_xy(110, y+2); pdf.cell(80, 5, "Coordenação", 0, 1, 'C')
 
                 st.session_state.pdf_bytes_pdi = get_pdf_bytes(pdf)
                 st.rerun()
 
             if 'pdf_bytes_pdi' in st.session_state:
-                st.download_button("📥 BAIXAR PDI (PDF)", st.session_state.pdf_bytes_pdi, f"PDI_{data_pdi.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+                st.download_button("📥 BAIXAR PDI COMPLETO", st.session_state.pdf_bytes_pdi, f"PDI_{data_pdi.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
         # --- ABA 6: HISTÓRICO ---
         with tabs_pdi[5]:
@@ -3454,3 +3689,4 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+

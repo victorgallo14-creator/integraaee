@@ -39,8 +39,7 @@ hide_st_style = """
             /* --- COMPORTAMENTO MOBILE/TABLET (Largura <= 991px) --- */
             @media (max-width: 991px) {
                 /* Header visível para acessar o menu hambúrguer */
-                header {visibility: visible;}
-                
+                header {visibility: visible;}\n                
                 /* Ajustes para evitar que o conteúdo suba demais */
                 .header-box {
                     margin-top: 0px !important;
@@ -49,6 +48,143 @@ hide_st_style = """
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
+
+# --- FUNÇÕES DE BANCO DE DADOS E UTILITÁRIOS ---
+
+def load_db():
+    """Lê os dados da planilha do Google"""
+    try:
+        df = conn.read(worksheet="Alunos", ttl=0)
+        df = df.dropna(how="all")
+        return df
+    except Exception as e:
+        return pd.DataFrame(columns=["nome", "tipo_doc", "dados_json", "id"])
+
+def safe_read(worksheet_name, columns):
+    """Lê uma aba com segurança, retornando vazio se falhar"""
+    try:
+        df = conn.read(worksheet=worksheet_name, ttl=0)
+        # Se vier vazio, retornamos o DF com as colunas certas
+        if df.empty:
+             return pd.DataFrame(columns=columns)
+        return df
+    except:
+        return pd.DataFrame(columns=columns)
+
+def safe_update(worksheet_name, data):
+    """Atualiza uma aba com segurança"""
+    try:
+        conn.update(worksheet=worksheet_name, data=data)
+        return True
+    except Exception as e:
+        st.error(f"Erro ao atualizar {worksheet_name}: {e}")
+        return False
+
+def log_action(student_name, action, details=""):
+    """Registra uma ação no histórico do aluno."""
+    try:
+        user = st.session_state.get('usuario_nome', 'Desconhecido')
+        df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
+        
+        new_entry = {
+            "Data_Hora": datetime.now().strftime("%d/%m/%Y %H:%M"),
+            "Aluno": student_name,
+            "Usuario": user,
+            "Acao": action,
+            "Detalhes": details
+        }
+        
+        df_hist = pd.concat([pd.DataFrame([new_entry]), df_hist], ignore_index=True)
+        safe_update("Historico", df_hist)
+    except Exception as e:
+        print(f"Erro no log: {e}")
+
+def save_student(doc_type, name, data, section="Geral"):
+    """Salva ou atualiza garantindo que não duplique linhas"""
+    # Proteção de backend além do frontend
+    # Nota: is_monitor será definido após login(), mas esta função só é chamada via botões após login.
+    is_monitor = st.session_state.get('user_role') == 'monitor'
+    
+    if is_monitor and doc_type != "DIARIO":
+        st.error("Acesso negado: Monitores não podem salvar este tipo de documento.")
+        return
+
+    try:
+        df_atual = load_db()
+        id_registro = f"{name} ({doc_type})"
+        
+        def serializar_datas(obj):
+            if isinstance(obj, (date, datetime)): return obj.strftime("%Y-%m-%d")
+            if isinstance(obj, dict): return {k: serializar_datas(v) for k, v in obj.items()}
+            if isinstance(obj, list): return [serializar_datas(i) for i in obj]
+            return obj
+            
+        data_limpa = serializar_datas(data)
+        novo_json = json.dumps(data_limpa, ensure_ascii=False)
+
+        if not df_atual.empty and "id" in df_atual.columns and id_registro in df_atual["id"].values:
+            df_atual.loc[df_atual["id"] == id_registro, "dados_json"] = novo_json
+            df_final = df_atual
+        else:
+            novo_registro = {
+                "id": id_registro,
+                "nome": name,
+                "tipo_doc": doc_type,
+                "dados_json": novo_json
+            }
+            df_final = pd.concat([df_atual, pd.DataFrame([novo_registro])], ignore_index=True)
+
+        conn.update(worksheet="Alunos", data=df_final)
+        
+        # Registra no histórico
+        log_action(name, f"Salvou {doc_type}", f"Seção: {section}")
+        
+        st.toast(f"✅ Alterações em {name} salvas na nuvem!", icon="💾")
+        
+    except Exception as e:
+        st.error(f"Erro ao salvar: {e}")
+
+def delete_student(student_name):
+    """Exclui um aluno do DataFrame e atualiza a planilha"""
+    is_monitor = st.session_state.get('user_role') == 'monitor'
+    if is_monitor:
+        st.error("Acesso negado: Monitores não podem excluir registros.")
+        return False
+        
+    try:
+        df = load_db()
+        if "nome" in df.columns:
+            df_new = df[df["nome"] != student_name]
+            if len(df_new) < len(df):
+                conn.update(worksheet="Alunos", data=df_new)
+                log_action(student_name, "Exclusão", "Registro do aluno excluído")
+                st.toast(f"🗑️ Registro de {student_name} excluído com sucesso!", icon="🔥")
+                return True
+    except Exception as e:
+        st.error(f"Erro ao excluir: {e}")
+    return False
+
+# --- HELPERS PARA PDF ---
+def clean_pdf_text(text):
+    if text is None or text is False: return ""
+    if text is True: return "Sim"
+    return str(text).encode('latin-1', 'replace').decode('latin-1')
+
+def get_pdf_bytes(pdf_instance):
+    try: return bytes(pdf_instance.output(dest='S').encode('latin-1'))
+    except: return bytes(pdf_instance.output(dest='S'))
+
+# --- CLASSE PDF CUSTOMIZADA ---
+class OfficialPDF(FPDF):
+    def footer(self):
+        self.set_y(-20); self.set_font('Arial', '', 9); self.set_text_color(80, 80, 80)
+        addr = "Secretaria Municipal de Educação | Centro de Formação do Professor - Limeira-SP"
+        self.cell(0, 5, clean_pdf_text(addr), 0, 1, 'C')
+        self.set_font('Arial', 'I', 8); self.cell(0, 5, clean_pdf_text(f'Página {self.page_no()}'), 0, 0, 'R')
+
+    def section_title(self, title, width=0):
+        self.set_font('Arial', 'B', 12); self.set_fill_color(240, 240, 240)
+        self.cell(width, 8, clean_pdf_text(title), 1, 1, 'L', 1)
 
 # --- FUNÇÃO DE LOGIN COMPLETA E ROBUSTA (SME LIMEIRA) ---
 def login():
@@ -241,11 +377,12 @@ def login():
 
                         # 3. Se não for professor, tenta como Monitor
                         if not authenticated_as_prof:
+                            # Note: safe_read is now defined above login
                             df_monitores = safe_read("Monitores", ["matricula", "nome"])
                             if not df_monitores.empty:
                                 df_monitores['matricula'] = df_monitores['matricula'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
                                 
-                                if password == SENHA_MESTRA and user_id_limpo in df_monitores['matricula'].values:
+                                if password == "123" and user_id_limpo in df_monitores['matricula'].values:
                                     registro = df_monitores[df_monitores['matricula'] == user_id_limpo]
                                     nome_mon = registro['nome'].values[0]
                                     
@@ -366,139 +503,6 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
-# --- FUNÇÕES DE BANCO DE DADOS ---
-
-def load_db():
-    """Lê os dados da planilha do Google"""
-    try:
-        df = conn.read(worksheet="Alunos", ttl=0)
-        df = df.dropna(how="all")
-        return df
-    except Exception as e:
-        return pd.DataFrame(columns=["nome", "tipo_doc", "dados_json", "id"])
-
-def safe_read(worksheet_name, columns):
-    """Lê uma aba com segurança, retornando vazio se falhar"""
-    try:
-        df = conn.read(worksheet=worksheet_name, ttl=0)
-        # Se vier vazio, retornamos o DF com as colunas certas
-        if df.empty:
-             return pd.DataFrame(columns=columns)
-        return df
-    except:
-        return pd.DataFrame(columns=columns)
-
-def safe_update(worksheet_name, data):
-    """Atualiza uma aba com segurança"""
-    try:
-        conn.update(worksheet=worksheet_name, data=data)
-        return True
-    except Exception as e:
-        st.error(f"Erro ao atualizar {worksheet_name}: {e}")
-        return False
-
-def log_action(student_name, action, details=""):
-    """Registra uma ação no histórico do aluno."""
-    try:
-        user = st.session_state.get('usuario_nome', 'Desconhecido')
-        df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
-        
-        new_entry = {
-            "Data_Hora": datetime.now().strftime("%d/%m/%Y %H:%M"),
-            "Aluno": student_name,
-            "Usuario": user,
-            "Acao": action,
-            "Detalhes": details
-        }
-        
-        df_hist = pd.concat([pd.DataFrame([new_entry]), df_hist], ignore_index=True)
-        safe_update("Historico", df_hist)
-    except Exception as e:
-        print(f"Erro no log: {e}")
-
-def save_student(doc_type, name, data, section="Geral"):
-    """Salva ou atualiza garantindo que não duplique linhas"""
-    # Proteção de backend além do frontend
-    if is_monitor and doc_type != "DIARIO":
-        st.error("Acesso negado: Monitores não podem salvar este tipo de documento.")
-        return
-
-    try:
-        df_atual = load_db()
-        id_registro = f"{name} ({doc_type})"
-        
-        def serializar_datas(obj):
-            if isinstance(obj, (date, datetime)): return obj.strftime("%Y-%m-%d")
-            if isinstance(obj, dict): return {k: serializar_datas(v) for k, v in obj.items()}
-            if isinstance(obj, list): return [serializar_datas(i) for i in obj]
-            return obj
-            
-        data_limpa = serializar_datas(data)
-        novo_json = json.dumps(data_limpa, ensure_ascii=False)
-
-        if not df_atual.empty and "id" in df_atual.columns and id_registro in df_atual["id"].values:
-            df_atual.loc[df_atual["id"] == id_registro, "dados_json"] = novo_json
-            df_final = df_atual
-        else:
-            novo_registro = {
-                "id": id_registro,
-                "nome": name,
-                "tipo_doc": doc_type,
-                "dados_json": novo_json
-            }
-            df_final = pd.concat([df_atual, pd.DataFrame([novo_registro])], ignore_index=True)
-
-        conn.update(worksheet="Alunos", data=df_final)
-        
-        # Registra no histórico
-        log_action(name, f"Salvou {doc_type}", f"Seção: {section}")
-        
-        st.toast(f"✅ Alterações em {name} salvas na nuvem!", icon="💾")
-        
-    except Exception as e:
-        st.error(f"Erro ao salvar: {e}")
-
-def delete_student(student_name):
-    """Exclui um aluno do DataFrame e atualiza a planilha"""
-    if is_monitor:
-        st.error("Acesso negado: Monitores não podem excluir registros.")
-        return False
-        
-    try:
-        df = load_db()
-        if "nome" in df.columns:
-            df_new = df[df["nome"] != student_name]
-            if len(df_new) < len(df):
-                conn.update(worksheet="Alunos", data=df_new)
-                log_action(student_name, "Exclusão", "Registro do aluno excluído")
-                st.toast(f"🗑️ Registro de {student_name} excluído com sucesso!", icon="🔥")
-                return True
-    except Exception as e:
-        st.error(f"Erro ao excluir: {e}")
-    return False
-
-# --- HELPERS PARA PDF ---
-def clean_pdf_text(text):
-    if text is None or text is False: return ""
-    if text is True: return "Sim"
-    return str(text).encode('latin-1', 'replace').decode('latin-1')
-
-def get_pdf_bytes(pdf_instance):
-    try: return bytes(pdf_instance.output(dest='S').encode('latin-1'))
-    except: return bytes(pdf_instance.output(dest='S'))
-
-# --- CLASSE PDF CUSTOMIZADA ---
-class OfficialPDF(FPDF):
-    def footer(self):
-        self.set_y(-20); self.set_font('Arial', '', 9); self.set_text_color(80, 80, 80)
-        addr = "Secretaria Municipal de Educação | Centro de Formação do Professor - Limeira-SP"
-        self.cell(0, 5, clean_pdf_text(addr), 0, 1, 'C')
-        self.set_font('Arial', 'I', 8); self.cell(0, 5, clean_pdf_text(f'Página {self.page_no()}'), 0, 0, 'R')
-
-    def section_title(self, title, width=0):
-        self.set_font('Arial', 'B', 12); self.set_fill_color(240, 240, 240)
-        self.cell(width, 8, clean_pdf_text(title), 1, 1, 'L', 1)
 
 # --- INICIALIZAÇÃO DE ESTADO ---
 if 'data_pei' not in st.session_state: 
@@ -3180,4 +3184,5 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 

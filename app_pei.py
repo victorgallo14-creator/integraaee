@@ -471,6 +471,8 @@ if 'data_pei' not in st.session_state:
     }
 if 'data_conduta' not in st.session_state:
     st.session_state.data_conduta = {}
+if 'data_avaliacao' not in st.session_state:
+    st.session_state.data_avaliacao = {}
 
 def carregar_dados_aluno():
     selecao = st.session_state.get('aluno_selecionado')
@@ -479,6 +481,7 @@ def carregar_dados_aluno():
     st.session_state.data_pei = {'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {}, 'comunicacao_tipo': [], 'permanece': []}
     st.session_state.data_case = {'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 'checklist': {}, 'clinicas': []}
     st.session_state.data_conduta = {}
+    st.session_state.data_avaliacao = {}
     st.session_state.nome_original_salvamento = None
 
     if not selecao or selecao == "-- Novo Registro --":
@@ -495,6 +498,7 @@ def carregar_dados_aluno():
             st.session_state.data_pei['nome'] = selecao
             st.session_state.data_case['nome'] = selecao
             st.session_state.data_conduta['nome'] = selecao
+            st.session_state.data_avaliacao['nome'] = selecao
 
             for _, row in rows.iterrows():
                 try:
@@ -512,6 +516,8 @@ def carregar_dados_aluno():
                         st.session_state.data_case.update(dados)
                     elif dtype == "CONDUTA":
                         st.session_state.data_conduta.update(dados)
+                    elif dtype == "AVALIACAO":
+                        st.session_state.data_avaliacao.update(dados)
                 except: pass
             
             st.toast(f"✅ {selecao} carregado.")
@@ -625,7 +631,7 @@ with st.sidebar:
         st.markdown('<p class="section-label">📂 Tipo de Documento</p>', unsafe_allow_html=True)
         doc_sub_mode = st.radio(
             "Modo Doc", 
-            ["PEI", "Estudo de Caso", "Protocolo de Conduta"], 
+            ["PEI", "Estudo de Caso", "Protocolo de Conduta", "Avaliação Pedagógica"], 
             index=default_doc_idx, 
             key="doc_option",
             label_visibility="collapsed"
@@ -1448,7 +1454,7 @@ elif app_mode == "👥 Gestão de Alunos":
                         ("EDUCAÇÃO FÍSICA - Habilidades Motoras", data.get('aval_ef_motoras')),
                         ("EDUCAÇÃO FÍSICA - Conhecimento Corporal", data.get('aval_ef_corp_conhec')),
                         ("EDUCAÇÃO FÍSICA - Exp. Corporais e Expressividade", data.get('aval_ef_exp')),
-                        ("LINGUAGENS E TECNOLOGIA", data.get('aval_ling_tec'))
+                        ("LINGUAGENS E TECNOLOGIAS", data.get('aval_ling_tec'))
                     ]
                 else: # Infantil
                     areas_aval = [
@@ -1617,515 +1623,6 @@ elif app_mode == "👥 Gestão de Alunos":
 
         # --- ABA 8: HISTÓRICO ---
         with tabs[7]:
-            st.subheader("Histórico de Atividades")
-            st.caption("Registro de alterações, salvamentos e geração de documentos.")
-            
-            df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
-            
-            if not df_hist.empty and data.get('nome'):
-                # Filtrar pelo aluno atual
-                student_hist = df_hist[df_hist["Aluno"] == data.get('nome')]
-                
-                if not student_hist.empty:
-                    # Ordenar por data (mais recente primeiro)
-                    student_hist = student_hist.iloc[::-1]
-                    st.dataframe(student_hist, use_container_width=True, hide_index=True)
-                else:
-                    st.info("Nenhum histórico encontrado para este aluno.")
-            else:
-                st.info("O histórico está vazio ou aluno não selecionado.")
-
-    # ESTUDO DE CASO COM FORMULÁRIOS
-    elif doc_mode == "Estudo de Caso":
-        st.markdown("""<div class="header-box"><div class="header-title">Estudo de Caso</div></div>""", unsafe_allow_html=True)
-        
-        if 'data_case' not in st.session_state: 
-            st.session_state.data_case = {
-                'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 
-                'checklist': {},
-                'clinicas': []
-            }
-        
-        data = st.session_state.data_case
-        
-        st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
-
-        tabs = st.tabs(["1. Identificação", "2. Família", "3. Histórico", "4. Saúde", "5. Comportamento", "6. Gerar PDF", "7. Histórico"])
-
-        # --- ABA 1: IDENTIFICAÇÃO ---
-        with tabs[0]:
-            with st.form("form_caso_identificacao"):
-                st.subheader("1.1 Dados Gerais do Estudante")
-                data['nome'] = st.text_input("Nome Completo", value=data.get('nome', ''), disabled=True)
-                
-                c1, c2, c3 = st.columns([1, 1, 2])
-                data['ano_esc'] = c1.text_input("Ano Escolaridade", value=data.get('ano_esc', ''))
-                
-                p_val = data.get('periodo') if data.get('periodo') in ["Manhã", "Tarde", "Integral"] else "Manhã"
-                idx_per = ["Manhã", "Tarde", "Integral"].index(p_val)
-                data['periodo'] = c2.selectbox("Período", ["Manhã", "Tarde", "Integral"], index=idx_per)
-                data['unidade'] = c3.text_input("Unidade Escolar", value=data.get('unidade', ''))
-
-                c4, c5 = st.columns([1, 1])
-                data['sexo'] = c4.radio("Sexo", ["Feminino", "Masculino"], horizontal=True, index=0 if data.get('sexo') == 'Feminino' else 1)
-                
-                d_nasc = data.get('d_nasc')
-                if isinstance(d_nasc, str):
-                    try: d_nasc = datetime.strptime(d_nasc, '%Y-%m-%d').date()
-                    except: d_nasc = date.today()
-                data['d_nasc'] = c5.date_input("Data de Nascimento", value=d_nasc if d_nasc else date.today(), format="DD/MM/YYYY")
-
-                data['endereco'] = st.text_input("Endereço", value=data.get('endereco', ''))
-                c6, c7, c8 = st.columns([2, 2, 2])
-                data['bairro'] = c6.text_input("Bairro", value=data.get('bairro', ''))
-                data['cidade'] = c7.text_input("Cidade", value=data.get('cidade', 'Limeira'))
-                data['telefones'] = c8.text_input("Telefones", value=data.get('telefones', ''))
-                
-                st.markdown("---")
-                if st.form_submit_button("💾 Salvar Dados de Identificação"):
-                    save_student("CASO", data.get('nome'), data, "Identificação")
-
-        # --- ABA 2: DADOS FAMILIARES ---
-        with tabs[1]:
-            with st.form("form_caso_familia"):
-                st.subheader("1.1.2 Dados Familiares")
-                
-                st.markdown("**Pai**")
-                c_p1, c_p2, c_p3, c_p4 = st.columns([3, 2, 2, 2])
-                data['pai_nome'] = c_p1.text_input("Nome do Pai", value=data.get('pai_nome', ''))
-                data['pai_prof'] = c_p2.text_input("Profissão Pai", value=data.get('pai_prof', ''))
-                data['pai_esc'] = c_p3.text_input("Escolaridade Pai", value=data.get('pai_esc', ''))
-                data['pai_dn'] = c_p4.text_input("D.N. Pai", value=data.get('pai_dn', '')) 
-
-                st.markdown("**Mãe**")
-                c_m1, c_m2, c_m3, c_m4 = st.columns([3, 2, 2, 2])
-                data['mae_nome'] = c_m1.text_input("Nome da Mãe", value=data.get('mae_nome', ''))
-                data['mae_prof'] = c_m2.text_input("Profissão Mãe", value=data.get('mae_prof', ''))
-                data['mae_esc'] = c_m3.text_input("Escolaridade Mãe", value=data.get('mae_esc', ''))
-                data['mae_dn'] = c_m4.text_input("D.N. Mãe", value=data.get('mae_dn', ''))
-
-                st.divider()
-                st.markdown("**Irmãos**")
-                if 'irmaos' not in data: data['irmaos'] = [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)]
-                
-                for i in range(4):
-                    c_i1, c_i2, c_i3 = st.columns([3, 1, 2])
-                    data['irmaos'][i]['nome'] = c_i1.text_input(f"Nome Irmão {i+1}", value=data['irmaos'][i]['nome'])
-                    data['irmaos'][i]['idade'] = c_i2.text_input(f"Idade {i+1}", value=data['irmaos'][i]['idade'])
-                    data['irmaos'][i]['esc'] = c_i3.text_input(f"Escolaridade {i+1}", value=data['irmaos'][i]['esc'])
-
-                data['outros_familia'] = st.text_area("Outros (Moradores da casa):", value=data.get('outros_familia', ''))
-                data['quem_mora'] = st.text_input("Com quem mora?", value=data.get('quem_mora', ''))
-                
-                c_conv1, c_conv2 = st.columns([1, 3])
-                data['convenio'] = c_conv1.radio("Possui convênio?", ["Sim", "Não"], horizontal=True, index=1 if data.get('convenio') == "Não" else 0)
-                data['convenio_qual'] = c_conv2.text_input("Qual convênio?", value=data.get('convenio_qual', ''))
-                
-                c_soc1, c_soc2 = st.columns([1, 3])
-                data['social'] = c_soc1.radio("Recebe benefício social?", ["Sim", "Não"], horizontal=True, index=1 if data.get('social') == "Não" else 0)
-                data['social_qual'] = c_soc2.text_input("Qual benefício?", value=data.get('social_qual', ''))
-
-                st.markdown("---")
-                if st.form_submit_button("💾 Salvar Dados Familiares"):
-                    save_student("CASO", data.get('nome'), data, "Família")
-
-        # --- ABA 3: HISTÓRICO ---
-        with tabs[2]:
-            with st.form("form_caso_historico"):
-                st.subheader("1.1.3 História Escolar")
-                data['hist_idade_entrou'] = st.text_input("Idade que entrou na escola:", value=data.get('hist_idade_entrou', ''))
-                data['hist_outra_escola'] = st.text_input("Já estudou em outra escola? Quais?", value=data.get('hist_outra_escola', ''))
-                data['hist_motivo_transf'] = st.text_input("Motivo da transferência:", value=data.get('hist_motivo_transf', ''))
-                data['hist_obs'] = st.text_area("Outras observações escolares:", value=data.get('hist_obs', ''))
-
-                st.divider()
-                st.subheader("1.2 Informações sobre Gestação")
-                
-                c_g1, c_g2 = st.columns(2)
-                data['gest_parentesco'] = c_g1.radio("Parentesco entre pais?", ["Sim", "Não"], horizontal=True, index=1 if data.get('gest_parentesco') == "Não" else 0)
-                data['gest_doenca'] = c_g2.text_input("Doença/trauma na gestação? Quais?", value=data.get('gest_doenca', ''))
-                
-                c_g3, c_g4 = st.columns(2)
-                data['gest_substancias'] = c_g3.radio("Uso de álcool/fumo/drogas?", ["Sim", "Não"], horizontal=True, index=1 if data.get('gest_substancias') == "Não" else 0)
-                data['gest_medicamentos'] = c_g4.text_input("Uso de medicamentos? Quais?", value=data.get('gest_medicamentos', ''))
-
-                data['parto_ocorrencia'] = st.text_input("Ocorrência no parto? Quais?", value=data.get('parto_ocorrencia', ''))
-                data['parto_incubadora'] = st.text_input("Incubadora? Motivo?", value=data.get('parto_incubadora', ''))
-                
-                c_p1, c_p2 = st.columns(2)
-                data['parto_prematuro'] = c_p1.radio("Prematuro?", ["Sim", "Não"], horizontal=True, index=1 if data.get('parto_prematuro') == "Não" else 0)
-                data['parto_uti'] = c_p2.radio("Ficou em UTI?", ["Sim", "Não"], horizontal=True, index=1 if data.get('parto_uti') == "Não" else 0)
-
-                c_d1, c_d2, c_d3 = st.columns(3)
-                data['dev_tempo_gest'] = c_d1.text_input("Tempo Gestação", value=data.get('dev_tempo_gest', ''))
-                data['dev_peso'] = c_d2.text_input("Peso", value=data.get('dev_peso', ''))
-                data['dev_normal_1ano'] = c_d3.radio("Desenv. normal 1º ano?", ["Sim", "Não"], horizontal=True, index=0 if data.get('dev_normal_1ano') == "Sim" else 1)
-                
-                data['dev_atraso'] = st.text_input("Atraso importante? Quais?", value=data.get('dev_atraso', ''))
-                c_m1, c_m2 = st.columns(2)
-                data['dev_idade_andar'] = c_m1.text_input("Idade começou a andar?", value=data.get('dev_idade_andar', ''))
-                data['dev_idade_falar'] = c_m2.text_input("Idade começou a falar?", value=data.get('dev_idade_falar', ''))
-
-                st.markdown("---")
-                data['diag_possui'] = st.text_input("Possui diagnóstico? Qual?", value=data.get('diag_possui', ''))
-                data['diag_reacao'] = st.text_input("Reação da família:", value=data.get('diag_reacao', ''))
-                c_dx1, c_dx2 = st.columns(2)
-                data['diag_data'] = c_dx1.text_input("Data do diagnóstico:", value=data.get('diag_data', ''))
-                data['diag_origem'] = c_dx2.text_input("Origem da informação:", value=data.get('diag_origem', ''))
-                
-                c_fam1, c_fam2 = st.columns(2)
-                data['fam_deficiencia'] = c_fam1.text_input("Pessoa com deficiência na família?", value=data.get('fam_deficiencia', ''))
-                data['fam_altas_hab'] = c_fam2.radio("Pessoa com AH/SD na família?", ["Sim", "Não"], horizontal=True, index=1 if data.get('fam_altas_hab') == "Não" else 0)
-                
-                st.markdown("---")
-                if st.form_submit_button("💾 Salvar Dados de Histórico"):
-                    save_student("CASO", data.get('nome'), data, "Histórico")
-
-        # --- ABA 4: SAÚDE ---
-        with tabs[3]:
-            with st.form("form_caso_saude"):
-                st.subheader("1.3 Informações sobre Saúde")
-                data['saude_prob'] = st.text_input("Problema de saúde? Quais?", value=data.get('saude_prob', ''))
-                data['saude_internacao'] = st.text_input("Internação? Motivos?", value=data.get('saude_internacao', ''))
-                data['saude_restricao'] = st.text_input("Restrição/Seletividade alimentar?", value=data.get('saude_restricao', ''))
-                
-                st.markdown("**Medicamentos Controlados**")
-                data['med_uso'] = st.radio("Faz uso?", ["Sim", "Não"], horizontal=True, index=1 if data.get('med_uso') == "Não" else 0)
-                data['med_quais'] = st.text_input("Quais medicamentos?", value=data.get('med_quais', ''))
-                c_med1, c_med2, c_med3 = st.columns(3)
-                data['med_hor'] = c_med1.text_input("Horário", value=data.get('med_hor', ''))
-                data['med_dos'] = c_med2.text_input("Dosagem", value=data.get('med_dos', ''))
-                data['med_ini'] = c_med3.text_input("Início", value=data.get('med_ini', ''))
-
-                st.divider()
-                c_esf1, c_esf2 = st.columns(2)
-                data['esf_urina'] = c_esf1.checkbox("Controla Urina", value=data.get('esf_urina', False))
-                data['esf_fezes'] = c_esf2.checkbox("Controla Fezes", value=data.get('esf_fezes', False))
-                data['esf_idade'] = st.text_input("Com qual idade controlou?", value=data.get('esf_idade', ''))
-                data['sono'] = st.text_input("Dorme bem? Obs:", value=data.get('sono', ''))
-                data['medico_ultimo'] = st.text_input("Última visita ao médico:", value=data.get('medico_ultimo', ''))
-
-                st.markdown("**Atendimento Clínico Extraescolar**")
-                clinicas_opts = ["APAE", "ARIL", "CEMA", "Família Azul", "CAPS", "Amb. Saúde Mental", "João Fischer D.A.", "João Fischer D.V."]
-                prof_opts = ["Fonoaudiólogo", "Terapeuta Ocupacional", "Psicólogo", "Psicopedagogo", "Fisioterapeuta"]
-                
-                data['clinicas'] = st.multiselect("Selecione os atendimentos:", clinicas_opts + prof_opts, default=data.get('clinicas', []))
-                data['clinicas_med_esp'] = st.text_input("Área médica (Especialidade):", value=data.get('clinicas_med_esp', ''))
-                data['clinicas_nome'] = st.text_input("Nome da Clínica/Profissional:", value=data.get('clinicas_nome', ''))
-                
-                data['saude_obs_geral'] = st.text_area("Outras observações de saúde:", value=data.get('saude_obs_geral', ''))
-
-                st.markdown("---")
-                if st.form_submit_button("💾 Salvar Dados de Saúde"):
-                    save_student("CASO", data.get('nome'), data, "Saúde")
-
-        # --- ABA 5: COMPORTAMENTO ---
-        with tabs[4]:
-            with st.form("form_caso_comportamento"):
-                st.subheader("1.4 Compreensão da Família (Checklist)")
-                
-                checklist_items = [
-                    "Relata fatos do dia a dia? Apresentando boa memória?",
-                    "É organizado com seus pertences?",
-                    "Aceita regras de forma tranquila?",
-                    "Busca e aceita ajuda quando não sabe ou não consegue algo?",
-                    "Aceita alterações no ambiente?",
-                    "Tem algum medo?",
-                    "Tem alguma mania?",
-                    "Tem alguma área/assunto, brinquedo ou hiperfoco?",
-                    "Prefere brincar sozinho ou com outras crianças? Tem amigos?",
-                    "Qual a expectativa da família em relação à escolaridade da criança?"
-                ]
-                
-                if 'checklist' not in data: data['checklist'] = {}
-                
-                for i, item in enumerate(checklist_items):
-                    st.markdown(f"**{item}**")
-                    col_a, col_b = st.columns([1, 3])
-                    key_base = item[:10].replace(" ", "").replace("?", "")
-                    
-                    opt = data['checklist'].get(f"{key_base}_opt", "Não")
-                    data['checklist'][f"{key_base}_opt"] = col_a.radio("Opção", ["Sim", "Não"], key=f"rad_f_{i}", horizontal=True, label_visibility="collapsed", index=0 if opt == "Sim" else 1)
-                    
-                    data['checklist'][f"{key_base}_obs"] = col_b.text_input("Obs:", value=data['checklist'].get(f"{key_base}_obs", ""), key=f"obs_f_{i}")
-                    st.divider()
-
-                st.subheader("Dados da Entrevista")
-                c_e1, c_e2, c_e3 = st.columns(3)
-                data['entrevista_prof'] = c_e1.text_input("Prof. Responsável", value=data.get('entrevista_prof', ''))
-                data['entrevista_resp'] = c_e2.text_input("Responsável info", value=data.get('entrevista_resp', ''))
-                
-                d_ent = data.get('entrevista_data')
-                if isinstance(d_ent, str): 
-                     try: d_ent = datetime.strptime(d_ent, '%Y-%m-%d').date()
-                     except: d_ent = date.today()
-                data['entrevista_data'] = c_e3.date_input("Data", value=d_ent if d_ent else date.today(), format="DD/MM/YYYY")
-                
-                data['entrevista_extra'] = st.text_area("Outras informações relevantes:", value=data.get('entrevista_extra', ''))
-                
-                st.markdown("---")
-                if st.form_submit_button("💾 Salvar Comportamento"):
-                    save_student("CASO", data.get('nome'), data, "Comportamento")
-
-        # --- ABA 6: GERAR PDF (ESTUDO DE CASO) ---
-        with tabs[5]:
-            if st.button("💾 SALVAR ESTUDO DE CASO", type="primary"): 
-                save_student("CASO", data.get('nome', 'aluno'), data, "Completo")
-
-            if st.button("👁️ GERAR PDF"):
-                # Registrar ação de gerar PDF
-                log_action(data.get('nome'), "Gerou PDF", "Estudo de Caso")
-                
-                # Cria PDF em Retrato ('P')
-                pdf = OfficialPDF('P', 'mm', 'A4')
-                pdf.add_page(); pdf.set_margins(15, 15, 15)
-                
-                # --- CABEÇALHO ---
-                if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)
-                if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 170, 6, 25)
-
-                # Títulos Centralizados
-                pdf.set_xy(0, 15); pdf.set_font("Arial", "B", 12)
-                pdf.cell(210, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
-                pdf.cell(180, 6, clean_pdf_text("CEIEF RAFAEL AFFONSO LEITE"), 0, 1, 'C')
-                pdf.ln(8)
-                pdf.set_font("Arial", "B", 16); pdf.cell(0, 10, "ESTUDO DE CASO", 0, 1, 'C')
-                pdf.ln(5)
-                
-                # --- 1.1 DADOS GERAIS ---
-                pdf.section_title("1.1 DADOS GERAIS DO ESTUDANTE", width=0)
-                pdf.ln(4)
-                
-                # 1.1.1 IDENTIFICAÇÃO
-                pdf.set_fill_color(240, 240, 240)
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "1.1.1 - IDENTIFICAÇÃO", 1, 1, 'L', 1)
-                
-                pdf.set_font("Arial", "B", 10); pdf.cell(30, 8, "Nome:", 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(110, 8, clean_pdf_text(data.get('nome', '')), 1, 0)
-                pdf.set_font("Arial", "B", 10); pdf.cell(15, 8, "D.N.:", 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(str(data.get('d_nasc', ''))), 1, 1, 'C')
-                
-                pdf.set_font("Arial", "B", 10); pdf.cell(30, 8, "Escolaridade:", 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(40, 8, clean_pdf_text(data.get('ano_esc', '')), 1, 0)
-                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Período:", 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(30, 8, clean_pdf_text(data.get('periodo', '')), 1, 0, 'C')
-                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Unidade:", 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('unidade', '')), 1, 1)
-                
-                pdf.set_font("Arial", "B", 10); pdf.cell(30, 8, clean_pdf_text("Endereço:"), 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('endereco', '')), 1, 1)
-                
-                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Bairro:", 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(60, 8, clean_pdf_text(data.get('bairro', '')), 1, 0)
-                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Cidade:", 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(40, 8, clean_pdf_text(data.get('cidade', '')), 1, 0)
-                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Telefone:", 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('telefones', '')), 1, 1)
-                
-                # 1.1.2 DADOS FAMILIARES
-                pdf.ln(4)
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "1.1.2 - DADOS FAMILIARES", 1, 1, 'L', 1)
-                
-                # Pai
-                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Pai:", 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(80, 8, clean_pdf_text(data.get('pai_nome', '')), 1, 0)
-                pdf.set_font("Arial", "B", 10); pdf.cell(25, 8, clean_pdf_text("Profissão:"), 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('pai_prof', '')), 1, 1)
-                
-                # Mãe
-                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, clean_pdf_text("Mãe:"), 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(80, 8, clean_pdf_text(data.get('mae_nome', '')), 1, 0)
-                pdf.set_font("Arial", "B", 10); pdf.cell(25, 8, clean_pdf_text("Profissão:"), 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('mae_prof', '')), 1, 1)
-                
-                # Irmãos
-                pdf.ln(2)
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, clean_pdf_text("Irmãos (Nome | Idade | Escolaridade)"), 1, 1, 'L', 1)
-                pdf.set_font("Arial", "", 9)
-                for i, irmao in enumerate(data.get('irmaos', [])):
-                    if irmao['nome']:
-                        txt = f"{irmao['nome']}  |  {irmao['idade']}  |  {irmao['esc']}"
-                        pdf.cell(0, 6, clean_pdf_text(txt), 1, 1)
-                
-                pdf.ln(2)
-                pdf.set_font("Arial", "B", 10); pdf.cell(40, 8, "Com quem mora:", 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('quem_mora', '')), 1, 1)
-                
-                pdf.set_font("Arial", "B", 10); pdf.cell(40, 8, clean_pdf_text("Convênio Médico:"), 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(50, 8, clean_pdf_text(data.get('convenio')), 1, 0)
-                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, clean_pdf_text("Qual:"), 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('convenio_qual')), 1, 1)
-                
-                pdf.set_font("Arial", "B", 10); pdf.cell(40, 8, clean_pdf_text("Benefício Social:"), 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(50, 8, clean_pdf_text(data.get('social')), 1, 0)
-                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, clean_pdf_text("Qual:"), 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('social_qual')), 1, 1)
-
-                # 1.1.3 HISTÓRIA ESCOLAR
-                pdf.ln(4)
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, clean_pdf_text("1.1.3 - HISTÓRIA ESCOLAR"), 1, 1, 'L', 1)
-                
-                pdf.set_font("Arial", "B", 10); pdf.cell(50, 8, "Idade entrou na escola:", 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('hist_idade_entrou')), 1, 1)
-                
-                pdf.set_font("Arial", "B", 10); pdf.cell(50, 8, "Outras escolas:", 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('hist_outra_escola')), 1, 1)
-                
-                pdf.set_font("Arial", "B", 10); pdf.cell(50, 8, clean_pdf_text("Motivo transferência:"), 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('hist_motivo_transf')), 1, 1)
-                
-                if data.get('hist_obs'):
-                    pdf.ln(2)
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "Observações Escolares:", 0, 1)
-                    pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(data.get('hist_obs')), 1)
-
-                # --- 1.2 GESTAÇÃO, PARTO E DESENVOLVIMENTO ---
-                pdf.add_page()
-                pdf.section_title("1.2 GESTAÇÃO, PARTO E DESENVOLVIMENTO", width=0)
-                pdf.ln(4)
-                
-                def print_data_row(label, value):
-                    pdf.set_font("Arial", "B", 9); pdf.set_fill_color(240, 240, 240)
-                    pdf.cell(80, 7, clean_pdf_text(label), 1, 0, 'L', 1)
-                    pdf.set_font("Arial", "", 9); pdf.set_fill_color(255, 255, 255)
-                    pdf.cell(0, 7, clean_pdf_text(value), 1, 1, 'L')
-
-                rows_gest = [
-                    ("Parentesco entre pais:", data.get('gest_parentesco')),
-                    ("Doença/Trauma na gestação:", data.get('gest_doenca')),
-                    ("Uso de substâncias (mãe):", data.get('gest_substancias')),
-                    ("Uso de medicamentos (mãe):", data.get('gest_medicamentos')),
-                    ("Ocorrência no parto:", data.get('parto_ocorrencia')),
-                    ("Necessitou de incubadora:", data.get('parto_incubadora')),
-                    ("Prematuro?", f"{data.get('parto_prematuro')}  |  UTI: {data.get('parto_uti')}"),
-                    ("Tempo de gestação / Peso:", f"{data.get('dev_tempo_gest')}  /  {data.get('dev_peso')}"),
-                    ("Desenvolvimento normal no 1º ano:", data.get('dev_normal_1ano')),
-                    ("Apresentou atraso importante?", data.get('dev_atraso')),
-                    ("Idade que andou / falou:", f"{data.get('dev_idade_andar')}  /  {data.get('dev_idade_falar')}"),
-                    ("Possui diagnóstico?", data.get('diag_possui')),
-                    ("Reação da família ao diagnóstico:", data.get('diag_reacao')),
-                    ("Data / Origem do diagnóstico:", f"{data.get('diag_data')}  |  {data.get('diag_origem')}"),
-                    ("Pessoa com deficiência na família:", data.get('fam_deficiencia')),
-                    ("Pessoa com AH/SD na família:", data.get('fam_altas_hab'))
-                ]
-                
-                for label, value in rows_gest:
-                    print_data_row(label, value)
-
-                # --- 1.3 INFORMAÇÕES SOBRE SAÚDE ---
-                pdf.add_page()
-                pdf.section_title("1.3 INFORMAÇÕES SOBRE SAÚDE", width=0)
-                pdf.ln(4)
-                
-                saude_rows = [
-                    ("Problemas de saúde:", data.get('saude_prob')),
-                    ("Já necessitou de internação:", data.get('saude_internacao')),
-                    ("Restrição/Seletividade alimentar:", data.get('saude_restricao')),
-                    ("Uso de medicamentos controlados:", f"{data.get('med_uso')} - Quais: {data.get('med_quais')}"),
-                    ("Horário / Dosagem / Início:", f"{data.get('med_hor')}  |  {data.get('med_dos')}  |  {data.get('med_ini')}"),
-                    ("Qualidade do sono:", data.get('sono')),
-                    ("Última visita ao médico:", data.get('medico_ultimo'))
-                ]
-                for label, value in saude_rows:
-                    print_data_row(label, value)
-                
-                esf = []
-                if data.get('esf_urina'): esf.append("Urina")
-                if data.get('esf_fezes'): esf.append("Fezes")
-                print_data_row("Controle de Esfíncter:", f"{', '.join(esf) if esf else 'Não'}  (Idade: {data.get('esf_idade')})")
-                
-                pdf.ln(4)
-                pdf.set_font("Arial", "B", 10); pdf.set_fill_color(240, 240, 240)
-                pdf.cell(0, 8, "Atendimentos Clínicos Extraescolares", 1, 1, 'L', 1)
-                
-                clins = data.get('clinicas', [])
-                print_data_row("Realiza atendimento em:", ", ".join(clins) if clins else "Não realiza")
-                print_data_row("Especialidade médica:", data.get('clinicas_med_esp'))
-                print_data_row("Nome da Clínica/Profissional:", data.get('clinicas_nome'))
-                
-                if data.get('saude_obs_geral'):
-                    pdf.ln(2)
-                    pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "Outras observações de saúde:", 0, 1)
-                    pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(data.get('saude_obs_geral')), 1)
-
-                # --- 1.4 COMPREENSÃO DA FAMÍLIA (CHECKLIST) ---
-                pdf.add_page()
-                pdf.section_title("1.4 COMPREENSÃO DA FAMÍLIA (CHECKLIST)", width=0)
-                pdf.ln(4)
-                
-                pdf.set_fill_color(220, 220, 220); pdf.set_font("Arial", "B", 9)
-                pdf.cell(110, 8, "PERGUNTA / ASPECTO OBSERVADO", 1, 0, 'C', 1)
-                pdf.cell(25, 8, "SIM/NÃO", 1, 0, 'C', 1)
-                pdf.cell(0, 8, clean_pdf_text("OBSERVAÇÕES DA FAMÍLIA"), 1, 1, 'C', 1)
-                
-                checklist_items = [
-                    "Relata fatos do dia a dia? Apresentando boa memória?",
-                    "É organizado com seus pertences?",
-                    "Aceita regras de forma tranquila?",
-                    "Busca e aceita ajuda quando não sabe ou não consegue algo?",
-                    "Aceita alterações no ambiente?",
-                    "Tem algum medo?",
-                    "Tem alguma mania?",
-                    "Tem alguma área/assunto, brinquedo ou hiperfoco?",
-                    "Prefere brincar sozinho ou com outras crianças? Tem amigos?",
-                    "Qual a expectativa da família em relação à escolaridade da criança?"
-                ]
-                
-                pdf.set_font("Arial", "", 9)
-                for item in checklist_items:
-                    key_base = item[:10].replace(" ", "").replace("?", "")
-                    opt = data.get('checklist', {}).get(f"{key_base}_opt", "Não")
-                    obs = data.get('checklist', {}).get(f"{key_base}_obs", "")
-                    
-                    line_height = 6
-                    num_lines = pdf.get_string_width(obs) / 50 
-                    cell_height = max(line_height, (int(num_lines) + 1) * line_height)
-                    
-                    x_start = pdf.get_x(); y_start = pdf.get_y()
-                    
-                    pdf.multi_cell(110, line_height, clean_pdf_text(item), 1, 'L')
-                    
-                    pdf.set_xy(x_start + 110, y_start)
-                    pdf.cell(25, cell_height, clean_pdf_text(opt), 1, 0, 'C')
-                    
-                    pdf.set_xy(x_start + 135, y_start)
-                    pdf.multi_cell(0, line_height, clean_pdf_text(obs), 1, 'L')
-                    
-                    pdf.set_xy(x_start, y_start + cell_height)
-
-                # --- FINALIZAÇÃO ---
-                pdf.ln(5)
-                pdf.set_font("Arial", "B", 10); pdf.set_fill_color(240, 240, 240)
-                pdf.cell(0, 8, clean_pdf_text("OUTRAS INFORMAÇÕES RELEVANTES"), 1, 1, 'L', 1)
-                pdf.set_font("Arial", "", 9)
-                pdf.multi_cell(0, 6, clean_pdf_text(data.get('entrevista_extra', '---')), 1)
-                
-                pdf.ln(10)
-                if pdf.get_y() > 240: pdf.add_page()
-                
-                pdf.set_fill_color(240, 240, 240); pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "DADOS DA ENTREVISTA", 1, 1, 'L', 1)
-                
-                print_data_row("Responsável pelas informações:", data.get('entrevista_resp'))
-                print_data_row("Profissional Entrevistador:", data.get('entrevista_prof'))
-                print_data_row("Data da Entrevista:", str(data.get('entrevista_data', '')))
-                
-                pdf.ln(25) 
-                
-                y = pdf.get_y()
-                pdf.line(20, y, 90, y); pdf.line(110, y, 190, y)
-                pdf.set_font("Arial", "", 9)
-                pdf.set_xy(20, y+2); pdf.cell(70, 5, "Assinatura do Responsável Legal", 0, 0, 'C')
-                pdf.set_xy(110, y+2); pdf.cell(80, 5, "Assinatura do Docente/Gestor", 0, 1, 'C')
-
-                st.session_state.pdf_bytes_caso = get_pdf_bytes(pdf)
-                st.rerun()
-
-            if 'pdf_bytes_caso' in st.session_state:
-                st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
-
-        # --- ABA 7: HISTÓRICO ---
-        with tabs[6]:
             st.subheader("Histórico de Atividades")
             st.caption("Registro de alterações, salvamentos e geração de documentos.")
             
@@ -2350,3 +1847,341 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.info("Nenhum histórico encontrado para este aluno.")
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
+
+    # --- AVALIAÇÃO PEDAGÓGICA ---
+    elif doc_mode == "Avaliação Pedagógica":
+        st.markdown("""<div class="header-box"><div class="header-title">Avaliação Pedagógica: Apoio Escolar</div></div>""", unsafe_allow_html=True)
+        st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
+        
+        tabs = st.tabs(["📝 Preenchimento e Emissão", "🕒 Histórico"])
+        
+        data_aval = st.session_state.data_avaliacao
+        data_pei = st.session_state.data_pei
+        data_caso = st.session_state.data_case
+        
+        with tabs[0]:
+            with st.form("form_avaliacao"):
+                st.subheader("Configuração da Avaliação")
+                st.caption("Utilize o botão abaixo para importar informações já preenchidas no PEI e Estudo de Caso.")
+                
+                if st.form_submit_button("🔄 Preencher Automaticamente"):
+                    if data_pei or data_caso:
+                        # Identificação
+                        data_aval['nome'] = data_pei.get('nome') or data_caso.get('nome', '')
+                        data_aval['nasc'] = data_pei.get('nasc') or data_caso.get('d_nasc', '')
+                        data_aval['ano_esc'] = data_pei.get('ano_esc') or data_caso.get('ano_esc', '')
+                        data_aval['defic_chk'] = data_pei.get('diag_tipo', [])
+                        
+                        # Aspectos Gerais
+                        aspectos = []
+                        if data_pei.get('prof_poli'): aspectos.append(f"Polivalente: {data_pei.get('prof_poli')}")
+                        if data_pei.get('prof_aee'): aspectos.append(f"AEE: {data_pei.get('prof_aee')}")
+                        if data_pei.get('flex_matrix'): aspectos.append("Possui flexibilização curricular registrada no PEI.")
+                        data_aval['aspectos_gerais'] = "\n".join(aspectos)
+                        
+                        # Parte I - Auto preenchimento sugerido
+                        if data_pei.get('beh_autonomia_agua') == 'Sim': data_aval['alim_nivel'] = 'É independente.'
+                        if data_pei.get('hig_banheiro') == 'Sim': data_aval['hig_nivel'] = 'É independente.'
+                        if data_pei.get('loc_reduzida') == 'Não': data_aval['loc_nivel'] = ['é independente.']
+                        
+                        # Parte II
+                        if data_pei.get('dev_participa') == 'Sim': data_aval['part_grupo'] = 'participa de atividades em grupo da rotina escolar...'
+                        if data_pei.get('dev_integrado') == 'Sim': data_aval['interacao'] = 'Adequada com as crianças e adultos.'
+                        
+                        st.success("Dados importados com sucesso! Revise os campos abaixo.")
+                    else:
+                        st.warning("Sem dados prévios para importar.")
+
+                # --- CAMPOS DO FORMULÁRIO ---
+                st.markdown("### Identificação")
+                c1, c2, c3 = st.columns([3, 1, 1])
+                data_aval['ue'] = c1.text_input("Unidade Escolar (U.E.)", value=data_aval.get('ue', ''))
+                data_aval['nome'] = c2.text_input("Estudante", value=data_aval.get('nome', ''), disabled=True)
+                data_aval['ano_esc'] = c3.text_input("Ano Escolaridade", value=data_aval.get('ano_esc', ''))
+                
+                st.markdown("**Deficiências (Marque as opções):**")
+                defs_opts = ["Deficiência auditiva/surdez", "Deficiência física", "Deficiência intelectual", "Deficiência múltipla", "Deficiência visual", "Transtorno do Espectro Autista", "Síndrome de Down"]
+                data_aval['defic_chk'] = st.multiselect("Selecione:", defs_opts, default=data_aval.get('defic_chk', []))
+                data_aval['defic_outra'] = st.text_input("Outra:", value=data_aval.get('defic_outra', ''))
+                
+                st.markdown("---")
+                st.markdown("### Aspectos Gerais da Vida Escolar")
+                data_aval['aspectos_gerais'] = st.text_area("Relatar data matrícula, plano atendimento, docentes, AEE, PDI...", value=data_aval.get('aspectos_gerais', ''), height=100)
+                
+                with st.expander("Parte I - Habilidades de Vida Diária", expanded=True):
+                    c_a, c_h = st.columns(2)
+                    with c_a:
+                        st.markdown("**1. Alimentação**")
+                        opts_alim = ["É independente.", "Necessita de apoio parcial.", "Necessita de apoio total."]
+                        idx_alim = opts_alim.index(data_aval.get('alim_nivel')) if data_aval.get('alim_nivel') in opts_alim else 0
+                        data_aval['alim_nivel'] = st.radio("Nível Alimentação", opts_alim, index=idx_alim, key="rad_alim")
+                        data_aval['alim_obs'] = st.text_input("Obs Alimentação:", value=data_aval.get('alim_obs', ''))
+                    
+                    with c_h:
+                        st.markdown("**2. Higiene**")
+                        opts_hig = ["É independente.", "Usa fralda.", "Necessita de apoio parcial.", "Necessita de apoio total."]
+                        idx_hig = opts_hig.index(data_aval.get('hig_nivel')) if data_aval.get('hig_nivel') in opts_hig else 0
+                        data_aval['hig_nivel'] = st.radio("Nível Higiene", opts_hig, index=idx_hig, key="rad_hig")
+                        data_aval['hig_obs'] = st.text_input("Obs Higiene:", value=data_aval.get('hig_obs', ''))
+                    
+                    st.markdown("**3. Locomoção (Selecione todos que se aplicam)**")
+                    opts_loc = ["é independente.", "cai ou tropeça com frequência.", "faz uso de cadeira de rodas de forma independente", "faz uso de cadeira de rodas, necessitando ser conduzido.", "possui prótese/órtese.", "faz uso de andador.", "faz uso de bengala."]
+                    data_aval['loc_nivel'] = st.multiselect("Itens:", opts_loc, default=data_aval.get('loc_nivel', []))
+                    data_aval['loc_obs'] = st.text_input("Obs Locomoção:", value=data_aval.get('loc_obs', ''))
+
+                with st.expander("Parte II - Habilidades Sociais e de Interação"):
+                    st.markdown("**4. Comportamento**")
+                    opts_comp = [
+                        "Demonstra comportamento adequado em relação às situações escolares cotidianas...",
+                        "Apresenta alguns comportamentos inadequados... mas a recuperação é rápida.",
+                        "Diariamente apresenta comportamentos inadequados (choro, recusa verbal, birras...)",
+                        "Frequentemente a criança emite comportamento inadequado severo (agressões, autolesivos)."
+                    ]
+                    idx_comp = opts_comp.index(data_aval.get('comportamento')) if data_aval.get('comportamento') in opts_comp else 0
+                    data_aval['comportamento'] = st.radio("Nível Comportamento", opts_comp, index=idx_comp)
+                    data_aval['comp_obs'] = st.text_input("Obs Comportamento:", value=data_aval.get('comp_obs', ''))
+                    
+                    st.divider()
+                    st.markdown("**5. Participação em Grupo**")
+                    opts_part = [
+                        "participa de atividades em grupo da rotina escolar, interagindo com os estudantes",
+                        "é capaz de participar de atividades em grupo somente em momentos de curta duração",
+                        "não é capaz de participar de atividades em grupo de forma autônoma, dependendo de apoio",
+                        "Mesmo com apoio, não é capaz de participar de atividades em grupo."
+                    ]
+                    idx_part = opts_part.index(data_aval.get('part_grupo')) if data_aval.get('part_grupo') in opts_part else 0
+                    data_aval['part_grupo'] = st.radio("Nível Participação", opts_part, index=idx_part)
+                    data_aval['part_obs'] = st.text_input("Obs Participação:", value=data_aval.get('part_obs', ''))
+                    
+                    st.divider()
+                    st.markdown("**6. Interação**")
+                    opts_int = ["Adequada com as crianças e adultos.", "Satisfatória.", "Inadequada.", "Outros"]
+                    idx_int = opts_int.index(data_aval.get('interacao')) if data_aval.get('interacao') in opts_int else 0
+                    data_aval['interacao'] = st.radio("Nível Interação", opts_int, index=idx_int)
+                    if data_aval['interacao'] == "Outros":
+                        data_aval['interacao_outros'] = st.text_input("Especifique:", value=data_aval.get('interacao_outros', ''))
+
+                with st.expander("Parte III - Habilidades Pedagógicas"):
+                    st.markdown("**7. Rotina Sala de Aula**")
+                    opts_rot = [
+                        "Compreende e atende as orientações oferecidas pelo docente de forma autônoma",
+                        "Precisa de intervenções pontuais do docente para compreender e atender as orientações.",
+                        "Mesmo com apoio apresenta severas dificuldades quanto à compreensão..."
+                    ]
+                    idx_rot = opts_rot.index(data_aval.get('rotina')) if data_aval.get('rotina') in opts_rot else 0
+                    data_aval['rotina'] = st.radio("Nível Rotina", opts_rot, index=idx_rot)
+                    data_aval['rotina_obs'] = st.text_input("Obs Rotina:", value=data_aval.get('rotina_obs', ''))
+                    
+                    st.divider()
+                    st.markdown("**8. Atividades Pedagógicas**")
+                    opts_ativ = [
+                        "não há necessidade de flexibilização curricular",
+                        "precisa de flexibilização curricular em relação à metodologia de ensino...",
+                        "precisa de flexibilização curricular em relação à metodologia de ensino e ao conteúdo...",
+                        "há a necessidade de um currículo funcional..."
+                    ]
+                    idx_ativ = opts_ativ.index(data_aval.get('ativ_pedag')) if data_aval.get('ativ_pedag') in opts_ativ else 0
+                    data_aval['ativ_pedag'] = st.radio("Nível Atividades", opts_ativ, index=idx_ativ)
+
+                with st.expander("Parte IV - Habilidades de Comunicação e Atenção"):
+                    c_com1, c_com2 = st.columns(2)
+                    with c_com1:
+                        st.markdown("**9. Atenção Sustentada**")
+                        data_aval['atencao_sust'] = st.radio("Sustentada", ["Mantém por longo período.", "Mantém com apoio.", "Não mantém."], index=0, key="at_sust")
+                        
+                        st.markdown("**11. Atenção Seletiva**")
+                        data_aval['atencao_sel'] = st.radio("Seletiva", ["Ignora externos.", "Ignora com apoio.", "Não mantém com outros."], index=0, key="at_sel")
+                    
+                    with c_com2:
+                        st.markdown("**10. Atenção Dividida**")
+                        data_aval['atencao_div'] = st.radio("Dividida", ["Dois estímulos.", "Algumas situações.", "Não mantém."], index=0, key="at_div")
+                    
+                    st.divider()
+                    st.markdown("**12. Linguagem (Marque todas que se aplicam)**")
+                    opts_ling = [
+                        "Faz uso de palavras para se comunicar, expressando seus pensamentos e desejos.",
+                        "Faz uso de palavras para se comunicar, apresentando trocas fonéticas orais.",
+                        "Utiliza palavras e frases desconexas, não conseguindo se expressar.",
+                        "Não faz uso de palavras para se comunicar, expressando seus desejos por meio de gestos...",
+                        "Não faz uso de palavras e de gestos para se comunicar."
+                    ]
+                    data_aval['linguagem'] = st.multiselect("Linguagem:", opts_ling, default=data_aval.get('linguagem', []))
+                    data_aval['ling_obs'] = st.text_input("Obs Linguagem:", value=data_aval.get('ling_obs', ''))
+
+                st.markdown("### Conclusão e Responsáveis")
+                data_aval['conclusao_nivel'] = st.selectbox("Nível de Apoio Concluído", ["Não necessita de apoio", "Nível 1", "Nível 2", "Nível 3"], index=0)
+                data_aval['apoio_existente'] = st.text_input("Se este apoio já é oferecido, explicitar aqui:", value=data_aval.get('apoio_existente', ''))
+                
+                c_resp1, c_resp2 = st.columns(2)
+                data_aval['resp_sala'] = c_resp1.text_input("Prof. Sala Regular", value=data_aval.get('resp_sala', ''))
+                data_aval['resp_arte'] = c_resp2.text_input("Prof. Arte", value=data_aval.get('resp_arte', ''))
+                data_aval['resp_ef'] = c_resp1.text_input("Prof. Ed. Física", value=data_aval.get('resp_ef', ''))
+                data_aval['resp_ee'] = c_resp2.text_input("Prof. Ed. Especial", value=data_aval.get('resp_ee', ''))
+                data_aval['resp_dir'] = c_resp1.text_input("Direção Escolar", value=data_aval.get('resp_dir', ''))
+                data_aval['resp_coord'] = c_resp2.text_input("Coordenação", value=data_aval.get('resp_coord', ''))
+                
+                data_aval['data_emissao'] = st.date_input("Data Emissão", value=date.today(), format="DD/MM/YYYY")
+
+                st.markdown("---")
+                c_sv, c_pd = st.columns(2)
+                if c_sv.form_submit_button("💾 Salvar Avaliação"):
+                    save_student("AVALIACAO", data_aval.get('nome', 'aluno'), data_aval, "Avaliação")
+                
+                if c_pd.form_submit_button("👁️ Gerar PDF Avaliação"):
+                    log_action(data_aval.get('nome'), "Gerou PDF", "Avaliação Pedagógica")
+                    
+                    pdf = OfficialPDF('P', 'mm', 'A4'); pdf.add_page(); pdf.set_margins(15, 15, 15)
+                    
+                    # Header
+                    if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 20)
+                    pdf.set_xy(40, 10); pdf.set_font("Arial", "", 12)
+                    pdf.cell(0, 6, clean_pdf_text("Secretaria Municipal de"), 0, 1)
+                    pdf.set_x(40); pdf.set_font("Arial", "B", 16)
+                    pdf.cell(0, 8, clean_pdf_text("EDUCAÇÃO"), 0, 1)
+                    
+                    pdf.ln(5); pdf.set_font("Arial", "B", 14)
+                    pdf.multi_cell(0, 6, clean_pdf_text("AVALIAÇÃO PEDAGÓGICA: APOIO ESCOLAR PARA ESTUDANTE COM DEFICIÊNCIA"), 0, 'C')
+                    pdf.ln(5)
+                    
+                    # Info
+                    pdf.set_font("Arial", "B", 11); pdf.cell(15, 6, "U.E.:", 0, 0); pdf.set_font("Arial", "", 11)
+                    pdf.cell(0, 6, clean_pdf_text(data_aval.get('ue', '')), "B", 1); pdf.ln(2)
+                    
+                    pdf.set_font("Arial", "B", 11); pdf.cell(25, 6, "Estudante:", 0, 0); pdf.set_font("Arial", "", 11)
+                    pdf.cell(100, 6, clean_pdf_text(data_aval.get('nome', '')), "B", 0)
+                    pdf.set_font("Arial", "B", 11); pdf.cell(40, 6, "Ano escolaridade:", 0, 0); pdf.set_font("Arial", "", 11)
+                    pdf.cell(0, 6, clean_pdf_text(data_aval.get('ano_esc', '')), "B", 1); pdf.ln(4)
+                    
+                    # Deficiencias
+                    defs = data_aval.get('defic_chk', [])
+                    def_str = "  ".join([f"[X] {d}" for d in defs])
+                    if data_aval.get('defic_outra'): def_str += f"  Outra: {data_aval.get('defic_outra')}"
+                    pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(def_str), 0, 'L'); pdf.ln(4)
+                    
+                    # Legal Text (Static)
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "PRESSUPOSTOS LEGAIS:", 0, 1)
+                    pdf.set_font("Arial", "", 8)
+                    legal_txt = "1- Lei nº 12.764/2012 (Autismo)... 2- LBI art. 3º inc. XIII... 3- CNE/CEB nº 02/01 art. 6º..."
+                    pdf.multi_cell(0, 4, clean_pdf_text(legal_txt), 0, 'J'); pdf.ln(4)
+                    
+                    # Aspectos Gerais
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "ASPECTOS GERAIS DA VIDA ESCOLAR DO ESTUDANTE:", 0, 1)
+                    pdf.set_font("Arial", "", 10); pdf.set_fill_color(255, 255, 200) # Light yellow highlight attempt
+                    pdf.multi_cell(0, 5, clean_pdf_text(data_aval.get('aspectos_gerais', '---')), 1, 'J', True); pdf.ln(5)
+                    
+                    # PART I
+                    pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("PARTE I - HABILIDADES DE VIDA DIÁRIA"), 0, 1)
+                    
+                    def print_radio_section(title, selected, obs_txt):
+                        pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text(title), 0, 1)
+                        pdf.set_font("Arial", "", 10)
+                        if selected: pdf.cell(0, 6, clean_pdf_text(f"[X] {selected}"), 0, 1)
+                        else: pdf.cell(0, 6, "[ ] Não informado", 0, 1)
+                        if obs_txt: pdf.cell(0, 6, clean_pdf_text(f"Obs: {obs_txt}"), "B", 1)
+                        else: pdf.cell(0, 6, "Obs: _________________________________", "B", 1)
+                        pdf.ln(2)
+
+                    print_radio_section("1. ALIMENTAÇÃO:", data_aval.get('alim_nivel'), data_aval.get('alim_obs'))
+                    print_radio_section("2. HIGIENE:", data_aval.get('hig_nivel'), data_aval.get('hig_obs'))
+                    
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("3. LOCOMOÇÃO:"), 0, 1)
+                    pdf.set_font("Arial", "", 10)
+                    for l in data_aval.get('loc_nivel', []):
+                        pdf.cell(0, 5, clean_pdf_text(f"[X] {l}"), 0, 1)
+                    pdf.cell(0, 6, clean_pdf_text(f"Obs: {data_aval.get('loc_obs', '')}"), "B", 1); pdf.ln(4)
+                    
+                    # PART II
+                    if pdf.get_y() > 240: pdf.add_page()
+                    pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("PARTE II – HABILIDADE SOCIAIS E DE INTERAÇÃO"), 0, 1)
+                    print_radio_section("4. COMPORTAMENTO:", data_aval.get('comportamento'), data_aval.get('comp_obs'))
+                    print_radio_section("5. PARTICIPAÇÃO EM GRUPO:", data_aval.get('part_grupo'), data_aval.get('part_obs'))
+                    
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "6. INTERAÇÃO:", 0, 1); pdf.set_font("Arial", "", 10)
+                    pdf.cell(0, 6, clean_pdf_text(f"Selecionado: {data_aval.get('interacao', '')}"), 0, 1)
+                    if data_aval.get('interacao') == "Outros": pdf.cell(0, 6, clean_pdf_text(f"Especifique: {data_aval.get('interacao_outros')}"), 0, 1)
+                    pdf.ln(4)
+                    
+                    # PART III
+                    pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("PARTE III - HABILIDADES PEDAGÓGICAS"), 0, 1)
+                    print_radio_section("7. ROTINA SALA DE AULA:", data_aval.get('rotina'), data_aval.get('rotina_obs'))
+                    
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("8. ATIVIDADES PEDAGÓGICAS:"), 0, 1); pdf.set_font("Arial", "", 10)
+                    pdf.multi_cell(0, 5, clean_pdf_text(data_aval.get('ativ_pedag', '')), 0, 'L'); pdf.ln(4)
+                    
+                    # PART IV
+                    if pdf.get_y() > 240: pdf.add_page()
+                    pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("PARTE IV - HABILIDADES DE COMUNICAÇÃO E ATENÇÃO"), 0, 1)
+                    
+                    pdf.set_font("Arial", "B", 10)
+                    pdf.cell(0, 6, "9. Atenção Sustentada: " + clean_pdf_text(data_aval.get('atencao_sust', '')), 0, 1)
+                    pdf.cell(0, 6, "10. Atenção Dividida: " + clean_pdf_text(data_aval.get('atencao_div', '')), 0, 1)
+                    pdf.cell(0, 6, "11. Atenção Seletiva: " + clean_pdf_text(data_aval.get('atencao_sel', '')), 0, 1)
+                    
+                    pdf.ln(2); pdf.cell(0, 6, "12. Linguagem:", 0, 1); pdf.set_font("Arial", "", 10)
+                    for li in data_aval.get('linguagem', []):
+                        pdf.cell(0, 5, clean_pdf_text(f"[X] {li}"), 0, 1)
+                    pdf.cell(0, 6, clean_pdf_text(f"OBS: {data_aval.get('ling_obs', '')}"), "B", 1); pdf.ln(5)
+                    
+                    # Levels Table
+                    if pdf.get_y() > 200: pdf.add_page()
+                    pdf.set_fill_color(70, 130, 180); pdf.set_text_color(255, 255, 255) # Blue header
+                    pdf.cell(60, 8, "NÍVEIS DE APOIO", 1, 0, 'C', 1)
+                    pdf.cell(0, 8, "CARACTERÍSTICAS", 1, 1, 'C', 1)
+                    
+                    pdf.set_text_color(0, 0, 0); pdf.set_fill_color(240, 240, 240) # Gray rows
+                    def row_level(lvl, desc, fill=False):
+                        pdf.set_font("Arial", "B", 9)
+                        x=pdf.get_x(); y=pdf.get_y()
+                        pdf.cell(60, 16, clean_pdf_text(lvl), 1, 0, 'L', fill)
+                        pdf.set_font("Arial", "", 9)
+                        pdf.set_xy(x+60, y)
+                        pdf.multi_cell(0, 8, clean_pdf_text(desc), 1, 'L', fill)
+                    
+                    row_level("Não há necessidade", "Autonomia preservada. Ações da sala regular + AEE são suficientes.", True)
+                    row_level("Nível 1 (Pouco Subst.)", "Apoio não constante, apenas em ações pontuais.", False)
+                    row_level("Nível 2 (Substancial)", "Há necessidade de apoio constante ao estudante dentro da sala.", True)
+                    row_level("Nível 3 (Muito Subst.)", "Casos severos, atuação de monitor, flexibilização de horários/espaços.", False)
+                    
+                    pdf.ln(5)
+                    pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("CONCLUSÃO DA EQUIPE PEDAGÓGICA"), 0, 1)
+                    pdf.set_fill_color(255, 255, 0) # Yellow
+                    pdf.set_font("Arial", "", 10)
+                    conclusao_txt = f"Diante dos aspectos avaliados... o estudante corresponde ao: {data_aval.get('conclusao_nivel', '___')}."
+                    pdf.multi_cell(0, 8, clean_pdf_text(conclusao_txt), 1, 'L', True)
+                    
+                    pdf.ln(2); pdf.set_fill_color(230, 200, 200) # Light Redish/Pinkish for explicit support
+                    pdf.multi_cell(0, 8, clean_pdf_text(f"Apoio oferecido: {data_aval.get('apoio_existente', '---')}"), 1, 'L', 1)
+                    
+                    pdf.ln(10)
+                    pdf.set_font("Arial", "", 9)
+                    
+                    y = pdf.get_y()
+                    pdf.line(10, y, 90, y); pdf.line(110, y, 190, y)
+                    pdf.text(10, y+4, clean_pdf_text(f"Sala Regular: {data_aval.get('resp_sala','')}")); pdf.text(110, y+4, clean_pdf_text(f"Arte: {data_aval.get('resp_arte','')}"))
+                    
+                    pdf.ln(15); y = pdf.get_y()
+                    pdf.line(10, y, 90, y); pdf.line(110, y, 190, y)
+                    pdf.text(10, y+4, clean_pdf_text(f"Ed. Física: {data_aval.get('resp_ef','')}")); pdf.text(110, y+4, clean_pdf_text(f"Ed. Especial: {data_aval.get('resp_ee','')}"))
+                    
+                    pdf.ln(15); y = pdf.get_y()
+                    pdf.line(10, y, 90, y); pdf.line(110, y, 190, y)
+                    pdf.text(10, y+4, clean_pdf_text(f"Direção: {data_aval.get('resp_dir','')}")); pdf.text(110, y+4, clean_pdf_text(f"Coordenação: {data_aval.get('resp_coord','')}"))
+                    
+                    pdf.ln(10); pdf.cell(0, 6, clean_pdf_text(f"Limeira, {data_aval.get('data_emissao', date.today()).strftime('%d/%m/%Y')}."), 0, 1, 'C')
+
+                    st.session_state.pdf_bytes_aval = get_pdf_bytes(pdf)
+                    st.rerun()
+
+            if 'pdf_bytes_aval' in st.session_state:
+                st.download_button("📥 BAIXAR PDF AVALIAÇÃO", st.session_state.pdf_bytes_aval, f"Avaliacao_{data_aval.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
+        # --- ABA HISTÓRICO ---
+        with tabs[1]:
+            st.subheader("Histórico de Atividades")
+            df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
+            if not df_hist.empty and data_aval.get('nome'):
+                student_hist = df_hist[df_hist["Aluno"] == data_aval.get('nome')]
+                if not student_hist.empty:
+                    st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
+                else: st.info("Sem histórico.")
+            else: st.info("Histórico vazio.")

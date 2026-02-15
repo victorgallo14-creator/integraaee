@@ -2364,6 +2364,11 @@ elif app_mode == "👥 Gestão de Alunos":
         
         tabs = st.tabs(["📝 Preenchimento e Emissão", "🕒 Histórico"])
         
+        # Inicialização de variáveis de estado se não existirem
+        if 'data_avaliacao' not in st.session_state: st.session_state.data_avaliacao = {}
+        if 'data_pei' not in st.session_state: st.session_state.data_pei = {}
+        if 'data_case' not in st.session_state: st.session_state.data_case = {}
+        
         data_aval = st.session_state.data_avaliacao
         data_pei = st.session_state.data_pei
         data_caso = st.session_state.data_case
@@ -2566,308 +2571,262 @@ elif app_mode == "👥 Gestão de Alunos":
                 if c_pd.form_submit_button("👁️ Gerar PDF Avaliação"):
                     log_action(data_aval.get('nome'), "Gerou PDF", "Avaliação Pedagógica")
                     
+                    # --- PDF GENERATION EXPERT MODE ---
                     pdf = OfficialPDF('P', 'mm', 'A4'); pdf.add_page(); pdf.set_margins(15, 15, 15)
                     
-                    # Header
-                    # Cabeçalho Oficial
+                    # 1. HEADER RECONSTRUCTION
                     pdf.set_xy(15, 10)
                     if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 20)
                     if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 175, 8, 20)
 
-                    pdf.set_font("Arial", "", 11)
+                    pdf.set_font("Arial", "B", 12)
                     pdf.set_xy(0, 10)
-                    pdf.cell(0, 5, clean_pdf_text("Secretaria Municipal de"), 0, 1, 'C')
+                    pdf.cell(0, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
                     pdf.set_font("Arial", "B", 14)
-                    pdf.cell(0, 6, clean_pdf_text("EDUCAÇÃO"), 0, 1, 'C')
+                    pdf.cell(0, 8, clean_pdf_text("SECRETARIA MUNICIPAL DE EDUCAÇÃO"), 0, 1, 'C')
                     
-                    pdf.ln(2)
                     pdf.set_font("Arial", "", 9)
-                    pdf.cell(0, 4, clean_pdf_text("Secretaria Municipal de Educação"), 0, 1, 'C')
-                    pdf.cell(0, 4, clean_pdf_text("Centro de Formação do Professor- Rua João Kuhl Filho, S/N – Parque da Cidade"), 0, 1, 'C')
+                    pdf.cell(0, 4, clean_pdf_text("Centro de Formação do Professor - Rua João Kuhl Filho, S/N – Parque da Cidade"), 0, 1, 'C')
                     pdf.cell(0, 4, clean_pdf_text("CEP – 13480-731 www.limeira.sp.gov.br Limeira-SP"), 0, 1, 'C')
                     
                     pdf.ln(5)
+                    pdf.set_fill_color(0, 0, 0) # Black line
+                    pdf.rect(15, pdf.get_y(), 180, 0.5, 'F')
+                    pdf.ln(3)
+
                     pdf.set_font("Arial", "B", 12)
                     pdf.multi_cell(0, 6, clean_pdf_text("AVALIAÇÃO PEDAGÓGICA: APOIO ESCOLAR PARA ESTUDANTE COM DEFICIÊNCIA"), 0, 'C')
-                    pdf.ln(5)
+                    pdf.ln(3)
                     
-                    # Info
-                    pdf.set_font("Arial", "B", 11); pdf.cell(15, 6, "U.E.:", 0, 0); pdf.set_font("Arial", "", 11)
-                    pdf.cell(0, 6, clean_pdf_text(data_aval.get('ue', '')), "B", 1); pdf.ln(2)
+                    # 2. IDENTIFICATION BLOCK
+                    pdf.set_font("Arial", "B", 10); pdf.cell(15, 6, "U.E.:", 0, 0)
+                    pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_aval.get('ue', '')), "B", 1)
+                    pdf.ln(2)
                     
-                    pdf.set_font("Arial", "B", 11); pdf.cell(25, 6, "Estudante:", 0, 0); pdf.set_font("Arial", "", 11)
-                    pdf.cell(100, 6, clean_pdf_text(data_aval.get('nome', '')), "B", 0)
-                    pdf.set_font("Arial", "B", 11); pdf.cell(40, 6, "Ano escolaridade:", 0, 0); pdf.set_font("Arial", "", 11)
-                    pdf.cell(0, 6, clean_pdf_text(data_aval.get('ano_esc', '')), "B", 1); pdf.ln(4)
+                    pdf.set_font("Arial", "B", 10); pdf.cell(20, 6, "Estudante:", 0, 0)
+                    pdf.set_font("Arial", "", 10); pdf.cell(100, 6, clean_pdf_text(data_aval.get('nome', '')), "B", 0)
+                    pdf.set_font("Arial", "B", 10); pdf.cell(35, 6, "Ano escolaridade:", 0, 0)
+                    pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_aval.get('ano_esc', '')), "B", 1)
+                    pdf.ln(4)
                     
-                    # Deficiencias - Apenas as selecionadas, conforme pedido
+                    # 3. DEFICIENCIES (CHECKBOX VECTOR STYLE)
                     pdf.set_font("Arial", "", 9)
-                    
                     selected_defs = data_aval.get('defic_chk', [])
+                    
+                    # Helper to draw vector checkbox
+                    def draw_check_option(pdf, text, checked):
+                        x, y = pdf.get_x(), pdf.get_y()
+                        # Draw square
+                        pdf.set_draw_color(0,0,0)
+                        pdf.rect(x, y + 1, 3, 3)
+                        # Draw X if checked
+                        if checked:
+                            pdf.line(x, y + 1, x + 3, y + 4)
+                            pdf.line(x, y + 4, x + 3, y + 1)
+                        # Text
+                        pdf.set_xy(x + 5, y)
+                        pdf.multi_cell(0, 5, clean_pdf_text(text), 0, 'L')
+                        # Return to next line automatically handled by multi_cell if width=0, but we usually want precise control
+                        # pdf.ln(1) # Gap
+
                     if selected_defs:
                         for d in selected_defs:
-                            pdf.cell(0, 5, clean_pdf_text(f"(X) {d}"), 0, 1)
+                            draw_check_option(pdf, d, True)
                         if data_aval.get('defic_outra'):
-                            pdf.cell(0, 5, clean_pdf_text(f"(X) Outra: {data_aval.get('defic_outra')}"), 0, 1)
+                            draw_check_option(pdf, f"Outra: {data_aval.get('defic_outra')}", True)
                     else:
                         pdf.cell(0, 5, clean_pdf_text("Nenhuma deficiência selecionada."), 0, 1)
-                    pdf.ln(2)
-                    
-                    # PRESSUPOSTOS LEGAIS
                     pdf.ln(3)
-                    pdf.set_font("Arial", "B", 11)
+                    
+                    # 4. LEGAL TEXT (Refined Layout)
+                    pdf.set_font("Arial", "B", 10)
                     pdf.cell(0, 6, clean_pdf_text("PRESSUPOSTOS LEGAIS:"), 0, 1, 'L')
-                    pdf.set_font("Arial", "", 9)
+                    pdf.set_font("Arial", "", 8) # Smaller font for legal text
                     
-                    # 1
+                    # Legal Item 1
+                    pdf.multi_cell(0, 4, clean_pdf_text("1- Lei nº 12.764/2012, art 3º:"), 0, 'L')
+                    pdf.set_x(25)
+                    pdf.multi_cell(160, 4, clean_pdf_text("Parágrafo único. Em casos de comprovada necessidade, a pessoa com TEA incluída nas classes comuns... terá direito a acompanhante especializado."), 0, 'L')
                     pdf.ln(2)
-                    pdf.multi_cell(0, 5, clean_pdf_text("1- Lei nº 12.764/2012, em seu artigo 3º que trata dos direitos da pessoa com transtorno do espectro autista indica:"), 0, 'L')
+
+                    # Legal Item 2
+                    pdf.multi_cell(0, 4, clean_pdf_text("2- Lei Brasileira de Inclusão (LBI) art. 3º, inciso XIII:"), 0, 'L')
+                    pdf.set_x(25)
+                    pdf.multi_cell(160, 4, clean_pdf_text("XIII - profissional de apoio escolar: pessoa que exerce atividades de alimentação, higiene e locomoção..."), 0, 'L')
+                    pdf.ln(2)
+
+                    # Legal Item 3
+                    pdf.multi_cell(0, 4, clean_pdf_text("3- CNE/CEB nº 02/01, Diretrizes Nacionais... Art. 6º:"), 0, 'L')
+                    pdf.set_x(25)
+                    pdf.multi_cell(160, 4, clean_pdf_text("Art. 6º - ...a escola deve realizar, com assessoramento técnico, avaliação... contando com:"), 0, 'L')
+                    pdf.set_x(35)
+                    pdf.multi_cell(150, 4, clean_pdf_text("I - a experiência de seu corpo docente...; II - o setor responsável...; III - a colaboração da família..."), 0, 'L')
+                    pdf.ln(4)
+
+                    # 5. GENERAL ASPECTS
+                    pdf.set_fill_color(240, 240, 240) # Gray Header
+                    pdf.set_font("Arial", "B", 10)
+                    pdf.cell(0, 7, clean_pdf_text("ASPECTOS GERAIS DA VIDA ESCOLAR DO ESTUDANTE"), 1, 1, 'L', True)
+                    pdf.set_font("Arial", "", 10)
+                    pdf.set_fill_color(255, 255, 255)
                     
-                    # Citation 1 (1.5cm indent)
-                    pdf.set_left_margin(30)
-                    pdf.set_x(30)
-                    pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("Parágrafo único. "))
-                    pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("Em casos de comprovada necessidade, a pessoa com transtorno do espectro autista incluída nas classes comuns de ensino regular, nos termos do inciso IV do art. 2º , terá direito a acompanhante especializado."))
-                    pdf.ln(6)
-                    pdf.set_left_margin(15)
-                    pdf.set_x(15)
-                    
-                    # 2
-                    pdf.set_font("Arial", "", 9)
-                    pdf.multi_cell(0, 5, clean_pdf_text("2- Lei Brasileira de Inclusão da Pessoa com Deficiência (LBI) no art. 3º, inciso XIII, descreve as ações referentes ao apoio:"), 0, 'L')
-                    
-                    # Citation 2
-                    pdf.set_left_margin(30)
-                    pdf.set_x(30)
-                    pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("XIII - profissional de apoio escolar: "))
-                    pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("pessoa que exerce atividades de alimentação, higiene e locomoção do estudante com deficiência e atua em todas as atividades escolares nas quais se fizer necessária, em todos os níveis e modalidades de ensino, em instituições públicas e privadas, excluídas as técnicas ou os procedimentos identificados com profissões legalmente estabelecidas;"))
-                    pdf.ln(6)
-                    pdf.set_left_margin(15)
-                    pdf.set_x(15)
-                    
-                    # 3
-                    pdf.set_font("Arial", "", 9)
-                    pdf.multi_cell(0, 5, clean_pdf_text("3- CNE/CEB nº 02/01, do Conselho Nacional de Educação, que Instituiu as Diretrizes Nacionais para a Educação Especial na Educação Básica, cujo artigo 6º assim dispõe:"), 0, 'L')
-                    
-                    # Citation 3 - Art 6
-                    pdf.set_left_margin(30)
-                    pdf.set_x(30)
-                    pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("Art. 6º - "))
-                    pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("Para a identificação das necessidades educacionais especiais dos alunos e a tomada de decisões quanto ao atendimento necessário, a escola deve realizar, com assessoramento técnico, avaliação do aluno no processo de ensino e aprendizagem, contando, para tal, com:"))
+                    text_general = data_aval.get('aspectos_gerais') if data_aval.get('aspectos_gerais') else " "
+                    pdf.multi_cell(0, 5, clean_pdf_text(text_general), 1, 'L')
                     pdf.ln(5)
-                    
-                    # Incisos (Indent 1.5 + 2.0 = 3.5cm -> 35 + 15margin = 50mm)
-                    pdf.set_left_margin(50)
-                    
-                    pdf.set_x(50); pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("I - ")); pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("a experiência de seu corpo docente, seus diretores, coordenadores, orientadores e supervisores educacionais;")); pdf.ln(5)
-                    pdf.set_x(50); pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("II - ")); pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("o setor responsável pela educação especial do respectivo sistema;")); pdf.ln(5)
-                    pdf.set_x(50); pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("III - ")); pdf.set_font("Arial", "I", 9); pdf.write(5, clean_pdf_text("a colaboração da família e a cooperação dos serviços de Saúde, Assistência Social, Trabalho, Justiça e Esporte, bem como do Ministério Público, quando necessário.” (grifamos e negritamos)")); pdf.ln(6)
-                    
-                    pdf.set_left_margin(15) # Restore margin
-                    pdf.set_x(15) # Ensure cursor is correct
-                    
-                    # Aspectos Gerais
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "ASPECTOS GERAIS DA VIDA ESCOLAR DO ESTUDANTE:", 0, 1)
-                    pdf.set_font("Arial", "", 10); pdf.set_fill_color(255, 255, 255)
-                    pdf.multi_cell(0, 5, clean_pdf_text("Relatar: data da matrícula, plano de atendimento, docentes responsáveis pela turma: polivalente, especialistas de Educação Física, Arte; descrever o Atendimento Educacional Especializado, PDI, flexibilização curricular. Outros aspectos julgados necessários."), 0, 'L')
-                    
-                    if data_aval.get('aspectos_gerais'):
-                        pdf.ln(2); pdf.set_font("Arial", "", 10)
-                        pdf.multi_cell(0, 5, clean_pdf_text(data_aval.get('aspectos_gerais')), 1, 'L', False)
-                    else:
-                        pdf.ln(2); pdf.cell(0, 10, "", 1, 1)
-                    
-                    pdf.ln(5)
-                    pdf.set_font("Arial", "B", 12); pdf.cell(0, 8, clean_pdf_text("AVALIAÇÃO PEDAGÓGICA"), 0, 1, 'C')
-                    
-                    # Helper function to print all options with selection safely
-                    def print_full_options(pdf, opts, selected_val, obs_key=None, obs_val=None):
+
+                    # --- SECTION HELPER ---
+                    def print_section_header(pdf, title):
+                        pdf.set_fill_color(240, 240, 240)
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(0, 8, clean_pdf_text(title), 1, 1, 'L', True)
+                        pdf.set_fill_color(255, 255, 255) # Reset
+                        pdf.ln(1)
+
+                    def print_question_options(pdf, question_title, options, selected_value, obs=None, obs_label="Obs:"):
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(0, 6, clean_pdf_text(question_title), 0, 1)
                         pdf.set_font("Arial", "", 10)
-                        width = 175 # 180 - 5 indent
-                        original_x = pdf.get_x()
-                        for opt in opts:
-                            pdf.set_x(original_x + 5) # Indent
-                            mark = "(X)" if selected_val == opt else "( )"
-                            # Handle long text
-                            pdf.multi_cell(width, 5, clean_pdf_text(f"{mark} {opt}"), 0, 'L')
                         
-                        if obs_key:
-                            obs_text = obs_val if obs_val else "________________________________________________________________"
-                            pdf.cell(0, 6, clean_pdf_text(f"Obs: {obs_text}"), 0, 1)
+                        for opt in options:
+                            is_checked = (selected_value == opt) or (isinstance(selected_value, list) and opt in selected_value)
+                            
+                            # Vector Checkbox
+                            x, y = pdf.get_x() + 2, pdf.get_y()
+                            pdf.rect(x, y+1, 3, 3)
+                            if is_checked:
+                                pdf.line(x, y+1, x+3, y+4)
+                                pdf.line(x, y+4, x+3, y+1)
+                            
+                            pdf.set_xy(x + 5, y)
+                            pdf.multi_cell(170, 5, clean_pdf_text(opt), 0, 'L')
+                        
+                        if obs is not None:
+                            obs_text = obs if obs else "________________________________________________________________"
+                            pdf.set_x(pdf.get_x() + 7)
+                            pdf.cell(0, 6, clean_pdf_text(f"{obs_label} {obs_text}"), 0, 1)
                         pdf.ln(2)
 
                     # PART I
-                    pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("PARTE I - HABILIDADES DE VIDA DIÁRIA"), 0, 1)
-                    
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("1. ALIMENTAÇÃO:"), 0, 1)
-                    print_full_options(pdf, opts_alim, data_aval.get('alim_nivel'), True, data_aval.get('alim_obs'))
-                    
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("2. HIGIENE:"), 0, 1)
-                    print_full_options(pdf, opts_hig, data_aval.get('hig_nivel'), True, data_aval.get('hig_obs'))
-                    
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("3- LOCOMOÇÃO:"), 0, 1)
-                    pdf.set_font("Arial", "", 10)
-                    sel_loc = data_aval.get('loc_nivel', [])
-                    for opt in opts_loc:
-                        pdf.set_x(20) # manual indent 5mm
-                        mark = "(X)" if opt in sel_loc else "( )"
-                        pdf.multi_cell(175, 5, clean_pdf_text(f"{mark} {opt}"), 0, 'L')
-                    
-                    obs_loc = data_aval.get('loc_obs') if data_aval.get('loc_obs') else "________________________________________________________________"
-                    pdf.cell(0, 6, clean_pdf_text(f"Obs: {obs_loc}"), 0, 1)
-                    pdf.ln(4)
+                    print_section_header(pdf, "PARTE I - HABILIDADES DE VIDA DIÁRIA")
+                    print_question_options(pdf, "1. ALIMENTAÇÃO:", opts_alim, data_aval.get('alim_nivel'), data_aval.get('alim_obs'))
+                    print_question_options(pdf, "2. HIGIENE:", opts_hig, data_aval.get('hig_nivel'), data_aval.get('hig_obs'))
+                    print_question_options(pdf, "3. LOCOMOÇÃO:", opts_loc, data_aval.get('loc_nivel'), data_aval.get('loc_obs')) # multiselect handled
                     
                     # PART II
-                    if pdf.get_y() > 240: pdf.add_page()
-                    pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("PARTE II – HABILIDADE SOCIAIS E DE INTERAÇÃO"), 0, 1)
+                    if pdf.get_y() > 220: pdf.add_page()
+                    print_section_header(pdf, "PARTE II – HABILIDADE SOCIAIS E DE INTERAÇÃO")
+                    print_question_options(pdf, "4. COMPORTAMENTO:", opts_comp, data_aval.get('comportamento'), data_aval.get('comp_obs'))
                     
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("4- EM RELAÇÃO À MAIOR PARTE DO COMPORTAMENTO:"), 0, 1)
-                    print_full_options(pdf, opts_comp, data_aval.get('comportamento'), True, data_aval.get('comp_obs'))
-                    
-                    if pdf.get_y() > 240: pdf.add_page()
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("5- PARTICIPAÇÃO EM GRUPO:"), 0, 1)
-                    print_full_options(pdf, opts_part, data_aval.get('part_grupo'), True, data_aval.get('part_obs'))
-                    
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "6- INTERAÇÃO:", 0, 1)
-                    print_full_options(pdf, opts_int[:-1], data_aval.get('interacao')) # Print standard ones
-                    
-                    # Outros manual handling
-                    mark_out = "(X)" if data_aval.get('interacao') == "Outros" else "( )"
-                    val_out = data_aval.get('interacao_outros') if data_aval.get('interacao_outros') else "____________________________________________"
-                    pdf.set_x(20)
-                    pdf.cell(0, 5, clean_pdf_text(f"{mark_out} Outros: {val_out}"), 0, 1)
-                    pdf.ln(4)
-                    
-                    # PART III
-                    if pdf.get_y() > 240: pdf.add_page()
-                    pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("PARTE III- HABILIDADES PEDAGÓGICAS"), 0, 1)
-                    
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("7- ROTINA DENTRO DA SALA DE AULA:"), 0, 1)
-                    print_full_options(pdf, opts_rot, data_aval.get('rotina'), True, data_aval.get('rotina_obs'))
-                    
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("8- ATIVIDADES PEDAGÓGICAS:"), 0, 1)
-                    print_full_options(pdf, opts_ativ, data_aval.get('ativ_pedag'))
-                    pdf.ln(4)
-                    
-                    # PART IV
                     if pdf.get_y() > 230: pdf.add_page()
-                    pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("PARTE IV- HABILIDADES DE COMUNICAÇÃO E ATENÇÃO"), 0, 1)
+                    print_question_options(pdf, "5. PARTICIPAÇÃO EM GRUPO:", opts_part, data_aval.get('part_grupo'), data_aval.get('part_obs'))
                     
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("9- O estudante (atenção sustentada)"), 0, 1)
-                    print_full_options(pdf, opts_at_sust, data_aval.get('atencao_sust'))
+                    # Manual handling for Interaction "Outros"
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "6. INTERAÇÃO:", 0, 1)
+                    pdf.set_font("Arial", "", 10)
+                    for opt in opts_int[:-1]: # All except "Outros"
+                        draw_check_option(pdf, opt, data_aval.get('interacao') == opt)
                     
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("10- O estudante (dividida)"), 0, 1)
-                    print_full_options(pdf, opts_at_div, data_aval.get('atencao_div'))
+                    # Outros
+                    is_outros = (data_aval.get('interacao') == "Outros")
+                    txt_outros = f"Outros: {data_aval.get('interacao_outros') if data_aval.get('interacao_outros') else '____________________'}"
+                    draw_check_option(pdf, txt_outros, is_outros)
+                    pdf.ln(4)
+
+                    # PART III
+                    if pdf.get_y() > 230: pdf.add_page()
+                    print_section_header(pdf, "PARTE III - HABILIDADES PEDAGÓGICAS")
+                    print_question_options(pdf, "7. ROTINA EM SALA:", opts_rot, data_aval.get('rotina'), data_aval.get('rotina_obs'))
+                    print_question_options(pdf, "8. ATIVIDADES PEDAGÓGICAS:", opts_ativ, data_aval.get('ativ_pedag'))
+
+                    # PART IV
+                    if pdf.get_y() > 220: pdf.add_page()
+                    print_section_header(pdf, "PARTE IV - HABILIDADES DE COMUNICAÇÃO E ATENÇÃO")
+                    print_question_options(pdf, "9. ATENÇÃO SUSTENTADA:", opts_at_sust, data_aval.get('atencao_sust'))
+                    print_question_options(pdf, "10. ATENÇÃO DIVIDIDA:", opts_at_div, data_aval.get('atencao_div'))
                     
                     if pdf.get_y() > 240: pdf.add_page()
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("11- O estudante (seletiva)"), 0, 1)
-                    print_full_options(pdf, opts_at_sel, data_aval.get('atencao_sel'))
-                    
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "12- Linguagem:", 0, 1)
-                    pdf.set_font("Arial", "", 10)
-                    sel_ling = data_aval.get('linguagem', [])
-                    for opt in opts_ling:
-                        pdf.set_x(20)
-                        mark = "(X)" if opt in sel_ling else "( )"
-                        pdf.multi_cell(175, 5, clean_pdf_text(f"{mark} {opt}"), 0, 'L')
-                    
-                    obs_ling = data_aval.get('ling_obs') if data_aval.get('ling_obs') else "_____________________________________________________________________________"
-                    pdf.cell(0, 6, clean_pdf_text(f"OBS: {obs_ling}"), 0, 1)
-                    pdf.ln(5)
-                    
-                    # Levels Table
+                    print_question_options(pdf, "11. ATENÇÃO SELETIVA:", opts_at_sel, data_aval.get('atencao_sel'))
+                    print_question_options(pdf, "12. LINGUAGEM:", opts_ling, data_aval.get('linguagem'), data_aval.get('ling_obs'), "Obs:")
+
+                    # 6. ZEBRA STRIPED TABLE FOR SUPPORT LEVELS
                     if pdf.get_y() > 200: pdf.add_page()
-                    pdf.set_fill_color(255, 255, 255); pdf.set_text_color(0, 0, 0)
+                    pdf.ln(2)
                     pdf.set_font("Arial", "B", 10)
                     
-                    # Table Header
-                    pdf.cell(60, 10, clean_pdf_text("NÍVEIS DE APOIO"), 1, 0, 'C')
-                    pdf.cell(0, 10, clean_pdf_text("CARACTERÍSTICAS"), 1, 1, 'C')
+                    # Header
+                    pdf.set_fill_color(200, 200, 200) # Darker gray for header
+                    pdf.cell(60, 8, clean_pdf_text("NÍVEIS DE APOIO"), 1, 0, 'C', True)
+                    pdf.cell(0, 8, clean_pdf_text("CARACTERÍSTICAS"), 1, 1, 'C', True)
                     
-                    pdf.set_font("Arial", "", 9)
-                    
-                    # Row 1
-                    h1 = 20
-                    x = pdf.get_x(); y = pdf.get_y()
-                    pdf.set_font("Arial", "B", 9)
-                    pdf.cell(60, h1, clean_pdf_text("Não há necessidade de apoio"), 1, 0, 'L')
-                    
-                    pdf.set_xy(x+60, y)
-                    pdf.set_font("Arial", "", 9)
-                    pdf.multi_cell(0, 5, clean_pdf_text("O estudante apresenta autonomia. As ações disponibilizadas aos demais estudantes da sala regular são suficientes, acrescidas de ações do atendimento educacional especializado(AEE)."), 0, 'L')
-                    pdf.rect(x+60, y, 120, h1)
-                    pdf.set_xy(x, y + h1)
+                    # Helper for zebra row
+                    def print_zebra_row(pdf, col1, col2, height, fill_color):
+                        x, y = pdf.get_x(), pdf.get_y()
+                        pdf.set_fill_color(240, 240, 240) if fill_color else pdf.set_fill_color(255, 255, 255)
+                        
+                        pdf.set_font("Arial", "B", 9)
+                        pdf.rect(x, y, 60, height, 'F')
+                        pdf.multi_cell(60, 5, clean_pdf_text(col1), 0, 'L') # Text inside rect
+                        pdf.rect(x, y, 60, height) # Border
+                        
+                        pdf.set_xy(x + 60, y)
+                        pdf.set_font("Arial", "", 9)
+                        pdf.rect(x+60, y, 120, height, 'F')
+                        pdf.multi_cell(120, 5, clean_pdf_text(col2), 0, 'L')
+                        pdf.rect(x+60, y, 120, height) # Border
+                        
+                        pdf.set_xy(x, y + height)
 
-                    # Row 2
-                    h2 = 12
-                    x = pdf.get_x(); y = pdf.get_y()
-                    pdf.set_font("Arial", "B", 9)
-                    pdf.cell(60, h2, clean_pdf_text("Nível 1- apoio pouco substancial"), 1, 0, 'L')
-                    pdf.set_xy(x+60, y)
-                    pdf.set_font("Arial", "", 9)
-                    pdf.multi_cell(0, 5, clean_pdf_text("Não há necessidade de apoio constante, apenas em ações pontuais."), 0, 'L')
-                    pdf.rect(x+60, y, 120, h2)
-                    pdf.set_xy(x, y + h2)
-                    
-                    # Row 3
-                    h3 = 18
-                    x = pdf.get_x(); y = pdf.get_y()
-                    pdf.set_font("Arial", "B", 9)
-                    pdf.multi_cell(60, 5, clean_pdf_text("Nível 2- apoio substancial ao estudante dentro da sala de aula"), 0, 'L')
-                    pdf.rect(x, y, 60, h3)
-                    
-                    pdf.set_xy(x+60, y)
-                    pdf.set_font("Arial", "", 9)
-                    pdf.cell(0, h3, clean_pdf_text("Há necessidade de apoio constante ao estudante"), 1, 0, 'L') 
-                    pdf.set_xy(x, y + h3)
-                    
-                    # Row 4
-                    h4 = 20
-                    x = pdf.get_x(); y = pdf.get_y()
-                    pdf.set_font("Arial", "B", 9)
-                    pdf.cell(60, h4, clean_pdf_text("Nível 3- apoio muito substancial"), 1, 0, 'L')
-                    
-                    pdf.set_xy(x+60, y)
-                    pdf.set_font("Arial", "", 9)
-                    pdf.multi_cell(0, 5, clean_pdf_text("Casos severos em que há a necessidade de atuação do monitor e outras ações específicas: flexibilização de horário e de espaços de atendimento"), 0, 'L')
-                    pdf.rect(x+60, y, 120, h4)
-                    pdf.set_xy(x, y + h4)
-                    
+                    # Rows
+                    print_zebra_row(pdf, "Não há necessidade de apoio", "O estudante apresenta autonomia. As ações disponibilizadas aos demais estudantes são suficientes, acrescidas de ações do AEE.", 20, False)
+                    print_zebra_row(pdf, "Nível 1 - Apoio pouco substancial", "Não há necessidade de apoio constante, apenas em ações pontuais.", 12, True)
+                    print_zebra_row(pdf, "Nível 2 - Apoio substancial (sala de aula)", "Há necessidade de apoio constante ao estudante.", 12, False)
+                    print_zebra_row(pdf, "Nível 3 - Apoio muito substancial", "Casos severos com necessidade de monitor e ações específicas: flexibilização de horário e espaços.", 20, True)
+
                     pdf.ln(5)
+                    
+                    # 7. CONCLUSION
                     pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("CONCLUSÃO DA EQUIPE PEDAGÓGICA"), 0, 1)
                     pdf.set_font("Arial", "", 10)
+                    pdf.multi_cell(0, 5, clean_pdf_text("Diante dos aspectos avaliados, a equipe pedagógica verificou que o estudante corresponde ao Nível:"), 0, 'L')
                     
-                    pdf.multi_cell(0, 5, clean_pdf_text("Diante dos aspectos avaliados a equipe pedagógica verificou que o estudante não necessita de apoio além do que oferecido para o coletivo da turma ou que o estudante corresponde ao Nível:"), 0, 'L')
-                    pdf.ln(2)
+                    level_result = data_aval.get('conclusao_nivel', 'NÃO NECESSITA DE APOIO').upper()
                     pdf.set_font("Arial", "B", 12)
-                    pdf.cell(0, 8, clean_pdf_text(f"{data_aval.get('conclusao_nivel', '___________')}"), 0, 1, 'C')
+                    pdf.ln(2)
+                    pdf.cell(0, 8, clean_pdf_text(level_result), 1, 1, 'C') # Boxed result
                     
-                    pdf.ln(2); pdf.set_font("Arial", "", 10)
-                    pdf.multi_cell(0, 5, clean_pdf_text(f"Se este apoio já é oferecido pelo monitor ou pelo professor de Educação Especial no contexto da sala de aula deixar explícito aqui: {data_aval.get('apoio_existente', '')}"), 0, 'L')
-                    pdf.cell(0, 5, "__________________________________________________________________________________________", 0, 1)
+                    pdf.ln(3)
+                    pdf.set_font("Arial", "", 10)
+                    apoio_txt = data_aval.get('apoio_existente') if data_aval.get('apoio_existente') else "______________________________________________________"
+                    pdf.multi_cell(0, 5, clean_pdf_text(f"Se este apoio já é oferecido, explicitar aqui: {apoio_txt}"), 0, 'L')
+
+                    # 8. SIGNATURES (3 Column Block)
+                    pdf.ln(10)
+                    if pdf.get_y() > 240: pdf.add_page()
                     
-                    pdf.ln(8)
                     pdf.set_font("Arial", "B", 10)
-                    pdf.cell(0, 6, clean_pdf_text("Responsáveis pela avaliação quanto à necessidade de apoio escolar ( nome e assinatura):"), 0, 1)
+                    pdf.cell(0, 6, clean_pdf_text("Responsáveis pela avaliação (Nome e Assinatura):"), 0, 1)
                     pdf.ln(10)
                     
-                    pdf.set_font("Arial", "", 9)
                     y = pdf.get_y()
-                    pdf.line(10, y, 90, y); pdf.line(110, y, 190, y)
-                    pdf.text(10, y+4, clean_pdf_text(f"Professor de sala regular: {data_aval.get('resp_sala','')}")); pdf.text(110, y+4, clean_pdf_text(f"Professor de Arte: {data_aval.get('resp_arte','')}"))
+                    pdf.set_font("Arial", "", 8)
                     
-                    pdf.ln(15); y = pdf.get_y()
-                    pdf.line(10, y, 90, y); pdf.line(110, y, 190, y)
-                    pdf.text(10, y+4, clean_pdf_text(f"Professor de Educação Física: {data_aval.get('resp_ef','')}")); pdf.text(110, y+4, clean_pdf_text(f"Professor de Educação Especial: {data_aval.get('resp_ee','')}"))
+                    # Row 1
+                    pdf.line(10, y, 65, y); pdf.line(75, y, 130, y); pdf.line(140, y, 195, y)
+                    pdf.text(10, y+4, clean_pdf_text(f"Prof. Sala Regular: {data_aval.get('resp_sala','')}"))
+                    pdf.text(75, y+4, clean_pdf_text(f"Prof. Ed. Física: {data_aval.get('resp_ef','')}"))
+                    pdf.text(140, y+4, clean_pdf_text(f"Prof. Arte: {data_aval.get('resp_arte','')}"))
                     
-                    pdf.ln(10); pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "Equipe Gestora:", 0, 1); pdf.ln(10)
+                    pdf.ln(20); y = pdf.get_y()
                     
-                    y = pdf.get_y()
-                    pdf.line(10, y, 90, y); pdf.line(110, y, 190, y)
-                    pdf.set_font("Arial", "", 9)
-                    pdf.text(10, y+4, clean_pdf_text(f"Direção Escolar: {data_aval.get('resp_dir','')}")); pdf.text(110, y+4, clean_pdf_text(f"Coordenação Pedagógica: {data_aval.get('resp_coord','')}"))
+                    # Row 2
+                    pdf.line(10, y, 65, y); pdf.line(75, y, 130, y); pdf.line(140, y, 195, y)
+                    pdf.text(10, y+4, clean_pdf_text(f"Equipe Gestora: {data_aval.get('resp_dir','')}"))
+                    pdf.text(75, y+4, clean_pdf_text(f"Prof. Ed. Especial: {data_aval.get('resp_ee','')}"))
+                    pdf.text(140, y+4, clean_pdf_text(f"Coordenação: {data_aval.get('resp_coord','')}"))
                     
-                    pdf.ln(15); pdf.cell(0, 6, clean_pdf_text(f"Limeira, {data_aval.get('data_emissao', date.today()).strftime('%d/%m/%Y')}."), 0, 1, 'C')
+                    pdf.ln(15)
+                    pdf.set_font("Arial", "", 10)
+                    pdf.cell(0, 6, clean_pdf_text(f"Limeira, {data_aval.get('data_emissao', date.today()).strftime('%d/%m/%Y')}."), 0, 1, 'C')
 
                     st.session_state.pdf_bytes_aval = get_pdf_bytes(pdf)
                     st.rerun()
@@ -2885,6 +2844,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
                 else: st.info("Sem histórico.")
             else: st.info("Histórico vazio.")
+
 
 
 

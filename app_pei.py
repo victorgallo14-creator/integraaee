@@ -2440,6 +2440,8 @@ elif app_mode == "👥 Gestão de Alunos":
                 # --- CAPA PRINCIPAL ---
                 pdf.add_page()
                 if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 10, 10, 25)
+                if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 175, 10, 25)
+
                 pdf.set_y(15); pdf.set_font("Arial", "B", 14)
                 pdf.cell(0, 10, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
                 pdf.cell(0, 10, clean_pdf_text("SECRETARIA MUNICIPAL DE EDUCAÇÃO"), 0, 1, 'C')
@@ -2461,6 +2463,8 @@ elif app_mode == "👥 Gestão de Alunos":
                 # --- CAPA SECUNDÁRIA: ESTUDO DE CASO ---
                 pdf.add_page()
                 if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 10, 10, 25)
+                if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 175, 10, 25)
+                
                 pdf.set_y(120) 
                 pdf.set_font("Arial", "B", 24)
                 pdf.cell(0, 10, "ESTUDO DE CASO", 0, 1, 'C')
@@ -2679,6 +2683,8 @@ elif app_mode == "👥 Gestão de Alunos":
                 # --- CAPA SECUNDÁRIA: PLANO DE AEE ---
                 pdf.add_page()
                 if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 10, 10, 25)
+                if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 175, 10, 25)
+                
                 pdf.set_y(100)
                 pdf.set_font("Arial", "B", 20)
                 pdf.cell(0, 10, clean_pdf_text("PLANO DE AEE"), 0, 1, 'C')
@@ -2731,11 +2737,25 @@ elif app_mode == "👥 Gestão de Alunos":
                     # Estimate height
                     pdf.set_font("Arial", "", 8)
                     
-                    # Calc height roughly
+                    # Calc height accurately based on wrapping
                     def get_h(txt):
-                         if not txt: return 5
-                         lines = 1 + txt.count('\n') + int(pdf.get_string_width(txt)/w_col)
-                         return max(5, lines * 4) + 2
+                         if not txt: return 6
+                         lines = 0
+                         eff_w = w_col - 4 # Effective width with padding
+                         
+                         for line in txt.split('\n'):
+                             if not line:
+                                 lines += 1
+                                 continue
+                             # Calculate lines needed for this paragraph
+                             w_line = pdf.get_string_width(line)
+                             if w_line > eff_w:
+                                 # Ceiling division logic for positive integers
+                                 lines += int((w_line / eff_w) + 0.99)
+                             else:
+                                 lines += 1
+                         
+                         return max(6, lines * 4) + 4
                     
                     h_max = max(get_h(d_text), get_h(p_text), get_h(f_text), 10)
                     
@@ -2778,10 +2798,25 @@ elif app_mode == "👥 Gestão de Alunos":
                     f = data_pdi.get(f"{key}_final", "")
                     
                     pdf.set_font("Arial", "", 8)
+                    # Calc height accurately based on wrapping
                     def get_h(txt):
-                         if not txt: return 5
-                         lines = 1 + txt.count('\n') + int(pdf.get_string_width(txt)/w_col)
-                         return max(5, lines * 4) + 2
+                         if not txt: return 6
+                         lines = 0
+                         eff_w = w_col - 4 # Effective width with padding
+                         
+                         for line in txt.split('\n'):
+                             if not line:
+                                 lines += 1
+                                 continue
+                             # Calculate lines needed for this paragraph
+                             w_line = pdf.get_string_width(line)
+                             if w_line > eff_w:
+                                 # Ceiling division logic for positive integers
+                                 lines += int((w_line / eff_w) + 0.99)
+                             else:
+                                 lines += 1
+                         
+                         return max(6, lines * 4) + 4
                     
                     h_max = max(get_h(d), get_h(p), get_h(f), 10)
                     
@@ -4376,6 +4411,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

@@ -39,7 +39,8 @@ hide_st_style = """
             /* --- COMPORTAMENTO MOBILE/TABLET (Largura <= 991px) --- */
             @media (max-width: 991px) {
                 /* Header visível para acessar o menu hambúrguer */
-                header {visibility: visible;}\n                
+                header {visibility: visible;}
+                
                 /* Ajustes para evitar que o conteúdo suba demais */
                 .header-box {
                     margin-top: 0px !important;
@@ -953,10 +954,6 @@ if app_mode == "📊 Painel de Gestão":
 # ==============================================================================
 elif app_mode == "👥 Gestão de Alunos":
     
-    # Aviso de Modo Leitura
-    if is_monitor and doc_mode != "Relatório Diário":
-        st.info("👀 Modo Visualização: Monitores não podem editar este documento.")
-
     # PEI COM FORMULÁRIOS
     if doc_mode == "PEI":
         st.markdown(f"""<div class="header-box"><div class="header-title">Plano Educacional Individualizado - PEI</div></div>""", unsafe_allow_html=True)
@@ -968,7 +965,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         # --- ABA 1: IDENTIFICAÇÃO ---
         with tabs[0]:
-            with st.form("form_pei_identificacao"):
+            with st.form("form_pei_identificacao") if not is_monitor else st.container():
                 st.subheader("1. Identificação")
                 
                 # --- LAYOUT COM FOTO ---
@@ -1046,7 +1043,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         # --- ABA 2: SAÚDE ---
         with tabs[1]:
-            with st.form("form_pei_saude"):
+            with st.form("form_pei_saude") if not is_monitor else st.container():
                 st.subheader("Informações de Saúde")
                 diag_idx = 0 if data.get('diag_status') == "Sim" else 1
                 data['diag_status'] = st.radio("Diagnóstico conclusivo?", ["Sim", "Não"], horizontal=True, index=diag_idx, disabled=is_monitor)
@@ -1109,7 +1106,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         # --- ABA 3: CONDUTA ---
         with tabs[2]:
-            with st.form("form_pei_conduta"):
+            with st.form("form_pei_conduta") if not is_monitor else st.container():
                 st.subheader("3. Protocolo de Conduta")
                 st.markdown("### 🗣️ COMUNICAÇÃO")
                 com_opts = ["Oralmente", "Não comunica", "Não se aplica", "Comunicação alternativa"]
@@ -1189,7 +1186,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         # --- ABA 4: ESCOLAR ---
         with tabs[3]:
-            with st.form("form_pei_escolar"):
+            with st.form("form_pei_escolar") if not is_monitor else st.container():
                 st.subheader("4. Desenvolvimento Escolar")
                 
                 c_p1, c_p2 = st.columns([1, 2])
@@ -1236,7 +1233,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         # --- ABA 5: ACADÊMICO ---
         with tabs[4]:
-            with st.form("form_pei_academico"):
+            with st.form("form_pei_academico") if not is_monitor else st.container():
                 st.subheader("5. Avaliação Acadêmica")
                 
                 if pei_level == "Fundamental":
@@ -1287,7 +1284,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         # --- ABA 6: METAS E FLEXIBILIZAÇÃO ---
         with tabs[5]:
-            with st.form("form_pei_metas"):
+            with st.form("form_pei_metas") if not is_monitor else st.container():
                 st.header("6. Metas Específicas")
                 
                 c_m1, c_m2 = st.columns(2)
@@ -1751,7 +1748,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         # --- ABA 1: IDENTIFICAÇÃO ---
         with tabs[0]:
-            with st.form("form_caso_identificacao"):
+            with st.form("form_caso_identificacao") if not is_monitor else st.container():
                 st.subheader("1.1 Dados Gerais do Estudante")
                 data['nome'] = st.text_input("Nome Completo", value=data.get('nome', ''), disabled=True)
                 
@@ -1785,7 +1782,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         # --- ABA 2: DADOS FAMILIARES ---
         with tabs[1]:
-            with st.form("form_caso_familia"):
+            with st.form("form_caso_familia") if not is_monitor else st.container():
                 st.subheader("1.1.2 Dados Familiares")
                 
                 st.markdown("**Pai**")
@@ -1830,7 +1827,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         # --- ABA 3: HISTÓRICO ---
         with tabs[2]:
-            with st.form("form_caso_historico"):
+            with st.form("form_caso_historico") if not is_monitor else st.container():
                 st.subheader("1.1.3 História Escolar")
                 data['hist_idade_entrou'] = st.text_input("Idade que entrou na escola:", value=data.get('hist_idade_entrou', ''), disabled=is_monitor)
                 data['hist_outra_escola'] = st.text_input("Já estudou em outra escola? Quais?", value=data.get('hist_outra_escola', ''), disabled=is_monitor)
@@ -1883,7 +1880,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         # --- ABA 4: SAÚDE ---
         with tabs[3]:
-            with st.form("form_caso_saude"):
+            with st.form("form_caso_saude") if not is_monitor else st.container():
                 st.subheader("1.3 Informações sobre Saúde")
                 data['saude_prob'] = st.text_input("Problema de saúde? Quais?", value=data.get('saude_prob', ''), disabled=is_monitor)
                 data['saude_internacao'] = st.text_input("Internação? Motivos?", value=data.get('saude_internacao', ''), disabled=is_monitor)
@@ -1922,7 +1919,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         # --- ABA 5: COMPORTAMENTO ---
         with tabs[4]:
-            with st.form("form_caso_comportamento"):
+            with st.form("form_caso_comportamento") if not is_monitor else st.container():
                 st.subheader("1.4 Compreensão da Família (Checklist)")
                 
                 checklist_items = [
@@ -2260,7 +2257,7 @@ elif app_mode == "👥 Gestão de Alunos":
         data_pei = st.session_state.data_pei
         
         with tabs[0]:
-            with st.form("form_conduta"):
+            with st.form("form_conduta") if not is_monitor else st.container():
                 st.subheader("Configuração do Protocolo")
                 st.caption("Preencha manualmente ou utilize o botão abaixo para importar informações do PEI do aluno, convertendo-as automaticamente para a 1ª pessoa.")
                 
@@ -2338,7 +2335,14 @@ elif app_mode == "👥 Gestão de Alunos":
                     if c_save.form_submit_button("💾 Salvar Protocolo"):
                         save_student("CONDUTA", data_conduta.get('nome', 'aluno'), data_conduta, "Protocolo")
                 
-                if c_pdf.form_submit_button("👁️ Gerar PDF"):
+                # Check button type depending on context (Form vs Container)
+                gen_pdf = False
+                if is_monitor:
+                    if c_pdf.button("👁️ Gerar PDF"): gen_pdf = True
+                else:
+                    if c_pdf.form_submit_button("👁️ Gerar PDF"): gen_pdf = True
+
+                if gen_pdf:
                     log_action(data_conduta.get('nome'), "Gerou PDF", "Protocolo de Conduta")
                     
                     pdf = OfficialPDF('P', 'mm', 'A4')
@@ -2539,7 +2543,7 @@ elif app_mode == "👥 Gestão de Alunos":
         ]
 
         with tabs[0]:
-            with st.form("form_avaliacao"):
+            with st.form("form_avaliacao") if not is_monitor else st.container():
                 st.subheader("Configuração da Avaliação")
                 st.caption("Utilize o botão abaixo para importar informações já preenchidas no PEI e Estudo de Caso.")
                 
@@ -2668,7 +2672,13 @@ elif app_mode == "👥 Gestão de Alunos":
                     if c_sv.form_submit_button("💾 Salvar Avaliação"):
                         save_student("AVALIACAO", data_aval.get('nome', 'aluno'), data_aval, "Avaliação")
                 
-                if c_pd.form_submit_button("👁️ Gerar PDF Avaliação"):
+                gen_pdf_aval = False
+                if is_monitor:
+                    if c_pd.button("👁️ Gerar PDF Avaliação"): gen_pdf_aval = True
+                else:
+                    if c_pd.form_submit_button("👁️ Gerar PDF Avaliação"): gen_pdf_aval = True
+
+                if gen_pdf_aval:
                     # --- PDF GENERATION EXPERT MODE ---
                     pdf = OfficialPDF('P', 'mm', 'A4')
                     pdf.add_page(); pdf.set_margins(15, 15, 15)
@@ -3184,5 +3194,3 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
-
-

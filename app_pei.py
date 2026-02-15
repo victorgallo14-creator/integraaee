@@ -3080,7 +3080,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.set_xy(15, y+11)
                     pdf.set_font("Arial", "", 9)
                     pdf.cell(90, 5, "Assinatura do Acompanhante", 0, 0, 'C')
-                    pdf.cell(80, 5, clean_pdf_text("            Visto da Coordenação/Direção"), 0, 1, 'C')
+                    pdf.cell(80, 5, clean_pdf_text("                       Visto da Coordenação/Direção"), 0, 1, 'C')
                     
                     st.session_state.pdf_bytes_diario_mes = get_pdf_bytes(pdf)
                     st.rerun()
@@ -3094,6 +3094,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 
 
 

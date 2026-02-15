@@ -2357,7 +2357,7 @@ elif app_mode == "👥 Gestão de Alunos":
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
 
-       # --- AVALIAÇÃO PEDAGÓGICA ---
+    # --- AVALIAÇÃO PEDAGÓGICA ---
     elif doc_mode == "Avaliação Pedagógica":
         st.markdown("""<div class="header-box"><div class="header-title">Avaliação Pedagógica: Apoio Escolar</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
@@ -2683,8 +2683,10 @@ elif app_mode == "👥 Gestão de Alunos":
                     # Helper function to print all options with selection safely
                     def print_full_options(pdf, opts, selected_val, obs_key=None, obs_val=None):
                         pdf.set_font("Arial", "", 10)
-                        width = 180 # Explicit width (210 - 15 - 15) to avoid calculation errors
+                        width = 175 # 180 - 5 indent
+                        original_x = pdf.get_x()
                         for opt in opts:
+                            pdf.set_x(original_x + 5) # Indent
                             mark = "(X)" if selected_val == opt else "( )"
                             # Handle long text
                             pdf.multi_cell(width, 5, clean_pdf_text(f"{mark} {opt}"), 0, 'L')
@@ -2707,8 +2709,9 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.set_font("Arial", "", 10)
                     sel_loc = data_aval.get('loc_nivel', [])
                     for opt in opts_loc:
+                        pdf.set_x(20) # manual indent 5mm
                         mark = "(X)" if opt in sel_loc else "( )"
-                        pdf.multi_cell(180, 5, clean_pdf_text(f"{mark} {opt}"), 0, 'L')
+                        pdf.multi_cell(175, 5, clean_pdf_text(f"{mark} {opt}"), 0, 'L')
                     
                     obs_loc = data_aval.get('loc_obs') if data_aval.get('loc_obs') else "________________________________________________________________"
                     pdf.cell(0, 6, clean_pdf_text(f"Obs: {obs_loc}"), 0, 1)
@@ -2731,6 +2734,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     # Outros manual handling
                     mark_out = "(X)" if data_aval.get('interacao') == "Outros" else "( )"
                     val_out = data_aval.get('interacao_outros') if data_aval.get('interacao_outros') else "____________________________________________"
+                    pdf.set_x(20)
                     pdf.cell(0, 5, clean_pdf_text(f"{mark_out} Outros: {val_out}"), 0, 1)
                     pdf.ln(4)
                     
@@ -2763,8 +2767,9 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.set_font("Arial", "", 10)
                     sel_ling = data_aval.get('linguagem', [])
                     for opt in opts_ling:
+                        pdf.set_x(20)
                         mark = "(X)" if opt in sel_ling else "( )"
-                        pdf.multi_cell(180, 5, clean_pdf_text(f"{mark} {opt}"), 0, 'L')
+                        pdf.multi_cell(175, 5, clean_pdf_text(f"{mark} {opt}"), 0, 'L')
                     
                     obs_ling = data_aval.get('ling_obs') if data_aval.get('ling_obs') else "_____________________________________________________________________________"
                     pdf.cell(0, 6, clean_pdf_text(f"OBS: {obs_ling}"), 0, 1)
@@ -2776,33 +2781,57 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.set_font("Arial", "B", 10)
                     
                     # Table Header
-                    pdf.cell(60, 8, clean_pdf_text("NÍVEIS DE APOIO"), 1, 0, 'C')
-                    pdf.cell(0, 8, clean_pdf_text("CARACTERÍSTICAS"), 1, 1, 'C')
+                    pdf.cell(60, 10, clean_pdf_text("NÍVEIS DE APOIO"), 1, 0, 'C')
+                    pdf.cell(0, 10, clean_pdf_text("CARACTERÍSTICAS"), 1, 1, 'C')
                     
-                    # Rows
-                    pdf.set_font("Arial", "B", 9)
-                    pdf.cell(60, 12, clean_pdf_text("Não há necessidade de apoio"), 1, 0, 'L')
                     pdf.set_font("Arial", "", 9)
-                    pdf.multi_cell(0, 6, clean_pdf_text("O estudante apresenta autonomia. As ações disponibilizadas aos demais estudantes da sala regular são suficientes, acrescidas de ações do atendimento educacional especializado(AEE)."), 1, 'L')
                     
-                    pdf.set_font("Arial", "B", 9)
-                    pdf.cell(60, 8, clean_pdf_text("Nível 1- apoio pouco substancial"), 1, 0, 'L')
-                    pdf.set_font("Arial", "", 9)
-                    pdf.cell(0, 8, clean_pdf_text("Não há necessidade de apoio constante, apenas em ações pontuais."), 1, 1, 'L')
-                    
-                    pdf.set_font("Arial", "B", 9)
+                    # Row 1
+                    h1 = 20
                     x = pdf.get_x(); y = pdf.get_y()
-                    pdf.multi_cell(60, 6, clean_pdf_text("Nível 2- apoio substancial ao estudante dentro da sala de aula"), 1, 'L')
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.cell(60, h1, clean_pdf_text("Não há necessidade de apoio"), 1, 0, 'L')
+                    
                     pdf.set_xy(x+60, y)
                     pdf.set_font("Arial", "", 9)
-                    pdf.cell(0, 12, clean_pdf_text("Há necessidade de apoio constante ao estudante"), 1, 1, 'L')
-                    
-                    pdf.set_font("Arial", "B", 9)
+                    pdf.multi_cell(0, 5, clean_pdf_text("O estudante apresenta autonomia. As ações disponibilizadas aos demais estudantes da sala regular são suficientes, acrescidas de ações do atendimento educacional especializado(AEE)."), 0, 'L')
+                    pdf.rect(x+60, y, 120, h1)
+                    pdf.set_xy(x, y + h1)
+
+                    # Row 2
+                    h2 = 12
                     x = pdf.get_x(); y = pdf.get_y()
-                    pdf.multi_cell(60, 6, clean_pdf_text("Nível 3- apoio muito substancial"), 1, 'L') # Height 12 approx
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.cell(60, h2, clean_pdf_text("Nível 1- apoio pouco substancial"), 1, 0, 'L')
                     pdf.set_xy(x+60, y)
                     pdf.set_font("Arial", "", 9)
-                    pdf.multi_cell(0, 6, clean_pdf_text("Casos severos em que há a necessidade de atuação do monitor e outras ações específicas: flexibilização de horário e de espaços de atendimento"), 1, 'L')
+                    pdf.multi_cell(0, 5, clean_pdf_text("Não há necessidade de apoio constante, apenas em ações pontuais."), 0, 'L')
+                    pdf.rect(x+60, y, 120, h2)
+                    pdf.set_xy(x, y + h2)
+                    
+                    # Row 3
+                    h3 = 18
+                    x = pdf.get_x(); y = pdf.get_y()
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.multi_cell(60, 5, clean_pdf_text("Nível 2- apoio substancial ao estudante dentro da sala de aula"), 0, 'L')
+                    pdf.rect(x, y, 60, h3)
+                    
+                    pdf.set_xy(x+60, y)
+                    pdf.set_font("Arial", "", 9)
+                    pdf.cell(0, h3, clean_pdf_text("Há necessidade de apoio constante ao estudante"), 1, 0, 'L') 
+                    pdf.set_xy(x, y + h3)
+                    
+                    # Row 4
+                    h4 = 20
+                    x = pdf.get_x(); y = pdf.get_y()
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.cell(60, h4, clean_pdf_text("Nível 3- apoio muito substancial"), 1, 0, 'L')
+                    
+                    pdf.set_xy(x+60, y)
+                    pdf.set_font("Arial", "", 9)
+                    pdf.multi_cell(0, 5, clean_pdf_text("Casos severos em que há a necessidade de atuação do monitor e outras ações específicas: flexibilização de horário e de espaços de atendimento"), 0, 'L')
+                    pdf.rect(x+60, y, 120, h4)
+                    pdf.set_xy(x, y + h4)
                     
                     pdf.ln(5)
                     pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("CONCLUSÃO DA EQUIPE PEDAGÓGICA"), 0, 1)
@@ -2856,6 +2885,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
                 else: st.info("Sem histórico.")
             else: st.info("Histórico vazio.")
+
 
 
 

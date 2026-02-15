@@ -1946,7 +1946,7 @@ elif app_mode == "👥 Gestão de Alunos":
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
 
-    # --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
+       # --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
     if doc_mode == "PDI":
         st.markdown(f"""<div class="header-box"><div class="header-title">PDI - Plano de Desenvolvimento Individual</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
@@ -2621,7 +2621,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_check_evolution("Interação", "ps_int")
                 print_check_evolution("Iniciativa Diálogo", "ps_ini_d")
                 print_check_evolution("Iniciativa Ativ.", "ps_ini_a")
-                pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(f"Comportamentos: {', '.join(data_pdi.get('ps_comps',[]))}\"))
+                pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(f"Comportamentos: {', '.join(data_pdi.get('ps_comps',[]))}"))
                 print_check_evolution("Sabe Nome", "vp_nome")
                 print_check_evolution("Sabe Idade", "vp_idade")
                 
@@ -2709,7 +2709,6 @@ elif app_mode == "👥 Gestão de Alunos":
 
             if 'pdf_bytes_pdi' in st.session_state:
                 st.download_button("📥 BAIXAR PDI COMPLETO", st.session_state.pdf_bytes_pdi, f"PDI_{data_pdi.get('nome','aluno')}.pdf", "application/pdf", type="primary")
-
 
         # --- ABA 6: HISTÓRICO ---
         with tabs[7]:
@@ -3996,6 +3995,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

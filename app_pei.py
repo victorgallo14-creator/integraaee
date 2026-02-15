@@ -200,7 +200,6 @@ class OfficialPDF(FPDF):
             self.signature_info = f"Assinado por {len(names)} pessoas: {names_str}"
         else:
             self.signature_info = "Documento gerado sem assinaturas digitais."
-
     def footer(self):
         self.set_y(-25)
         self.set_font('Arial', '', 8)
@@ -208,17 +207,28 @@ class OfficialPDF(FPDF):
         
         # Bloco de Assinatura Digital
         if self.doc_uuid:
+            # Posicionamento dinâmico baseado na altura da página
+            # Garante que funciona corretamente tanto em Retrato quanto em Paisagem
+            box_h = 9  # Altura reduzida para ~2 linhas
+            margin_bottom = 22 # Distância da borda inferior
+            
+            y_box = self.h - margin_bottom 
+            x_box = 10
+            w_box = self.w - 20 # Largura total (menos margens laterais de 10mm)
+
             # Caixa cinza claro para validação
             self.set_fill_color(245, 245, 245)
-            self.rect(10, 275 if self.def_orientation == 'P' else 190, 190 if self.def_orientation == 'P' else 277, 12, 'F')
+            self.rect(x_box, y_box, w_box, box_h, 'F')
             
             # Texto
-            self.set_xy(12, 276 if self.def_orientation == 'P' else 191)
+            self.set_xy(x_box + 2, y_box + 1.5)
             self.set_font('Arial', 'B', 7)
             if self.signature_info:
                 self.cell(0, 3, clean_pdf_text(self.signature_info), 0, 1, 'L')
+            else:
+                self.ln(3) # Espaço caso não tenha texto de assinatura
             
-            self.set_x(12)
+            self.set_x(x_box + 2)
             self.set_font('Arial', '', 7)
             link_txt = f"Para verificar a validade das assinaturas, acesse https://integra.streamlit.app e informe o código {self.doc_uuid}"
             self.cell(0, 3, clean_pdf_text(link_txt), 0, 1, 'L')
@@ -3455,3 +3465,4 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+

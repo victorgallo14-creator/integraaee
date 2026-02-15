@@ -2573,26 +2573,35 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.set_font("Arial", "", 8)
                     
                     # 1
-                    pdf.multi_cell(0, 4, clean_pdf_text("1- Lei nº 12.764/2012, em seu artigo 3º que trata dos direitos da pessoa com transtorno do espectro autista indica:"), 0, 'J')
+                    pdf.set_x(15) # Ensure margin alignment
+                    pdf.multi_cell(0, 4, clean_pdf_text("1- Lei nº 12.764/2012, em seu artigo 3º que trata dos direitos da pessoa com transtorno do espectro autista indica:"), 0, 'L')
                     pdf.set_font("Arial", "I", 8)
-                    pdf.multi_cell(0, 4, clean_pdf_text("Parágrafo único. Em casos de comprovada necessidade, a pessoa com transtorno do espectro autista incluída nas classes comuns de ensino regular, nos termos do inciso IV do art. 2º , terá direito a acompanhante especializado."), 0, 'J')
+                    pdf.set_x(15)
+                    pdf.multi_cell(0, 4, clean_pdf_text("Parágrafo único. Em casos de comprovada necessidade, a pessoa com transtorno do espectro autista incluída nas classes comuns de ensino regular, nos termos do inciso IV do art. 2º , terá direito a acompanhante especializado."), 0, 'L')
                     pdf.set_font("Arial", "", 8)
                     pdf.ln(2)
                     
                     # 2
-                    pdf.multi_cell(0, 4, clean_pdf_text("2- Lei Brasileira de Inclusão da Pessoa com Deficiência (LBI) no art. 3º, inciso XIII, descreve as ações referentes ao apoio:"), 0, 'J')
+                    pdf.set_x(15)
+                    pdf.multi_cell(0, 4, clean_pdf_text("2- Lei Brasileira de Inclusão da Pessoa com Deficiência (LBI) no art. 3º, inciso XIII, descreve as ações referentes ao apoio:"), 0, 'L')
                     pdf.set_font("Arial", "I", 8)
-                    pdf.multi_cell(0, 4, clean_pdf_text("XIII - profissional de apoio escolar: pessoa que exerce atividades de alimentação, higiene e locomoção do estudante com deficiência e atua em todas as atividades escolares nas quais se fizer necessária, em todos os níveis e modalidades de ensino, em instituições públicas e privadas, excluídas as técnicas ou os procedimentos identificados com profissões legalmente estabelecidas;"), 0, 'J')
+                    pdf.set_x(15)
+                    pdf.multi_cell(0, 4, clean_pdf_text("XIII - profissional de apoio escolar: pessoa que exerce atividades de alimentação, higiene e locomoção do estudante com deficiência e atua em todas as atividades escolares nas quais se fizer necessária, em todos os níveis e modalidades de ensino, em instituições públicas e privadas, excluídas as técnicas ou os procedimentos identificados com profissões legalmente estabelecidas;"), 0, 'L')
                     pdf.set_font("Arial", "", 8)
                     pdf.ln(2)
                     
                     # 3
-                    pdf.multi_cell(0, 4, clean_pdf_text("3- CNE/CEB nº 02/01, do Conselho Nacional de Educação, que Instituiu as Diretrizes Nacionais para a Educação Especial na Educação Básica, cujo artigo 6º assim dispõe:"), 0, 'J')
+                    pdf.set_x(15)
+                    pdf.multi_cell(0, 4, clean_pdf_text("3- CNE/CEB nº 02/01, do Conselho Nacional de Educação, que Instituiu as Diretrizes Nacionais para a Educação Especial na Educação Básica, cujo artigo 6º assim dispõe:"), 0, 'L')
                     pdf.set_font("Arial", "I", 8)
-                    pdf.multi_cell(0, 4, clean_pdf_text("Art. 6º - Para a identificação das necessidades educacionais especiais dos alunos e a tomada de decisões quanto ao atendimento necessário, a escola deve realizar, com assessoramento técnico, avaliação do aluno no processo de ensino e aprendizagem, contando, para tal, com:"), 0, 'J')
-                    pdf.multi_cell(0, 4, clean_pdf_text("I - a experiência de seu corpo docente, seus diretores, coordenadores, orientadores e supervisores educacionais;"), 0, 'J')
-                    pdf.multi_cell(0, 4, clean_pdf_text("II - o setor responsável pela educação especial do respectivo sistema;"), 0, 'J')
-                    pdf.multi_cell(0, 4, clean_pdf_text("III - a colaboração da família e a cooperação dos serviços de Saúde, Assistência Social, Trabalho, Justiça e Esporte, bem como do Ministério Público, quando necessário.” (grifamos e negritamos)"), 0, 'J')
+                    pdf.set_x(15)
+                    pdf.multi_cell(0, 4, clean_pdf_text("Art. 6º - Para a identificação das necessidades educacionais especiais dos alunos e a tomada de decisões quanto ao atendimento necessário, a escola deve realizar, com assessoramento técnico, avaliação do aluno no processo de ensino e aprendizagem, contando, para tal, com:"), 0, 'L')
+                    pdf.set_x(15)
+                    pdf.multi_cell(0, 4, clean_pdf_text("I - a experiência de seu corpo docente, seus diretores, coordenadores, orientadores e supervisores educacionais;"), 0, 'L')
+                    pdf.set_x(15)
+                    pdf.multi_cell(0, 4, clean_pdf_text("II - o setor responsável pela educação especial do respectivo sistema;"), 0, 'L')
+                    pdf.set_x(15)
+                    pdf.multi_cell(0, 4, clean_pdf_text("III - a colaboração da família e a cooperação dos serviços de Saúde, Assistência Social, Trabalho, Justiça e Esporte, bem como do Ministério Público, quando necessário.” (grifamos e negritamos)"), 0, 'L')
                     
                     pdf.set_font("Arial", "", 8)
                     pdf.ln(4)

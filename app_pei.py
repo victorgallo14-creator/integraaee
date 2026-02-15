@@ -661,7 +661,7 @@ with st.sidebar:
     st.markdown("""
     <style>
         section[data-testid="stSidebar"] > div {
-            padding-top: 1rem !important;
+            padding-top: -2rem !important;
             padding-bottom: 2rem !important;
         }
         [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
@@ -3466,6 +3466,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 
 
 

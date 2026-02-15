@@ -10,9 +10,6 @@ from PIL import Image
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 import time
-
-import streamlit as st
-import io
 from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -2533,6 +2530,7 @@ if doc_mode == "Avaliação Pedagógica":
                     st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
                 else: st.info("Sem histórico.")
             else: st.info("Histórico vazio.")
+
 
 
 

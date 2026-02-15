@@ -2350,9 +2350,10 @@ elif app_mode == "👥 Gestão de Alunos":
             
             df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
             
-            if not df_hist.empty and data.get('nome'):
+            # CORREÇÃO DE BUG: Usar data_conduta ao invés de data
+            if not df_hist.empty and data_conduta.get('nome'):
                 # Filtrar pelo aluno atual
-                student_hist = df_hist[df_hist["Aluno"] == data.get('nome')]
+                student_hist = df_hist[df_hist["Aluno"] == data_conduta.get('nome')]
                 
                 if not student_hist.empty:
                     # Ordenar por data (mais recente primeiro)
@@ -3086,6 +3087,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 
 
 

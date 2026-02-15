@@ -2012,7 +2012,7 @@ elif app_mode == "👥 Gestão de Alunos":
             "com_alt": ["Apontamentos", "Piscar dos olhos", "Comunicação alternativa", "Compreende via CA"]
         }
 
-        # Estrutura para Objetivos Específicos (Item 6, agora 4)
+        # Estrutura para Objetivos Específicos
         objectives_structure = {
             "DESENVOLVIMENTO COGNITIVO": {
                 "PERCEPÇÃO": ["Visual", "Auditiva", "Tátil", "Espacial / Lateralidade", "Temporal / Ritmo / Sequência lógica"],
@@ -2062,9 +2062,9 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 st.divider()
                 st.subheader("2.3 Organização do AEE")
-                c_a1, c_a2 = st.columns(2)
-                data_pdi['aee_freq'] = c_a1.selectbox("Frequência Semanal", ["1 vez", "2 vezes", "3 vezes", "4 vezes"], disabled=is_monitor)
-                data_pdi['aee_tempo'] = c_a2.text_input("Tempo de Atendimento", value=data_pdi.get('aee_tempo', '50 minutos'), disabled=is_monitor)
+                
+                # Removed Frequency as requested
+                data_pdi['aee_tempo'] = st.text_input("Tempo de Atendimento", value=data_pdi.get('aee_tempo', '50 minutos'), disabled=is_monitor)
                 
                 data_pdi['aee_tipo'] = st.radio("Local/Modalidade", ["Sala de Recursos Multifuncionais", "Trabalho Colaborativo", "Itinerante", "Domiciliar"], horizontal=True, disabled=is_monitor)
                 data_pdi['aee_comp'] = st.radio("Composição", ["Individual", "Grupal"], horizontal=True, disabled=is_monitor)
@@ -2510,37 +2510,27 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.cell(0, 10, clean_pdf_text("ATENDIMENTO EDUCACIONAL"), 0, 1, 'C')
                 pdf.cell(0, 10, clean_pdf_text("ESPECIALIZADO"), 0, 1, 'C')
 
-                # --- 2. PLANO DE AEE & AÇÕES NECESSÁRIAS ---
+                # --- 1. AVALIAÇÃO PEDAGÓGICA DO ESTUDANTE (RENOMEADO E REESTRUTURADO) ---
                 pdf.add_page()
-                pdf.section_title("2. PLANO DE AEE & AÇÕES NECESSÁRIAS", width=0)
+                pdf.section_title("AVALIAÇÃO PEDAGÓGICA DO ESTUDANTE", width=0)
                 pdf.ln(5)
                 
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "2.1 AVALIAÇÃO PEDAGÓGICA INICIAL (Potencialidades/Interesses):", 0, 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "1.1 POTENCIALIDADES:", 0, 1)
                 pdf.set_font("Arial", "", 10)
-                pdf.multi_cell(0, 5, clean_pdf_text(f"Potencialidades: {data_pdi.get('potencialidades', '')}\n\nÁreas de Interesse: {data_pdi.get('areas_interesse', '')}"), 1)
+                pdf.multi_cell(0, 5, clean_pdf_text(data_pdi.get('potencialidades', '')), 1)
 
                 pdf.ln(5)
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "2.2 AÇÕES NECESSÁRIAS:", 0, 1); pdf.set_font("Arial", "", 10)
-                pdf.multi_cell(0, 5, clean_pdf_text(f"ESCOLA: {data_pdi.get('acao_escola')}\n\nSALA DE AULA: {data_pdi.get('acao_sala')}\n\nFAMÍLIA: {data_pdi.get('acao_familia')}\n\nSAÚDE: {data_pdi.get('acao_saude')}"), 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "1.2 ÁREAS DE INTERESSE:", 0, 1)
+                pdf.set_font("Arial", "", 10)
+                pdf.multi_cell(0, 5, clean_pdf_text(data_pdi.get('areas_interesse', '')), 1)
 
-                pdf.ln(5)
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "2.3 ORGANIZAÇÃO DO AEE:", 0, 1); pdf.set_font("Arial", "", 10)
-                pdf.cell(0, 6, clean_pdf_text(f"Frequência: {data_pdi.get('aee_freq')} | Tempo: {data_pdi.get('aee_tempo')}"), 1, 1)
-                pdf.cell(0, 6, clean_pdf_text(f"Modalidade: {data_pdi.get('aee_tipo')} | Composição: {data_pdi.get('aee_comp')}"), 1, 1)
-
-                # --- 3. AVALIAÇÃO PEDAGÓGICA (RESULTADOS) ---
-                pdf.add_page()
-                pdf.section_title("3. OBJETIVOS E METAS (AVALIAÇÃO PEDAGÓGICA)", width=0)
                 pdf.ln(5)
                 
-                # Column Headers
+                # Column Headers for Text Evolution (1.3.1 - 1.3.2)
                 pdf.set_font("Arial", "B", 8)
                 pdf.set_fill_color(220, 220, 220)
                 w_col = 63
-                pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Diagnóstica"), 1, 0, 'C', True)
-                pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação de Percurso"), 1, 0, 'C', True)
-                pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Final"), 1, 1, 'C', True)
-
+                
                 def print_check_evolution(title, key):
                     # Logic to show all options with checkboxes
                     possible_opts = checklist_options.get(key, [])
@@ -2651,81 +2641,147 @@ elif app_mode == "👥 Gestão de Alunos":
                     
                     pdf.set_y(y_start + h_max)
 
-                # 3.1 Cognitivo
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "3.1 DESENVOLVIMENTO COGNITIVO", 0, 1)
-                items_desc = ["Visual", "Auditiva", "Tátil", "Espacial", "Temporal", "Correspondência", "Comparação", "Classificação", "Sequenciação", "Seriação", "Inclusão", "Conservação", "Resolução de Problemas"]
-                for it in items_desc: print_text_evolution(it, f"cog_{it.lower()}")
+                def print_obs(key):
+                    obs = data_pdi.get(key, '')
+                    if obs:
+                        pdf.set_font("Arial", "", 9)
+                        pdf.multi_cell(0, 5, clean_pdf_text(f"OBSERVAÇÕES: {obs}"), 0, 'L')
+                        pdf.ln(2)
+
+                # 1.3 Cognitivo
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "1.3 DESENVOLVIMENTO COGNITIVO", 0, 1)
                 
+                # 1.3.1 & 1.3.2 (Text Tables)
+                pdf.set_font("Arial", "B", 8)
+                pdf.set_fill_color(220, 220, 220)
+                pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Diagnóstica"), 1, 0, 'C', True)
+                pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação de Percurso"), 1, 0, 'C', True)
+                pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Final"), 1, 1, 'C', True)
+                
+                pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.1 PERCEPÇÃO", 0, 1)
+                items_perc = ["Visual", "Auditiva", "Tátil", "Espacial", "Temporal"]
+                for it in items_perc: print_text_evolution(it, f"cog_{it.lower()}")
+                
+                pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.2 RACIOCÍNIO LÓGICO", 0, 1)
+                items_rac = ["Correspondência", "Comparação", "Classificação", "Sequenciação", "Seriação", "Inclusão", "Conservação", "Resolução de Problemas"]
+                for it in items_rac: print_text_evolution(it, f"cog_{it.lower()}")
+
+                # 1.3.3 Checklists
+                pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.3 SISTEMA MONETÁRIO", 0, 1)
                 print_check_evolution("Sistema Monetário", "sis_monetario")
-                print_check_evolution("Brincar: Uso Funcional", "brincar_funcional")
-                print_check_evolution("Brincar: Exploração", "brincar_explora")
-                print_check_evolution("Brincar: Simbolismo", "brincar_criativa")
-                print_check_evolution("Memória: Curto Prazo", "mem_curto")
-                print_check_evolution("Memória: Episódica", "mem_episodica")
-                print_check_evolution("Memória: Semântica", "mem_semantica")
-                print_check_evolution("Atenção: Sustentada", "at_sust")
-                print_check_evolution("Atenção: Dividida", "at_div")
-                print_check_evolution("Atenção: Seletiva", "at_sel")
                 
-                # 3.1.8 Viso-motora
-                pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "Coordenação Viso-Motora", 0, 1)
+                pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.4 CAPACIDADE DE BRINCAR", 0, 1)
+                print_check_evolution("Faz uso dos brinquedos de maneira funcional?", "brincar_funcional")
+                print_check_evolution("Exploração dos brinquedos", "brincar_explora")
+                print_check_evolution("Estrutura brincadeira de forma criativa?", "brincar_criativa")
+                print_check_evolution("Atribui diferentes funções aos objetos?", "brincar_funcoes")
+                print_obs('brincar_obs')
+
+                pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.5 MEMÓRIA DE CURTO PRAZO", 0, 1)
+                print_check_evolution("Memória Curto Prazo", "mem_curto")
+                
+                pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.6 MEMÓRIA DE LONGO PRAZO", 0, 1)
+                print_check_evolution("Episódica", "mem_episodica")
+                print_check_evolution("Semântica", "mem_semantica")
+                print_obs('memoria_obs')
+
+                pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.7 ATENÇÃO", 0, 1)
+                print_check_evolution("Sustentada", "at_sust")
+                print_check_evolution("Dividida", "at_div")
+                print_check_evolution("Seletiva", "at_sel")
+                print_obs('atencao_obs')
+                
+                pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.8 COORDENAÇÃO VISO-MOTORA", 0, 1)
                 print_check_evolution("Desenho", "vm_desenho")
-                print_check_evolution("Limite Folha", "vm_l_folha")
-                print_check_evolution("Limite Pintura", "vm_l_pint")
+                print_check_evolution("Limites Folha", "vm_l_folha")
+                print_check_evolution("Limites Pintura", "vm_l_pint")
                 print_check_evolution("Recorte/Rasgar", "vm_rasgar")
                 print_check_evolution("Uso Tesoura", "vm_tesoura")
                 print_check_evolution("Uso Cola", "vm_cola")
                 print_check_evolution("Encaixes", "vm_encaixe")
-                print_check_evolution("Reprodução", "vm_reproducao")
+                print_check_evolution("Reprodução de Figuras", "vm_reproducao")
                 print_check_evolution("Quebra-Cabeça", "vm_qc")
+                print_obs('vm_obs')
 
-                # 3.2 Motor
-                pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "3.2 DESENVOLVIMENTO MOTOR", 0, 1)
+                # 1.4 Motor
+                pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "1.4 DESENVOLVIMENTO MOTOR", 0, 1)
+                pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.4.1 COORDENAÇÃO MOTORA FINA", 0, 1)
                 print_check_evolution("Estabilidade Punho", "mf_punho")
                 print_check_evolution("Pinça", "mf_pinca")
                 print_check_evolution("Preensão", "mf_preensao")
-                print_check_evolution("Tronco Sentado", "mg_sentado")
-                print_check_evolution("Tronco Pé", "mg_pe")
+                
+                pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.4.2 COORDENAÇÃO MOTORA GLOBAL", 0, 1)
+                print_check_evolution("Postura (Sentado)", "mg_sentado")
+                print_check_evolution("Postura (Pé)", "mg_pe")
                 print_check_evolution("Locomoção", "mg_loc")
                 print_check_evolution("Equilíbrio", "mg_eq")
+                print_obs('mg_obs')
+                
+                pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.4.3 ESQUEMA E IMAGEM CORPORAL", 0, 1)
                 print_check_evolution("Imagem Corporal", "ec_img")
-                print_check_evolution("Partes do Corpo", "ec_partes")
+                print_check_evolution("Identificação Partes", "ec_partes")
                 print_check_evolution("Funções Partes", "ec_func")
                 print_check_evolution("Imitação", "ec_imit")
                 print_check_evolution("Desenho Humano", "ec_des")
                 print_check_evolution("Lateralidade", "ec_lat")
                 print_check_evolution("Ident. Lateralidade", "ec_id_lat")
+                print_check_evolution("Uso dois lados", "ec_dois")
                 
-                # 3.2.4 AVD
-                pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "Autonomia / AVD", 0, 1)
+                pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.4.4 AUTONOMIA / AVD", 0, 1)
                 print_check_evolution("Alimentação", "avd_alim")
                 print_check_evolution("Higiene", "avd_hig")
                 print_check_evolution("Uso Objetos", "avd_obj")
                 print_check_evolution("Locomoção Escola", "avd_loc")
+                print_obs('avd_obs')
 
-                # 3.3 Pessoal
-                pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "3.3 FUNÇÃO PESSOAL E SOCIAL", 0, 1)
-                print_check_evolution("Interação", "ps_int")
-                print_check_evolution("Iniciativa Diálogo", "ps_ini_d")
-                print_check_evolution("Iniciativa Ativ.", "ps_ini_a")
-                pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(f"Comportamentos: {', '.join(data_pdi.get('ps_comps',[]))}"), 1)
+                # 1.5 Pessoal
+                pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "1.5 FUNÇÃO PESSOAL E SOCIAL", 0, 1)
+                print_check_evolution("1.5.1 Interação", "ps_int")
+                print_check_evolution("1.5.2 Iniciativa (Diálogo)", "ps_ini_d")
+                print_check_evolution("1.5.2 Iniciativa (Atividade)", "ps_ini_a")
+                
+                pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.5.3 Comportamentos Apresentados", 0, 1)
+                comps = data_pdi.get('ps_comps',[])
+                if comps:
+                    pdf.set_font("Arial", "", 9)
+                    pdf.multi_cell(0, 5, clean_pdf_text(", ".join(comps)), 1, 'L')
+                
+                pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.5.4 Vida Prática", 0, 1)
                 print_check_evolution("Sabe Nome", "vp_nome")
                 print_check_evolution("Sabe Idade", "vp_idade")
+                print_check_evolution("Sabe Aniversário", "vp_niver")
+                print_check_evolution("Nomeia Familiares", "vp_fam")
+                print_check_evolution("Nomeia Profs", "vp_prof")
+                print_check_evolution("Sabe Endereço", "vp_end")
                 
-                # 3.4 Linguagem
-                pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "3.4 LINGUAGEM", 0, 1)
-                print_check_evolution("Verbal", "ling_verb")
-                print_check_evolution("Compreensiva", "ling_comp")
-                print_check_evolution("Gestual", "ling_gest")
-                print_check_evolution("Ecolalia", "ling_eco")
-                print_check_evolution("Escrita", "ling_esc")
-                print_check_evolution("Leitura", "ling_leit")
+                # 1.6 Linguagem
+                pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "1.6 LINGUAGEM", 0, 1)
+                print_check_evolution("1.6.1 Verbal", "ling_verb")
+                print_check_evolution("1.6.2 Compreensiva", "ling_comp")
+                print_check_evolution("1.6.3 Gestual", "ling_gest")
+                print_check_evolution("1.6.4 Ecolalia", "ling_eco")
+                print_check_evolution("1.6.5 Escrita", "ling_esc")
+                print_check_evolution("1.6.6 Leitura", "ling_leit")
                 
-                pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "Outros Recursos", 0, 1)
+                pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.6.7 LIBRAS e 1.6.8 Comunicação Alternativa", 0, 1)
                 print_check_evolution("Aparelho/Implante", "lib_ap")
                 print_check_evolution("Com. Libras", "lib_com")
                 print_check_evolution("Braille", "braille_esc")
                 print_check_evolution("Com. Alternativa", "ca_uso")
+
+                # --- 2. AÇÕES NECESSÁRIAS E ORGANIZAÇÃO ---
+                pdf.add_page()
+                pdf.section_title("2. AÇÕES NECESSÁRIAS E ORGANIZAÇÃO", width=0)
+                pdf.ln(5)
+                
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "AÇÕES NECESSÁRIAS:", 0, 1); pdf.set_font("Arial", "", 10)
+                pdf.multi_cell(0, 5, clean_pdf_text(f"ESCOLA: {data_pdi.get('acao_escola')}\n\nSALA DE AULA: {data_pdi.get('acao_sala')}\n\nFAMÍLIA: {data_pdi.get('acao_familia')}\n\nSAÚDE: {data_pdi.get('acao_saude')}"), 1)
+                
+                pdf.ln(5)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "ORGANIZAÇÃO DO AEE:", 0, 1); pdf.set_font("Arial", "", 10)
+                # Removed Freq
+                pdf.cell(0, 6, clean_pdf_text(f"Tempo: {data_pdi.get('aee_tempo')}"), 1, 1)
+                pdf.cell(0, 6, clean_pdf_text(f"Modalidade: {data_pdi.get('aee_tipo')} | Composição: {data_pdi.get('aee_comp')}"), 1, 1)
 
                 # --- 4. OBJETIVOS ---
                 pdf.add_page()
@@ -4075,6 +4131,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

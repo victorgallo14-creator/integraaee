@@ -2569,47 +2569,72 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(def_str), 0, 'L'); pdf.ln(4)
                     
                     # PRESSUPOSTOS LEGAIS
-                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "PRESSUPOSTOS LEGAIS:", 0, 1)
-                    pdf.set_font("Arial", "", 8)
+                    pdf.ln(5)
+                    pdf.set_font("Arial", "B", 11)
+                    pdf.cell(0, 6, clean_pdf_text("PRESSUPOSTOS LEGAIS:"), 0, 1, 'L')
+                    pdf.set_font("Arial", "", 9)
                     
                     # 1
-                    pdf.set_x(15) # Ensure margin alignment
-                    pdf.multi_cell(0, 4, clean_pdf_text("1- Lei nº 12.764/2012, em seu artigo 3º que trata dos direitos da pessoa com transtorno do espectro autista indica:"), 0, 'L')
-                    pdf.set_font("Arial", "I", 8)
-                    pdf.set_x(15)
-                    pdf.multi_cell(0, 4, clean_pdf_text("Parágrafo único. Em casos de comprovada necessidade, a pessoa com transtorno do espectro autista incluída nas classes comuns de ensino regular, nos termos do inciso IV do art. 2º , terá direito a acompanhante especializado."), 0, 'L')
-                    pdf.set_font("Arial", "", 8)
-                    pdf.ln(2)
+                    pdf.ln(3)
+                    pdf.multi_cell(0, 5, clean_pdf_text("1- Lei nº 12.764/2012, em seu artigo 3º que trata dos direitos da pessoa com transtorno do espectro autista indica:"), 0, 'L')
+                    
+                    # Citation 1
+                    pdf.set_left_margin(30) # 1.5cm indent + 1.5cm margin
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.write(5, clean_pdf_text("Parágrafo único. "))
+                    pdf.set_font("Arial", "I", 9)
+                    pdf.write(5, clean_pdf_text("Em casos de comprovada necessidade, a pessoa com transtorno do espectro autista incluída nas classes comuns de ensino regular, nos termos do inciso IV do art. 2º , terá direito a acompanhante especializado."))
+                    pdf.ln(6)
+                    pdf.set_left_margin(15)
                     
                     # 2
-                    pdf.set_x(15)
-                    pdf.multi_cell(0, 4, clean_pdf_text("2- Lei Brasileira de Inclusão da Pessoa com Deficiência (LBI) no art. 3º, inciso XIII, descreve as ações referentes ao apoio:"), 0, 'L')
-                    pdf.set_font("Arial", "I", 8)
-                    pdf.set_x(15)
-                    pdf.multi_cell(0, 4, clean_pdf_text("XIII - profissional de apoio escolar: pessoa que exerce atividades de alimentação, higiene e locomoção do estudante com deficiência e atua em todas as atividades escolares nas quais se fizer necessária, em todos os níveis e modalidades de ensino, em instituições públicas e privadas, excluídas as técnicas ou os procedimentos identificados com profissões legalmente estabelecidas;"), 0, 'L')
-                    pdf.set_font("Arial", "", 8)
-                    pdf.ln(2)
+                    pdf.set_font("Arial", "", 9)
+                    pdf.multi_cell(0, 5, clean_pdf_text("2- Lei Brasileira de Inclusão da Pessoa com Deficiência (LBI) no art. 3º, inciso XIII, descreve as ações referentes ao apoio:"), 0, 'L')
+                    
+                    # Citation 2
+                    pdf.set_left_margin(30)
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.write(5, clean_pdf_text("XIII - profissional de apoio escolar: "))
+                    pdf.set_font("Arial", "I", 9)
+                    pdf.write(5, clean_pdf_text("pessoa que exerce atividades de alimentação, higiene e locomoção do estudante com deficiência e atua em todas as atividades escolares nas quais se fizer necessária, em todos os níveis e modalidades de ensino, em instituições públicas e privadas, excluídas as técnicas ou os procedimentos identificados com profissões legalmente estabelecidas;"))
+                    pdf.ln(6)
+                    pdf.set_left_margin(15)
                     
                     # 3
-                    pdf.set_x(15)
-                    pdf.multi_cell(0, 4, clean_pdf_text("3- CNE/CEB nº 02/01, do Conselho Nacional de Educação, que Instituiu as Diretrizes Nacionais para a Educação Especial na Educação Básica, cujo artigo 6º assim dispõe:"), 0, 'L')
-                    pdf.set_font("Arial", "I", 8)
-                    pdf.set_x(15)
-                    pdf.multi_cell(0, 4, clean_pdf_text("Art. 6º - Para a identificação das necessidades educacionais especiais dos alunos e a tomada de decisões quanto ao atendimento necessário, a escola deve realizar, com assessoramento técnico, avaliação do aluno no processo de ensino e aprendizagem, contando, para tal, com:"), 0, 'L')
-                    pdf.set_x(15)
-                    pdf.multi_cell(0, 4, clean_pdf_text("I - a experiência de seu corpo docente, seus diretores, coordenadores, orientadores e supervisores educacionais;"), 0, 'L')
-                    pdf.set_x(15)
-                    pdf.multi_cell(0, 4, clean_pdf_text("II - o setor responsável pela educação especial do respectivo sistema;"), 0, 'L')
-                    pdf.set_x(15)
-                    pdf.multi_cell(0, 4, clean_pdf_text("III - a colaboração da família e a cooperação dos serviços de Saúde, Assistência Social, Trabalho, Justiça e Esporte, bem como do Ministério Público, quando necessário.” (grifamos e negritamos)"), 0, 'L')
+                    pdf.set_font("Arial", "", 9)
+                    pdf.multi_cell(0, 5, clean_pdf_text("3- CNE/CEB nº 02/01, do Conselho Nacional de Educação, que Instituiu as Diretrizes Nacionais para a Educação Especial na Educação Básica, cujo artigo 6º assim dispõe:"), 0, 'L')
                     
-                    pdf.set_font("Arial", "", 8)
-                    pdf.ln(4)
+                    # Citation 3 - Art 6
+                    pdf.set_left_margin(30)
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.write(5, clean_pdf_text("Art. 6º - "))
+                    pdf.set_font("Arial", "I", 9)
+                    pdf.write(5, clean_pdf_text("Para a identificação das necessidades educacionais especiais dos alunos e a tomada de decisões quanto ao atendimento necessário, a escola deve realizar, com assessoramento técnico, avaliação do aluno no processo de ensino e aprendizagem, contando, para tal, com:"))
+                    pdf.ln(6) # Spacing before items
+                    
+                    pdf.set_left_margin(35)
+                    
+                    # I
+                    pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("I - ")); pdf.set_font("Arial", "I", 9)
+                    pdf.write(5, clean_pdf_text("a experiência de seu corpo docente, seus diretores, coordenadores, orientadores e supervisores educacionais;"))
+                    pdf.ln(5)
+                    
+                    # II
+                    pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("II - ")); pdf.set_font("Arial", "I", 9)
+                    pdf.write(5, clean_pdf_text("o setor responsável pela educação especial do respectivo sistema;"))
+                    pdf.ln(5)
+                    
+                    # III
+                    pdf.set_font("Arial", "B", 9); pdf.write(5, clean_pdf_text("III - ")); pdf.set_font("Arial", "I", 9)
+                    pdf.write(5, clean_pdf_text("a colaboração da família e a cooperação dos serviços de Saúde, Assistência Social, Trabalho, Justiça e Esporte, bem como do Ministério Público, quando necessário.” (grifamos e negritamos)"))
+                    pdf.ln(6)
+                    
+                    pdf.set_left_margin(15) # Restore original margin
                     
                     # Aspectos Gerais
                     pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "ASPECTOS GERAIS DA VIDA ESCOLAR DO ESTUDANTE:", 0, 1)
                     pdf.set_font("Arial", "", 10); pdf.set_fill_color(255, 255, 200) # Light yellow highlight attempt
-                    pdf.multi_cell(0, 5, clean_pdf_text(data_aval.get('aspectos_gerais', '---')), 1, 'J', True); pdf.ln(5)
+                    pdf.multi_cell(0, 5, clean_pdf_text(data_aval.get('aspectos_gerais', '---')), 1, 'L', True); pdf.ln(5)
                     
                     # PART I
                     pdf.set_font("Arial", "B", 11); pdf.cell(0, 8, clean_pdf_text("PARTE I - HABILIDADES DE VIDA DIÁRIA"), 0, 1)

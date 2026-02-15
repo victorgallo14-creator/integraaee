@@ -220,13 +220,8 @@ class OfficialPDF(FPDF):
             
             self.set_x(12)
             self.set_font('Arial', '', 7)
-            link_txt = f"Para verificar a validade das assinaturas, acesse https://limeira.1doc.com.br/verificacao/{self.doc_uuid} e informe o código {self.doc_uuid}"
+            link_txt = f"Para verificar a validade das assinaturas, acesse https://integra.streamlit.app e informe o código {self.doc_uuid}"
             self.cell(0, 3, clean_pdf_text(link_txt), 0, 1, 'L')
-            
-            # Logo Cérebro Pequeno (Simulação)
-            self.set_xy(-25, 276 if self.def_orientation == 'P' else 191)
-            self.set_font('Arial', '', 14)
-            self.cell(10, 10, clean_pdf_text("🧠"), 0, 0, 'C')
 
         # Endereço Padrão (Abaixo da caixa)
         self.set_y(-10)
@@ -1073,7 +1068,7 @@ elif app_mode == "👥 Gestão de Alunos":
         
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
 
-        tabs = st.tabs(["1. Identificação", "2. Saúde", "3. Conduta", "4. Escolar", "5. Acadêmico", "6. Metas/Flex", "7. Assinaturas (NOVO)", "8. Emissão", "9. Histórico"])
+        tabs = st.tabs(["1. Identificação", "2. Saúde", "3. Conduta", "4. Escolar", "5. Acadêmico", "6. Metas/Flex", "7. Assinaturas", "8. Emissão", "9. Histórico"])
         data = st.session_state.data_pei
 
         # --- ABA 1: IDENTIFICAÇÃO ---
@@ -1932,7 +1927,7 @@ elif app_mode == "👥 Gestão de Alunos":
         
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
 
-        tabs = st.tabs(["1. Identificação", "2. Família", "3. Histórico", "4. Saúde", "5. Comportamento", "6. Assinaturas (NOVO)", "7. Gerar PDF", "8. Histórico"])
+        tabs = st.tabs(["1. Identificação", "2. Família", "3. Histórico", "4. Saúde", "5. Comportamento", "6. Assinaturas", "7. Gerar PDF", "8. Histórico"])
 
         # --- ABA 1: IDENTIFICAÇÃO ---
         with tabs[0]:

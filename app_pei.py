@@ -2460,6 +2460,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 # --- CAPA SECUNDÁRIA: ESTUDO DE CASO ---
                 pdf.add_page()
+                if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 10, 10, 25)
                 pdf.set_y(120) 
                 pdf.set_font("Arial", "B", 24)
                 pdf.cell(0, 10, "ESTUDO DE CASO", 0, 1, 'C')
@@ -2677,6 +2678,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 # --- CAPA SECUNDÁRIA: PLANO DE AEE ---
                 pdf.add_page()
+                if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 10, 10, 25)
                 pdf.set_y(100)
                 pdf.set_font("Arial", "B", 20)
                 pdf.cell(0, 10, clean_pdf_text("PLANO DE AEE"), 0, 1, 'C')
@@ -2703,7 +2705,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 # Column Headers for Text Evolution (1.3.1 - 1.3.2)
                 pdf.set_font("Arial", "B", 8)
                 pdf.set_fill_color(220, 220, 220)
-                w_col = 63
+                w_col = (210 - 20) / 3 # Dynamic width for perfect fit
                 
                 def print_check_evolution(title, key, opt_key=None):
                     # Logic to show all options with checkboxes
@@ -2727,7 +2729,6 @@ elif app_mode == "👥 Gestão de Alunos":
                     f_text = data_pdi.get(f"{key}_final", "")
                     
                     # Estimate height
-                    w_col = 63
                     pdf.set_font("Arial", "", 8)
                     
                     # Calc height roughly
@@ -2776,7 +2777,6 @@ elif app_mode == "👥 Gestão de Alunos":
                     p = data_pdi.get(f"{key}_proc", "")
                     f = data_pdi.get(f"{key}_final", "")
                     
-                    w_col = 63
                     pdf.set_font("Arial", "", 8)
                     def get_h(txt):
                          if not txt: return 5
@@ -2953,19 +2953,80 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_obs('libras_outros')
                 print_check_evolution("Com. Alternativa", "com_alt", "com_alt")
 
-                # --- 2. AÇÕES NECESSÁRIAS E ORGANIZAÇÃO ---
+                # --- 2. AÇÕES NECESSÁRIAS E ORGANIZAÇÃO (REFORMULADO) ---
                 pdf.add_page()
                 pdf.section_title("2. AÇÕES NECESSÁRIAS E ORGANIZAÇÃO", width=0)
                 pdf.ln(5)
+
+                # Actions Table
+                pdf.set_font("Arial", "B", 10)
+                pdf.set_fill_color(220, 220, 220)
+                # Scope col 50mm, Action col 140mm
+                col_s = 50
+                col_a = 190 - col_s
                 
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "AÇÕES NECESSÁRIAS:", 0, 1); pdf.set_font("Arial", "", 10)
-                pdf.multi_cell(0, 5, clean_pdf_text(f"ESCOLA: {data_pdi.get('acao_escola')}\n\nSALA DE AULA: {data_pdi.get('acao_sala')}\n\nFAMÍLIA: {data_pdi.get('acao_familia')}\n\nSAÚDE: {data_pdi.get('acao_saude')}"), 1)
+                pdf.cell(col_s, 8, clean_pdf_text("ÂMBITO"), 1, 0, 'C', True)
+                pdf.cell(0, 8, clean_pdf_text("AÇÃO"), 1, 1, 'C', True)
                 
+                actions_list = [
+                    ("ESCOLA", data_pdi.get('acao_escola', '')),
+                    ("SALA DE AULA", data_pdi.get('acao_sala', '')),
+                    ("FAMÍLIA", data_pdi.get('acao_familia', '')),
+                    ("SAÚDE", data_pdi.get('acao_saude', ''))
+                ]
+                
+                pdf.set_font("Arial", "", 10)
+                for scope, txt in actions_list:
+                    txt = clean_pdf_text(txt)
+                    
+                    # Estimate height for multicell
+                    # Approx 65 chars per line for 140mm width with Arial 10
+                    # Just a safe estimate
+                    s_width = pdf.get_string_width(txt)
+                    lines = int(s_width / col_a) + 1 + txt.count('\n')
+                    h_row = max(8, lines * 5 + 4) # 5mm line height + padding
+                    
+                    # Check page break
+                    if pdf.get_y() + h_row > 270:
+                        pdf.add_page()
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.set_fill_color(220, 220, 220)
+                        pdf.cell(col_s, 8, clean_pdf_text("ÂMBITO"), 1, 0, 'C', True)
+                        pdf.cell(0, 8, clean_pdf_text("AÇÃO"), 1, 1, 'C', True)
+                        pdf.set_font("Arial", "", 10)
+                    
+                    x = pdf.get_x()
+                    y = pdf.get_y()
+                    
+                    # Scope
+                    pdf.set_font("Arial", "B", 10)
+                    pdf.cell(col_s, h_row, clean_pdf_text(scope), 1, 0, 'C')
+                    
+                    # Action
+                    pdf.set_xy(x + col_s, y)
+                    pdf.set_font("Arial", "", 10)
+                    pdf.multi_cell(col_a, 5, txt, 0, 'L')
+                    
+                    # Border around action
+                    pdf.rect(x + col_s, y, col_a, h_row)
+                    pdf.set_y(y + h_row)
+
                 pdf.ln(5)
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "ORGANIZAÇÃO DO AEE:", 0, 1); pdf.set_font("Arial", "", 10)
-                # Removed Freq
-                pdf.cell(0, 6, clean_pdf_text(f"Tempo: {data_pdi.get('aee_tempo')}"), 1, 1)
-                pdf.cell(0, 6, clean_pdf_text(f"Modalidade: {data_pdi.get('aee_tipo')} | Composição: {data_pdi.get('aee_comp')}"), 1, 1)
+                # Organization
+                pdf.set_font("Arial", "B", 10)
+                pdf.set_fill_color(220, 220, 220)
+                pdf.cell(0, 8, clean_pdf_text("ORGANIZAÇÃO DO AEE"), 1, 1, 'L', True)
+                
+                pdf.set_font("Arial", "", 10)
+                # Simple table for organization
+                pdf.cell(50, 8, "Tempo de Atendimento:", 1, 0, 'L')
+                pdf.cell(0, 8, clean_pdf_text(data_pdi.get('aee_tempo', '')), 1, 1, 'L')
+                
+                pdf.cell(50, 8, "Modalidade:", 1, 0, 'L')
+                pdf.cell(0, 8, clean_pdf_text(data_pdi.get('aee_tipo', '')), 1, 1, 'L')
+                
+                pdf.cell(50, 8, clean_pdf_text("Composição:"), 1, 0, 'L')
+                pdf.cell(0, 8, clean_pdf_text(data_pdi.get('aee_comp', '')), 1, 1, 'L')
 
                 # --- 4. OBJETIVOS ---
                 pdf.add_page()
@@ -4315,6 +4376,7 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_
+
 
 
 

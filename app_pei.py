@@ -604,6 +604,15 @@ if 'data_avaliacao' not in st.session_state:
     st.session_state.data_avaliacao = {}
 if 'data_diario' not in st.session_state:
     st.session_state.data_diario = {}
+if 'data_pdi' not in st.session_state:
+    st.session_state.data_pdi = {
+        'metas': [{'objetivo': '', 'prazo': '', 'estrategia': '', 'status': 'Pendente'} for _ in range(5)],
+        'pdi_fortalezas': '',
+        'pdi_desafios': '',
+        'pdi_recursos': '',
+        'pdi_periodo': 'Trimestral',
+        'pdi_obs': ''
+    }
 
 def carregar_dados_aluno():
     selecao = st.session_state.get('aluno_selecionado')
@@ -614,6 +623,10 @@ def carregar_dados_aluno():
     st.session_state.data_conduta = {}
     st.session_state.data_avaliacao = {}
     st.session_state.data_diario = {}
+    st.session_state.data_pdi = {
+        'metas': [{'objetivo': '', 'prazo': '', 'estrategia': '', 'status': 'Pendente'} for _ in range(5)],
+        'pdi_fortalezas': '', 'pdi_desafios': '', 'pdi_recursos': '', 'pdi_periodo': 'Trimestral', 'pdi_obs': ''
+    }
     st.session_state.nome_original_salvamento = None
 
     if not selecao or selecao == "-- Novo Registro --":
@@ -632,6 +645,7 @@ def carregar_dados_aluno():
             st.session_state.data_conduta['nome'] = selecao
             st.session_state.data_avaliacao['nome'] = selecao
             st.session_state.data_diario['nome'] = selecao
+            st.session_state.data_pdi['nome'] = selecao
 
             for _, row in rows.iterrows():
                 try:
@@ -653,6 +667,8 @@ def carregar_dados_aluno():
                         st.session_state.data_avaliacao.update(dados)
                     elif dtype == "DIARIO":
                         st.session_state.data_diario.update(dados)
+                    elif dtype == "PDI":
+                        st.session_state.data_pdi.update(dados)
                 except: pass
             
             st.toast(f"✅ {selecao} carregado.")
@@ -783,7 +799,7 @@ with st.sidebar:
         st.markdown('<p class="section-label">📂 Tipo de Documento</p>', unsafe_allow_html=True)
         doc_sub_mode = st.radio(
             "Modo Doc", 
-            ["PEI", "Estudo de Caso", "Protocolo de Conduta", "Avaliação Pedagógica", "Relatório Diário"], 
+            ["PEI", "PDI", "Estudo de Caso", "Protocolo de Conduta", "Avaliação Pedagógica", "Relatório Diário"], 
             index=default_doc_idx, 
             key="doc_option",
             label_visibility="collapsed"
@@ -899,6 +915,7 @@ if app_mode == "📊 Painel de Gestão":
         
     total_pei = len(df_dash[df_dash["tipo_doc"] == "PEI"])
     total_caso = len(df_dash[df_dash["tipo_doc"] == "CASO"])
+    total_pdi = len(df_dash[df_dash["tipo_doc"] == "PDI"])
     
     # Função Auxiliar de Progresso
     def calc_progress(row_json, keys_check):
@@ -949,11 +966,12 @@ if app_mode == "📊 Painel de Gestão":
         except: pass
 
     # --- CARDS DE MÉTRICAS ---
-    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+    col_m1, col_m2, col_m3, col_m4, col_m5 = st.columns(5)
     col_m1.markdown(f'<div class="metric-card"><div class="metric-value">{total_alunos}</div><div class="metric-label">Total Alunos</div></div>', unsafe_allow_html=True)
     col_m2.markdown(f'<div class="metric-card"><div class="metric-value">{total_pei}</div><div class="metric-label">PEIs Criados</div></div>', unsafe_allow_html=True)
-    col_m3.markdown(f'<div class="metric-card"><div class="metric-value">{concluidos}</div><div class="metric-label">PEIs Concluídos</div></div>', unsafe_allow_html=True)
+    col_m3.markdown(f'<div class="metric-card"><div class="metric-value">{total_pdi}</div><div class="metric-label">PDIs Criados</div></div>', unsafe_allow_html=True)
     col_m4.markdown(f'<div class="metric-card"><div class="metric-value">{total_caso}</div><div class="metric-label">Estudos de Caso</div></div>', unsafe_allow_html=True)
+    col_m5.markdown(f'<div class="metric-card"><div class="metric-value">{concluidos}</div><div class="metric-label">PEIs Concluídos</div></div>', unsafe_allow_html=True)
     
     st.divider()
 
@@ -1928,6 +1946,241 @@ elif app_mode == "👥 Gestão de Alunos":
             else:
                 st.info("O histórico está vazio ou aluno não selecionado.")
 
+    # PDI COM FORMULÁRIOS
+    elif doc_mode == "PDI":
+        st.markdown(f"""<div class="header-box"><div class="header-title">Plano de Desenvolvimento Individual (PDI)</div></div>""", unsafe_allow_html=True)
+        st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
+
+        tabs_pdi = st.tabs(["1. Contexto", "2. Plano de Metas", "3. Avaliação", "4. Assinaturas", "5. Emissão", "6. Histórico"])
+        data_pdi = st.session_state.data_pdi
+
+        # --- ABA 1: CONTEXTO ---
+        with tabs_pdi[0]:
+            with st.form("form_pdi_contexto") if not is_monitor else st.container():
+                st.subheader("1. Diagnóstico e Contexto")
+                st.caption("Importe dados do PEI ou preencha manualmente as potencialidades e desafios.")
+
+                if not is_monitor:
+                    if st.form_submit_button("🔄 Importar Dados Básicos (PEI)"):
+                        data_pei = st.session_state.get('data_pei', {})
+                        if data_pei.get('nome'):
+                            data_pdi['nome'] = data_pei.get('nome')
+                            data_pdi['nasc'] = data_pei.get('nasc')
+                            data_pdi['ano_esc'] = data_pei.get('ano_esc')
+                            st.success("Dados importados com sucesso!")
+                        else:
+                            st.warning("Dados do PEI não encontrados.")
+
+                c1, c2 = st.columns([3, 1])
+                data_pdi['nome'] = c1.text_input("Nome do Estudante", value=data_pdi.get('nome', ''), disabled=True)
+                data_pdi['ano_esc'] = c2.text_input("Ano Escolar", value=data_pdi.get('ano_esc', ''), disabled=is_monitor)
+
+                st.divider()
+                st.markdown("### Habilidades e Desafios")
+                
+                c_str, c_cha = st.columns(2)
+                data_pdi['pdi_fortalezas'] = c_str.text_area("Potencialidades / O que o aluno já sabe:", value=data_pdi.get('pdi_fortalezas', ''), height=200, help="Descreva habilidades, interesses e pontos fortes.", disabled=is_monitor)
+                data_pdi['pdi_desafios'] = c_cha.text_area("Desafios / Barreiras de Aprendizagem:", value=data_pdi.get('pdi_desafios', ''), height=200, help="Descreva as principais dificuldades e barreiras.", disabled=is_monitor)
+
+                if not is_monitor:
+                    st.markdown("---")
+                    if st.form_submit_button("💾 Salvar Contexto"):
+                        save_student("PDI", data_pdi.get('nome'), data_pdi, "Contexto")
+
+        # --- ABA 2: PLANO DE METAS ---
+        with tabs_pdi[1]:
+            with st.form("form_pdi_metas") if not is_monitor else st.container():
+                st.subheader("2. Metas e Estratégias")
+                st.info("Defina até 5 metas prioritárias para o período.")
+                
+                if 'metas' not in data_pdi:
+                    data_pdi['metas'] = [{'objetivo': '', 'prazo': '', 'estrategia': '', 'status': 'Pendente'} for _ in range(5)]
+
+                for i in range(5):
+                    with st.expander(f"Meta {i+1}", expanded=(i==0)):
+                        c_meta, c_prazo = st.columns([3, 1])
+                        data_pdi['metas'][i]['objetivo'] = c_meta.text_input(f"Objetivo (Meta {i+1})", value=data_pdi['metas'][i]['objetivo'], placeholder="Ex: Reconhecer as letras do nome...", key=f"pdi_obj_{i}", disabled=is_monitor)
+                        data_pdi['metas'][i]['prazo'] = c_prazo.text_input(f"Prazo", value=data_pdi['metas'][i]['prazo'], placeholder="Ex: 3 meses", key=f"pdi_prazo_{i}", disabled=is_monitor)
+                        
+                        c_est, c_stat = st.columns([3, 1])
+                        data_pdi['metas'][i]['estrategia'] = c_est.text_area(f"Estratégia / Metodologia", value=data_pdi['metas'][i]['estrategia'], height=68, key=f"pdi_est_{i}", disabled=is_monitor)
+                        
+                        st_idx = 0
+                        st_opts = ["Pendente", "Em Andamento", "Alcançado", "Não Alcançado"]
+                        if data_pdi['metas'][i]['status'] in st_opts:
+                            st_idx = st_opts.index(data_pdi['metas'][i]['status'])
+                        data_pdi['metas'][i]['status'] = c_stat.selectbox(f"Status", st_opts, index=st_idx, key=f"pdi_st_{i}", disabled=is_monitor)
+
+                if not is_monitor:
+                    st.markdown("---")
+                    if st.form_submit_button("💾 Salvar Metas"):
+                        save_student("PDI", data_pdi.get('nome'), data_pdi, "Metas")
+
+        # --- ABA 3: AVALIAÇÃO ---
+        with tabs_pdi[2]:
+            with st.form("form_pdi_aval") if not is_monitor else st.container():
+                st.subheader("3. Recursos e Avaliação")
+                
+                data_pdi['pdi_recursos'] = st.text_area("Recursos Necessários (Materiais, Humanos, Tecnológicos):", value=data_pdi.get('pdi_recursos', ''), height=100, disabled=is_monitor)
+                
+                c_per, c_blank = st.columns([1, 2])
+                p_opts = ["Mensal", "Bimestral", "Trimestral", "Semestral", "Anual"]
+                p_idx = p_opts.index(data_pdi.get('pdi_periodo')) if data_pdi.get('pdi_periodo') in p_opts else 2
+                data_pdi['pdi_periodo'] = c_per.selectbox("Período de Avaliação", p_opts, index=p_idx, disabled=is_monitor)
+                
+                data_pdi['pdi_obs'] = st.text_area("Anotações de Progresso / Resultados Finais:", value=data_pdi.get('pdi_obs', ''), height=150, disabled=is_monitor)
+
+                if not is_monitor:
+                    st.markdown("---")
+                    if st.form_submit_button("💾 Salvar Avaliação"):
+                        save_student("PDI", data_pdi.get('nome'), data_pdi, "Avaliação")
+
+        # --- ABA 4: ASSINATURAS ---
+        with tabs_pdi[3]:
+            st.subheader("Assinaturas Digitais")
+            st.caption(f"Código Único do Documento: {data_pdi.get('doc_uuid', 'Não gerado ainda')}")
+            
+            # Roles for PDI (Generic)
+            required_roles = [
+                {'role': 'Professor Responsável', 'name': st.session_state.get('usuario_nome', '')},
+                {'role': 'Coordenação', 'name': ''} 
+            ]
+            
+            # Current Signatures
+            current_signatures = data_pdi.get('signatures', [])
+            if current_signatures:
+                st.success("✅ Documento assinado por:")
+                for sig in current_signatures:
+                    st.write(f"✍️ **{sig['name']}** ({sig.get('role', 'Profissional')}) em {sig['date']}")
+            else:
+                st.warning("Nenhuma assinatura registrada.")
+
+            st.divider()
+            
+            user_name = st.session_state.get('usuario_nome', '')
+            match_role = "Professor/Profissional"
+            already_signed = any(s['name'] == user_name for s in current_signatures)
+            
+            if already_signed:
+                st.info("Você já assinou este documento.")
+            else:
+                if st.button("🖊️ Assinar Digitalmente (PDI)"):
+                    new_sig = {
+                        "name": user_name,
+                        "role": match_role,
+                        "date": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+                        "hash": str(uuid.uuid4())
+                    }
+                    if 'signatures' not in data_pdi: data_pdi['signatures'] = []
+                    data_pdi['signatures'].append(new_sig)
+                    save_student("PDI", data_pdi.get('nome'), data_pdi, "Assinatura")
+                    st.rerun()
+
+        # --- ABA 5: EMISSÃO ---
+        with tabs_pdi[4]:
+            if not is_monitor:
+                if st.button("💾 SALVAR PDI COMPLETO", type="primary"): save_student("PDI", data_pdi.get('nome', 'aluno'), data_pdi, "Completo")
+            else:
+                st.info("Modo Visualização.")
+
+            if st.button("👁️ GERAR PDF PDI"):
+                log_action(data_pdi.get('nome'), "Gerou PDF", "PDI Completo")
+                
+                pdf = OfficialPDF('P', 'mm', 'A4'); pdf.add_page(); pdf.set_margins(15, 15, 15)
+                pdf.set_signature_footer(data_pdi.get('signatures', []), data_pdi.get('doc_uuid', ''))
+                
+                # HEADER
+                if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)
+                pdf.set_xy(0, 15); pdf.set_font("Arial", "B", 12)
+                pdf.cell(210, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
+                pdf.cell(210, 6, clean_pdf_text("SECRETARIA MUNICIPAL DE EDUCAÇÃO"), 0, 1, 'C')
+                pdf.ln(10)
+                pdf.set_font("Arial", "B", 16); pdf.cell(0, 10, clean_pdf_text("PLANO DE DESENVOLVIMENTO INDIVIDUAL (PDI)"), 0, 1, 'C')
+                pdf.ln(5)
+
+                # IDENTIFICAÇÃO
+                pdf.section_title("1. IDENTIFICAÇÃO", width=0)
+                pdf.ln(2)
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Estudante:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data_pdi.get('nome', '')), "B", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Ano:", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data_pdi.get('ano_esc', '')), "B", 1)
+                pdf.ln(4)
+
+                # CONTEXTO
+                pdf.section_title("2. DIAGNÓSTICO E CONTEXTO", width=0)
+                pdf.ln(2)
+                pdf.set_font("Arial", "B", 11); pdf.set_fill_color(240, 240, 240)
+                pdf.cell(0, 8, clean_pdf_text("POTENCIALIDADES / HABILIDADES"), 1, 1, 'L', True)
+                pdf.set_font("Arial", "", 10)
+                pdf.multi_cell(0, 5, clean_pdf_text(data_pdi.get('pdi_fortalezas', '---')), 1, 'L')
+                pdf.ln(2)
+                
+                pdf.set_font("Arial", "B", 11); pdf.set_fill_color(240, 240, 240)
+                pdf.cell(0, 8, clean_pdf_text("DESAFIOS / BARREIRAS"), 1, 1, 'L', True)
+                pdf.set_font("Arial", "", 10)
+                pdf.multi_cell(0, 5, clean_pdf_text(data_pdi.get('pdi_desafios', '---')), 1, 'L')
+                pdf.ln(5)
+
+                # METAS
+                if pdf.get_y() > 220: pdf.add_page()
+                pdf.section_title("3. PLANO DE METAS", width=0)
+                pdf.ln(2)
+                
+                for i, meta in enumerate(data_pdi.get('metas', [])):
+                    if meta['objetivo']:
+                        if pdf.get_y() > 230: pdf.add_page()
+                        pdf.set_font("Arial", "B", 10); pdf.set_fill_color(230, 230, 230)
+                        pdf.cell(0, 7, clean_pdf_text(f"META {i+1}: {meta['objetivo']}"), 1, 1, 'L', True)
+                        
+                        pdf.set_font("Arial", "B", 9); pdf.cell(20, 6, "Prazo:", "L"); pdf.set_font("Arial", "", 9); pdf.cell(40, 6, clean_pdf_text(meta['prazo']), "R")
+                        pdf.set_font("Arial", "B", 9); pdf.cell(20, 6, "Status:", "L"); pdf.set_font("Arial", "", 9); pdf.cell(0, 6, clean_pdf_text(meta['status']), "R", 1)
+                        
+                        pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, clean_pdf_text("Estratégias / Metodologia:"), "LR", 1)
+                        pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(meta['estrategia']), "LBR")
+                        pdf.ln(2)
+
+                # RECURSOS E AVALIAÇÃO
+                if pdf.get_y() > 220: pdf.add_page()
+                pdf.ln(4)
+                pdf.section_title("4. RECURSOS E AVALIAÇÃO", width=0)
+                pdf.ln(2)
+                
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("Recursos Necessários:"), 0, 1)
+                pdf.set_font("Arial", "", 10); pdf.multi_cell(0, 5, clean_pdf_text(data_pdi.get('pdi_recursos', '---')), 1)
+                pdf.ln(2)
+                
+                pdf.set_font("Arial", "B", 10); pdf.cell(40, 6, clean_pdf_text("Período de Avaliação:"), 0, 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_pdi.get('pdi_periodo', '')), 0, 1)
+                pdf.ln(2)
+                
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, clean_pdf_text("Anotações de Progresso / Resultados:"), 0, 1)
+                pdf.set_font("Arial", "", 10); pdf.multi_cell(0, 5, clean_pdf_text(data_pdi.get('pdi_obs', '---')), 1)
+
+                # ASSINATURAS
+                pdf.ln(15)
+                if pdf.get_y() > 250: pdf.add_page()
+                
+                y = pdf.get_y()
+                pdf.line(20, y, 90, y); pdf.line(110, y, 190, y)
+                pdf.set_xy(20, y+2); pdf.cell(70, 5, "Professor Responsável", 0, 0, 'C')
+                pdf.set_xy(110, y+2); pdf.cell(80, 5, "Coordenação / Direção", 0, 1, 'C')
+
+                st.session_state.pdf_bytes_pdi = get_pdf_bytes(pdf)
+                st.rerun()
+
+            if 'pdf_bytes_pdi' in st.session_state:
+                st.download_button("📥 BAIXAR PDI (PDF)", st.session_state.pdf_bytes_pdi, f"PDI_{data_pdi.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
+        # --- ABA 6: HISTÓRICO ---
+        with tabs_pdi[5]:
+            st.subheader("Histórico de Atividades")
+            df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
+            if not df_hist.empty and data_pdi.get('nome'):
+                student_hist = df_hist[df_hist["Aluno"] == data_pdi.get('nome')]
+                if not student_hist.empty:
+                    st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
+                else: st.info("Sem histórico.")
+            else: st.info("Histórico vazio.")
+
+
     # ESTUDO DE CASO COM FORMULÁRIOS
     elif doc_mode == "Estudo de Caso":
         st.markdown("""<div class="header-box"><div class="header-title">Estudo de Caso</div></div>""", unsafe_allow_html=True)
@@ -2172,8 +2425,8 @@ elif app_mode == "👥 Gestão de Alunos":
             
             # Roles for Caso
             required_roles = []
-            if data.get('entrevista_prof'): required_roles.append({'role': 'Prof. Entrevistador', 'name': data['entrevista_prof']})
-            if data.get('entrevista_resp'): required_roles.append({'role': 'Responsável (Família)', 'name': data['entrevista_resp']})
+            if data.get('entrevista_prof'): required_roles.append({'role': 'Prof. Entrevistador', 'name': data.get('entrevista_prof')})
+            if data.get('entrevista_resp'): required_roles.append({'role': 'Responsável (Família)', 'name': data.get('entrevista_resp')})
             
             # Show list of signatories
             if required_roles:
@@ -3200,288 +3453,4 @@ elif app_mode == "👥 Gestão de Alunos":
         # --- ABA HISTÓRICO ---
         with tabs[1]:
             st.subheader("Histórico de Atividades")
-            df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
-            if not df_hist.empty and data_aval.get('nome'):
-                student_hist = df_hist[df_hist["Aluno"] == data_aval.get('nome')]
-                if not student_hist.empty:
-                    st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
-                else: st.info("Sem histórico.")
-            else: st.info("Histórico vazio.")
-            
-     # --- RELATÓRIO DIÁRIO ---
-    elif doc_mode == "Relatório Diário":
-        st.markdown("""<div class="header-box"><div class="header-title">Relatório Diário de Acompanhamento</div></div>""", unsafe_allow_html=True)
-        st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
-        
-        # Inicializa se não existir
-        if 'data_diario' not in st.session_state: st.session_state.data_diario = {}
-        data_diario = st.session_state.data_diario
-        if 'logs' not in data_diario: data_diario['logs'] = {}
-        
-        data_pei = st.session_state.data_pei # Para puxar dados automáticos
-        
-        tab_fill, tab_gen = st.tabs(["📝 Registro de Atividades", "🖨️ Emissão Mensal"])
-        
-        with tab_fill:
-            with st.form("form_diario_registro"):
-                st.subheader("1. Dados Gerais (Configuração)")
-                st.caption("Estes dados serão usados no cabeçalho do relatório.")
-                
-                # Importar dados básicos
-                if st.form_submit_button("🔄 Importar Dados do Aluno"):
-                    if data_pei:
-                        data_diario['nome'] = data_pei.get('nome', '')
-                        data_diario['ano_esc'] = data_pei.get('ano_esc', '')
-                        data_diario['escola'] = "CEIEF Rafael Affonso Leite"
-                        st.success("Dados importados!")
-                    else:
-                        st.warning("Sem dados PEI para importar.")
-
-                c1, c2 = st.columns(2)
-                data_diario['escola'] = c1.text_input("Escola", value=data_diario.get('escola', 'CEIEF Rafael Affonso Leite'))
-                data_diario['nome'] = c2.text_input("Estudante", value=data_diario.get('nome', data_pei.get('nome','')), disabled=True)
-                
-                c3, c4 = st.columns(2)
-                data_diario['ano_esc'] = c3.text_input("Ano de Escolaridade", value=data_diario.get('ano_esc', data_pei.get('ano_esc','')))
-                data_diario['periodo'] = c4.selectbox("Período", ["Manhã", "Tarde", "Integral"], index=0 if data_diario.get('periodo') == "Manhã" else (1 if data_diario.get('periodo') == "Tarde" else 2))
-                
-                data_diario['acompanhante'] = st.text_input("Acompanhante (Profissional)", value=data_diario.get('acompanhante', st.session_state.get('usuario_nome','')))
-                
-                st.divider()
-                st.subheader("2. Registro do Dia")
-                
-                # Seleção da Data para Registro
-                col_d_sel, col_info = st.columns([1, 2])
-                data_selecionada = col_d_sel.date_input("Selecione a Data", value=date.today(), format="DD/MM/YYYY")
-                data_str = data_selecionada.strftime("%Y-%m-%d")
-                
-                # Recuperar dados existentes para esta data
-                log_atual = data_diario['logs'].get(data_str, {})
-                
-                # Checkbox Falta
-                falta_val = log_atual.get('falta', False)
-                falta = st.checkbox("Estudante Faltou?", value=falta_val)
-                
-                # Descrição
-                desc_val = log_atual.get('descricao', '')
-                descricao = st.text_area("Descrição das atividades realizadas:", value=desc_val, height=150, help="Descreva as atividades ou ocorrências deste dia.")
-                
-                st.markdown("---")
-                # Botão de Salvar
-                if st.form_submit_button("💾 Salvar Registro do Dia"):
-                    # Atualiza o log no dicionário
-                    data_diario['logs'][data_str] = {
-                        'falta': falta,
-                        'descricao': descricao
-                    }
-                    # Salva no banco de dados (persistência)
-                    save_student("DIARIO", data_diario.get('nome', 'aluno'), data_diario, f"Diário {data_selecionada.strftime('%d/%m')}")
-                    st.success(f"Registro de {data_selecionada.strftime('%d/%m/%Y')} salvo com sucesso!")
-                    time.sleep(1)
-                    st.rerun()
-
-            # Visualização rápida dos últimos registros
-            if data_diario['logs']:
-                st.divider()
-                st.markdown("##### 📅 Registros Recentes")
-                # Converter para DF para mostrar
-                lista_logs = []
-                for d, info in data_diario['logs'].items():
-                    lista_logs.append({
-                        "Data": datetime.strptime(d, "%Y-%m-%d").date(),
-                        "Presença": "Faltou" if info.get('falta') else "Presente",
-                        "Resumo Atividade": info.get('descricao', '')[:100] + "..."
-                    })
-                if lista_logs:
-                    df_logs = pd.DataFrame(lista_logs).sort_values("Data", ascending=False)
-                    st.dataframe(df_logs, use_container_width=True, hide_index=True)
-
-        with tab_gen:
-            st.subheader("Emissão de Relatório Mensal")
-            st.caption(f"Código Único do Documento: {data_diario.get('doc_uuid', 'Será gerado na emissão')}")
-            
-            c_m, c_y = st.columns(2)
-            meses = {1:"Janeiro", 2:"Fevereiro", 3:"Março", 4:"Abril", 5:"Maio", 6:"Junho", 7:"Julho", 8:"Agosto", 9:"Setembro", 10:"Outubro", 11:"Novembro", 12:"Dezembro"}
-            mes_sel = c_m.selectbox("Mês", list(meses.keys()), format_func=lambda x: meses[x], index=date.today().month - 1)
-            ano_sel = c_y.number_input("Ano", min_value=2020, max_value=2030, value=date.today().year)
-            
-            if st.button("👁️ Gerar PDF Mensal", type="primary"):
-                # Filtra logs do mês/ano selecionado
-                logs_mensais = {}
-                for d_str, info in data_diario['logs'].items():
-                    try:
-                        d_obj = datetime.strptime(d_str, "%Y-%m-%d").date()
-                        if d_obj.month == mes_sel and d_obj.year == ano_sel:
-                            logs_mensais[d_str] = info
-                    except: pass
-                
-                if not logs_mensais:
-                    st.warning("Não há registros salvos para o período selecionado.")
-                else:
-                    # Garantir UUID se não tiver
-                    if 'doc_uuid' not in data_diario or not data_diario['doc_uuid']:
-                        data_diario['doc_uuid'] = str(uuid.uuid4()).upper()
-                        save_student("DIARIO", data_diario.get('nome', 'aluno'), data_diario, "Geração UUID")
-
-                    log_action(data_diario.get('nome'), "Gerou PDF", f"Relatório Mensal {mes_sel}/{ano_sel}")
-                    
-                    # Cria PDF em Retrato ('P')
-                    pdf = OfficialPDF('P', 'mm', 'A4')
-                    pdf.add_page(); pdf.set_margins(15, 15, 15)
-                    
-                    # SET SIGNATURE FOOTER (Diario has different signature handling, but let's standardize verification)
-                    # For Diário, signatures are usually just the accompanying professional printed
-                    signatures_mock = []
-                    if data_diario.get('acompanhante'):
-                        signatures_mock.append({'name': data_diario.get('acompanhante'), 'role': 'Acompanhante'})
-                    pdf.set_signature_footer(signatures_mock, data_diario.get('doc_uuid'))
-                    
-                    # --- CABEÇALHO ---
-                    if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)
-                    if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 170, 6, 25)
-
-                    # Títulos Centralizados
-                    pdf.set_xy(0, 15); pdf.set_font("Arial", "B", 12)
-                    pdf.cell(210, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
-                    pdf.cell(180, 6, clean_pdf_text("CEIEF RAFAEL AFFONSO LEITE"), 0, 1, 'C')
-                    pdf.ln(8)
-                    pdf.set_font("Arial", "B", 16); pdf.cell(0, 10, clean_pdf_text("RELATÓRIO DIÁRIO DE AÇÕES DE ACOMPANHAMENTO ESCOLAR"), 0, 1, 'C')
-                    pdf.ln(5)
-                    
-                    # Dados do Cabeçalho
-                    pdf.set_font("Arial", "B", 10)
-                    
-                    # Linha 1
-                    pdf.cell(15, 6, "Escola:", 0, 0)
-                    pdf.set_font("Arial", "", 10)
-                    pdf.cell(110, 6, clean_pdf_text(data_diario.get('escola', '')), "B", 0)
-                    
-                    pdf.set_font("Arial", "B", 10)
-                    pdf.cell(25, 6, clean_pdf_text("Data (Ref):"), 0, 0)
-                    pdf.set_font("Arial", "", 10)
-                    pdf.cell(0, 6, f"{meses[mes_sel]}/{ano_sel}", "B", 1)
-                    pdf.ln(2)
-                    
-                    # Linha 2
-                    pdf.set_font("Arial", "B", 10)
-                    pdf.cell(20, 6, "Estudante:", 0, 0)
-                    pdf.set_font("Arial", "", 10)
-                    pdf.cell(0, 6, clean_pdf_text(data_diario.get('nome', '')), "B", 1)
-                    pdf.ln(2)
-                    
-                    # Linha 3
-                    pdf.set_font("Arial", "B", 10)
-                    pdf.cell(35, 6, "Ano Escolaridade:", 0, 0)
-                    pdf.set_font("Arial", "", 10)
-                    pdf.cell(60, 6, clean_pdf_text(data_diario.get('ano_esc', '')), "B", 0)
-                    
-                    pdf.set_font("Arial", "B", 10)
-                    pdf.cell(20, 6, clean_pdf_text("Período:"), 0, 0)
-                    pdf.set_font("Arial", "", 10)
-                    pdf.cell(0, 6, clean_pdf_text(data_diario.get('periodo', '')), "B", 1)
-                    pdf.ln(2)
-                    
-                    # Linha 4
-                    pdf.set_font("Arial", "B", 10)
-                    pdf.cell(30, 6, "Acompanhante:", 0, 0)
-                    pdf.set_font("Arial", "", 10)
-                    pdf.cell(0, 6, clean_pdf_text(data_diario.get('acompanhante', '')), "B", 1)
-                    
-                    pdf.ln(8)
-                    
-                    # Tabela
-                    pdf.set_font("Arial", "B", 11)
-                    pdf.set_fill_color(200, 200, 200)
-                    pdf.cell(0, 8, clean_pdf_text("Descrição das atividades realizadas com o estudante"), 1, 1, 'C', True)
-                    
-                    # Cabeçalho da Tabela
-                    pdf.set_font("Arial", "B", 10)
-                    pdf.set_fill_color(240, 240, 240)
-                    pdf.cell(25, 8, "DATA", 1, 0, 'C', True)
-                    pdf.cell(0, 8, clean_pdf_text("ATIVIDADES / OCORRÊNCIAS"), 1, 1, 'C', True)
-                    
-                    # Conteúdo (Loop)
-                    pdf.set_font("Arial", "", 10)
-                    
-                    # Ordenar dias
-                    dias_ordenados = sorted(logs_mensais.keys())
-                    
-                    for d_str in dias_ordenados:
-                        info = logs_mensais[d_str]
-                        d_obj = datetime.strptime(d_str, "%Y-%m-%d")
-                        d_fmt = d_obj.strftime("%d/%m")
-                        
-                        texto = info.get('descricao', '')
-                        if info.get('falta'):
-                            texto = "[ESTUDANTE FALTOU] " + texto
-                        
-                        pdf.set_x(15)
-                        x_start = pdf.get_x()
-                        y_start = pdf.get_y()
-                        
-                        # Simula altura
-                        # Largura coluna texto = 155
-                        line_height = 5
-                        txt_width = pdf.get_string_width(clean_pdf_text(texto))
-                        num_lines = txt_width / 150 # 155 - padding
-                        h_row = max(8, (int(num_lines) + 1) * line_height + 4)
-
-                        # Check page break
-                        if y_start + h_row > 270:
-                            pdf.add_page()
-                            y_start = pdf.get_y()
-                            
-                        # Draw Cells
-                        pdf.rect(x_start, y_start, 25, h_row) # Box Data
-                        pdf.rect(x_start + 25, y_start, 155, h_row) # Box Desc
-                        
-                        # Print Data
-                        pdf.set_xy(x_start, y_start)
-                        pdf.cell(25, h_row, d_fmt, 0, 0, 'C')
-                        
-                        # Print Desc
-                        pdf.set_xy(x_start + 27, y_start + 2)
-                        pdf.multi_cell(151, 5, clean_pdf_text(texto), 0, 'J')
-                        
-                        # Move cursor
-                        pdf.set_xy(x_start, y_start + h_row)
-
-                    # Assinaturas
-                    pdf.ln(10)
-                    if pdf.get_y() > 250: pdf.add_page()
-                    
-                    y = pdf.get_y()
-                    pdf.line(15, y+10, 105, y+10)
-                    pdf.line(115, y+10, 195, y+10)
-                    
-                    pdf.set_xy(15, y+11)
-                    pdf.set_font("Arial", "", 9)
-                    pdf.cell(90, 5, "Assinatura do Acompanhante", 0, 0, 'C')
-                    pdf.cell(80, 5, clean_pdf_text("                       Visto da Coordenação/Direção"), 0, 1, 'C')
-                    
-                    st.session_state.pdf_bytes_diario_mes = get_pdf_bytes(pdf)
-                    st.rerun()
-
-            if 'pdf_bytes_diario_mes' in st.session_state:
-                file_name_clean = data_diario.get('nome','aluno').replace(" ", "_")
-                st.download_button(
-                    "📥 BAIXAR RELATÓRIO MENSAL (PDF)", 
-                    st.session_state.pdf_bytes_diario_mes, 
-                    f"Diario_{file_name_clean}_{mes_sel}_{ano_sel}.pdf", 
-                    "application/pdf", 
-                    type="primary"
-                )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            df_hist = safe_

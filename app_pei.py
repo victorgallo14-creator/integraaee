@@ -245,7 +245,7 @@ def login():
                             if not df_monitores.empty:
                                 df_monitores['matricula'] = df_monitores['matricula'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
                                 
-                                if password == "123" and user_id_limpo in df_monitores['matricula'].values:
+                                if password == SENHA_MESTRA and user_id_limpo in df_monitores['matricula'].values:
                                     registro = df_monitores[df_monitores['matricula'] == user_id_limpo]
                                     nome_mon = registro['nome'].values[0]
                                     
@@ -3180,3 +3180,4 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+

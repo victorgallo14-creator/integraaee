@@ -1,4 +1,4 @@
-import streamlit as st            
+import streamlit as st
 from fpdf import FPDF
 from datetime import datetime, date, timedelta, timezone
 import io
@@ -32,9 +32,15 @@ hide_st_style = """
             
             /* --- COMPORTAMENTO DESKTOP (Largura > 992px) --- */
             @media (min-width: 992px) {
-                /* Esconde o header e trava a sidebar aberta */
-                header {visibility: hidden;}
-                [data-testid="stSidebarCollapseButton"] {display: none;}
+                /* Esconde completamente o header */
+                header {display: none !important;}
+                [data-testid="stSidebarCollapseButton"] {display: none !important;}
+                
+                /* FORÇA A BARRA LATERAL A IR PARA O TOPO ABSOLUTO */
+                section[data-testid="stSidebar"] {
+                    top: 0px !important;
+                    height: 100vh !important;
+                }
             }
             
             /* --- COMPORTAMENTO MOBILE/TABLET (Largura <= 991px) --- */
@@ -485,7 +491,6 @@ def login():
         # Interrompe o carregamento do restante do app até que o login seja feito
         st.stop()
 
-
 # --- ATIVAÇÃO DO LOGIN ---
 login()
 
@@ -538,8 +543,8 @@ st.markdown("""
         border-left: 6px solid #2563eb; /* Borda lateral azul */
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         margin-bottom: 2rem;
-        /* Margem negativa apenas para Desktop para 'colar' no topo */
-        margin-top: -50px;
+        /* Margem negativa removida pois o header agora é display:none */
+        margin-top: 0px; 
     }
     
     .header-title { color: #1e293b; font-weight: 700; font-size: 1.8rem; margin: 0; }
@@ -661,8 +666,8 @@ with st.sidebar:
     st.markdown("""
     <style>
         section[data-testid="stSidebar"] > div {
-            padding-top: -100rem !important;
-            padding-bottom: -8rem !important;
+            padding-top: 1rem !important;
+            padding-bottom: 2rem !important;
         }
         [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
             gap: 1.2rem !important;
@@ -672,6 +677,7 @@ with st.sidebar:
             font-weight: 800;
             color: #1e3a8a;
             margin: 0;
+            margin-top: 0px !important;
             text-align: center;
             line-height: 1.2;
         }
@@ -731,7 +737,6 @@ with st.sidebar:
     """, unsafe_allow_html=True)
     
     st.divider()
-
     # 3. NAVEGAÇÃO PRINCIPAL
     app_mode = st.radio("Navegação", ["📊 Painel de Gestão", "👥 Gestão de Alunos"], label_visibility="collapsed")
 
@@ -3466,6 +3471,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 
 
 

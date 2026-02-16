@@ -57,22 +57,33 @@ hide_st_style = """
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
-# --- FUNÇÕES DE BANCO DE DADOS E UTILITÁRIOS ---
+# --- FUNÇÕES DE BANCO DE DADOS E UTILITÁRIOS (COM PROTEÇÃO ANTI-WIPE) ---
 
-def load_db():
-    """Lê os dados da planilha do Google"""
+def load_db(strict=False):
+    """
+    Lê os dados da planilha do Google.
+    strict=True: Levanta erro se a leitura falhar (usado antes de salvar para garantir que leu tudo).
+    strict=False: Retorna vazio se falhar (usado apenas para visualização).
+    """
     try:
         df = conn.read(worksheet="Alunos", ttl=0)
+        # Se o DF vier vazio, verificar se não foi erro de conexão silencioso
+        if df.empty and strict:
+             # Tenta ler outra aba leve apenas para testar conexão
+             conn.read(worksheet="Professores", ttl=0)
+        
         df = df.dropna(how="all")
         return df
     except Exception as e:
+        if strict:
+            st.error(f"❌ ERRO CRÍTICO DE LEITURA: Não foi possível ler o banco de dados. Operação de salvamento bloqueada para evitar perda de dados. Detalhe: {e}")
+            raise e # Para a execução
         return pd.DataFrame(columns=["nome", "tipo_doc", "dados_json", "id"])
 
 def safe_read(worksheet_name, columns):
     """Lê uma aba com segurança, retornando vazio se falhar"""
     try:
         df = conn.read(worksheet=worksheet_name, ttl=0)
-        # Se vier vazio, retornamos o DF com as colunas certas
         if df.empty:
              return pd.DataFrame(columns=columns)
         return df
@@ -88,41 +99,33 @@ def safe_update(worksheet_name, data):
         st.error(f"Erro ao atualizar {worksheet_name}: {e}")
         return False
 
-def log_action(student_name, action, details=""):
-    """Registra uma ação no histórico do aluno."""
-    try:
-        user = st.session_state.get('usuario_nome', 'Desconhecido')
-        df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
-        
-        new_entry = {
-            "Data_Hora": datetime.now().strftime("%d/%m/%Y %H:%M"),
-            "Aluno": student_name,
-            "Usuario": user,
-            "Acao": action,
-            "Detalhes": details
-        }
-        
-        df_hist = pd.concat([pd.DataFrame([new_entry]), df_hist], ignore_index=True)
-        safe_update("Historico", df_hist)
-    except Exception as e:
-        print(f"Erro no log: {e}")
+def create_backup(df_atual):
+    """Cria um backup de segurança na aba 'Backup_Alunos' antes de qualquer alteração"""
+    if not df_atual.empty:
+        try:
+            # Tenta salvar na aba de Backup. Se ela não existir, o gsheets cria ou dá erro dependendo da permissão
+            # O ideal é criar uma aba "Backup_Alunos" manualmente no Google Sheets antes.
+            conn.update(worksheet="Backup_Alunos", data=df_atual)
+        except Exception as e:
+            print(f"Aviso: Não foi possível criar backup: {e}")
 
 def save_student(doc_type, name, data, section="Geral"):
-    """Salva ou atualiza garantindo que não duplique linhas"""
-    # Proteção de backend além do frontend
-    # Nota: is_monitor será definido após login(), mas esta função só é chamada via botões após login.
+    """Salva ou atualiza com TRAVA DE SEGURANÇA (ANTI-WIPE)"""
+    
+    # Verifica permissão
     is_monitor = st.session_state.get('user_role') == 'monitor'
-    
-    # Exceção: Monitores podem assinar documentos (salvar apenas a assinatura)
-    # A lógica de bloqueio deve ser tratada antes de chamar save_student se for edição de conteúdo
-    # Aqui permitimos salvar se for DIARIO ou se for apenas atualização de assinatura (tratado na logica da UI)
-    
     if is_monitor and doc_type != "DIARIO" and section != "Assinatura":
         st.error("Acesso negado: Monitores não podem editar este documento.")
         return
 
     try:
-        df_atual = load_db()
+        # 1. LEITURA ESTRITA: Se falhar a leitura, O CÓDIGO PARA AQUI.
+        # Isso impede que o sistema ache que o banco está vazio por erro de internet.
+        df_atual = load_db(strict=True)
+        
+        # 2. BACKUP AUTOMÁTICO
+        create_backup(df_atual)
+
         id_registro = f"{name} ({doc_type})"
         
         # Garantir UUID
@@ -138,47 +141,86 @@ def save_student(doc_type, name, data, section="Geral"):
         data_limpa = serializar_datas(data)
         novo_json = json.dumps(data_limpa, ensure_ascii=False)
 
+        # Lógica de Atualização vs Inserção
+        df_final = df_atual.copy()
+        
         if not df_atual.empty and "id" in df_atual.columns and id_registro in df_atual["id"].values:
-            df_atual.loc[df_atual["id"] == id_registro, "dados_json"] = novo_json
-            df_final = df_atual
+            # ATUALIZAÇÃO
+            df_final.loc[df_final["id"] == id_registro, "dados_json"] = novo_json
         else:
+            # INSERÇÃO
             novo_registro = {
                 "id": id_registro,
                 "nome": name,
                 "tipo_doc": doc_type,
                 "dados_json": novo_json
             }
-            df_final = pd.concat([df_atual, pd.DataFrame([novo_registro])], ignore_index=True)
+            # Se o banco estava vazio, cria o DF, senão concatena
+            if df_final.empty:
+                df_final = pd.DataFrame([novo_registro])
+            else:
+                df_final = pd.concat([df_final, pd.DataFrame([novo_registro])], ignore_index=True)
 
+        # 3. TRAVA DE SEGURANÇA (ANTI-WIPE)
+        # Se o banco tinha dados (ex: 100 linhas) e o df_final tem muito menos (ex: 1 linha),
+        # significa que algo deu errado na leitura ou concatenação. Bloqueia o salvamento.
+        qtd_antes = len(df_atual)
+        qtd_depois = len(df_final)
+
+        if qtd_antes > 5 and qtd_depois < (qtd_antes * 0.9): 
+            # Se tentar apagar mais de 10% da base de uma vez numa função de salvar, é erro.
+            st.error(f"⛔ BLOQUEIO DE SEGURANÇA: O sistema detectou uma possível perda de dados em massa (De {qtd_antes} para {qtd_depois} registros). A operação foi cancelada.")
+            return
+
+        # 4. SALVAMENTO FINAL
         conn.update(worksheet="Alunos", data=df_final)
         
         # Registra no histórico
         log_action(name, f"Salvou {doc_type}", f"Seção: {section}")
         
-        st.toast(f"✅ Alterações em {name} salvas na nuvem!", icon="💾")
+        st.toast(f"✅ Alterações em {name} salvas com segurança!", icon="💾")
         
     except Exception as e:
         st.error(f"Erro ao salvar: {e}")
 
 def delete_student(student_name):
-    """Exclui um aluno do DataFrame e atualiza a planilha"""
+    """Exclui um aluno com TRAVA DE SEGURANÇA"""
     is_monitor = st.session_state.get('user_role') == 'monitor'
     if is_monitor:
         st.error("Acesso negado: Monitores não podem excluir registros.")
         return False
         
     try:
-        df = load_db()
+        # Leitura Estrita
+        df = load_db(strict=True)
+        create_backup(df) # Backup antes de deletar
+
         if "nome" in df.columns:
+            # Filtra removendo o aluno
             df_new = df[df["nome"] != student_name]
-            if len(df_new) < len(df):
+            
+            qtd_antes = len(df)
+            qtd_depois = len(df_new)
+
+            # Trava: Se a exclusão apagar TUDO ou mais do que o esperado
+            if qtd_antes > 0 and qtd_depois == 0 and qtd_antes > 5: 
+                # Se tinha mais de 5 alunos e vai sobrar zero, provavelmente a lógica de filtro falhou ou string vazia
+                st.error("⛔ BLOQUEIO: Tentativa de excluir TODOS os registros detectada. Operação cancelada.")
+                return False
+
+            if qtd_depois < qtd_antes:
                 conn.update(worksheet="Alunos", data=df_new)
                 log_action(student_name, "Exclusão", "Registro do aluno excluído")
                 st.toast(f"🗑️ Registro de {student_name} excluído com sucesso!", icon="🔥")
                 return True
+            else:
+                st.warning("Nenhum registro encontrado para exclusão.")
     except Exception as e:
         st.error(f"Erro ao excluir: {e}")
     return False
+
+# --- FIM DAS FUNÇÕES DE BANCO DE DADOS ---
+
 
 # --- HELPERS PARA PDF ---
 def clean_pdf_text(text):
@@ -4683,6 +4725,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 
 
 

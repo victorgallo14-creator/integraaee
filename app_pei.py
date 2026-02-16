@@ -109,6 +109,24 @@ def create_backup(df_atual):
         except Exception as e:
             print(f"Aviso: Não foi possível criar backup: {e}")
 
+# --- LOGGER ---
+def log_action(student_name, action, details):
+    """Registra ação no histórico"""
+    try:
+        df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
+        novo_log = {
+            "Data_Hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "Aluno": student_name,
+            "Usuario": st.session_state.get('usuario_nome', 'Desconhecido'),
+            "Acao": action,
+            "Detalhes": details
+        }
+        df_hist = pd.concat([df_hist, pd.DataFrame([novo_log])], ignore_index=True)
+        safe_update("Historico", df_hist)
+    except Exception as e:
+        print(f"Erro ao logar: {e}")
+
+
 def save_student(doc_type, name, data, section="Geral"):
     """Salva ou atualiza com TRAVA DE SEGURANÇA (ANTI-WIPE)"""
     
@@ -4907,6 +4925,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

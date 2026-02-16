@@ -4909,3 +4909,5 @@ elif app_mode == "👥 Gestão de Alunos":
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
 
 
+
+

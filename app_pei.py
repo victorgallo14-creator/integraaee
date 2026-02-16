@@ -654,6 +654,8 @@ if 'data_pdi' not in st.session_state:
         'pdi_recursos': '',
         'pdi_periodo': 'Trimestral',
         'pdi_obs': ''
+if 'data_declaracao' not in st.session_state:
+    st.session_state.data_declaracao = {}
     }
 
 def carregar_dados_aluno():
@@ -4905,3 +4907,4 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+

@@ -4156,7 +4156,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.add_page(); pdf.set_margins(15, 15, 15)
                     
                     # SET SIGNATURE FOOTER
-                    pdf.set_signature_footer(data.get('signatures', []), data.get('doc_uuid', ''))
+                    #pdf.set_signature_footer(data.get('signatures', []), data.get('doc_uuid', ''))
                     
                     # 1. HEADER (FIXED CEIEF RAFAEL AFFONSO LEITE)
                     if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)
@@ -4683,6 +4683,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 
 
 

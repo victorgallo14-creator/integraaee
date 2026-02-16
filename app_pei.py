@@ -841,7 +841,7 @@ with st.sidebar:
         st.markdown('<p class="section-label">📂 Tipo de Documento</p>', unsafe_allow_html=True)
         doc_sub_mode = st.radio(
             "Modo Doc", 
-            ["Estudo de Caso", "PEI", "PDI", "Protocolo de Conduta", "Avaliação de Apoio", "Relatório de Acompanhamento"],
+            ["Estudo de Caso", "PEI", "PDI", "Protocolo de Conduta", "Avaliação de Apoio", "Relatório de Acompanhamento", "Declaração de Matrícula"],
             index=default_doc_idx, 
             key="doc_option",
             label_visibility="collapsed"
@@ -4726,31 +4726,182 @@ elif app_mode == "👥 Gestão de Alunos":
                     type="primary"
                 )
 
+    # --- DECLARAÇÃO DE MATRÍCULA (NOVO) ---
+    elif doc_mode == "Declaração de Matrícula":
+        st.markdown(f"""<div class="header-box"><div class="header-title">Declaração de Matrícula e Atendimento</div></div>""", unsafe_allow_html=True)
+        
+        data_dec = st.session_state.data_declaracao
+        data_pei = st.session_state.data_pei
+        data_case = st.session_state.data_case
+        data_pdi = st.session_state.data_pdi
+        
+        # Helper safe get
+        def get_d(d, k, default=""):
+            return d.get(k, default) if d.get(k) else default
 
+        # Defaults initialization logic (only if empty in data_dec)
+        if not data_dec.get('nome'):
+            data_dec['nome'] = get_d(data_pei, 'nome', st.session_state.get('aluno_selecionado', ''))
+        
+        default_turma = data_dec.get('turma') or get_d(data_pei, 'ano_esc') or get_d(data_case, 'ano_esc')
+        default_periodo = data_dec.get('periodo') or get_d(data_case, 'periodo', 'Manhã')
+        default_defic = data_dec.get('deficiencia') or get_d(data_pei, 'defic_txt')
+        if not default_defic and data_pei.get('diag_tipo'):
+             default_defic = ", ".join(data_pei['diag_tipo'])
+        
+        default_poli = data_dec.get('prof_poli') or get_d(data_pei, 'prof_poli')
+        default_arte = data_dec.get('prof_arte') or get_d(data_pei, 'prof_arte')
+        default_ef = data_dec.get('prof_ef') or get_d(data_pei, 'prof_ef')
+        default_tec = data_dec.get('prof_tec') or get_d(data_pei, 'prof_tec')
+        
+        default_prof_aee = data_dec.get('prof_aee') or get_d(data_pei, 'prof_aee')
+        default_aee_mod = data_dec.get('aee_modalidade') or get_d(data_pdi, 'aee_tipo')
+        default_aee_comp = data_dec.get('aee_composicao') or get_d(data_pdi, 'aee_comp')
+        default_aee_tempo = data_dec.get('aee_tempo') or get_d(data_pdi, 'aee_tempo', '50 minutos')
 
+        with st.form("form_declaracao"):
+            st.subheader("Dados da Declaração")
+            
+            c1, c2 = st.columns([3, 1])
+            data_dec['nome'] = c1.text_input("Nome do Estudante", value=data_dec.get('nome', ''), disabled=True)
+            data_dec['turma'] = c2.text_input("Turma/Ano", value=default_turma)
+            
+            c3, c4 = st.columns([1, 2])
+            per_opts = ["Manhã", "Tarde", "Integral"]
+            p_idx = per_opts.index(default_periodo) if default_periodo in per_opts else 0
+            data_dec['periodo'] = c3.selectbox("Período", per_opts, index=p_idx)
+            data_dec['deficiencia'] = c4.text_input("Deficiência / Transtorno", value=default_defic)
+            
+            st.divider()
+            st.markdown("##### Quadro Docente")
+            d1, d2 = st.columns(2)
+            data_dec['prof_poli'] = d1.text_input("Professor(a) Regente", value=default_poli)
+            data_dec['prof_arte'] = d2.text_input("Professor(a) Arte", value=default_arte)
+            d3, d4 = st.columns(2)
+            data_dec['prof_ef'] = d3.text_input("Professor(a) Ed. Física", value=default_ef)
+            data_dec['prof_tec'] = d4.text_input("Professor(a) Tecnologia", value=default_tec)
+            
+            st.divider()
+            st.markdown("##### Atendimento Educacional Especializado (AEE)")
+            data_dec['prof_aee'] = st.text_input("Professor(a) Sala de Recursos", value=default_prof_aee)
+            
+            a1, a2 = st.columns(2)
+            data_dec['aee_modalidade'] = a1.text_input("Modalidade", value=default_aee_mod, help="Ex: Sala de Recursos, Colaborativo")
+            data_dec['aee_composicao'] = a2.text_input("Forma de Atendimento", value=default_aee_comp, help="Ex: Individual, Grupo")
+            
+            a3, a4 = st.columns(2)
+            data_dec['aee_tempo'] = a3.text_input("Tempo por atendimento", value=default_aee_tempo)
+            data_dec['aee_freq'] = a4.text_input("Qtd. Atendimentos Semanais", value=data_dec.get('aee_freq', ''))
+            
+            st.divider()
+            st.markdown("##### Apoio Escolar")
+            has_apoio_idx = 0 if data_dec.get('tem_apoio') == 'Sim' else 1
+            data_dec['tem_apoio'] = st.radio("Possui Profissional de Apoio?", ["Sim", "Não"], index=has_apoio_idx, horizontal=True)
+            
+            if data_dec['tem_apoio'] == 'Sim':
+                data_dec['nome_apoio'] = st.text_input("Nome do Profissional de Apoio", value=data_dec.get('nome_apoio', ''))
+            else:
+                data_dec['nome_apoio'] = ""
 
+            st.divider()
+            if not is_monitor:
+                if st.form_submit_button("💾 Salvar Declaração"):
+                    save_student("DECLARACAO", data_dec['nome'], data_dec, "Geral")
+            else:
+                st.info("Modo visualização (Monitor).")
 
+        # Signatures section for Declaration
+        st.divider()
+        st.subheader("Assinaturas Digitais")
+        st.caption(f"Código Único: {data_dec.get('doc_uuid', 'Salvar para gerar')}")
+        
+        current_signatures = data_dec.get('signatures', [])
+        if current_signatures:
+            for sig in current_signatures:
+                st.success(f"Assinado por {sig['name']} em {sig['date']}")
+        
+        user_name = st.session_state.get('usuario_nome', '')
+        already_signed = any(s['name'] == user_name for s in current_signatures)
+        
+        if not already_signed and not is_monitor:
+            if st.button("🖊️ Assinar Declaração"):
+                new_sig = {
+                    "name": user_name,
+                    "role": "Profissional",
+                    "date": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+                    "hash": str(uuid.uuid4())
+                }
+                if 'signatures' not in data_dec: data_dec['signatures'] = []
+                data_dec['signatures'].append(new_sig)
+                save_student("DECLARACAO", data_dec.get('nome'), data_dec, "Assinatura")
+                st.rerun()
 
+        # PDF Button
+        if st.button("👁️ GERAR DECLARAÇÃO (PDF)"):
+            log_action(data_dec.get('nome'), "Gerou PDF", "Declaração")
+            
+            pdf = OfficialPDF('P', 'mm', 'A4')
+            pdf.add_page(); pdf.set_margins(20, 20, 20)
+            pdf.set_signature_footer(data_dec.get('signatures', []), data_dec.get('doc_uuid', ''))
+            
+            if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 20, 10, 25)
+            if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 165, 10, 25)
+            
+            pdf.set_xy(0, 20)
+            pdf.set_font("Arial", "B", 14)
+            pdf.cell(0, 8, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
+            pdf.cell(0, 8, clean_pdf_text("SECRETARIA MUNICIPAL DE EDUCAÇÃO"), 0, 1, 'C')
+            
+            pdf.ln(20)
+            pdf.set_font("Arial", "B", 16)
+            pdf.cell(0, 10, clean_pdf_text("DECLARAÇÃO DE MATRÍCULA E ATENDIMENTO"), 0, 1, 'C')
+            pdf.ln(10)
+            
+            pdf.set_font("Arial", "", 12)
+            texto_inicial = (
+                f"Declaramos para os devidos fins que o(a) estudante {data_dec.get('nome', '').upper()}, "
+                f"matriculado(a) na turma {data_dec.get('turma', '')}, período {data_dec.get('periodo', '').upper()}, "
+                f"desta unidade escolar, frequenta as aulas regularmente."
+            )
+            pdf.multi_cell(0, 8, clean_pdf_text(texto_inicial))
+            pdf.ln(5)
+            
+            texto_defic = f"O(A) estudante apresenta {data_dec.get('deficiencia', 'não informado')} e recebe acompanhamento pedagógico dos seguintes docentes:"
+            pdf.multi_cell(0, 8, clean_pdf_text(texto_defic))
+            pdf.ln(2)
+            
+            pdf.set_x(30)
+            pdf.cell(0, 8, clean_pdf_text(f"- Professor(a) Regente: {data_dec.get('prof_poli', '')}"), 0, 1)
+            pdf.set_x(30)
+            pdf.cell(0, 8, clean_pdf_text(f"- Professor(a) Arte: {data_dec.get('prof_arte', '')}"), 0, 1)
+            pdf.set_x(30)
+            pdf.cell(0, 8, clean_pdf_text(f"- Professor(a) Ed. Física: {data_dec.get('prof_ef', '')}"), 0, 1)
+            if data_dec.get('prof_tec'):
+                pdf.set_x(30)
+                pdf.cell(0, 8, clean_pdf_text(f"- Professor(a) Tecnologia: {data_dec.get('prof_tec', '')}"), 0, 1)
+            
+            pdf.ln(5)
+            texto_aee = (
+                f"No que tange ao Atendimento Educacional Especializado (AEE), o estudante é atendido pelo(a) "
+                f"professor(a) {data_dec.get('prof_aee', '')}, na modalidade {data_dec.get('aee_modalidade', '')}, "
+                f"de forma {data_dec.get('aee_composicao', '')}, com duração de {data_dec.get('aee_tempo', '')}, "
+                f"{data_dec.get('aee_freq', '')} vezes por semana."
+            )
+            pdf.multi_cell(0, 8, clean_pdf_text(texto_aee))
+            
+            if data_dec.get('tem_apoio') == 'Sim':
+                pdf.ln(5)
+                pdf.multi_cell(0, 8, clean_pdf_text(f"Conta com o acompanhamento do Profissional de Apoio Escolar: {data_dec.get('nome_apoio', '')}."))
+            
+            pdf.ln(20)
+            pdf.cell(0, 8, clean_pdf_text(f"Limeira, {datetime.now().strftime('%d/%m/%Y')}."), 0, 1, 'R')
+            
+            pdf.ln(30)
+            pdf.cell(0, 8, "___________________________________________________", 0, 1, 'C')
+            pdf.cell(0, 8, "Assinatura do Responsável / Direção", 0, 1, 'C')
 
+            st.session_state.pdf_bytes_dec = get_pdf_bytes(pdf)
+            st.rerun()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        if 'pdf_bytes_dec' in st.session_state:
+            st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")

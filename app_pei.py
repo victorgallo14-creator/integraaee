@@ -3818,7 +3818,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.add_page(); pdf.set_margins(10, 10, 10)
                     
                     # SET SIGNATURE FOOTER
-                    pdf.set_signature_footer(data.get('signatures', []), data.get('doc_uuid', ''))
+                   # pdf.set_signature_footer(data.get('signatures', []), data.get('doc_uuid', ''))
                     
                     # --- CABEÇALHO ---
                     if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 10, 8, 20)
@@ -4683,6 +4683,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     "application/pdf", 
                     type="primary"
                 )
+
 
 
 

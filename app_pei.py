@@ -4746,7 +4746,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     type="primary"
                 )
 
-    # --- DECLARAÇÃO DE MATRÍCULA (NOVO) ---
+# --- DECLARAÇÃO DE MATRÍCULA (NOVO) ---
     elif doc_mode == "Declaração de Matrícula":
         st.markdown(f"""<div class="header-box"><div class="header-title">Declaração de Matrícula e Atendimento</div></div>""", unsafe_allow_html=True)
         
@@ -4754,77 +4754,114 @@ elif app_mode == "👥 Gestão de Alunos":
         data_pei = st.session_state.data_pei
         data_case = st.session_state.data_case
         data_pdi = st.session_state.data_pdi
+        data_aval = st.session_state.get('data_avaliacao', {})
         
         # Helper safe get
         def get_d(d, k, default=""):
             return d.get(k, default) if d.get(k) else default
 
-        # Defaults initialization logic (only if empty in data_dec)
-        if not data_dec.get('nome'):
-            data_dec['nome'] = get_d(data_pei, 'nome', st.session_state.get('aluno_selecionado', ''))
-        
-        default_turma = data_dec.get('turma') or get_d(data_pei, 'ano_esc') or get_d(data_case, 'ano_esc')
-        default_periodo = data_dec.get('periodo') or get_d(data_case, 'periodo', 'Manhã')
-        default_defic = data_dec.get('deficiencia') or get_d(data_pei, 'defic_txt')
-        if not default_defic and data_pei.get('diag_tipo'):
-             default_defic = ", ".join(data_pei['diag_tipo'])
-        
-        default_poli = data_dec.get('prof_poli') or get_d(data_pei, 'prof_poli')
-        default_arte = data_dec.get('prof_arte') or get_d(data_pei, 'prof_arte')
-        default_ef = data_dec.get('prof_ef') or get_d(data_pei, 'prof_ef')
-        default_tec = data_dec.get('prof_tec') or get_d(data_pei, 'prof_tec')
-        
-        default_prof_aee = data_dec.get('prof_aee') or get_d(data_pei, 'prof_aee')
-        default_aee_mod = data_dec.get('aee_modalidade') or get_d(data_pdi, 'aee_tipo')
-        default_aee_comp = data_dec.get('aee_composicao') or get_d(data_pdi, 'aee_comp')
-        default_aee_tempo = data_dec.get('aee_tempo') or get_d(data_pdi, 'aee_tempo', '50 minutos')
-
         with st.form("form_declaracao"):
             st.subheader("Dados da Declaração")
+            st.caption("Os dados são pré-carregados dos outros documentos (PEI, PDI, Avaliação, Estudo de Caso) se disponíveis. Verifique e complemente se necessário.")
+            
+            # --- LÓGICA DE DADOS PADRÃO (AUTOPREENCHIMENTO) ---
+            # Se o campo já estiver salvo em data_dec, usa ele. Senão, tenta buscar nos outros docs.
+            
+            # Nome
+            val_nome = data_dec.get('nome') or get_d(data_pei, 'nome') or get_d(data_case, 'nome') or get_d(data_aval, 'nome') or st.session_state.get('aluno_selecionado', '')
+            data_dec['nome'] = val_nome
+
+            # Turma/Ano
+            val_turma = data_dec.get('turma') or get_d(data_pei, 'ano_esc') or get_d(data_case, 'ano_esc') or get_d(data_aval, 'ano_esc')
+            
+            # Período
+            val_periodo = data_dec.get('periodo') or get_d(data_case, 'periodo', 'Manhã')
+            
+            # Deficiência
+            val_defic = data_dec.get('deficiencia')
+            if not val_defic:
+                if data_pei.get('defic_txt'): val_defic = data_pei['defic_txt']
+                elif data_pei.get('diag_tipo'): val_defic = ", ".join(data_pei['diag_tipo'])
+                elif data_aval.get('defic_chk'): val_defic = ", ".join(data_aval['defic_chk'])
+            
+            # Professores (Prioridade: PEI -> Avaliação -> Vazio)
+            val_poli = data_dec.get('prof_poli') or get_d(data_pei, 'prof_poli') or get_d(data_aval, 'resp_sala')
+            val_arte = data_dec.get('prof_arte') or get_d(data_pei, 'prof_arte') or get_d(data_aval, 'resp_arte')
+            val_ef = data_dec.get('prof_ef') or get_d(data_pei, 'prof_ef') or get_d(data_aval, 'resp_ef')
+            val_tec = data_dec.get('prof_tec') or get_d(data_pei, 'prof_tec') # Linguagens e Tecnologias
+            val_aee = data_dec.get('prof_aee') or get_d(data_pei, 'prof_aee') or get_d(data_aval, 'resp_ee')
+            
+            # AEE Detalhes (Prioridade: PDI -> Vazio)
+            val_aee_mod = data_dec.get('aee_modalidade') or get_d(data_pdi, 'aee_tipo')
+            val_aee_comp = data_dec.get('aee_composicao') or get_d(data_pdi, 'aee_comp')
+            val_aee_tempo = data_dec.get('aee_tempo') or get_d(data_pdi, 'aee_tempo', '50 minutos')
+            
+            # Apoio Escolar (Prioridade: Avaliação de Apoio -> Vazio)
+            val_tem_apoio = data_dec.get('tem_apoio')
+            val_nome_apoio = data_dec.get('nome_apoio')
+            
+            if not val_tem_apoio:
+                # Inferência automática baseada na Avaliação de Apoio
+                nivel = data_aval.get('conclusao_nivel', '')
+                apoio_ex = data_aval.get('apoio_existente', '')
+                if "Nível 2" in nivel or "Nível 3" in nivel or apoio_ex:
+                    val_tem_apoio = 'Sim'
+                    if not val_nome_apoio: val_nome_apoio = apoio_ex
+                else:
+                    val_tem_apoio = 'Não'
+
+            # --- RENDERIZAÇÃO DOS CAMPOS ---
             
             c1, c2 = st.columns([3, 1])
-            data_dec['nome'] = c1.text_input("Nome do Estudante", value=data_dec.get('nome', ''), disabled=True)
-            data_dec['turma'] = c2.text_input("Turma/Ano", value=default_turma)
+            data_dec['nome'] = c1.text_input("Nome do Estudante", value=val_nome, disabled=True)
+            data_dec['turma'] = c2.text_input("Turma/Ano", value=val_turma)
             
             c3, c4 = st.columns([1, 2])
             per_opts = ["Manhã", "Tarde", "Integral"]
-            p_idx = per_opts.index(default_periodo) if default_periodo in per_opts else 0
+            p_idx = per_opts.index(val_periodo) if val_periodo in per_opts else 0
             data_dec['periodo'] = c3.selectbox("Período", per_opts, index=p_idx)
-            data_dec['deficiencia'] = c4.text_input("Deficiência / Transtorno", value=default_defic)
+            data_dec['deficiencia'] = c4.text_input("Deficiência / Transtorno", value=val_defic)
             
             st.divider()
             st.markdown("##### Quadro Docente")
             d1, d2 = st.columns(2)
-            data_dec['prof_poli'] = d1.text_input("Professor(a) Regente", value=default_poli)
-            data_dec['prof_arte'] = d2.text_input("Professor(a) Arte", value=default_arte)
+            data_dec['prof_poli'] = d1.text_input("Professor(a) Regente", value=val_poli)
+            data_dec['prof_arte'] = d2.text_input("Professor(a) Arte", value=val_arte)
             d3, d4 = st.columns(2)
-            data_dec['prof_ef'] = d3.text_input("Professor(a) Ed. Física", value=default_ef)
-            data_dec['prof_tec'] = d4.text_input("Professor(a) Tecnologia", value=default_tec)
+            data_dec['prof_ef'] = d3.text_input("Professor(a) Ed. Física", value=val_ef)
+            data_dec['prof_tec'] = d4.text_input("Professor(a) Linguagens e Tecnologias", value=val_tec)
             
             st.divider()
             st.markdown("##### Atendimento Educacional Especializado (AEE)")
-            data_dec['prof_aee'] = st.text_input("Professor(a) Sala de Recursos", value=default_prof_aee)
+            data_dec['prof_aee'] = st.text_input("Professor(a) Sala de Recursos", value=val_aee)
             
             a1, a2 = st.columns(2)
-            data_dec['aee_modalidade'] = a1.text_input("Modalidade", value=default_aee_mod, help="Ex: Sala de Recursos, Colaborativo")
-            data_dec['aee_composicao'] = a2.text_input("Forma de Atendimento", value=default_aee_comp, help="Ex: Individual, Grupo")
+            data_dec['aee_modalidade'] = a1.text_input("Modalidade", value=val_aee_mod, help="Ex: Sala de Recursos, Colaborativo")
+            data_dec['aee_composicao'] = a2.text_input("Forma de Atendimento", value=val_aee_comp, help="Ex: Individual, Grupo")
             
             a3, a4 = st.columns(2)
-            data_dec['aee_tempo'] = a3.text_input("Tempo por atendimento", value=default_aee_tempo)
+            data_dec['aee_tempo'] = a3.text_input("Tempo por atendimento", value=val_aee_tempo)
             data_dec['aee_freq'] = a4.text_input("Qtd. Atendimentos Semanais", value=data_dec.get('aee_freq', ''))
             
             st.divider()
             st.markdown("##### Apoio Escolar")
-            has_apoio_idx = 0 if data_dec.get('tem_apoio') == 'Sim' else 1
+            has_apoio_idx = 0 if val_tem_apoio == 'Sim' else 1
             data_dec['tem_apoio'] = st.radio("Possui Profissional de Apoio?", ["Sim", "Não"], index=has_apoio_idx, horizontal=True)
             
             if data_dec['tem_apoio'] == 'Sim':
-                data_dec['nome_apoio'] = st.text_input("Nome do Profissional de Apoio", value=data_dec.get('nome_apoio', ''))
+                data_dec['nome_apoio'] = st.text_input("Nome do Profissional de Apoio", value=val_nome_apoio)
             else:
-                data_dec['nome_apoio'] = ""
+                data_dec['nome_apoio'] = "" # Limpa se não tiver
 
             st.divider()
+            
             if not is_monitor:
+                if st.form_submit_button("🔄 Atualizar dados (re-importar)"):
+                    # Ao submeter, os valores recalculados acima serão usados nos widgets e salvos automaticamente no session_state pelo streamlit
+                    # Apenas exibimos uma mensagem
+                    st.toast("Dados atualizados com base nos documentos!", icon="🔄")
+                
+                # Botão Salvar (Para persistir no banco)
                 if st.form_submit_button("💾 Salvar Declaração"):
                     save_student("DECLARACAO", data_dec['nome'], data_dec, "Geral")
             else:
@@ -4898,7 +4935,7 @@ elif app_mode == "👥 Gestão de Alunos":
             pdf.cell(0, 8, clean_pdf_text(f"- Professor(a) Ed. Física: {data_dec.get('prof_ef', '')}"), 0, 1)
             if data_dec.get('prof_tec'):
                 pdf.set_x(30)
-                pdf.cell(0, 8, clean_pdf_text(f"- Professor(a) Tecnologia: {data_dec.get('prof_tec', '')}"), 0, 1)
+                pdf.cell(0, 8, clean_pdf_text(f"- Professor(a) Linguagens e Tecnologias: {data_dec.get('prof_tec', '')}"), 0, 1)
             
             pdf.ln(5)
             texto_aee = (

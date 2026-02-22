@@ -1175,12 +1175,15 @@ elif app_mode == "👥 Gestão de Alunos":
         tabs = st.tabs(["1. Identificação", "2. Saúde", "3. Conduta", "4. Escolar", "5. Acadêmico", "6. Metas/Flex", "7. Assinaturas", "8. Emissão", "9. Histórico"])
         data = st.session_state.data_pei
 
-        # --- ABA 1: IDENTIFICAÇÃO ---
+# --- ABA 1: IDENTIFICAÇÃO ---
         with tabs[0]:
-                        # INSERIR ESTE BLOCO AQUI:
-            if st.button("🔄 Importar Informações do Estudo de Caso", key="btn_puxar_pei"):
+            # Fora do formulário para garantir que o Streamlit renderize
+            if st.button("🔄 Importar Dados do Estudo de Caso", key="btn_pei_sync"):
                 carregar_dados_aluno()
                 st.rerun()
+            
+            # Espaço para não ficar grudado
+            st.write("")
 
             with st.form("form_pei_identificacao") if not is_monitor else st.container():
                 st.subheader("1. Identificação")
@@ -4980,6 +4983,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

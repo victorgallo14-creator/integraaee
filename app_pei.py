@@ -679,13 +679,13 @@ if 'data_declaracao' not in st.session_state:
 def carregar_dados_aluno():
     selecao = st.session_state.get('aluno_selecionado')
     
-    # Limpa os estados para evitar lixo de outros alunos
+    # Limpa os estados para evitar mistura de dados
     st.session_state.data_pei = {'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {}, 'comunicacao_tipo': [], 'permanece': [], 'signatures': []}
     st.session_state.data_case = {'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 'checklist': {}, 'clinicas': [], 'signatures': []}
     st.session_state.data_conduta = {'signatures': []}
     st.session_state.data_avaliacao = {'defic_chk': [], 'loc_nivel': [], 'linguagem': [], 'signatures': []}
     st.session_state.data_diario = {'logs': {}, 'signatures': []}
-    st.session_state.data_pdi = {'goals_specific': {}, 'signatures': []}
+    st.session_state.data_pdi = {'goals_specific': {}, 'signatures': [], 'metas': [{'objetivo': '', 'prazo': '', 'estrategia': '', 'status': 'Pendente'} for _ in range(5)]}
     st.session_state.data_declaracao = {'signatures': []}
 
     if not selecao or selecao == "-- Novo Registro --":
@@ -694,11 +694,8 @@ def carregar_dados_aluno():
     try:
         df_db = load_db()
         if df_db.empty: return
-
-        # Busca todos os registros do aluno (Pega o Caso, o PEI, etc)
         rows = df_db[df_db["nome"] == selecao]
         
-        # Consolida tudo num dicionário só
         dados_base = {}
         for _, row in rows.iterrows():
             try:
@@ -706,35 +703,34 @@ def carregar_dados_aluno():
                 dados_base.update(d)
             except: pass
 
-        # Converte textos de data em objetos de data para o Streamlit não dar erro
         for k, v in dados_base.items():
             if isinstance(v, str) and len(v) == 10 and v.count('-') == 2:
                 try: dados_base[k] = datetime.strptime(v, '%Y-%m-%d').date()
                 except: pass
 
-        # --- A MÁGICA DA TRADUÇÃO (Sincronizando os campos) ---
-        
-        # 1. Alimenta o Estudo de Caso (Original)
-        st.session_state.data_case.update(dados_base)
-
-        # 2. Alimenta o PEI (Traduzindo do Estudo de Caso)
+        # --- SINCRONIZAÇÃO ENTRE CAMPOS ---
+        # PEI
         st.session_state.data_pei.update(dados_base)
         if 'd_nasc' in dados_base: st.session_state.data_pei['nasc'] = dados_base['d_nasc']
         if 'mae_nome' in dados_base: st.session_state.data_pei['mae'] = dados_base['mae_nome']
         if 'pai_nome' in dados_base: st.session_state.data_pei['pai'] = dados_base['pai_nome']
         if 'telefones' in dados_base: st.session_state.data_pei['tel'] = dados_base['telefones']
+        
+        # CASO
+        st.session_state.data_case.update(dados_base)
+        if 'nasc' in dados_base: st.session_state.data_case['d_nasc'] = dados_base['nasc']
 
-        # 3. Alimenta a Avaliação de Apoio
+        # AVALIAÇÃO
         st.session_state.data_avaliacao.update(dados_base)
         if 'prof_poli' in dados_base: st.session_state.data_avaliacao['resp_sala'] = dados_base['prof_poli']
-
-        # 4. Alimenta PDI, Declaração e Conduta
+        
+        # PDI, CONDUTA, DECLARAÇÃO
         st.session_state.data_pdi.update(dados_base)
-        st.session_state.data_declaracao.update(dados_base)
         st.session_state.data_conduta.update(dados_base)
+        st.session_state.data_declaracao.update(dados_base)
 
     except Exception as e:
-        st.error(f"Erro ao carregar dados unificados: {e}")
+        st.error(f"Erro na carga: {e}")
 
 # --- BARRA LATERAL ULTRA-COMPACTA ---
 with st.sidebar:
@@ -835,6 +831,20 @@ with st.sidebar:
             on_change=carregar_dados_aluno,
             label_visibility="collapsed"
         )
+
+        selected_student = st.selectbox(
+            "Estudante", 
+            ["-- Novo Registro --"] + lista_nomes,
+            key="aluno_selecionado",
+            on_change=carregar_dados_aluno,
+            label_visibility="collapsed"
+        )
+        
+        # INSERIR AQUI:
+        if selected_student != "-- Novo Registro --":
+            if st.sidebar.button("🔄 Sincronizar Informações", help="Puxa dados do Estudo de Caso para os outros documentos"):
+                carregar_dados_aluno()
+                st.rerun()
 
         # Foto na Sidebar
         current_photo_sb = None
@@ -4970,6 +4980,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

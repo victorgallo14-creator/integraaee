@@ -1169,6 +1169,12 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[0]:
             with st.form("form_pei_identificacao") if not is_monitor else st.container():
                 st.subheader("1. Identificação")
+                        # INSERIR ESTE BLOCO AQUI:
+        if st.button("🔄 Importar Informações do Estudo de Caso", key="btn_puxar_pei"):
+            carregar_dados_aluno()
+            st.rerun()
+
+
                 
                 # --- LAYOUT COM FOTO ---
                 col_img, col_data = st.columns([1, 4])
@@ -4960,6 +4966,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

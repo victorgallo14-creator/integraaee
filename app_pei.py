@@ -676,11 +676,10 @@ if 'data_pdi' not in st.session_state:
 if 'data_declaracao' not in st.session_state:
     st.session_state.data_declaracao = {}
 
-# --- MAPEAMENTO DE CAMPOS COMUNS (SINCRONIZAÇÃO) ---
 def carregar_dados_aluno():
     selecao = st.session_state.get('aluno_selecionado')
     
-    # 1. Resetar estados para o padrão vazio (Garante que dados de um aluno não vazem para outro)
+    # Reset inicial de todos os documentos
     st.session_state.data_pei = {'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {}, 'comunicacao_tipo': [], 'permanece': [], 'signatures': []}
     st.session_state.data_case = {'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 'checklist': {}, 'clinicas': [], 'signatures': []}
     st.session_state.data_conduta = {'signatures': []}
@@ -696,59 +695,44 @@ def carregar_dados_aluno():
         df_db = load_db()
         if df_db.empty: return
 
-        # 2. Filtrar todos os registros desse aluno (independente do tipo de doc)
+        # Busca todos os documentos do aluno
         rows = df_db[df_db["nome"] == selecao]
-        if rows.empty: return
-
-        # 3. Criar um "Dicionário Global" do Aluno
-        # Isso acumula TUDO que já foi respondido em qualquer documento salvo
-        dados_globais = {}
+        
+        # Criamos um grande dicionário com TUDO que o aluno já tem na planilha
+        dados_unificados = {}
         for _, row in rows.iterrows():
             try:
                 d = json.loads(row["dados_json"])
-                dados_globais.update(d) 
+                dados_unificados.update(d)
             except: pass
 
-        # 4. Converter strings de data para objetos date (necessário para o Streamlit)
-        for k, v in dados_globais.items():
+        # Converte as datas para o formato do Streamlit
+        for k, v in dados_unificados.items():
             if isinstance(v, str) and len(v) == 10 and v.count('-') == 2:
-                try: dados_globais[k] = datetime.strptime(v, '%Y-%m-%d').date()
+                try: dados_unificados[k] = datetime.strptime(v, '%Y-%m-%d').date()
                 except: pass
 
-        # 5. SINCRONIZAÇÃO INTELIGENTE (Ponte entre nomes de campos diferentes)
-        # Se preencheu num doc, aparece no outro automaticamente
+        # Distribui para as variáveis de cada documento (fazendo as pontes de nomes)
+        # PEI
+        st.session_state.data_pei.update(dados_unificados)
+        if 'd_nasc' in dados_unificados: st.session_state.data_pei['nasc'] = dados_unificados['d_nasc']
+        if 'mae_nome' in dados_unificados: st.session_state.data_pei['mae'] = dados_unificados['mae_nome']
+        if 'pai_nome' in dados_unificados: st.session_state.data_pei['pai'] = dados_unificados['pai_nome']
         
-        # Sincronização para o PEI
-        st.session_state.data_pei.update(dados_globais)
-        if 'd_nasc' in dados_globais: st.session_state.data_pei['nasc'] = dados_globais['d_nasc']
-        if 'telefones' in dados_globais: st.session_state.data_pei['tel'] = dados_globais['telefones']
-        if 'mae_nome' in dados_globais: st.session_state.data_pei['mae'] = dados_globais['mae_nome']
-        if 'pai_nome' in dados_globais: st.session_state.data_pei['pai'] = dados_globais['pai_nome']
-        if 'resp_sala' in dados_globais: st.session_state.data_pei['prof_poli'] = dados_globais['resp_sala']
+        # ESTUDO DE CASO
+        st.session_state.data_case.update(dados_unificados)
+        if 'nasc' in dados_unificados: st.session_state.data_case['d_nasc'] = dados_unificados['nasc']
+        
+        # AVALIAÇÃO
+        st.session_state.data_avaliacao.update(dados_unificados)
+        
+        # PDI, CONDUTA, DECLARAÇÃO
+        st.session_state.data_pdi.update(dados_unificados)
+        st.session_state.data_conduta.update(dados_unificados)
+        st.session_state.data_declaracao.update(dados_unificados)
 
-        # Sincronização para o ESTUDO DE CASO
-        st.session_state.data_case.update(dados_globais)
-        if 'nasc' in dados_globais: st.session_state.data_case['d_nasc'] = dados_globais['nasc']
-        if 'tel' in dados_globais: st.session_state.data_case['telefones'] = dados_globais['tel']
-        if 'mae' in dados_globais: st.session_state.data_case['mae_nome'] = dados_globais['mae']
-        if 'pai' in dados_globais: st.session_state.data_case['pai_nome'] = dados_globais['pai']
-
-        # Sincronização para a AVALIAÇÃO DE APOIO
-        st.session_state.data_avaliacao.update(dados_globais)
-        if 'prof_poli' in dados_globais: st.session_state.data_avaliacao['resp_sala'] = dados_globais['prof_poli']
-        if 'prof_aee' in dados_globais: st.session_state.data_avaliacao['resp_ee'] = dados_globais['prof_aee']
-        if 'diag_tipo' in dados_globais: st.session_state.data_avaliacao['defic_chk'] = dados_globais['diag_tipo']
-
-        # Sincronização para os demais
-        st.session_state.data_pdi.update(dados_globais)
-        st.session_state.data_conduta.update(dados_globais)
-        st.session_state.data_diario.update(dados_globais)
-        st.session_state.data_declaracao.update(dados_globais)
-
-        st.toast(f"🔄 Dados de {selecao} sincronizados entre documentos!")
-            
     except Exception as e:
-        st.error(f"Erro ao sincronizar dados: {e}")
+        st.error(f"Erro ao carregar: {e}")
 
 
 # --- BARRA LATERAL ULTRA-COMPACTA ---
@@ -4975,6 +4959,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

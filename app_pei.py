@@ -2274,6 +2274,10 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[0]:
             with st.form("pdi_plano_aee"):
                 st.header("2. Plano de AEE & Ações Necessárias")
+
+            if st.button("🔄 Sincronizar com Estudo de Caso", key="btn_puxar_pdi"):
+                carregar_dados_aluno()
+                st.rerun()
                 
                 st.subheader("2.1 Avaliação Pedagógica Inicial")
                 data_pdi['potencialidades'] = st.text_area("Potencialidades do Estudante", value=data_pdi.get('potencialidades', ''), disabled=is_monitor)
@@ -4966,6 +4970,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

@@ -2283,15 +2283,15 @@ elif app_mode == "👥 Gestão de Alunos":
         
         st.info("ℹ️ Os dados de **Identificação**, **Família**, **Histórico** e **Avaliação Geral** são importados automaticamente do módulo **Estudo de Caso** (Item 1).")
 
-        # --- ABA 1: PLANO AEE ---
+# --- ABA 1: PLANO AEE ---
         with tabs[0]:
-            with st.form("pdi_plano_aee"):
-                st.header("2. Plano de AEE & Ações Necessárias")
-
-            if st.button("🔄 Sincronizar com Estudo de Caso", key="btn_puxar_pdi"):
+            # Botão fora do formulário
+            if st.button("🔄 Sincronizar com Estudo de Caso/PEI", key="btn_pdi_sync"):
                 carregar_dados_aluno()
                 st.rerun()
-                
+
+            with st.form("pdi_plano_aee"):
+                st.header("2. Plano de AEE & Ações Necessárias")
                 st.subheader("2.1 Avaliação Pedagógica Inicial")
                 data_pdi['potencialidades'] = st.text_area("Potencialidades do Estudante", value=data_pdi.get('potencialidades', ''), disabled=is_monitor)
                 data_pdi['areas_interesse'] = st.text_area("Áreas de Interesse", value=data_pdi.get('areas_interesse', ''), disabled=is_monitor)
@@ -4983,6 +4983,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

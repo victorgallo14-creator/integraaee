@@ -840,9 +840,10 @@ with st.sidebar:
             label_visibility="collapsed"
         )
         
-        # INSERIR AQUI:
+# --- LOCAL: LINHA 528 (Aproximadamente) ---
         if selected_student != "-- Novo Registro --":
-            if st.sidebar.button("🔄 Sincronizar Informações", help="Puxa dados do Estudo de Caso para os outros documentos"):
+            st.sidebar.markdown("---")
+            if st.sidebar.button("🔄 ATUALIZAR TODOS OS DOCS", help="Puxa dados do Estudo de Caso para os outros formulários", use_container_width=True):
                 carregar_dados_aluno()
                 st.rerun()
 
@@ -4983,6 +4984,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

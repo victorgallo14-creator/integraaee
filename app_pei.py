@@ -679,7 +679,7 @@ if 'data_declaracao' not in st.session_state:
 def carregar_dados_aluno():
     selecao = st.session_state.get('aluno_selecionado')
     
-    # Reset inicial de todos os documentos
+    # Limpa os estados para evitar lixo de outros alunos
     st.session_state.data_pei = {'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {}, 'comunicacao_tipo': [], 'permanece': [], 'signatures': []}
     st.session_state.data_case = {'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 'checklist': {}, 'clinicas': [], 'signatures': []}
     st.session_state.data_conduta = {'signatures': []}
@@ -695,45 +695,46 @@ def carregar_dados_aluno():
         df_db = load_db()
         if df_db.empty: return
 
-        # Busca todos os documentos do aluno
+        # Busca todos os registros do aluno (Pega o Caso, o PEI, etc)
         rows = df_db[df_db["nome"] == selecao]
         
-        # Criamos um grande dicionário com TUDO que o aluno já tem na planilha
-        dados_unificados = {}
+        # Consolida tudo num dicionário só
+        dados_base = {}
         for _, row in rows.iterrows():
             try:
                 d = json.loads(row["dados_json"])
-                dados_unificados.update(d)
+                dados_base.update(d)
             except: pass
 
-        # Converte as datas para o formato do Streamlit
-        for k, v in dados_unificados.items():
+        # Converte textos de data em objetos de data para o Streamlit não dar erro
+        for k, v in dados_base.items():
             if isinstance(v, str) and len(v) == 10 and v.count('-') == 2:
-                try: dados_unificados[k] = datetime.strptime(v, '%Y-%m-%d').date()
+                try: dados_base[k] = datetime.strptime(v, '%Y-%m-%d').date()
                 except: pass
 
-        # Distribui para as variáveis de cada documento (fazendo as pontes de nomes)
-        # PEI
-        st.session_state.data_pei.update(dados_unificados)
-        if 'd_nasc' in dados_unificados: st.session_state.data_pei['nasc'] = dados_unificados['d_nasc']
-        if 'mae_nome' in dados_unificados: st.session_state.data_pei['mae'] = dados_unificados['mae_nome']
-        if 'pai_nome' in dados_unificados: st.session_state.data_pei['pai'] = dados_unificados['pai_nome']
+        # --- A MÁGICA DA TRADUÇÃO (Sincronizando os campos) ---
         
-        # ESTUDO DE CASO
-        st.session_state.data_case.update(dados_unificados)
-        if 'nasc' in dados_unificados: st.session_state.data_case['d_nasc'] = dados_unificados['nasc']
-        
-        # AVALIAÇÃO
-        st.session_state.data_avaliacao.update(dados_unificados)
-        
-        # PDI, CONDUTA, DECLARAÇÃO
-        st.session_state.data_pdi.update(dados_unificados)
-        st.session_state.data_conduta.update(dados_unificados)
-        st.session_state.data_declaracao.update(dados_unificados)
+        # 1. Alimenta o Estudo de Caso (Original)
+        st.session_state.data_case.update(dados_base)
+
+        # 2. Alimenta o PEI (Traduzindo do Estudo de Caso)
+        st.session_state.data_pei.update(dados_base)
+        if 'd_nasc' in dados_base: st.session_state.data_pei['nasc'] = dados_base['d_nasc']
+        if 'mae_nome' in dados_base: st.session_state.data_pei['mae'] = dados_base['mae_nome']
+        if 'pai_nome' in dados_base: st.session_state.data_pei['pai'] = dados_base['pai_nome']
+        if 'telefones' in dados_base: st.session_state.data_pei['tel'] = dados_base['telefones']
+
+        # 3. Alimenta a Avaliação de Apoio
+        st.session_state.data_avaliacao.update(dados_base)
+        if 'prof_poli' in dados_base: st.session_state.data_avaliacao['resp_sala'] = dados_base['prof_poli']
+
+        # 4. Alimenta PDI, Declaração e Conduta
+        st.session_state.data_pdi.update(dados_base)
+        st.session_state.data_declaracao.update(dados_base)
+        st.session_state.data_conduta.update(dados_base)
 
     except Exception as e:
-        st.error(f"Erro ao carregar: {e}")
-
+        st.error(f"Erro ao carregar dados unificados: {e}")
 
 # --- BARRA LATERAL ULTRA-COMPACTA ---
 with st.sidebar:
@@ -4959,6 +4960,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

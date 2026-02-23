@@ -679,58 +679,64 @@ if 'data_declaracao' not in st.session_state:
 def carregar_dados_aluno():
     selecao = st.session_state.get('aluno_selecionado')
     
-    # Limpa os estados para evitar mistura de dados
-    st.session_state.data_pei = {'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {}, 'comunicacao_tipo': [], 'permanece': [], 'signatures': []}
-    st.session_state.data_case = {'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 'checklist': {}, 'clinicas': [], 'signatures': []}
-    st.session_state.data_conduta = {'signatures': []}
-    st.session_state.data_avaliacao = {'defic_chk': [], 'loc_nivel': [], 'linguagem': [], 'signatures': []}
-    st.session_state.data_diario = {'logs': {}, 'signatures': []}
-    st.session_state.data_pdi = {'goals_specific': {}, 'signatures': [], 'metas': [{'objetivo': '', 'prazo': '', 'estrategia': '', 'status': 'Pendente'} for _ in range(5)]}
-    st.session_state.data_declaracao = {'signatures': []}
+    # Init empty
+    st.session_state.data_pei = {'terapias': {}, 'avaliacao': {}, 'flex': {}, 'plano_ensino': {}, 'comunicacao_tipo': [], 'permanece': []}
+    st.session_state.data_case = {'irmaos': [{'nome': '', 'idade': '', 'esc': ''} for _ in range(4)], 'checklist': {}, 'clinicas': []}
+    st.session_state.data_conduta = {}
+    st.session_state.data_avaliacao = {}
+    st.session_state.data_diario = {}
+    st.session_state.data_pdi = {
+        'metas': [{'objetivo': '', 'prazo': '', 'estrategia': '', 'status': 'Pendente'} for _ in range(5)],
+        'pdi_fortalezas': '', 'pdi_desafios': '', 'pdi_recursos': '', 'pdi_periodo': 'Trimestral', 'pdi_obs': ''
+    }
+    st.session_state.nome_original_salvamento = None
 
     if not selecao or selecao == "-- Novo Registro --":
         return
 
     try:
         df_db = load_db()
-        if df_db.empty: return
-        rows = df_db[df_db["nome"] == selecao]
-        
-        dados_base = {}
-        for _, row in rows.iterrows():
-            try:
-                d = json.loads(row["dados_json"])
-                dados_base.update(d)
-            except: pass
+        # Filter by name
+        if "nome" in df_db.columns:
+            rows = df_db[df_db["nome"] == selecao]
+            if rows.empty: return
+            
+            st.session_state.nome_original_salvamento = selecao
+            st.session_state.data_pei['nome'] = selecao
+            st.session_state.data_case['nome'] = selecao
+            st.session_state.data_conduta['nome'] = selecao
+            st.session_state.data_avaliacao['nome'] = selecao
+            st.session_state.data_diario['nome'] = selecao
+            st.session_state.data_pdi['nome'] = selecao
 
-        for k, v in dados_base.items():
-            if isinstance(v, str) and len(v) == 10 and v.count('-') == 2:
-                try: dados_base[k] = datetime.strptime(v, '%Y-%m-%d').date()
+            for _, row in rows.iterrows():
+                try:
+                    dados = json.loads(row["dados_json"])
+                    # Date conversion
+                    for k, v in dados.items():
+                        if isinstance(v, str) and len(v) == 10 and v.count('-') == 2:
+                            try: dados[k] = datetime.strptime(v, '%Y-%m-%d').date()
+                            except: pass
+                    
+                    dtype = row["tipo_doc"]
+                    if dtype == "PEI":
+                        st.session_state.data_pei.update(dados)
+                    elif dtype == "CASO":
+                        st.session_state.data_case.update(dados)
+                    elif dtype == "CONDUTA":
+                        st.session_state.data_conduta.update(dados)
+                    elif dtype == "AVALIACAO":
+                        st.session_state.data_avaliacao.update(dados)
+                    elif dtype == "DIARIO":
+                        st.session_state.data_diario.update(dados)
+                    elif dtype == "PDI":
+                        st.session_state.data_pdi.update(dados)
                 except: pass
-
-        # --- SINCRONIZAÇÃO ENTRE CAMPOS ---
-        # PEI
-        st.session_state.data_pei.update(dados_base)
-        if 'd_nasc' in dados_base: st.session_state.data_pei['nasc'] = dados_base['d_nasc']
-        if 'mae_nome' in dados_base: st.session_state.data_pei['mae'] = dados_base['mae_nome']
-        if 'pai_nome' in dados_base: st.session_state.data_pei['pai'] = dados_base['pai_nome']
-        if 'telefones' in dados_base: st.session_state.data_pei['tel'] = dados_base['telefones']
-        
-        # CASO
-        st.session_state.data_case.update(dados_base)
-        if 'nasc' in dados_base: st.session_state.data_case['d_nasc'] = dados_base['nasc']
-
-        # AVALIAÇÃO
-        st.session_state.data_avaliacao.update(dados_base)
-        if 'prof_poli' in dados_base: st.session_state.data_avaliacao['resp_sala'] = dados_base['prof_poli']
-        
-        # PDI, CONDUTA, DECLARAÇÃO
-        st.session_state.data_pdi.update(dados_base)
-        st.session_state.data_conduta.update(dados_base)
-        st.session_state.data_declaracao.update(dados_base)
-
+            
+            st.toast(f"✅ {selecao} carregado.")
+            
     except Exception as e:
-        st.error(f"Erro na carga: {e}")
+        st.info("Pronto para novo preenchimento.")
 
 # --- BARRA LATERAL ULTRA-COMPACTA ---
 with st.sidebar:
@@ -831,21 +837,6 @@ with st.sidebar:
             on_change=carregar_dados_aluno,
             label_visibility="collapsed"
         )
-
-        selected_student = st.selectbox(
-            "Estudante", 
-            ["-- Novo Registro --"] + lista_nomes,
-            key="aluno_selecionado",
-            on_change=carregar_dados_aluno,
-            label_visibility="collapsed"
-        )
-        
-# --- LOCAL: LINHA 528 (Aproximadamente) ---
-        if selected_student != "-- Novo Registro --":
-            st.sidebar.markdown("---")
-            if st.sidebar.button("🔄 ATUALIZAR TODOS OS DOCS", help="Puxa dados do Estudo de Caso para os outros formulários", use_container_width=True):
-                carregar_dados_aluno()
-                st.rerun()
 
         # Foto na Sidebar
         current_photo_sb = None
@@ -1176,19 +1167,10 @@ elif app_mode == "👥 Gestão de Alunos":
         tabs = st.tabs(["1. Identificação", "2. Saúde", "3. Conduta", "4. Escolar", "5. Acadêmico", "6. Metas/Flex", "7. Assinaturas", "8. Emissão", "9. Histórico"])
         data = st.session_state.data_pei
 
-# --- ABA 1: IDENTIFICAÇÃO ---
+        # --- ABA 1: IDENTIFICAÇÃO ---
         with tabs[0]:
-            # Fora do formulário para garantir que o Streamlit renderize
-            if st.button("🔄 Importar Dados do Estudo de Caso", key="btn_pei_sync"):
-                carregar_dados_aluno()
-                st.rerun()
-            
-            # Espaço para não ficar grudado
-            st.write("")
-
             with st.form("form_pei_identificacao") if not is_monitor else st.container():
                 st.subheader("1. Identificação")
-
                 
                 # --- LAYOUT COM FOTO ---
                 col_img, col_data = st.columns([1, 4])
@@ -2284,15 +2266,11 @@ elif app_mode == "👥 Gestão de Alunos":
         
         st.info("ℹ️ Os dados de **Identificação**, **Família**, **Histórico** e **Avaliação Geral** são importados automaticamente do módulo **Estudo de Caso** (Item 1).")
 
-# --- ABA 1: PLANO AEE ---
+        # --- ABA 1: PLANO AEE ---
         with tabs[0]:
-            # Botão fora do formulário
-            if st.button("🔄 Sincronizar com Estudo de Caso/PEI", key="btn_pdi_sync"):
-                carregar_dados_aluno()
-                st.rerun()
-
             with st.form("pdi_plano_aee"):
                 st.header("2. Plano de AEE & Ações Necessárias")
+                
                 st.subheader("2.1 Avaliação Pedagógica Inicial")
                 data_pdi['potencialidades'] = st.text_area("Potencialidades do Estudante", value=data_pdi.get('potencialidades', ''), disabled=is_monitor)
                 data_pdi['areas_interesse'] = st.text_area("Áreas de Interesse", value=data_pdi.get('areas_interesse', ''), disabled=is_monitor)
@@ -4984,16 +4962,6 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
-
-
-
-
-
-
-
-
-
-
 
 
 

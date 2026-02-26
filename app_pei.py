@@ -3626,7 +3626,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.section_title("1.2 GESTAÇÃO, PARTO E DESENVOLVIMENTO", width=0)
                 pdf.ln(4)
                 
-def print_data_row(label, value):
+                def print_data_row(label, value):
                     val_text = clean_pdf_text(str(value) if value else "")
                     pdf.set_font("Arial", "", 9)
                     
@@ -5004,6 +5004,7 @@ def print_data_row(label, value):
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

@@ -3534,6 +3534,688 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.section_title("1.1 DADOS GERAIS DO ESTUDANTE", width=0)
                 pdf.ln(4)
                 
+Conversa com o Gemini
+Você disse
+Esse é a parte de um código no streamlit. Preciso fazer uma adequação nele. Ele é o campo aonde o professor seleciona o nome da criança para edição de documentos. Entretanto atualmente quando o professor clica ele pode escrever parte do nome que autopreenche ou então ele pode ate colocar outro nome. Preciso que seja estático. Que ele apenas selecione o nome
+
+
+
+
+
+    # --- SEÇÃO GESTÃO DE ALUNOS ---
+
+    if app_mode == "👥 Gestão de Alunos":
+
+        st.divider()
+
+        df_db = load_db()
+
+        # Fix duplicates in dropdown
+
+        lista_nomes = df_db["nome"].dropna().unique().tolist() if not df_db.empty else []
+
+        
+
+        st.markdown('<p class="section-label">🎓 Selecionar Estudante</p>', unsafe_allow_html=True)
+
+        selected_student = st.selectbox(
+
+            "Estudante", 
+
+            ["-- Novo Registro --"] + lista_nomes,
+
+            key="aluno_selecionado",
+
+            on_change=carregar_dados_aluno,
+
+            label_visibility="collapsed"
+
+        )
+
+O Gemini disse
+Para resolver isso, precisamos entender dois pontos importantes sobre o funcionamento do st.selectbox no Streamlit e ajustar o seu código para o objetivo que você precisa (apenas edição de documentos de alunos já existentes).
+
+Aqui está o código ajustado e, logo abaixo, a explicação do que foi alterado:
+
+Python
+    # --- SEÇÃO GESTÃO DE ALUNOS ---
+    if app_mode == "👥 Gestão de Alunos":
+        st.divider()
+        df_db = load_db()
+        # Garante que a lista tenha apenas os nomes cadastrados
+        lista_nomes = df_db["nome"].dropna().unique().tolist() if not df_db.empty else []
+        
+        st.markdown('<p class="section-label">🎓 Selecionar Estudante</p>', unsafe_allow_html=True)
+        
+        # Selectbox estático focado apenas na seleção
+        selected_student = st.selectbox(
+            "Estudante", 
+            lista_nomes, # <-- Removida a opção de "-- Novo Registro --"
+            key="aluno_selecionado",
+            on_change=carregar_dados_aluno,
+            label_visibility="collapsed"
+        )
+O que mudou e por que isso resolve o problema:
+Remoção do -- Novo Registro --: Como você mencionou que o professor às vezes "coloca outro nome", é muito provável que a opção ["-- Novo Registro --"] estivesse ativando alguma lógica no seu aplicativo que abria campos em branco para cadastrar uma nova criança. Removendo essa opção da lista, o professor fica restrito apenas a selecionar os nomes que já vieram do seu banco de dados (lista_nomes).
+
+O comportamento de digitação (Autopreenchimento):
+É importante saber que o st.selectbox no Streamlit possui uma função nativa de pesquisa. Quando o professor clica e começa a digitar, ele não está inserindo um dado novo; o sistema está apenas filtrando a lista para ajudá-lo a achar o nome da criança mais rápido.
+
+Fique tranquilo: Se o professor digitar um nome que não existe na lista (por exemplo, tentar inventar um nome), o Streamlit simplesmente mostrará a mensagem "No results" (Sem resultados) e não aceitará aquele texto como uma seleção válida. O campo voltará ao normal ou manterá a última seleção válida.
+
+Atualmente, o Streamlit não permite desativar essa função de pesquisa dentro do selectbox, mas ela é na verdade uma ótima aliada para poupar tempo quando a lista de alunos é grande.
+
+Se o professor precisar de fato adicionar um aluno novo no futuro, o ideal seria criar uma página ou aba separada (ex: "➕ Matricular Aluno") para evitar qualquer confusão com a área de edição de documentos.
+
+Gostaria de ajuda para conferir como está a lógica da função carregar_dados_aluno agora que removemos a opção de novo registro?
+
+Você disse
+Ainda consigo apagar o nome
+
+O Gemini disse
+Entendi! O que está acontecendo é uma característica nativa do Streamlit: não é possível desativar a função de digitar/apagar dentro do selectbox. Esse "apagar" que você consegue fazer faz parte da ferramenta de pesquisa do componente.
+
+Aqui estão dois pontos importantes sobre como isso funciona para te tranquilizar:
+
+É apenas uma pesquisa visual: Quando o professor clica e apaga o nome, ele não está apagando o aluno do banco de dados, nem enviando um formulário em branco. Ele está apenas limpando a barra de busca. Se ele apagar o texto e clicar fora da caixa, o Streamlit ignora a ação e volta automaticamente para o último nome válido que estava selecionado. O sistema nunca vai aceitar um "nome vazio" ou um nome inventado ali.
+
+Ajuda na agilidade: Pensando na realidade do CEIEF, onde a lista de alunos pode ser longa, essa função de poder apagar e digitar "Ma..." ajuda muito o professor a filtrar rapidamente todas as "Marias" para editar o documento, sem precisar rolar a lista inteira manualmente.
+
+A Alternativa 100% Estática:
+Se para o seu projeto for absolutamente essencial que o usuário não consiga nem clicar no texto para apagá-lo visualmente, a única opção nativa do Streamlit é trocar o st.selectbox por um st.radio (aquelas bolinhas de seleção).
+
+Como uma lista de alunos em radio ficaria gigante e ocuparia a tela toda, nós precisaríamos colocá-la dentro de um contêiner com uma barra de rolagem (scroll).
+
+Sabendo que esse "apagar" no selectbox é apenas uma pesquisa inofensiva que não quebra seus dados, você prefere manter como está, ou gostaria que eu adaptasse o código para usar o st.radio com barra de rolagem?
+
+Você disse
+Mas tem então como a primeira opção não ser o nome de uma criança e sim um texto como digite, pesquise, selecione.. aglo assim
+
+O Gemini disse
+Sim, com certeza! A forma mais moderna e correta de fazer isso no Streamlit é usando os parâmetros index=None e placeholder.
+
+Dessa forma, a caixa começa "vazia" mostrando a sua mensagem (ex: "Selecione ou digite o nome..."), e essa mensagem não se mistura com a lista de alunos reais.
+
+Veja como fica o código atualizado:
+
+Python
+    # --- SEÇÃO GESTÃO DE ALUNOS ---
+    if app_mode == "👥 Gestão de Alunos":
+        st.divider()
+        df_db = load_db()
+        # Garante que a lista tenha apenas os nomes cadastrados
+        lista_nomes = df_db["nome"].dropna().unique().tolist() if not df_db.empty else []
+        
+        st.markdown('<p class="section-label">🎓 Selecionar Estudante</p>', unsafe_allow_html=True)
+        
+        selected_student = st.selectbox(
+            "Estudante", 
+            lista_nomes,
+            index=None, # <-- Faz o selectbox iniciar vazio (sem selecionar o 1º da lista)
+            placeholder="🔍 Selecione ou digite o nome do aluno...", # <-- O texto que vai aparecer
+            key="aluno_selecionado",
+            on_change=carregar_dados_aluno,
+            label_visibility="collapsed"
+        )
+O que acontece agora:
+Visual inicial: Quando a tela carregar, o professor verá o texto "🔍 Selecione ou digite o nome do aluno..." em cinza claro.
+
+Ao clicar: A lista completa de alunos vai aparecer logo abaixo. Ele pode rolar a lista ou começar a digitar para filtrar (aproveitando aquela função de pesquisa).
+
+Segurança dos dados: Como usamos o index=None, esse texto de placeholder não conta como uma "opção real".
+
+⚠️ Um pequeno detalhe importante:
+Como agora o selectbox começa vazio (ou seja, com valor None), a sua função carregar_dados_aluno pode ser acionada passando "Nada". É bom garantir que a primeira linha da sua função carregar_dados_aluno tenha uma proteção simples como essa, para não dar erro:
+
+Python
+def carregar_dados_aluno():
+    # Pega o valor atual do selectbox
+    aluno = st.session_state.aluno_selecionado
+    
+    # Se estiver vazio (None), não faz nada e sai da função
+    if aluno is None:
+        return
+        
+    # ... resto do seu código que carrega os dados do aluno ...
+Isso deve deixar a interface muito mais intuitiva para os professores!
+
+Você disse
+Na hora de emitir o pdf do estudo de caso, observei que no nome da escola e no telefone as informações ultrapassam quando com muitos caracteres a área da caixa de texto. Precisamos corrigir isso. O código que gera o documento é esse         # --- ABA 7: GERAR PDF (ESTUDO DE CASO) ---
+
+        with tabs[6]:
+
+            if not is_monitor:
+
+                if st.button("💾 SALVAR ESTUDO DE CASO", type="primary"): 
+
+                    save_student("CASO", data.get('nome', 'aluno'), data, "Completo")
+
+            else:
+
+                st.info("Modo Visualização.")
+
+
+
+            if st.button("👁️ GERAR PDF"):
+
+                # Registrar ação de gerar PDF
+
+                log_action(data.get('nome'), "Gerou PDF", "Estudo de Caso")
+
+                
+
+                # Cria PDF em Retrato ('P')
+
+                pdf = OfficialPDF('P', 'mm', 'A4')
+
+                pdf.add_page(); pdf.set_margins(15, 15, 15)
+
+                
+
+                # SET SIGNATURE FOOTER
+
+                pdf.set_signature_footer(data.get('signatures', []), data.get('doc_uuid', ''))
+
+                
+
+                # --- CABEÇALHO ---
+
+                if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)
+
+                if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 170, 6, 25)
+
+
+
+                # Títulos Centralizados
+
+                pdf.set_xy(0, 15); pdf.set_font("Arial", "B", 12)
+
+                pdf.cell(210, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
+
+                pdf.cell(180, 6, clean_pdf_text("CEIEF RAFAEL AFFONSO LEITE"), 0, 1, 'C')
+
+                pdf.ln(8)
+
+                pdf.set_font("Arial", "B", 16); pdf.cell(0, 10, "ESTUDO DE CASO", 0, 1, 'C')
+
+                pdf.ln(5)
+
+                
+
+                # --- 1.1 DADOS GERAIS ---
+
+                pdf.section_title("1.1 DADOS GERAIS DO ESTUDANTE", width=0)
+
+                pdf.ln(4)
+
+                
+
+                # 1.1.1 IDENTIFICAÇÃO
+
+                pdf.set_fill_color(240, 240, 240)
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "1.1.1 - IDENTIFICAÇÃO", 1, 1, 'L', 1)
+
+                
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(30, 8, "Nome:", 1, 0, 'L', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(110, 8, clean_pdf_text(data.get('nome', '')), 1, 0)
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(15, 8, "D.N.:", 1, 0, 'C', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(str(data.get('d_nasc', ''))), 1, 1, 'C')
+
+                
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(30, 8, "Escolaridade:", 1, 0, 'L', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(40, 8, clean_pdf_text(data.get('ano_esc', '')), 1, 0)
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Período:", 1, 0, 'C', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(30, 8, clean_pdf_text(data.get('periodo', '')), 1, 0, 'C')
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Unidade:", 1, 0, 'C', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('unidade', '')), 1, 1)
+
+                
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(30, 8, clean_pdf_text("Endereço:"), 1, 0, 'L', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('endereco', '')), 1, 1)
+
+                
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Bairro:", 1, 0, 'L', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(60, 8, clean_pdf_text(data.get('bairro', '')), 1, 0)
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Cidade:", 1, 0, 'C', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(40, 8, clean_pdf_text(data.get('cidade', '')), 1, 0)
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Telefone:", 1, 0, 'C', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('telefones', '')), 1, 1)
+
+                
+
+                # 1.1.2 DADOS FAMILIARES
+
+                pdf.ln(4)
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "1.1.2 - DADOS FAMILIARES", 1, 1, 'L', 1)
+
+                
+
+                # Pai
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Pai:", 1, 0, 'L', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(80, 8, clean_pdf_text(data.get('pai_nome', '')), 1, 0)
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(25, 8, clean_pdf_text("Profissão:"), 1, 0, 'C', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('pai_prof', '')), 1, 1)
+
+                
+
+                # Mãe
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, clean_pdf_text("Mãe:"), 1, 0, 'L', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(80, 8, clean_pdf_text(data.get('mae_nome', '')), 1, 0)
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(25, 8, clean_pdf_text("Profissão:"), 1, 0, 'C', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('mae_prof', '')), 1, 1)
+
+                
+
+                # Irmãos
+
+                pdf.ln(2)
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, clean_pdf_text("Irmãos (Nome | Idade | Escolaridade)"), 1, 1, 'L', 1)
+
+                pdf.set_font("Arial", "", 9)
+
+                for i, irmao in enumerate(data.get('irmaos', [])):
+
+                    if irmao['nome']:
+
+                        txt = f"{irmao['nome']}  |  {irmao['idade']}  |  {irmao['esc']}"
+
+                        pdf.cell(0, 6, clean_pdf_text(txt), 1, 1)
+
+                
+
+                pdf.ln(2)
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(40, 8, "Com quem mora:", 1, 0, 'L', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('quem_mora', '')), 1, 1)
+
+                
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(40, 8, clean_pdf_text("Convênio Médico:"), 1, 0, 'L', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(50, 8, clean_pdf_text(data.get('convenio')), 1, 0)
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, clean_pdf_text("Qual:"), 1, 0, 'C', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('convenio_qual')), 1, 1)
+
+                
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(40, 8, clean_pdf_text("Benefício Social:"), 1, 0, 'L', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(50, 8, clean_pdf_text(data.get('social')), 1, 0)
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, clean_pdf_text("Qual:"), 1, 0, 'C', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('social_qual')), 1, 1)
+
+
+
+                # 1.1.3 HISTÓRIA ESCOLAR
+
+                pdf.ln(4)
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, clean_pdf_text("1.1.3 - HISTÓRIA ESCOLAR"), 1, 1, 'L', 1)
+
+                
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(50, 8, "Idade entrou na escola:", 1, 0, 'L', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('hist_idade_entrou')), 1, 1)
+
+                
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(50, 8, "Outras escolas:", 1, 0, 'L', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('hist_outra_escola')), 1, 1)
+
+                
+
+                pdf.set_font("Arial", "B", 10); pdf.cell(50, 8, clean_pdf_text("Motivo transferência:"), 1, 0, 'L', 1)
+
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('hist_motivo_transf')), 1, 1)
+
+                
+
+                if data.get('hist_obs'):
+
+                    pdf.ln(2)
+
+                    pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "Observações Escolares:", 0, 1)
+
+                    pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(data.get('hist_obs')), 1)
+
+
+
+                # --- 1.2 GESTAÇÃO, PARTO E DESENVOLVIMENTO ---
+
+                pdf.add_page()
+
+                pdf.section_title("1.2 GESTAÇÃO, PARTO E DESENVOLVIMENTO", width=0)
+
+                pdf.ln(4)
+
+                
+
+                def print_data_row(label, value):
+
+                    pdf.set_font("Arial", "B", 9); pdf.set_fill_color(240, 240, 240)
+
+                    pdf.cell(80, 7, clean_pdf_text(label), 1, 0, 'L', 1)
+
+                    pdf.set_font("Arial", "", 9); pdf.set_fill_color(255, 255, 255)
+
+                    pdf.cell(0, 7, clean_pdf_text(value), 1, 1, 'L')
+
+
+
+                rows_gest = [
+
+                    ("Parentesco entre pais:", data.get('gest_parentesco')),
+
+                    ("Doença/Trauma na gestação:", data.get('gest_doenca')),
+
+                    ("Uso de substâncias (mãe):", data.get('gest_substancias')),
+
+                    ("Uso de medicamentos (mãe):", data.get('gest_medicamentos')),
+
+                    ("Ocorrência no parto:", data.get('parto_ocorrencia')),
+
+                    ("Necessitou de incubadora:", data.get('parto_incubadora')),
+
+                    ("Prematuro?", f"{data.get('parto_prematuro')}  |  UTI: {data.get('parto_uti')}"),
+
+                    ("Tempo de gestação / Peso:", f"{data.get('dev_tempo_gest')}  /  {data.get('dev_peso')}"),
+
+                    ("Desenvolvimento normal no 1º ano:", data.get('dev_normal_1ano')),
+
+                    ("Apresentou atraso importante?", data.get('dev_atraso')),
+
+                    ("Idade que andou / falou:", f"{data.get('dev_idade_andar')}  /  {data.get('dev_idade_falar')}"),
+
+                    ("Possui diagnóstico?", data.get('diag_possui')),
+
+                    ("Reação da família ao diagnóstico:", data.get('diag_reacao')),
+
+                    ("Data / Origem do diagnóstico:", f"{data.get('diag_data')}  |  {data.get('diag_origem')}"),
+
+                    ("Pessoa com deficiência na família:", data.get('fam_deficiencia')),
+
+                    ("Pessoa com AH/SD na família:", data.get('fam_altas_hab'))
+
+                ]
+
+                
+
+                for label, value in rows_gest:
+
+                    print_data_row(label, value)
+
+
+
+                # --- 1.3 INFORMAÇÕES SOBRE SAÚDE ---
+
+                pdf.add_page()
+
+                pdf.section_title("1.3 INFORMAÇÕES SOBRE SAÚDE", width=0)
+
+                pdf.ln(4)
+
+                
+
+                saude_rows = [
+
+                    ("Problemas de saúde:", data.get('saude_prob')),
+
+                    ("Já necessitou de internação:", data.get('saude_internacao')),
+
+                    ("Restrição/Seletividade alimentar:", data.get('saude_restricao')),
+
+                    ("Uso de medicamentos controlados:", f"{data.get('med_uso')} - Quais: {data.get('med_quais')}"),
+
+                    ("Horário / Dosagem / Início:", f"{data.get('med_hor')}  |  {data.get('med_dos')}  |  {data.get('med_ini')}"),
+
+                    ("Qualidade do sono:", data.get('sono')),
+
+                    ("Última visita ao médico:", data.get('medico_ultimo'))
+
+                ]
+
+                for label, value in saude_rows:
+
+                    print_data_row(label, value)
+
+                
+
+                esf = []
+
+                if data.get('esf_urina'): esf.append("Urina")
+
+                if data.get('esf_fezes'): esf.append("Fezes")
+
+                print_data_row("Controle de Esfíncter:", f"{', '.join(esf) if esf else 'Não'}  (Idade: {data.get('esf_idade')})")
+
+                
+
+                pdf.ln(4)
+
+                pdf.set_font("Arial", "B", 10); pdf.set_fill_color(240, 240, 240)
+
+                pdf.cell(0, 8, "Atendimentos Clínicos Extraescolares", 1, 1, 'L', 1)
+
+                
+
+                clins = data.get('clinicas', [])
+
+                print_data_row("Realiza atendimento em:", ", ".join(clins) if clins else "Não realiza")
+
+                print_data_row("Especialidade médica:", data.get('clinicas_med_esp'))
+
+                print_data_row("Nome da Clínica/Profissional:", data.get('clinicas_nome'))
+
+                
+
+                if data.get('saude_obs_geral'):
+
+                    pdf.ln(2)
+
+                    pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "Outras observações de saúde:", 0, 1)
+
+                    pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(data.get('saude_obs_geral')), 1)
+
+
+
+                # --- 1.4 COMPREENSÃO DA FAMÍLIA (CHECKLIST) ---
+
+                pdf.add_page()
+
+                pdf.section_title("1.4 COMPREENSÃO DA FAMÍLIA (CHECKLIST)", width=0)
+
+                pdf.ln(4)
+
+                
+
+                pdf.set_fill_color(220, 220, 220); pdf.set_font("Arial", "B", 9)
+
+                pdf.cell(110, 8, "PERGUNTA / ASPECTO OBSERVADO", 1, 0, 'C', 1)
+
+                pdf.cell(25, 8, "SIM/NÃO", 1, 0, 'C', 1)
+
+                pdf.cell(0, 8, clean_pdf_text("OBSERVAÇÕES DA FAMÍLIA"), 1, 1, 'C', 1)
+
+                
+
+                checklist_items = [
+
+                    "Relata fatos do dia a dia? Apresentando boa memória?",
+
+                    "É organizado com seus pertences?",
+
+                    "Aceita regras de forma tranquila?",
+
+                    "Busca e aceita ajuda quando não sabe ou não consegue algo?",
+
+                    "Aceita alterações no ambiente?",
+
+                    "Tem algum medo?",
+
+                    "Tem alguma mania?",
+
+                    "Tem alguma área/assunto, brinquedo ou hiperfoco?",
+
+                    "Prefere brincar sozinho ou com outras crianças? Tem amigos?",
+
+                    "Qual a expectativa da família em relação à escolaridade da criança?"
+
+                ]
+
+                
+
+                pdf.set_font("Arial", "", 9)
+
+                for item in checklist_items:
+
+                    key_base = item[:10].replace(" ", "").replace("?", "")
+
+                    opt = data.get('checklist', {}).get(f"{key_base}_opt", "Não")
+
+                    obs = data.get('checklist', {}).get(f"{key_base}_obs", "")
+
+                    
+
+                    line_height = 6
+
+                    num_lines = pdf.get_string_width(obs) / 50 
+
+                    cell_height = max(line_height, (int(num_lines) + 1) * line_height)
+
+                    
+
+                    x_start = pdf.get_x(); y_start = pdf.get_y()
+
+                    
+
+                    pdf.multi_cell(110, line_height, clean_pdf_text(item), 1, 'L')
+
+                    
+
+                    pdf.set_xy(x_start + 110, y_start)
+
+                    pdf.cell(25, cell_height, clean_pdf_text(opt), 1, 0, 'C')
+
+                    
+
+                    pdf.set_xy(x_start + 135, y_start)
+
+                    pdf.multi_cell(0, line_height, clean_pdf_text(obs), 1, 'L')
+
+                    
+
+                    pdf.set_xy(x_start, y_start + cell_height)
+
+
+
+                # --- FINALIZAÇÃO ---
+
+                pdf.ln(5)
+
+                pdf.set_font("Arial", "B", 10); pdf.set_fill_color(240, 240, 240)
+
+                pdf.cell(0, 8, clean_pdf_text("OUTRAS INFORMAÇÕES RELEVANTES"), 1, 1, 'L', 1)
+
+                pdf.set_font("Arial", "", 9)
+
+                pdf.multi_cell(0, 6, clean_pdf_text(data.get('entrevista_extra', '---')), 1)
+
+                
+
+                pdf.ln(10)
+
+                if pdf.get_y() > 240: pdf.add_page()
+
+                
+
+                pdf.set_fill_color(240, 240, 240); pdf.set_font("Arial", "B", 10)
+
+                pdf.cell(0, 8, "DADOS DA ENTREVISTA", 1, 1, 'L', 1)
+
+                
+
+                print_data_row("Responsável pelas informações:", data.get('entrevista_resp'))
+
+                print_data_row("Profissional Entrevistador:", data.get('entrevista_prof'))
+
+                print_data_row("Data da Entrevista:", str(data.get('entrevista_data', '')))
+
+                
+
+                pdf.ln(25) 
+
+                
+
+                y = pdf.get_y()
+
+                pdf.line(20, y, 90, y); pdf.line(110, y, 190, y)
+
+                pdf.set_font("Arial", "", 9)
+
+                pdf.set_xy(20, y+2); pdf.cell(70, 5, "Assinatura do Responsável Legal", 0, 0, 'C')
+
+                pdf.set_xy(110, y+2); pdf.cell(80, 5, "Assinatura do Docente/Gestor", 0, 1, 'C')
+
+
+
+                st.session_state.pdf_bytes_caso = get_pdf_bytes(pdf)
+
+                st.rerun()
+
+
+
+            if 'pdf_bytes_caso' in st.session_state:
+
+                st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
+
+O Gemini disse
+O problema de o texto estar "vazando" da caixa ocorre por causa da forma como o espaço horizontal (a largura das células) está distribuído nessas duas linhas específicas.
+
+Na biblioteca FPDF, quando você define a largura de uma célula como 0 (como você fez nos valores de "Unidade" e "Telefone"), significa que ela vai ocupar todo o espaço restante da linha.
+
+O problema é que as células anteriores estavam muito largas. Por exemplo, na linha de "Escolaridade", as primeiras caixas estavam consumindo 140mm da página, deixando apenas 40mm para o nome da escola, o que é muito pouco.
+
+A solução é simplesmente diminuir a largura fixa das células anteriores ("Escolaridade", "Período", "Bairro", "Cidade") para sobrar mais espaço no final da linha para a "Unidade" e o "Telefone".
+
+Aqui está a parte do código corrigida. Substitua o bloco da seção 1.1.1 IDENTIFICAÇÃO por este:
+
+Python
                 # 1.1.1 IDENTIFICAÇÃO
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "1.1.1 - IDENTIFICAÇÃO", 1, 1, 'L', 1)
@@ -3543,22 +4225,24 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.set_font("Arial", "B", 10); pdf.cell(15, 8, "D.N.:", 1, 0, 'C', 1)
                 pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(str(data.get('d_nasc', ''))), 1, 1, 'C')
                 
+                # --- LINHA CORRIGIDA (ESCOLARIDADE, PERÍODO E UNIDADE) ---
                 pdf.set_font("Arial", "B", 10); pdf.cell(30, 8, "Escolaridade:", 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(40, 8, clean_pdf_text(data.get('ano_esc', '')), 1, 0)
+                pdf.set_font("Arial", "", 10); pdf.cell(25, 8, clean_pdf_text(data.get('ano_esc', '')), 1, 0) # Reduzido de 40 para 25
                 pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Período:", 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(30, 8, clean_pdf_text(data.get('periodo', '')), 1, 0, 'C')
+                pdf.set_font("Arial", "", 10); pdf.cell(20, 8, clean_pdf_text(data.get('periodo', '')), 1, 0, 'C') # Reduzido de 30 para 20
                 pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Unidade:", 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('unidade', '')), 1, 1)
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('unidade', '')), 1, 1) # Agora sobra espaço suficiente
                 
                 pdf.set_font("Arial", "B", 10); pdf.cell(30, 8, clean_pdf_text("Endereço:"), 1, 0, 'L', 1)
                 pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('endereco', '')), 1, 1)
                 
+                # --- LINHA CORRIGIDA (BAIRRO, CIDADE E TELEFONE) ---
                 pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Bairro:", 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(60, 8, clean_pdf_text(data.get('bairro', '')), 1, 0)
+                pdf.set_font("Arial", "", 10); pdf.cell(45, 8, clean_pdf_text(data.get('bairro', '')), 1, 0) # Reduzido de 60 para 45
                 pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Cidade:", 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(40, 8, clean_pdf_text(data.get('cidade', '')), 1, 0)
+                pdf.set_font("Arial", "", 10); pdf.cell(30, 8, clean_pdf_text(data.get('cidade', '')), 1, 0) # Reduzido de 40 para 30
                 pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Telefone:", 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('telefones', '')), 1, 1)
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('telefones', '')), 1, 1) # Agora sobra espaço suficiente
                 
                 # 1.1.2 DADOS FAMILIARES
                 pdf.ln(4)
@@ -4967,6 +5651,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

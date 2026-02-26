@@ -887,13 +887,14 @@ with st.sidebar:
         
         c_del1, c_del2 = st.columns(2)
         if selected_student != "-- Novo Registro --" and not is_monitor:
-            #if c_del2.button("🗑️", type="secondary", help="Excluir Aluno"):
-                #st.session_state.confirm_delete = True
+            if c_del2.button("🗑️", type="secondary", help="Excluir Aluno"):
+                st.session_state.confirm_delete = True
 
     # 4. RODAPÉ FIXO
-        if st.sidebar.button("🚪 Sair", use_container_width=True):
+    if st.sidebar.button("🚪 Sair", use_container_width=True):
         for key in list(st.session_state.keys()): del st.session_state[key]
         st.rerun()
+
 
     # Confirmação de exclusão
     if st.session_state.get("confirm_delete"):
@@ -4966,6 +4967,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

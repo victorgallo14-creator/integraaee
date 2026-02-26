@@ -823,7 +823,7 @@ with st.sidebar:
     doc_mode = "Dashboard"
 
 
-        # --- SEÇÃO GESTÃO DE ALUNOS ---
+# --- SEÇÃO GESTÃO DE ALUNOS ---
     if app_mode == "👥 Gestão de Alunos":
         st.divider()
         df_db = load_db()
@@ -832,10 +832,11 @@ with st.sidebar:
         
         st.markdown('<p class="section-label">🎓 Selecionar Estudante</p>', unsafe_allow_html=True)
         
-        # Selectbox estático focado apenas na seleção
         selected_student = st.selectbox(
             "Estudante", 
-            lista_nomes, # <-- Removida a opção de "-- Novo Registro --"
+            lista_nomes,
+            index=None, # <-- Faz o selectbox iniciar vazio (sem selecionar o 1º da lista)
+            placeholder="🔍 Selecione ou digite o nome do aluno...", # <-- O texto que vai aparecer
             key="aluno_selecionado",
             on_change=carregar_dados_aluno,
             label_visibility="collapsed"
@@ -4965,6 +4966,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

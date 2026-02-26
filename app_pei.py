@@ -3553,14 +3553,16 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 pdf.set_font("Arial", "B", 10); pdf.cell(30, 8, clean_pdf_text("Endereço:"), 1, 0, 'L', 1)
                 pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('endereco', '')), 1, 1)
-                
-                # --- LINHA CORRIGIDA (BAIRRO, CIDADE E TELEFONE) ---
+
+                # --- LINHA DIVIDIDA: BAIRRO E CIDADE ---
                 pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Bairro:", 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(45, 8, clean_pdf_text(data.get('bairro', '')), 1, 0) # Reduzido de 60 para 45
+                pdf.set_font("Arial", "", 10); pdf.cell(70, 8, clean_pdf_text(data.get('bairro', '')), 1, 0)
                 pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Cidade:", 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(30, 8, clean_pdf_text(data.get('cidade', '')), 1, 0) # Reduzido de 40 para 30
-                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Telefone:", 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('telefones', '')), 1, 1) # Agora sobra espaço suficiente
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('cidade', '')), 1, 1) # O '1' no final quebra para a próxima linha
+                
+                # --- LINHA EXCLUSIVA: TELEFONE ---
+                pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Telefone:", 1, 0, 'L', 1)
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('telefones', '')), 1, 1) # O '0' faz ocupar todo o resto da linha
                 
                 # 1.1.2 DADOS FAMILIARES
                 pdf.ln(4)
@@ -4969,6 +4971,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

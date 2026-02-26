@@ -3626,11 +3626,44 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.section_title("1.2 GESTAÇÃO, PARTO E DESENVOLVIMENTO", width=0)
                 pdf.ln(4)
                 
-                def print_data_row(label, value):
-                    pdf.set_font("Arial", "B", 9); pdf.set_fill_color(240, 240, 240)
-                    pdf.cell(80, 7, clean_pdf_text(label), 1, 0, 'L', 1)
-                    pdf.set_font("Arial", "", 9); pdf.set_fill_color(255, 255, 255)
-                    pdf.cell(0, 7, clean_pdf_text(value), 1, 1, 'L')
+def print_data_row(label, value):
+                    val_text = clean_pdf_text(str(value) if value else "")
+                    pdf.set_font("Arial", "", 9)
+                    
+                    # Espaço disponível para o texto (Total 180 - 80 da primeira coluna)
+                    w_val = 100 
+                    str_width = pdf.get_string_width(val_text)
+                    
+                    # Se o texto for curto, imprime na linha normal
+                    if str_width <= w_val - 2:
+                        pdf.set_font("Arial", "B", 9); pdf.set_fill_color(240, 240, 240)
+                        pdf.cell(80, 7, clean_pdf_text(label), 1, 0, 'L', 1)
+                        pdf.set_font("Arial", "", 9); pdf.set_fill_color(255, 255, 255)
+                        pdf.cell(0, 7, val_text, 1, 1, 'L')
+                    else:
+                        # Se o texto for longo, calcula quantas linhas vai precisar
+                        line_height = 5
+                        linhas = int(str_width / (w_val - 4)) + 1
+                        total_height = (linhas * line_height) + 2 # Altura total da caixa com margem
+                        
+                        x = pdf.get_x()
+                        y = pdf.get_y()
+                        
+                        # 1. Desenha a caixa cinza do título esticada para a altura total
+                        pdf.set_font("Arial", "B", 9); pdf.set_fill_color(240, 240, 240)
+                        pdf.cell(80, total_height, clean_pdf_text(label), 1, 0, 'L', 1)
+                        
+                        # 2. Desenha a caixa em branco do lado com a mesma altura
+                        pdf.set_fill_color(255, 255, 255)
+                        pdf.cell(0, total_height, "", 1, 1, 'L', 1)
+                        
+                        # 3. Retorna o cursor para dentro da caixa em branco e quebra o texto
+                        pdf.set_xy(x + 80, y + 1)
+                        pdf.set_font("Arial", "", 9)
+                        pdf.multi_cell(0, line_height, val_text, 0, 'L')
+                        
+                        # 4. Ajusta o cursor para baixo para a próxima linha da tabela não encavalar
+                        pdf.set_xy(x, y + total_height)
 
                 rows_gest = [
                     ("Parentesco entre pais:", data.get('gest_parentesco')),
@@ -4971,6 +5004,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

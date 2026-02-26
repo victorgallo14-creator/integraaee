@@ -822,17 +822,20 @@ with st.sidebar:
     pei_level = "Fundamental" # Default
     doc_mode = "Dashboard"
 
-    # --- SEÇÃO GESTÃO DE ALUNOS ---
+
+        # --- SEÇÃO GESTÃO DE ALUNOS ---
     if app_mode == "👥 Gestão de Alunos":
         st.divider()
         df_db = load_db()
-        # Fix duplicates in dropdown
+        # Garante que a lista tenha apenas os nomes cadastrados
         lista_nomes = df_db["nome"].dropna().unique().tolist() if not df_db.empty else []
         
         st.markdown('<p class="section-label">🎓 Selecionar Estudante</p>', unsafe_allow_html=True)
+        
+        # Selectbox estático focado apenas na seleção
         selected_student = st.selectbox(
             "Estudante", 
-            ["-- Novo Registro --"] + lista_nomes,
+            lista_nomes, # <-- Removida a opção de "-- Novo Registro --"
             key="aluno_selecionado",
             on_change=carregar_dados_aluno,
             label_visibility="collapsed"
@@ -4962,6 +4965,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

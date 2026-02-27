@@ -4745,7 +4745,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.set_fill_color(240, 240, 240)
                     pdf.cell(25, 8, "DATA", 1, 0, 'C', True)
                     pdf.cell(0, 8, clean_pdf_text("ATIVIDADES / OCORRÊNCIAS"), 1, 1, 'C', True)
-                    
+                   
                     # Conteúdo (Loop)
                     pdf.set_font("Arial", "", 10)
                     
@@ -4765,17 +4765,29 @@ elif app_mode == "👥 Gestão de Alunos":
                         x_start = pdf.get_x()
                         y_start = pdf.get_y()
                         
-                        # Simula altura
-                        # Largura coluna texto = 155
+                        # --- CÁLCULO DE ALTURA CORRIGIDO ---
+                        texto_limpo = clean_pdf_text(texto)
                         line_height = 5
-                        txt_width = pdf.get_string_width(clean_pdf_text(texto))
-                        num_lines = txt_width / 150 # 155 - padding
-                        h_row = max(8, (int(num_lines) + 1) * line_height + 4)
+                        linhas_totais = 0
+                        
+                        # Divide o texto pelos "Enters" (\n) e calcula as linhas reais
+                        for paragrafo in texto_limpo.split('\n'):
+                            largura_paragrafo = pdf.get_string_width(paragrafo)
+                            if largura_paragrafo == 0:
+                                linhas_totais += 1  # Conta as linhas totalmente em branco
+                            else:
+                                # Adiciona as quebras automáticas que o FPDF vai fazer por falta de espaço
+                                linhas_totais += int(largura_paragrafo / 150) + 1
+                                
+                        # Calcula a altura final baseada no número real de linhas (multiplicado pela altura da linha)
+                        h_row = max(8, (linhas_totais * line_height) + 4) 
+                        # -----------------------------------
 
                         # Check page break
                         if y_start + h_row > 270:
                             pdf.add_page()
                             y_start = pdf.get_y()
+                            x_start = pdf.get_x() # Atualiza o X por segurança na nova página
                             
                         # Draw Cells
                         pdf.rect(x_start, y_start, 25, h_row) # Box Data
@@ -4787,11 +4799,11 @@ elif app_mode == "👥 Gestão de Alunos":
                         
                         # Print Desc
                         pdf.set_xy(x_start + 27, y_start + 2)
-                        pdf.multi_cell(151, 5, clean_pdf_text(texto), 0, 'J')
+                        pdf.multi_cell(151, line_height, texto_limpo, 0, 'J')
                         
                         # Move cursor
                         pdf.set_xy(x_start, y_start + h_row)
-
+                        
                     # Assinaturas
                     pdf.ln(10)
                     if pdf.get_y() > 250: pdf.add_page()
@@ -5034,6 +5046,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

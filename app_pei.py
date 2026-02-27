@@ -3746,7 +3746,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     "Qual a expectativa da família em relação à escolaridade da criança?"
                 ]
                 
-             pdf.set_font("Arial", "", 9)
+                pdf.set_font("Arial", "", 9)
                 
                 for item in checklist_items:
                     # Captura os dados do banco
@@ -5034,6 +5034,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

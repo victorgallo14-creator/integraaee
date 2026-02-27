@@ -3538,31 +3538,36 @@ elif app_mode == "👥 Gestão de Alunos":
                     "Prefere brincar sozinho ou com outras crianças? Tem amigos?",
                     "Qual a expectativa da família em relação à escolaridade da criança?"
                 ]
-                
                 if 'checklist' not in data: data['checklist'] = {}
+                
+                # Pegamos um ID único do aluno para evitar o cache do Streamlit
+                aluno_id = data.get('doc_uuid', data.get('nome', 'novo_aluno'))
                 
                 for i, item in enumerate(checklist_items):
                     st.markdown(f"**{item}**")
                     col_a, col_b = st.columns([1, 3])
                     
-                    # CORREÇÃO: Usando o prefixo 'itemcomport' junto com o índice
                     key_base = f"itemcomport_{i}" 
                     
-                    opt = data['checklist'].get(f"{key_base}_opt", "Não")
+                    # Lemos a opção e a observação que estão no JSON (banco de dados)
+                    opt_salva = data['checklist'].get(f"{key_base}_opt", "Não")
+                    obs_salva = data['checklist'].get(f"{key_base}_obs", "")
+                    
+                    # Atualizamos o dicionário com o widget, forçando o Streamlit a ler o index/value correto
                     data['checklist'][f"{key_base}_opt"] = col_a.radio(
                         "Opção", 
                         ["Sim", "Não"], 
-                        key=f"comp_rad_{i}", 
+                        key=f"rad_{aluno_id}_{i}", # ID único impede bug visual
                         horizontal=True, 
                         label_visibility="collapsed", 
-                        index=0 if opt == "Sim" else 1, 
+                        index=0 if opt_salva == "Sim" else 1, 
                         disabled=is_monitor
                     )
                     
                     data['checklist'][f"{key_base}_obs"] = col_b.text_input(
                         "Obs:", 
-                        value=data['checklist'].get(f"{key_base}_obs", ""), 
-                        key=f"comp_obs_{i}", 
+                        value=obs_salva, 
+                        key=f"obs_{aluno_id}_{i}", # ID único impede bug visual
                         disabled=is_monitor
                     )
                     st.divider()
@@ -5221,6 +5226,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

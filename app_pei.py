@@ -3651,7 +3651,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     save_student("CASO", data.get('nome'), data, "Assinatura")
                     st.rerun()
 
-        # --- ABA 7: GERAR PDF (ESTUDO DE CASO) ---
+# --- ABA 7: GERAR PDF (ESTUDO DE CASO) ---
         with tabs[6]:
             if not is_monitor:
                 if st.button("💾 SALVAR ESTUDO DE CASO", type="primary"): 
@@ -3697,11 +3697,11 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 # --- LINHA CORRIGIDA (ESCOLARIDADE, PERÍODO E UNIDADE) ---
                 pdf.set_font("Arial", "B", 10); pdf.cell(30, 8, "Escolaridade:", 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(25, 8, clean_pdf_text(data.get('ano_esc', '')), 1, 0) # Reduzido de 40 para 25
+                pdf.set_font("Arial", "", 10); pdf.cell(25, 8, clean_pdf_text(data.get('ano_esc', '')), 1, 0)
                 pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Período:", 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(20, 8, clean_pdf_text(data.get('periodo', '')), 1, 0, 'C') # Reduzido de 30 para 20
+                pdf.set_font("Arial", "", 10); pdf.cell(20, 8, clean_pdf_text(data.get('periodo', '')), 1, 0, 'C')
                 pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Unidade:", 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('unidade', '')), 1, 1) # Agora sobra espaço suficiente
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('unidade', '')), 1, 1)
                 
                 pdf.set_font("Arial", "B", 10); pdf.cell(30, 8, clean_pdf_text("Endereço:"), 1, 0, 'L', 1)
                 pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('endereco', '')), 1, 1)
@@ -3710,11 +3710,11 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Bairro:", 1, 0, 'L', 1)
                 pdf.set_font("Arial", "", 10); pdf.cell(70, 8, clean_pdf_text(data.get('bairro', '')), 1, 0)
                 pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Cidade:", 1, 0, 'C', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('cidade', '')), 1, 1) # O '1' no final quebra para a próxima linha
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('cidade', '')), 1, 1)
                 
                 # --- LINHA EXCLUSIVA: TELEFONE ---
                 pdf.set_font("Arial", "B", 10); pdf.cell(20, 8, "Telefone:", 1, 0, 'L', 1)
-                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('telefones', '')), 1, 1) # O '0' faz ocupar todo o resto da linha
+                pdf.set_font("Arial", "", 10); pdf.cell(0, 8, clean_pdf_text(data.get('telefones', '')), 1, 1)
                 
                 # 1.1.2 DADOS FAMILIARES
                 pdf.ln(4)
@@ -3885,7 +3885,8 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.cell(25, 8, "SIM/NÃO", 1, 0, 'C', 1)
                 pdf.cell(0, 8, clean_pdf_text("OBSERVAÇÕES DA FAMÍLIA"), 1, 1, 'C', 1)
                 
-checklist_items = [
+                # CORREÇÃO: Indentação alinhada corretamente
+                checklist_items = [
                     "Relata fatos do dia a dia? Apresentando boa memória?",
                     "É organizado com seus pertences?",
                     "Aceita regras de forma tranquila?",
@@ -3900,14 +3901,13 @@ checklist_items = [
                 
                 pdf.set_font("Arial", "", 9)
                 
-                # O enumerate(checklist_items) é obrigatório aqui para pegar o i (0, 1, 2...)
                 for i, item in enumerate(checklist_items):
                     
                     key_base = f"itemcomport_{i}"
                     
-                    # Busca os dados usando a nova chave que está no JSON
-                    opt = data_case.get('checklist', {}).get(f"{key_base}_opt", "Não")
-                    obs = data_case.get('checklist', {}).get(f"{key_base}_obs", "")
+                    # CORREÇÃO: Usando 'data' em vez de 'data_case' para ler as opções salvas
+                    opt = data.get('checklist', {}).get(f"{key_base}_opt", "Não")
+                    obs = data.get('checklist', {}).get(f"{key_base}_obs", "")
                     
                     line_height = 6
                     num_lines = pdf.get_string_width(obs) / 50 
@@ -3955,7 +3955,6 @@ checklist_items = [
 
             if 'pdf_bytes_caso' in st.session_state:
                 st.download_button("📥 BAIXAR PDF ESTUDO DE CASO", st.session_state.pdf_bytes_caso, f"Caso_{data.get('nome','estudante')}.pdf", "application/pdf", type="primary")
-
         # --- ABA 8: HISTÓRICO ---
         with tabs[7]:
             st.subheader("Histórico de Atividades")
@@ -5201,6 +5200,7 @@ checklist_items = [
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

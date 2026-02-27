@@ -1042,7 +1042,7 @@ if app_mode == "📊 Painel de Gestão":
     
     st.divider()
 
-    # --- ABAS DO DASHBOARD ---
+# --- ABAS DO DASHBOARD ---
     tab_graf, tab_com = st.tabs(["📊 Estatísticas & Progresso", "📢 Comunicação & Agenda"])
     
     with tab_graf:
@@ -1056,15 +1056,41 @@ if app_mode == "📊 Painel de Gestão":
                 st.info("Sem dados suficientes.")
         
         with c_prog:
-            st.subheader("Progresso dos PEIs")
-            if pei_progress_list:
-                df_prog = pd.DataFrame(pei_progress_list).sort_values("Progresso")
+            st.subheader("Progresso de Preenchimento")
+            
+            # 1. Cria o seletor de documentos
+            tipo_doc = st.selectbox(
+                "Selecione o documento:",
+                ["PEI", "Estudo de Caso", "Avaliação de Apoio", "PDI"],
+                label_visibility="collapsed" # Esconde o rótulo para ficar mais limpo
+            )
+            
+            # 2. Define qual lista usar baseado na seleção
+            lista_progresso_atual = []
+            
+            if tipo_doc == "PEI":
+                # Sua lista original que já funciona
+                lista_progresso_atual = pei_progress_list 
+            elif tipo_doc == "Estudo de Caso":
+                # Você precisará ter essa lista calculada no seu backend
+                lista_progresso_atual = caso_progress_list 
+            elif tipo_doc == "Avaliação de Apoio":
+                # Você precisará ter essa lista calculada no seu backend
+                lista_progresso_atual = apoio_progress_list 
+            elif tipo_doc == "PDI":
+                # Você precisará ter essa lista calculada no seu backend
+                lista_progresso_atual = pdi_progress_list 
+
+            # 3. Renderiza os gráficos da lista escolhida
+            if lista_progresso_atual:
+                # Opcional: ascending=False deixa os mais completos no topo
+                df_prog = pd.DataFrame(lista_progresso_atual).sort_values("Progresso", ascending=False) 
                 with st.container(height=300):
                     for _, row in df_prog.iterrows():
                         st.caption(f"{row['Aluno']} ({row['Progresso']}%)")
                         st.progress(row['Progresso'] / 100)
             else:
-                st.info("Nenhum PEI cadastrado.")
+                st.info(f"Nenhum {tipo_doc} calculado ainda.")
 
     with tab_com:
         c_aviso, c_agenda = st.columns([1, 1])
@@ -3993,7 +4019,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     
                     # Nome (Borda Vermelha)
                     pdf.set_draw_color(255, 69, 0) # Red
-                    pdf.set_line_width(0.5)
+                    pdf.set_line_width(0.8)
                     pdf.set_xy(70, start_y)
                     pdf.cell(130, 8, clean_pdf_text(f"Meu nome: {data_conduta.get('nome','')}"), 1, 1, 'L')
                     
@@ -5074,6 +5100,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

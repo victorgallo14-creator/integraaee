@@ -4061,7 +4061,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     y_esquerdo = 95 
                     
                     # Lado direito começa no Y=60 para ficar abaixo dos dados de "Ano escolar"
-                    y_direito = 60 
+                    y_direito = 75 
                     
                     # --- DESENHANDO AS CAIXAS (A ordem não importa, elas se empurram para baixo) ---
                     
@@ -5079,6 +5079,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

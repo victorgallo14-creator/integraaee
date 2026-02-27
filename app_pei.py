@@ -610,25 +610,29 @@ st.markdown("""
     .header-title { color: #1e293b; font-weight: 700; font-size: 1.8rem; margin: 0; }
     .header-subtitle { color: #64748b; font-size: 1rem; margin-top: 5px; }
     
-    /* Dashboard Cards */
+/* Dashboard Cards */
     .metric-card {
         background-color: white;
-        padding: 1.5rem;
+        padding: 1rem 0.2rem; /* Reduzimos o padding lateral para o texto caber */
         border-radius: 10px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         border: 1px solid #e2e8f0;
         text-align: center;
+        white-space: nowrap; /* Impede terminantemente que o texto quebre de linha */
+        overflow: hidden; /* Garante que não vaze do card */
+        text-overflow: ellipsis; /* Coloca "..." se a tela for minúscula */
     }
     .metric-value {
-        font-size: 2rem;
+        font-size: 1.8rem; /* Ligeiramente menor para ficar elegante */
         font-weight: 700;
-        color: #1e3a8a;
+        line-height: 1.2;
     }
     .metric-label {
         color: #64748b;
-        font-size: 0.9rem;
+        font-size: 0.72rem; /* Fonte ajustada para caber em 5 colunas */
+        font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        margin-top: 5px;
     }
     
     /* Botões */
@@ -1124,15 +1128,15 @@ if app_mode == "📊 Painel de Gestão":
 
     col_m1, col_m2, col_m3, col_m4, col_m5 = st.columns(5)
     
-    col_m1.markdown(f'<div class="metric-card"><div class="metric-value">{total_alunos}</div><div class="metric-label">👥 Estudantes AEE</div></div>', unsafe_allow_html=True)
+    col_m1.markdown(f'<div class="metric-card"><div class="metric-value">{total_alunos}</div><div class="metric-label">👥 Total AEE</div></div>', unsafe_allow_html=True)
     
-    col_m2.markdown(f'<div class="metric-card"><div class="metric-value">{total_apoio}</div><div class="metric-label">🤝 Requerem Apoio</div></div>', unsafe_allow_html=True)
+    col_m2.markdown(f'<div class="metric-card"><div class="metric-value">{total_apoio}</div><div class="metric-label">🤝 Apoio Escolar</div></div>', unsafe_allow_html=True)
     
-    col_m3.markdown(f'<div class="metric-card"><div class="metric-value" style="color: {cor_elaboracao};">{docs_em_elaboracao}</div><div class="metric-label">⏳ Docs em Elaboração</div></div>', unsafe_allow_html=True)
+    col_m3.markdown(f'<div class="metric-card"><div class="metric-value" style="color: {cor_elaboracao};">{docs_em_elaboracao}</div><div class="metric-label">⏳ Em elaboração</div></div>', unsafe_allow_html=True)
     
-    col_m4.markdown(f'<div class="metric-card"><div class="metric-value" style="color: #0284c7;">{total_laudos}</div><div class="metric-label">📄 Com Laudo Médico</div></div>', unsafe_allow_html=True)
+    col_m4.markdown(f'<div class="metric-card"><div class="metric-value" style="color: #0284c7;">{total_laudos}</div><div class="metric-label">📄 Com Laudo</div></div>', unsafe_allow_html=True)
     
-    col_m5.markdown(f'<div class="metric-card"><div class="metric-value" style="color: #1e3a8a;">{total_caso}</div><div class="metric-label">📋 Estudos de Caso</div></div>', unsafe_allow_html=True)
+    col_m5.markdown(f'<div class="metric-card"><div class="metric-value" style="color: #1e3a8a;">{total_caso}</div><div class="metric-label">📋 Estudos Caso</div></div>', unsafe_allow_html=True)
     
     st.divider()
 
@@ -5194,6 +5198,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

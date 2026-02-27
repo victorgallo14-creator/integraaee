@@ -1000,7 +1000,8 @@ if app_mode == "📊 Painel de Gestão":
             return int((filled / len(keys_check)) * 100)
         except: return 0
 
-    # Chaves para checagem (focadas em conteúdo preenchido para evitar falsos positivos)
+    # --- DEFINIÇÃO DAS CHAVES ESSENCIAIS PARA CADA DOCUMENTO ---
+    
     keys_pei = [
         'prof_poli', 'prof_aee',       # 1. Identificação
         'defic_txt', 'saude_extra',    # 2. Saúde
@@ -1010,35 +1011,118 @@ if app_mode == "📊 Painel de Gestão":
         'meta_social_obj', 'meta_acad_obj', # 6. Metas
         'plano_obs_geral'              # Final
     ]
+
+    keys_caso = [
+        'endereco', 'quem_mora',                   # Identificação e Família
+        'hist_idade_entrou', 'gest_parentesco',    # Histórico e Gestação
+        'saude_prob', 'med_uso',                   # Saúde
+        'entrevista_prof', 'entrevista_resp'       # Comportamento / Entrevista
+    ]
+
+    keys_aval = [
+        'aspectos_gerais', 'defic_chk',            # Identificação
+        'alim_nivel', 'hig_nivel', 'loc_nivel',    # Parte I
+        'comportamento', 'part_grupo', 'interacao',# Parte II
+        'rotina', 'ativ_pedag',                    # Parte III
+        'atencao_sust', 'linguagem',               # Parte IV
+        'conclusao_nivel', 'resp_ee'               # Conclusão
+    ]
+
+    keys_pdi = [
+        'potencialidades', 'areas_interesse',      # Avaliação Inicial
+        'acao_escola', 'acao_sala', 'acao_familia',# Ações Necessárias
+        'aee_tempo', 'aee_tipo',                   # Organização AEE
+        'goals_specific'                           # Objetivos Detalhados
+    ]
     
     concluidos = 0
     deficiencies_count = {}
+    
+    # --- INICIALIZAÇÃO DAS LISTAS DE PROGRESSO ---
     pei_progress_list = []
+    caso_progress_list = []
+    apoio_progress_list = []
+    pdi_progress_list = []
 
+    # --- LOOP DE CÁLCULO GERAL ---
     for idx, row in df_dash.iterrows():
         try:
             d = json.loads(row['dados_json'])
-            # Deficiências
+            
+            # Gráfico de Deficiências
             for dtype in d.get('diag_tipo', []):
                 deficiencies_count[dtype] = deficiencies_count.get(dtype, 0) + 1
             if "Deficiência" in d.get('diag_tipo', []) and d.get('defic_txt'):
                 d_txt = d.get('defic_txt').upper().strip()
                 deficiencies_count[d_txt] = deficiencies_count.get(d_txt, 0) + 1
             
-            # Progresso PEI
-            if row['tipo_doc'] == "PEI":
+            # Separação por Tipo de Documento e Cálculo
+            tipo_documento = row['tipo_doc']
+            nome_aluno = row['nome']
+            
+            if tipo_documento == "PEI":
                 prog = calc_progress(row['dados_json'], keys_pei)
-                pei_progress_list.append({"Aluno": row['nome'], "Progresso": prog})
+                pei_progress_list.append({"Aluno": nome_aluno, "Progresso": prog})
                 if prog >= 90: concluidos += 1
+                
+            elif tipo_documento == "CASO":
+                prog = calc_progress(row['dados_json'], keys_caso)
+                caso_progress_list.append({"Aluno": nome_aluno, "Progresso": prog})
+                
+            elif tipo_documento == "AVALIACAO":
+                prog = calc_progress(row['dados_json'], keys_aval)
+                apoio_progress_list.append({"Aluno": nome_aluno, "Progresso": prog})
+                
+            elif tipo_documento == "PDI":
+                prog = calc_progress(row['dados_json'], keys_pdi)
+                pdi_progress_list.append({"Aluno": nome_aluno, "Progresso": prog})
+                
         except: pass
 
     # --- CARDS DE MÉTRICAS ---
+# --- CÁLCULO DE NOVAS MÉTRICAS DE GESTÃO ---
+    
+    # 1. Total de Alunos Únicos
+    total_alunos = df_dash["nome"].nunique() if not df_dash.empty and "nome" in df_dash.columns else 0
+    
+    # 2. Assinaturas Pendentes do Usuário Atual
+    total_assinaturas = len(pending_docs)
+    
+    # 3. Documentos em Elaboração (PEIs e PDIs abaixo de 100%)
+    docs_em_elaboracao = sum(1 for p in pei_progress_list + pdi_progress_list if p['Progresso'] < 100)
+    
+    # 4. Alunos com necessidade de Profissional de Apoio (Extraído da Avaliação)
+    total_apoio = 0
+    if not df_dash.empty:
+        df_aval = df_dash[df_dash["tipo_doc"] == "AVALIACAO"]
+        for _, row in df_aval.iterrows():
+            try:
+                d_aval = json.loads(row['dados_json'])
+                nivel = d_aval.get('conclusao_nivel', '')
+                if "Nível 2" in nivel or "Nível 3" in nivel or d_aval.get('apoio_existente'):
+                    total_apoio += 1
+            except: pass
+
+    # 5. Estudos de Caso Realizados (Substituindo PEIs Concluídos)
+    total_caso = len(df_dash[df_dash["tipo_doc"] == "CASO"]) if not df_dash.empty else 0
+
+
+    # --- CARDS DE MÉTRICAS ---
+    # Sugestão de CSS inline para dar destaque aos números que exigem atenção
+    cor_pendencias = "#dc2626" if total_assinaturas > 0 else "#16a34a"
+    cor_elaboracao = "#ea580c" if docs_em_elaboracao > 0 else "#64748b"
+
     col_m1, col_m2, col_m3, col_m4, col_m5 = st.columns(5)
-    col_m1.markdown(f'<div class="metric-card"><div class="metric-value">{total_alunos}</div><div class="metric-label">Total Alunos</div></div>', unsafe_allow_html=True)
-    col_m2.markdown(f'<div class="metric-card"><div class="metric-value">{total_pei}</div><div class="metric-label">PEIs Criados</div></div>', unsafe_allow_html=True)
-    col_m3.markdown(f'<div class="metric-card"><div class="metric-value">{total_pdi}</div><div class="metric-label">PDIs Criados</div></div>', unsafe_allow_html=True)
-    col_m4.markdown(f'<div class="metric-card"><div class="metric-value">{total_caso}</div><div class="metric-label">Estudos de Caso</div></div>', unsafe_allow_html=True)
-    col_m5.markdown(f'<div class="metric-card"><div class="metric-value">{concluidos}</div><div class="metric-label">PEIs Concluídos</div></div>', unsafe_allow_html=True)
+    
+    col_m1.markdown(f'<div class="metric-card"><div class="metric-value">{total_alunos}</div><div class="metric-label">👥 Estudantes AEE</div></div>', unsafe_allow_html=True)
+    
+    col_m2.markdown(f'<div class="metric-card"><div class="metric-value">{total_apoio}</div><div class="metric-label">🤝 Requerem Apoio</div></div>', unsafe_allow_html=True)
+    
+    col_m3.markdown(f'<div class="metric-card"><div class="metric-value" style="color: {cor_elaboracao};">{docs_em_elaboracao}</div><div class="metric-label">⏳ Docs em Elaboração</div></div>', unsafe_allow_html=True)
+    
+    col_m4.markdown(f'<div class="metric-card"><div class="metric-value" style="color: {cor_pendencias};">{total_assinaturas}</div><div class="metric-label">✍️ Assinaturas Pendentes</div></div>', unsafe_allow_html=True)
+    
+    col_m5.markdown(f'<div class="metric-card"><div class="metric-value" style="color: #1e3a8a;">{total_caso}</div><div class="metric-label">📋 Estudos de Caso</div></div>', unsafe_allow_html=True)
     
     st.divider()
 
@@ -5100,6 +5184,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

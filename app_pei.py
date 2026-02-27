@@ -1079,14 +1079,25 @@ if app_mode == "📊 Painel de Gestão":
                 
         except: pass
 
-    # --- CARDS DE MÉTRICAS ---
 # --- CÁLCULO DE NOVAS MÉTRICAS DE GESTÃO ---
     
     # 1. Total de Alunos Únicos
     total_alunos = df_dash["nome"].nunique() if not df_dash.empty and "nome" in df_dash.columns else 0
     
-    # 2. Assinaturas Pendentes do Usuário Atual
-    total_assinaturas = len(pending_docs)
+    # 2. Alunos com Laudo Médico / Diagnóstico Conclusivo (NOVA MÉTRICA)
+    alunos_com_laudo = set()
+    if not df_dash.empty:
+        for _, row in df_dash.iterrows():
+            try:
+                d_laudo = json.loads(row['dados_json'])
+                # Checa no PEI se marcou "Sim" para diagnóstico conclusivo
+                if row['tipo_doc'] == "PEI" and d_laudo.get('diag_status') == "Sim":
+                    alunos_com_laudo.add(row['nome'])
+                # Ou checa no Estudo de Caso se o campo "Possui diagnóstico" foi preenchido
+                elif row['tipo_doc'] == "CASO" and d_laudo.get('diag_possui') and str(d_laudo.get('diag_possui')).strip():
+                    alunos_com_laudo.add(row['nome'])
+            except: pass
+    total_laudos = len(alunos_com_laudo)
     
     # 3. Documentos em Elaboração (PEIs e PDIs abaixo de 100%)
     docs_em_elaboracao = sum(1 for p in pei_progress_list + pdi_progress_list if p['Progresso'] < 100)
@@ -1103,13 +1114,12 @@ if app_mode == "📊 Painel de Gestão":
                     total_apoio += 1
             except: pass
 
-    # 5. Estudos de Caso Realizados (Substituindo PEIs Concluídos)
+    # 5. Estudos de Caso Realizados 
     total_caso = len(df_dash[df_dash["tipo_doc"] == "CASO"]) if not df_dash.empty else 0
 
 
     # --- CARDS DE MÉTRICAS ---
-    # Sugestão de CSS inline para dar destaque aos números que exigem atenção
-    cor_pendencias = "#dc2626" if total_assinaturas > 0 else "#16a34a"
+    # CSS inline para dar destaque aos números que exigem atenção
     cor_elaboracao = "#ea580c" if docs_em_elaboracao > 0 else "#64748b"
 
     col_m1, col_m2, col_m3, col_m4, col_m5 = st.columns(5)
@@ -1120,7 +1130,7 @@ if app_mode == "📊 Painel de Gestão":
     
     col_m3.markdown(f'<div class="metric-card"><div class="metric-value" style="color: {cor_elaboracao};">{docs_em_elaboracao}</div><div class="metric-label">⏳ Docs em Elaboração</div></div>', unsafe_allow_html=True)
     
-    col_m4.markdown(f'<div class="metric-card"><div class="metric-value" style="color: {cor_pendencias};">{total_assinaturas}</div><div class="metric-label">✍️ Assinaturas Pendentes</div></div>', unsafe_allow_html=True)
+    col_m4.markdown(f'<div class="metric-card"><div class="metric-value" style="color: #0284c7;">{total_laudos}</div><div class="metric-label">📄 Com Laudo Médico</div></div>', unsafe_allow_html=True)
     
     col_m5.markdown(f'<div class="metric-card"><div class="metric-value" style="color: #1e3a8a;">{total_caso}</div><div class="metric-label">📋 Estudos de Caso</div></div>', unsafe_allow_html=True)
     
@@ -5184,6 +5194,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

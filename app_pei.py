@@ -3746,27 +3746,57 @@ elif app_mode == "👥 Gestão de Alunos":
                     "Qual a expectativa da família em relação à escolaridade da criança?"
                 ]
                 
-                pdf.set_font("Arial", "", 9)
+             pdf.set_font("Arial", "", 9)
+                
                 for item in checklist_items:
+                    # Captura os dados do banco
                     key_base = item[:10].replace(" ", "").replace("?", "")
-                    opt = data.get('checklist', {}).get(f"{key_base}_opt", "Não")
-                    obs = data.get('checklist', {}).get(f"{key_base}_obs", "")
+                    opt = clean_pdf_text(data.get('checklist', {}).get(f"{key_base}_opt", "Não"))
+                    obs = clean_pdf_text(data.get('checklist', {}).get(f"{key_base}_obs", ""))
+                    item_text = clean_pdf_text(item)
                     
-                    line_height = 6
-                    num_lines = pdf.get_string_width(obs) / 50 
-                    cell_height = max(line_height, (int(num_lines) + 1) * line_height)
+                    # Define a largura exata de cada coluna (Total: 180mm)
+                    w1, w2, w3 = 110, 25, 45 
                     
-                    x_start = pdf.get_x(); y_start = pdf.get_y()
+                    # Calcula quantas linhas o texto vai precisar dividindo a largura do texto pelo espaço da coluna
+                    linhas_item = int(pdf.get_string_width(item_text) / (w1 - 3)) + 1
+                    linhas_obs = int(pdf.get_string_width(obs) / (w3 - 3)) + 1 if obs else 1
                     
-                    pdf.multi_cell(110, line_height, clean_pdf_text(item), 1, 'L')
+                    # A linha precisa ter a altura do texto que for maior (Pergunta ou Observação)
+                    max_linhas = max(linhas_item, linhas_obs)
                     
-                    pdf.set_xy(x_start + 110, y_start)
-                    pdf.cell(25, cell_height, clean_pdf_text(opt), 1, 0, 'C')
+                    # Define a altura da quebra de linha (5) e calcula a altura total da caixa
+                    h_linha = 5
+                    h_total = max(8, (max_linhas * h_linha) + 2) # Altura mínima de 8mm para ficar bonito
                     
-                    pdf.set_xy(x_start + 135, y_start)
-                    pdf.multi_cell(0, line_height, clean_pdf_text(obs), 1, 'L')
+                    x = pdf.get_x()
+                    y = pdf.get_y()
                     
-                    pdf.set_xy(x_start, y_start + cell_height)
+                    # Segurança contra quebra de página: se a caixa for passar do fim da folha, cria página nova
+                    if y + h_total > 275:
+                        pdf.add_page()
+                        x = pdf.get_x()
+                        y = pdf.get_y()
+                    
+                    # 1. Desenha o "esqueleto" da linha (as bordas)
+                    pdf.rect(x, y, w1, h_total)
+                    pdf.rect(x + w1, y, w2, h_total)
+                    pdf.rect(x + w1 + w2, y, w3, h_total)
+                    
+                    # 2. Imprime a Pergunta (com uma pequena margem interna no Y para não colar na linha de cima)
+                    pdf.set_xy(x + 1, y + 1)
+                    pdf.multi_cell(w1 - 2, h_linha, item_text, 0, 'L')
+                    
+                    # 3. Imprime o SIM/NÃO centralizado
+                    pdf.set_xy(x + w1, y)
+                    pdf.cell(w2, h_total, opt, 0, 0, 'C')
+                    
+                    # 4. Imprime as Observações da Família com quebra de linha automática
+                    pdf.set_xy(x + w1 + w2 + 1, y + 1)
+                    pdf.multi_cell(w3 - 2, h_linha, obs, 0, 'L')
+                    
+                    # 5. Prepara o cursor para a próxima linha do loop
+                    pdf.set_xy(x, y + h_total)
 
                 # --- FINALIZAÇÃO ---
                 pdf.ln(5)
@@ -5004,6 +5034,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

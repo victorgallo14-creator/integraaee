@@ -2821,8 +2821,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.ln(2)
                     pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "Outras observações de saúde:", 0, 1)
                     pdf.set_font("Arial", "", 9); pdf.multi_cell(0, 5, clean_pdf_text(data_case.get('saude_obs_geral')), 1)
-
-                # --- 1.4 COMPREENSÃO DA FAMÍLIA (CHECKLIST) ---
+# --- 1.4 COMPREENSÃO DA FAMÍLIA (CHECKLIST) ---
                 pdf.add_page()
                 pdf.section_title("1.4 COMPREENSÃO DA FAMÍLIA (CHECKLIST)", width=0)
                 pdf.ln(4)
@@ -2846,8 +2845,13 @@ elif app_mode == "👥 Gestão de Alunos":
                 ]
                 
                 pdf.set_font("Arial", "", 9)
-                for item in checklist_items:
-                    key_base = item[:10].replace(" ", "").replace("?", "")
+                
+                # CORREÇÃO 1: Adicionado o enumerate para ter acesso ao índice 'i'
+                for i, item in enumerate(checklist_items):
+                    
+                    # CORREÇÃO 2: Chave exata que foi usada no salvamento
+                    key_base = f"itemcomport_{i}"
+                    
                     opt = data_case.get('checklist', {}).get(f"{key_base}_opt", "Não")
                     obs = data_case.get('checklist', {}).get(f"{key_base}_obs", "")
                     
@@ -2866,7 +2870,6 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.multi_cell(0, line_height, clean_pdf_text(obs), 1, 'L')
                     
                     pdf.set_xy(x_start, y_start + cell_height)
-
                 # ==========================================================
                 # FIM DO CONTEÚDO DO ESTUDO DE CASO
                 # RETOMADA DO PDI
@@ -3518,7 +3521,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     if st.form_submit_button("💾 Salvar Dados de Saúde"):
                         save_student("CASO", data.get('nome'), data, "Saúde")
 
-        # --- ABA 5: COMPORTAMENTO ---
+# --- ABA 5: COMPORTAMENTO ---
         with tabs[4]:
             with st.form("form_caso_comportamento") if not is_monitor else st.container():
                 st.subheader("1.4 Compreensão da Família (Checklist)")
@@ -3541,12 +3544,27 @@ elif app_mode == "👥 Gestão de Alunos":
                 for i, item in enumerate(checklist_items):
                     st.markdown(f"**{item}**")
                     col_a, col_b = st.columns([1, 3])
-                    key_base = item[:10].replace(" ", "").replace("?", "")
+                    
+                    # CORREÇÃO: Usando o prefixo 'itemcomport' junto com o índice
+                    key_base = f"itemcomport_{i}" 
                     
                     opt = data['checklist'].get(f"{key_base}_opt", "Não")
-                    data['checklist'][f"{key_base}_opt"] = col_a.radio("Opção", ["Sim", "Não"], key=f"rad_f_{i}", horizontal=True, label_visibility="collapsed", index=0 if opt == "Sim" else 1, disabled=is_monitor)
+                    data['checklist'][f"{key_base}_opt"] = col_a.radio(
+                        "Opção", 
+                        ["Sim", "Não"], 
+                        key=f"comp_rad_{i}", 
+                        horizontal=True, 
+                        label_visibility="collapsed", 
+                        index=0 if opt == "Sim" else 1, 
+                        disabled=is_monitor
+                    )
                     
-                    data['checklist'][f"{key_base}_obs"] = col_b.text_input("Obs:", value=data['checklist'].get(f"{key_base}_obs", ""), key=f"obs_f_{i}", disabled=is_monitor)
+                    data['checklist'][f"{key_base}_obs"] = col_b.text_input(
+                        "Obs:", 
+                        value=data['checklist'].get(f"{key_base}_obs", ""), 
+                        key=f"comp_obs_{i}", 
+                        disabled=is_monitor
+                    )
                     st.divider()
 
                 st.subheader("Dados da Entrevista")
@@ -3558,7 +3576,11 @@ elif app_mode == "👥 Gestão de Alunos":
                 if isinstance(d_ent, str): 
                      try: d_ent = datetime.strptime(d_ent, '%Y-%m-%d').date()
                      except: d_ent = date.today()
-                data['entrevista_data'] = c_e3.date_input("Data", value=d_ent if d_ent else date.today(), format="DD/MM/YYYY", disabled=is_monitor)
+                
+                input_data = c_e3.date_input("Data", value=d_ent if d_ent else date.today(), format="DD/MM/YYYY", disabled=is_monitor)
+                
+                # Convertendo a data para string (YYYY-MM-DD) para salvar sem erros
+                data['entrevista_data'] = input_data.strftime('%Y-%m-%d') 
                 
                 data['entrevista_extra'] = st.text_area("Outras informações relevantes:", value=data.get('entrevista_extra', ''), disabled=is_monitor)
                 
@@ -3566,7 +3588,8 @@ elif app_mode == "👥 Gestão de Alunos":
                 if not is_monitor:
                     if st.form_submit_button("💾 Salvar Comportamento"):
                         save_student("CASO", data.get('nome'), data, "Comportamento")
-
+                        st.success("Dados de comportamento salvos com sucesso!")
+                        
         # --- ABA 6: ASSINATURAS (NOVO) ---
         with tabs[5]:
             st.subheader("Assinaturas Digitais")
@@ -5198,6 +5221,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

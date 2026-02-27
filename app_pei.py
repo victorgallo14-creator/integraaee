@@ -4007,18 +4007,21 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.set_xy(115, start_y + 12)
                     pdf.multi_cell(50, 9, clean_pdf_text(f"Ano de escolaridade:\n{data_conduta.get('ano_esc','')}") , 1, 'C')
                     
-  # --- CAIXAS DE CONTEÚDO ---
+
+        # --- CONFIGURAÇÃO PARA CARTAZ DE PÁGINA ÚNICA ---
+                    # Desliga a quebra de página automática para termos controle total do espaço
+                    pdf.set_auto_page_break(False)
                     
-                    # Nova Função Auxiliar que ESTICA para preencher a página
+                    # --- CAIXAS DE CONTEÚDO ---
+                    
                     def draw_colored_box(x, y, w, target_h, r, g, b, title, content):
                         texto_limpo = clean_pdf_text(str(content) if content else "")
                         pdf.set_font("Arial", "", 9)
                         
-                        w_text = w - 4 # Desconta 2mm de margem interna
+                        w_text = w - 4 
                         line_height = 5
                         linhas = 0
                         
-                        # Calcula quanto espaço o texto realmente precisa
                         for paragrafo in texto_limpo.split('\n'):
                             largura = pdf.get_string_width(paragrafo)
                             if largura == 0:
@@ -4027,15 +4030,9 @@ elif app_mode == "👥 Gestão de Alunos":
                                 linhas += int(largura / w_text) + 1
                                 
                         h_texto = 8 + (max(1, linhas) * line_height) + 4
-                        
-                        # A MÁGICA: A caixa assume o tamanho ideal para preencher a A4 (target_h).
-                        # Mas se o texto for gigante, ela ignora o alvo e cresce para caber tudo.
                         h_final = max(target_h, h_texto)
                         
-                        # Segurança contra quebra de página
-                        if y + h_final > 285:
-                            pdf.add_page()
-                            y = 15
+                        # Removemos o add_page() manual daqui para forçar a ficar na mesma página
                             
                         # Desenha o Retângulo Externo
                         pdf.set_draw_color(r, g, b)
@@ -4053,29 +4050,32 @@ elif app_mode == "👥 Gestão de Alunos":
                         pdf.set_font("Arial", "", 9)
                         pdf.multi_cell(w_text, line_height, texto_limpo, 0, 'L')
                         
-                        # Retorna a posição da próxima caixa (com 4mm de respiro)
-                        return y + h_final + 4
+                        # Retorna a posição da próxima caixa (com 3mm de respiro para alinhamento perfeito)
+                        return y + h_final + 3
 
                     # --- LÓGICA DE ORGANIZAÇÃO PARA PREENCHER O A4 ---
                     
                     y_esquerdo = 90 
                     y_direito = 75 
                     
-                    # LADO DIREITO (Altura ideal calculada para fechar a folha: 68mm)
-                    y_direito = draw_colored_box(100, y_direito, 100, 68, 154, 205, 50, "Sobre mim", data_conduta.get('conduta_sobre_mim', ''))
-                    y_direito = draw_colored_box(130, y_direito, 70, 68, 255, 69, 0, "Coisas que eu não gosto", data_conduta.get('conduta_nao_gosto', ''))
-                    y_direito = draw_colored_box(130, y_direito, 70, 68, 255, 215, 0, "Habilidades (eu posso...)", data_conduta.get('conduta_habilidades', ''))
+                    # LADO DIREITO (Altura ideal reduzida para 65mm para não bater na margem limite)
+                    y_direito = draw_colored_box(100, y_direito, 100, 65, 154, 205, 50, "Sobre mim", data_conduta.get('conduta_sobre_mim', ''))
+                    y_direito = draw_colored_box(130, y_direito, 70, 65, 255, 69, 0, "Coisas que eu não gosto", data_conduta.get('conduta_nao_gosto', ''))
+                    y_direito = draw_colored_box(130, y_direito, 70, 65, 255, 215, 0, "Habilidades (eu posso...)", data_conduta.get('conduta_habilidades', ''))
                     
-                    # LADO ESQUERDO (Altura ideal calculada para fechar a folha: 63mm)
-                    y_esquerdo = draw_colored_box(10, y_esquerdo, 85, 63, 255, 165, 0, "Coisas que eu gosto", data_conduta.get('conduta_gosto', ''))
-                    y_esquerdo = draw_colored_box(10, y_esquerdo, 110, 63, 147, 112, 219, "Como me comunico", data_conduta.get('conduta_comunico', ''))
-                    y_esquerdo = draw_colored_box(10, y_esquerdo, 110, 63, 0, 191, 255, "Como me ajudar", data_conduta.get('conduta_ajuda', ''))
+                    # LADO ESQUERDO (Altura ideal reduzida para 60mm)
+                    y_esquerdo = draw_colored_box(10, y_esquerdo, 85, 60, 255, 165, 0, "Coisas que eu gosto", data_conduta.get('conduta_gosto', ''))
+                    y_esquerdo = draw_colored_box(10, y_esquerdo, 110, 60, 147, 112, 219, "Como me comunico", data_conduta.get('conduta_comunico', ''))
+                    y_esquerdo = draw_colored_box(10, y_esquerdo, 110, 60, 0, 191, 255, "Como me ajudar", data_conduta.get('conduta_ajuda', ''))
+
+                    # Religando a quebra de página por precaução para não afetar o resto do app
+                    pdf.set_auto_page_break(True, margin=15)
 
                     st.session_state.pdf_bytes_conduta = get_pdf_bytes(pdf)
                     st.rerun()
+
             if 'pdf_bytes_conduta' in st.session_state:
                 st.download_button("📥 BAIXAR PROTOCOLO PDF", st.session_state.pdf_bytes_conduta, f"Conduta_{data_conduta.get('nome','aluno')}.pdf", "application/pdf", type="primary")
-
         # --- ABA 7: HISTÓRICO ---
         with tabs[1]:
             st.subheader("Histórico de Atividades")
@@ -5074,6 +5074,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

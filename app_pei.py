@@ -4007,18 +4007,18 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf.set_xy(115, start_y + 12)
                     pdf.multi_cell(50, 9, clean_pdf_text(f"Ano de escolaridade:\n{data_conduta.get('ano_esc','')}") , 1, 'C')
                     
-   # --- CAIXAS DE CONTEÚDO ---
+  # --- CAIXAS DE CONTEÚDO ---
                     
-                    # Nova Função Auxiliar com Altura Automática e Retorno de Posição
-                    def draw_colored_box(x, y, w, r, g, b, title, content):
+                    # Nova Função Auxiliar que ESTICA para preencher a página
+                    def draw_colored_box(x, y, w, target_h, r, g, b, title, content):
                         texto_limpo = clean_pdf_text(str(content) if content else "")
                         pdf.set_font("Arial", "", 9)
                         
-                        # 1. Calcula a altura necessária para o texto
-                        w_text = w - 4 # Desconta 2mm de margem de cada lado
+                        w_text = w - 4 # Desconta 2mm de margem interna
                         line_height = 5
                         linhas = 0
                         
+                        # Calcula quanto espaço o texto realmente precisa
                         for paragrafo in texto_limpo.split('\n'):
                             largura = pdf.get_string_width(paragrafo)
                             if largura == 0:
@@ -4026,58 +4026,53 @@ elif app_mode == "👥 Gestão de Alunos":
                             else:
                                 linhas += int(largura / w_text) + 1
                                 
-                        # Altura base: Título(8mm) + Texto + Margem Fundo(4mm)
-                        # Altura mínima de 25mm para não ficar murcha se estiver vazia
-                        h_total = max(25, 8 + (linhas * line_height) + 4)
+                        h_texto = 8 + (max(1, linhas) * line_height) + 4
                         
-                        # Segurança para evitar que a caixa passe do limite da folha
-                        if y + h_total > 285:
+                        # A MÁGICA: A caixa assume o tamanho ideal para preencher a A4 (target_h).
+                        # Mas se o texto for gigante, ela ignora o alvo e cresce para caber tudo.
+                        h_final = max(target_h, h_texto)
+                        
+                        # Segurança contra quebra de página
+                        if y + h_final > 285:
                             pdf.add_page()
                             y = 15
                             
-                        # 2. Desenha o Retângulo Externo
+                        # Desenha o Retângulo Externo
                         pdf.set_draw_color(r, g, b)
                         pdf.set_line_width(0.8)
-                        pdf.rect(x, y, w, h_total)
+                        pdf.rect(x, y, w, h_final)
                         
-                        # 3. Imprime o Título
+                        # Imprime o Título
                         pdf.set_xy(x, y+2)
                         pdf.set_text_color(0, 0, 0)
                         pdf.set_font("Arial", "B", 10)
                         pdf.cell(w, 5, clean_pdf_text(title), 0, 1, 'C')
                         
-                        # 4. Imprime o Conteúdo Quebrando Linha
+                        # Imprime o Conteúdo
                         pdf.set_xy(x+2, y+8)
                         pdf.set_font("Arial", "", 9)
                         pdf.multi_cell(w_text, line_height, texto_limpo, 0, 'L')
                         
-                        # 5. Retorna a posição Y onde a PRÓXIMA caixa deve começar (com 4mm de respiro)
-                        return y + h_total + 4
+                        # Retorna a posição da próxima caixa (com 4mm de respiro)
+                        return y + h_final + 4
 
-                    # --- LÓGICA DE ORGANIZAÇÃO EM DUAS COLUNAS ---
+                    # --- LÓGICA DE ORGANIZAÇÃO PARA PREENCHER O A4 ---
                     
-                    # Iniciamos os "rastreadores" de altura para o lado esquerdo e direito
-                    # Lado esquerdo começa no Y=95 para ficar abaixo da foto
-                    y_esquerdo = 95 
-                    
-                    # Lado direito começa no Y=60 para ficar abaixo dos dados de "Ano escolar"
+                    y_esquerdo = 90 
                     y_direito = 75 
                     
-                    # --- DESENHANDO AS CAIXAS (A ordem não importa, elas se empurram para baixo) ---
+                    # LADO DIREITO (Altura ideal calculada para fechar a folha: 68mm)
+                    y_direito = draw_colored_box(100, y_direito, 100, 68, 154, 205, 50, "Sobre mim", data_conduta.get('conduta_sobre_mim', ''))
+                    y_direito = draw_colored_box(130, y_direito, 70, 68, 255, 69, 0, "Coisas que eu não gosto", data_conduta.get('conduta_nao_gosto', ''))
+                    y_direito = draw_colored_box(130, y_direito, 70, 68, 255, 215, 0, "Habilidades (eu posso...)", data_conduta.get('conduta_habilidades', ''))
                     
-                    # LADO DIREITO
-                    y_direito = draw_colored_box(100, y_direito, 100, 154, 205, 50, "Sobre mim", data_conduta.get('conduta_sobre_mim', ''))
-                    y_direito = draw_colored_box(130, y_direito, 70, 255, 69, 0, "Coisas que eu não gosto", data_conduta.get('conduta_nao_gosto', ''))
-                    y_direito = draw_colored_box(130, y_direito, 70, 255, 215, 0, "Habilidades (eu posso...)", data_conduta.get('conduta_habilidades', ''))
-                    
-                    # LADO ESQUERDO
-                    y_esquerdo = draw_colored_box(10, y_esquerdo, 85, 255, 165, 0, "Coisas que eu gosto", data_conduta.get('conduta_gosto', ''))
-                    y_esquerdo = draw_colored_box(10, y_esquerdo, 110, 147, 112, 219, "Como me comunico", data_conduta.get('conduta_comunico', ''))
-                    y_esquerdo = draw_colored_box(10, y_esquerdo, 110, 0, 191, 255, "Como me ajudar", data_conduta.get('conduta_ajuda', ''))
+                    # LADO ESQUERDO (Altura ideal calculada para fechar a folha: 63mm)
+                    y_esquerdo = draw_colored_box(10, y_esquerdo, 85, 63, 255, 165, 0, "Coisas que eu gosto", data_conduta.get('conduta_gosto', ''))
+                    y_esquerdo = draw_colored_box(10, y_esquerdo, 110, 63, 147, 112, 219, "Como me comunico", data_conduta.get('conduta_comunico', ''))
+                    y_esquerdo = draw_colored_box(10, y_esquerdo, 110, 63, 0, 191, 255, "Como me ajudar", data_conduta.get('conduta_ajuda', ''))
 
                     st.session_state.pdf_bytes_conduta = get_pdf_bytes(pdf)
                     st.rerun()
-
             if 'pdf_bytes_conduta' in st.session_state:
                 st.download_button("📥 BAIXAR PROTOCOLO PDF", st.session_state.pdf_bytes_conduta, f"Conduta_{data_conduta.get('nome','aluno')}.pdf", "application/pdf", type="primary")
 
@@ -5079,6 +5074,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

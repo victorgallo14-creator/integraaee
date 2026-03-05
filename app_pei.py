@@ -1616,11 +1616,11 @@ elif app_mode == "👥 Gestão de Alunos":
                         save_student("PEI", data.get('nome'), data, "Acadêmico")
 
         # --- ABA 6: METAS E FLEXIBILIZAÇÃO (VERSÃO CORRIGIDA E SEGURA) ---
-with tabs[5]:
+        with tabs[5]:
     # Identificador único para as keys (evita que dados de um aluno fiquem presos na tela de outro)
     aluno_id = data.get('nome', 'default')
 
-    with st.form("form_pei_metas") if not is_monitor else st.container():
+            with st.form("form_pei_metas") if not is_monitor else st.container():
         st.header("6. Metas Específicas")
         
         st.subheader("Habilidades Sociais")
@@ -5242,6 +5242,7 @@ with tabs[5]:
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

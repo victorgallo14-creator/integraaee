@@ -1617,91 +1617,85 @@ elif app_mode == "👥 Gestão de Alunos":
 
         # --- ABA 6: METAS E FLEXIBILIZAÇÃO (VERSÃO CORRIGIDA E SEGURA) ---
         with tabs[5]:
-    # Identificador único para as keys (evita que dados de um aluno fiquem presos na tela de outro)
-    aluno_id = data.get('nome', 'default')
+            # Identificador único para as keys (evita que dados de um aluno fiquem presos na tela de outro)
+            aluno_id = data.get('nome', 'default')
 
             with st.form("form_pei_metas") if not is_monitor else st.container():
-        st.header("6. Metas Específicas")
-        
-        st.subheader("Habilidades Sociais")
-        data['meta_social_obj'] = st.text_area("Metas (Sociais):", value=data.get('meta_social_obj', ''), key=f"ms_obj_{aluno_id}", disabled=is_monitor)
-        data['meta_social_est'] = st.text_area("Estratégias (Sociais):", value=data.get('meta_social_est', ''), key=f"ms_est_{aluno_id}", disabled=is_monitor)
+                st.header("6. Metas Específicas")
+                
+                st.subheader("Habilidades Sociais")
+                data['meta_social_obj'] = st.text_area("Metas (Sociais):", value=data.get('meta_social_obj', ''), key=f"ms_obj_{aluno_id}", disabled=is_monitor)
+                data['meta_social_est'] = st.text_area("Estratégias (Sociais):", value=data.get('meta_social_est', ''), key=f"ms_est_{aluno_id}", disabled=is_monitor)
 
-        st.divider(); st.subheader("Autocuidado e Vida Prática")
-        data['meta_auto_obj'] = st.text_area("Metas (Autocuidado):", value=data.get('meta_auto_obj', ''), key=f"ma_obj_{aluno_id}", disabled=is_monitor)
-        data['meta_auto_est'] = st.text_area("Estratégias (Autocuidado):", value=data.get('meta_auto_est', ''), key=f"ma_est_{aluno_id}", disabled=is_monitor)
+                st.divider(); st.subheader("Autocuidado e Vida Prática")
+                data['meta_auto_obj'] = st.text_area("Metas (Autocuidado):", value=data.get('meta_auto_obj', ''), key=f"ma_obj_{aluno_id}", disabled=is_monitor)
+                data['meta_auto_est'] = st.text_area("Estratégias (Autocuidado):", value=data.get('meta_auto_est', ''), key=f"ma_est_{aluno_id}", disabled=is_monitor)
 
-        st.divider(); st.subheader("Habilidades Acadêmicas")
-        data['meta_acad_obj'] = st.text_area("Metas (Acadêmicas):", value=data.get('meta_acad_obj', ''), key=f"mac_obj_{aluno_id}", disabled=is_monitor)
-        data['meta_acad_est'] = st.text_area("Estratégias (Acadêmicas):", value=data.get('meta_acad_est', ''), key=f"mac_est_{aluno_id}", disabled=is_monitor)
+                st.divider(); st.subheader("Habilidades Acadêmicas")
+                data['meta_acad_obj'] = st.text_area("Metas (Acadêmicas):", value=data.get('meta_acad_obj', ''), key=f"mac_obj_{aluno_id}", disabled=is_monitor)
+                data['meta_acad_est'] = st.text_area("Estratégias (Acadêmicas):", value=data.get('meta_acad_est', ''), key=f"mac_est_{aluno_id}", disabled=is_monitor)
 
-        st.header("7. Flexibilização Curricular")
-        if pei_level == "Fundamental":
-            disciplinas_flex = ["Língua Portuguesa", "Matemática", "História", "Geografia", "Ciências", "Arte", "Educação Física", "Linguagens e Tecnologia"]
-        else:
-            disciplinas_flex = ["Linguagem Verbal", "Linguagem Matemática", "Indivíduo e Sociedade", "Arte", "Educação Física", "Linguagens e Tecnologia"]
+                st.header("7. Flexibilização Curricular")
+                if pei_level == "Fundamental":
+                    disciplinas_flex = ["Língua Portuguesa", "Matemática", "História", "Geografia", "Ciências", "Arte", "Educação Física", "Linguagens e Tecnologia"]
+                else:
+                    disciplinas_flex = ["Linguagem Verbal", "Linguagem Matemática", "Indivíduo e Sociedade", "Arte", "Educação Física", "Linguagens e Tecnologia"]
 
-        if 'flex_matrix' not in data: data['flex_matrix'] = {}
-        
-        st.markdown("**7.1 Disciplinas que necessitam de adaptação**")
-        c_h1, c_h2, c_h3 = st.columns([2, 1, 1])
-        c_h1.write("**Disciplina**")
-        c_h2.write("**Conteúdo?**")
-        c_h3.write("**Metodologia?**")
-        
-        for disc in disciplinas_flex:
-            if disc not in data['flex_matrix']: data['flex_matrix'][disc] = {'conteudo': False, 'metodologia': False}
-            
-            c1, c2, c3 = st.columns([2, 1, 1])
-            c1.write(disc)
-            # Keys dinâmicas nos checkboxes também para evitar persistência errada
-            data['flex_matrix'][disc]['conteudo'] = c2.checkbox("Sim", key=f"flex_c_{aluno_id}_{disc}", value=data['flex_matrix'][disc]['conteudo'], disabled=is_monitor)
-            data['flex_matrix'][disc]['metodologia'] = c3.checkbox("Sim", key=f"flex_m_{aluno_id}_{disc}", value=data['flex_matrix'][disc]['metodologia'], disabled=is_monitor)
-
-        st.divider()
-        st.subheader("7.2 Plano de Ensino Anual")
-        trimestres = ["1º Trimestre", "2º Trimestre", "3º Trimestre"]
-        if 'plano_ensino_tri' not in data: data['plano_ensino_tri'] = {}
-
-        for tri in trimestres:
-            st.markdown(f"### 🗓️ {tri}")
-            if tri not in data['plano_ensino_tri']: data['plano_ensino_tri'][tri] = {}
-            
-            for disc in disciplinas_flex:
-                with st.expander(f"{tri} - {disc}", expanded=False):
-                    if disc not in data['plano_ensino_tri'][tri]:
-                        data['plano_ensino_tri'][tri][disc] = {'obj': '', 'cont': '', 'met': ''}
+                if 'flex_matrix' not in data: data['flex_matrix'] = {}
+                
+                st.markdown("**7.1 Disciplinas que necessitam de adaptação**")
+                c_h1, c_h2, c_h3 = st.columns([2, 1, 1])
+                c_h1.write("**Disciplina**")
+                c_h2.write("**Conteúdo?**")
+                c_h3.write("**Metodologia?**")
+                
+                for disc in disciplinas_flex:
+                    if disc not in data['flex_matrix']: data['flex_matrix'][disc] = {'conteudo': False, 'metodologia': False}
                     
-                    p_ref = data['plano_ensino_tri'][tri][disc]
+                    c1, c2, c3 = st.columns([2, 1, 1])
+                    c1.write(disc)
+                    data['flex_matrix'][disc]['conteudo'] = c2.checkbox("Sim", key=f"flex_c_{aluno_id}_{disc}", value=data['flex_matrix'][disc]['conteudo'], disabled=is_monitor)
+                    data['flex_matrix'][disc]['metodologia'] = c3.checkbox("Sim", key=f"flex_m_{aluno_id}_{disc}", value=data['flex_matrix'][disc]['metodologia'], disabled=is_monitor)
+
+                st.divider()
+                st.subheader("7.2 Plano de Ensino Anual")
+                trimestres = ["1º Trimestre", "2º Trimestre", "3º Trimestre"]
+                if 'plano_ensino_tri' not in data: data['plano_ensino_tri'] = {}
+
+                for tri in trimestres:
+                    st.markdown(f"### 🗓️ {tri}")
+                    if tri not in data['plano_ensino_tri']: data['plano_ensino_tri'][tri] = {}
                     
-                    # Uso de .get() para evitar erros de chave inexistente e keys com ID do aluno
-                    p_ref['obj'] = st.text_area(f"Objetivos ({disc})", value=p_ref.get('obj', ''), key=f"obj_{aluno_id}_{tri}_{disc}", disabled=is_monitor)
-                    p_ref['cont'] = st.text_area(f"Conteúdos ({disc})", value=p_ref.get('cont', ''), key=f"cont_{aluno_id}_{tri}_{disc}", disabled=is_monitor)
-                    p_ref['met'] = st.text_area(f"Metodologia ({disc})", value=p_ref.get('met', ''), key=f"met_{aluno_id}_{tri}_{disc}", disabled=is_monitor)
+                    for disc in disciplinas_flex:
+                        with st.expander(f"{tri} - {disc}", expanded=False):
+                            if disc not in data['plano_ensino_tri'][tri]:
+                                data['plano_ensino_tri'][tri][disc] = {'obj': '', 'cont': '', 'met': ''}
+                            
+                            p_ref = data['plano_ensino_tri'][tri][disc]
+                            p_ref['obj'] = st.text_area(f"Objetivos ({disc})", value=p_ref.get('obj', ''), key=f"obj_{aluno_id}_{tri}_{disc}", disabled=is_monitor)
+                            p_ref['cont'] = st.text_area(f"Conteúdos ({disc})", value=p_ref.get('cont', ''), key=f"cont_{aluno_id}_{tri}_{disc}", disabled=is_monitor)
+                            p_ref['met'] = st.text_area(f"Metodologia ({disc})", value=p_ref.get('met', ''), key=f"met_{aluno_id}_{tri}_{disc}", disabled=is_monitor)
 
-            # --- CORREÇÃO DA OBS/RECOMENDAÇÕES ---
-            # Buscamos o valor real do banco
-            obs_valor_banco = data['plano_ensino_tri'][tri].get('obs', '')
-            
-            # Criamos o campo com key única por ALUNO e TRIMESTRE
-            obs_input = st.text_area(
-                f"Obs/Recomendações {tri}:", 
-                value=obs_valor_banco, 
-                key=f"obs_tri_{aluno_id}_{tri}", 
-                disabled=is_monitor
-            )
-            # Salvamos de volta no dicionário
-            data['plano_ensino_tri'][tri]['obs'] = obs_input
-            st.markdown("---")
+                    # --- CORREÇÃO DA OBS/RECOMENDAÇÕES ---
+                    obs_valor_banco = data['plano_ensino_tri'][tri].get('obs', '')
+                    
+                    obs_input = st.text_area(
+                        f"Obs/Recomendações {tri}:", 
+                        value=obs_valor_banco, 
+                        key=f"obs_tri_{aluno_id}_{tri}", 
+                        disabled=is_monitor
+                    )
+                    data['plano_ensino_tri'][tri]['obs'] = obs_input
+                    st.markdown("---")
 
-        st.markdown("Considerações finais:")
-        data['plano_obs_geral'] = st.text_area("", value=data.get('plano_obs_geral', ''), key=f"obs_geral_{aluno_id}", disabled=is_monitor)
+                st.markdown("Considerações finais:")
+                data['plano_obs_geral'] = st.text_area("", value=data.get('plano_obs_geral', ''), key=f"obs_geral_{aluno_id}", disabled=is_monitor)
 
-        st.markdown("---")
-        if not is_monitor:
-            if st.form_submit_button("💾 Salvar Metas e Plano"):
-                save_student("PEI", data.get('nome'), data, "Metas e Plano")
-
+                st.markdown("---")
+                if not is_monitor:
+                    if st.form_submit_button("💾 Salvar Metas e Plano"):
+                        save_student("PEI", data.get('nome'), data, "Metas e Plano")
+        
         # --- ABA 7: ASSINATURAS (NOVO) ---
         with tabs[6]:
             st.subheader("Assinaturas Digitais")

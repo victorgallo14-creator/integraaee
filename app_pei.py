@@ -12,6 +12,9 @@ from streamlit_gsheets import GSheetsConnection
 import time
 import uuid
 
+MIN_DATA = date(1900, 1, 1)
+MAX_DATA = date(2100, 12, 31)
+
 # --- CONEXÃO COM GOOGLE SHEETS ---
 conn = st.connection("gsheets", type=GSheetsConnection)
 
@@ -1336,26 +1339,22 @@ elif app_mode == "👥 Gestão de Alunos":
                     c1, c2 = st.columns([3, 1])
                     data['nome'] = c1.text_input("Nome", value=data.get('nome', ''), disabled=True)
                     
-                    # 1. TRATAMENTO DA DATA SALVA
+                    # --- TRATAMENTO ROBUSTO ---
                     d_val = data.get('nasc')
                     if isinstance(d_val, str): 
-                        try: 
-                            d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
-                        except: 
-                            d_val = date.today()
+                        try: d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
+                        except: d_val = date.today()
                     
-                    if not d_val:
+                    if not isinstance(d_val, date):
                         d_val = date.today()
 
-                    # 2. "BLINDAGEM" CONTRA O ERRO DE RANGE
-                    # Isso garante que o valor inicial NUNCA esteja fora do limite permitido
+                    # Garante que o valor inicial não quebre o widget
                     d_val = max(MIN_DATA, min(d_val, MAX_DATA))
 
-                    # 3. CHAVE DINÂMICA (O segredo para destravar o calendário)
-                    # Usamos o nome do aluno na key para que o Streamlit resete o componente 
-                    # toda vez que você trocar de aluno, aplicando os limites de 1900.
-                    aluno_id_limpo = data.get('nome', 'novo').replace(" ", "_")
-                    key_data = f"nasc_{aluno_id_limpo}"
+                    # CHAVE ÚNICA PARA FORÇAR O RESET
+                    # Mudando o nome da chave de 'data_nasc_unique' para 'nasc_fix_v3'
+                    # o Streamlit ignora o bloqueio anterior de 2016.
+                    input_key = f"nasc_fix_{data.get('nome', 'novo').replace(' ', '_')}"
 
                     data['nasc'] = c2.date_input(
                         "Nascimento", 
@@ -1364,7 +1363,7 @@ elif app_mode == "👥 Gestão de Alunos":
                         max_value=MAX_DATA,
                         format="DD/MM/YYYY", 
                         disabled=is_monitor,
-                        key=key_data # <--- Mudança crucial aqui
+                        key=input_key
                     )
                     
                     c3, c4 = st.columns(2)
@@ -5261,6 +5260,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

@@ -11,6 +11,11 @@ import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 import time
 import uuid
+import datetime
+
+# Garanta que isso esteja no topo do arquivo ou fora do bloco 'with'
+MIN_DATA = datetime.date(1900, 1, 1)
+MAX_DATA = datetime.date.today()
 
 # --- CONEXÃO COM GOOGLE SHEETS ---
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -1341,14 +1346,19 @@ elif app_mode == "👥 Gestão de Alunos":
                         try: 
                             d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
                         except: 
-                            d_val = date.today()
+                            d_val = MAX_DATA
+
+                    if d_val < MIN_DATA:
+                        d_val = MIN_DATA
+                
                     data['nasc'] = c2.date_input(
                         "Nascimento", 
-                        value=d_val if d_val else date.today(), 
-                        min_value=date(2000, 1, 1), 
-                        max_value=date.today(), 
+                        value=d_val,
+                        min_value=MIN_DATA, 
+                        max_value=MAX_DATA,
                         format="DD/MM/YYYY", 
-                        disabled=is_monitor
+                        disabled=is_monitor,
+                        key="data_nasc_unique"
                     )
                     
                     c3, c4 = st.columns(2)
@@ -5245,6 +5255,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

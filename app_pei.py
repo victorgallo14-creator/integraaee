@@ -1340,7 +1340,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     if isinstance(d_val, str): 
                         try: d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
                         except: d_val = date.today()
-                    data['nasc'] = c2.date_input("Nascimento", value=d_val if d_val else date.today(), format="DD/MM/YYYY", disabled=is_monitor)
+                    data['nasc'] = c2.date_input("Nascimento", value=d_val if d_val else date.today(), min_value=date(2000, 1, 1), max_value=data.today(), format="DD/MM/YYYY", disabled=is_monitor)
                     
                     c3, c4 = st.columns(2)
                     data['idade'] = c3.text_input("Idade", value=data.get('idade', ''), disabled=is_monitor)
@@ -5236,6 +5236,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

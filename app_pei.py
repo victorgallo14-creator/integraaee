@@ -1,6 +1,6 @@
 import streamlit as st
-from fpdf import FPDF
 from datetime import datetime, date, timedelta, timezone
+import datetime as dt_module
 import io
 import os
 import base64
@@ -5260,6 +5260,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

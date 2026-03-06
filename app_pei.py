@@ -1336,30 +1336,27 @@ elif app_mode == "👥 Gestão de Alunos":
                     c1, c2 = st.columns([3, 1])
                     data['nome'] = c1.text_input("Nome", value=data.get('nome', ''), disabled=True)
                     
-                    # 1. Tratamento robusto da data de nascimento
+                    # 1. TRATAMENTO DA DATA SALVA
                     d_val = data.get('nasc')
-                    
-                    # Converte string para objeto date se necessário
                     if isinstance(d_val, str): 
                         try: 
                             d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
                         except: 
                             d_val = date.today()
                     
-                    # Se d_val for None ou inválido, define como hoje
                     if not d_val:
                         d_val = date.today()
 
-                    # 2. Força a data para dentro do range permitido para evitar erro de renderização
-                    # Se a data salva for 1980 e o min_value for 1900, está OK.
-                    # Mas se d_val for menor que MIN_DATA, o widget trava.
+                    # 2. "BLINDAGEM" CONTRA O ERRO DE RANGE
+                    # Isso garante que o valor inicial NUNCA esteja fora do limite permitido
                     d_val = max(MIN_DATA, min(d_val, MAX_DATA))
 
-                    # 3. O Widget com Chave Dinâmica Baseada no Aluno
-                    # Usar o nome do aluno na 'key' garante que, ao trocar de aluno, 
-                    # o widget resete totalmente e aceite os novos limites.
-                    aluno_nome_id = data.get('nome', 'novo').replace(" ", "_")
-                    
+                    # 3. CHAVE DINÂMICA (O segredo para destravar o calendário)
+                    # Usamos o nome do aluno na key para que o Streamlit resete o componente 
+                    # toda vez que você trocar de aluno, aplicando os limites de 1900.
+                    aluno_id_limpo = data.get('nome', 'novo').replace(" ", "_")
+                    key_data = f"nasc_{aluno_id_limpo}"
+
                     data['nasc'] = c2.date_input(
                         "Nascimento", 
                         value=d_val,
@@ -1367,8 +1364,7 @@ elif app_mode == "👥 Gestão de Alunos":
                         max_value=MAX_DATA,
                         format="DD/MM/YYYY", 
                         disabled=is_monitor,
-                        key=f"nasc_input_{aluno_nome_id}" # Chave única por aluno
-                    )
+                        key=key_data # <--- Mudança crucial aqui
                     
                     c3, c4 = st.columns(2)
                     data['idade'] = c3.text_input("Idade", value=data.get('idade', ''), disabled=is_monitor)
@@ -5264,6 +5260,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'pdf_bytes_dec' in st.session_state:
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
 
 
 

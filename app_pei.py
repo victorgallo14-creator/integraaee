@@ -7607,254 +7607,306 @@ if app_mode_regular == "📖 Planejamento Curricular":
     st.markdown('<div class="header-box"><div class="header-title">📖 Sistema Planejar Integrado</div></div>', unsafe_allow_html=True)
     st.write("")
     
-    progresso = {1: 33, 2: 66, 3: 100}
-    st.progress(progresso[st.session_state.plan_step])
-    st.write("")
+    # =========================================================================
+    # AQUI ESTÃO AS DUAS GRANDES ABAS DO SISTEMA
+    # =========================================================================
+    tab_realizar, tab_historico = st.tabs(["📝 Realizar Planejamento", "📂 Meus Planejamentos"])
 
-    # --- PASSO 1: IDENTIFICAÇÃO ---
-    if st.session_state.plan_step == 1:
-        st.markdown("### 📋 Identificação do Planejamento")
-        
-        c1, c2 = st.columns(2)
-        with c1:
-            # Puxa automaticamente o nome do usuário logado no Integra!
-            default_nome = st.session_state.get('usuario_nome', '')
-            if not default_nome: default_nome = st.session_state.plan_config.get('professor', '')
-            professor = st.text_input("PROFESSOR(A) RESPONSÁVEL", value=default_nome)
-        with c2:
-            email_prof = st.text_input("E-MAIL DO PROFESSOR (Para receber cópia)", value=st.session_state.plan_config.get('email_prof', ''))
+    # -------------------------------------------------------------------------
+    # ABA 1: FAZER O PLANEAMENTO (PASSOS 1, 2 E 3)
+    # -------------------------------------------------------------------------
+    with tab_realizar:
+        progresso = {1: 33, 2: 66, 3: 100}
+        st.progress(progresso[st.session_state.plan_step])
+        st.write("")
 
-        c3, c4 = st.columns(2)
-        with c3:
-            anos = list(CURRICULO_DB.keys())
-            if "Maternal I" in anos: anos.remove("Maternal I"); anos.insert(0, "Maternal I")
-            saved_ano = st.session_state.plan_config.get('ano')
-            idx_ano = anos.index(saved_ano) if saved_ano in anos else 0
-            ano = st.selectbox("ANO DE ESCOLARIDADE", anos, index=idx_ano)
+        # --- PASSO 1: IDENTIFICAÇÃO ---
+        if st.session_state.plan_step == 1:
+            st.markdown("### 📋 Identificação do Planejamento")
             
-            if "Maternal" in ano: opts = [f"{ano} - Turma 1", f"{ano} - Turma 2"]
-            else:
-                qtd = {"Etapa I": 3, "Etapa II": 3, "1º Ano": 3, "2º Ano": 3, "3º Ano": 3, "4º Ano": 3, "5º Ano": 3}
-                max_t = qtd.get(ano, 3)
-                opts = [f"{prefix}{i}" for i in range(1, max_t + 1) for prefix in ([f"{ano} - Turma " if "Etapa" in ano else f"{ano} "])]
-            
-            valid_defaults = [t for t in st.session_state.plan_config.get('turmas', []) if t in opts]
-            turmas = st.multiselect("TURMAS VINCULADAS", opts, default=valid_defaults)
-        
-        with c4:
-            meses = {2: "Fevereiro", 3: "Março", 4: "Abril", 5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto", 9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"}
-            saved_mes = st.session_state.plan_config.get('mes')
-            idx_mes = list(meses.values()).index(saved_mes) if saved_mes in list(meses.values()) else 0
-            mes_nome = st.selectbox("MÊS DE REFERÊNCIA", list(meses.values()), index=idx_mes)
-            mes_num = [k for k, v in meses.items() if v == mes_nome][0]
-            
-            if mes_num == 2:
-                quinzena_label = "Mês Inteiro"
-                periodo_texto = "01/02/2026 a 28/02/2026"
-                trimestre_doc = "1º Trimestre"
-                st.info("Nota: Fevereiro é Planejamento Mensal.")
-            else:
-                q_sel = st.radio("PERÍODO DE EXECUÇÃO", ["1ª Quinzena (01-15)", "2ª Quinzena (16-Fim)"], horizontal=True)
-                quinzena_label = q_sel.split(" (")[0]
-                tri = "1º Trimestre" if mes_num <= 4 else "2º Trimestre" if mes_num <= 8 else "3º Trimestre"
-                ultimo = calendar.monthrange(2026, mes_num)[1]
-                periodo_texto = f"01/{mes_num:02d}/2026 a 15/{mes_num:02d}/2026" if "1ª" in q_sel else f"16/{mes_num:02d}/2026 a {ultimo}/{mes_num:02d}/2026"
-                trimestre_doc = tri
-        
-        if st.button("Avançar para Matriz Curricular ➔", type="primary", use_container_width=True):
-            if not professor or not turmas or not email_prof:
-                st.error("ERRO: Preencha todos os campos obrigatórios, incluindo o e-mail.")
-            else:
-                if st.session_state.plan_config.get('ano') != ano: st.session_state.plan_conteudos = []
-                st.session_state.plan_config = {
-                    'professor': professor, 'email_prof': email_prof, 'ano': ano, 
-                    'turmas': turmas, 'mes': mes_nome, 'periodo': periodo_texto, 
-                    'trimestre': trimestre_doc, 'quinzena': quinzena_label
-                }
-                set_plan_step(2); st.rerun()
+            c1, c2 = st.columns(2)
+            with c1:
+                default_nome = st.session_state.get('usuario_nome', '')
+                if not default_nome: default_nome = st.session_state.plan_config.get('professor', '')
+                professor = st.text_input("PROFESSOR(A) RESPONSÁVEL", value=default_nome)
+            with c2:
+                email_prof = st.text_input("E-MAIL DO PROFESSOR (Para receber cópia)", value=st.session_state.plan_config.get('email_prof', ''))
 
-    # --- PASSO 2: MATRIZ ---
-    elif st.session_state.plan_step == 2:
-        ano_sel = st.session_state.plan_config['ano']
-        st.markdown(f"### 📖 Matriz Curricular: **{ano_sel}**")
-        
-        dados = CURRICULO_DB.get(ano_sel, {})
-        infantil_anos = ["Maternal I", "Maternal II", "Etapa I", "Etapa II"] # Ajustado
-        
-        if ano_sel in infantil_anos:
-            abas = st.tabs(["🗣️ Linguagem Verbal", "🔢 Linguagem Matemática", "👥 Indivíduo e Sociedade"])
-            chaves = ["LINGUAGEM VERBAL", "LINGUAGEM MATEMÁTICA", "INDIVÍDUO E SOCIEDADE"]
-        else:
-            abas = st.tabs(["💻 Tecnologia & Cultura Digital", "🗣️ Língua Inglesa"])
-            op_tec = [k for k, v in dados.items() if "INGLÊS" not in k.upper() and (v and "ORALIDADE" not in v[0].get('eixo', '').upper())]
-            op_ing = [k for k in dados.keys() if k not in op_tec]
-            chaves = [op_tec, op_ing]
-
-        for idx, aba in enumerate(abas):
-            with aba:
-                if ano_sel in infantil_anos:
-                    area = chaves[idx]
-                    if area in dados:
-                        c1, c2 = st.columns(2)
-                        opcoes_g = sorted(list(set([it['geral'] for it in dados[area]])))
-                        g_sel = c1.selectbox(f"CONTEÚDO GERAL", opcoes_g, key=f"inf_g_{idx}")
-                        itens_filtrados = [it for it in dados[area] if it['geral'] == g_sel]
-                        opcoes_e = [it['especifico'] for it in itens_filtrados]
-                        e_sel = c2.selectbox(f"CONTEÚDO ESPECÍFICO", opcoes_e, key=f"inf_e_{idx}")
-                        sel = next((it for it in itens_filtrados if it['especifico'] == e_sel), None)
-                        if sel:
-                            st.info(f"**Objetivo:** {sel['objetivo']}")
-                            if st.button("Adicionar à Lista ➕", key=f"btn_inf_{idx}"):
-                                st.session_state.plan_conteudos.append({'tipo': area, 'eixo': sel['eixo'], 'geral': g_sel, 'especifico': e_sel, 'objetivo': sel['objetivo']})
-                                st.toast("Item adicionado!")
+            c3, c4 = st.columns(2)
+            with c3:
+                anos = list(CURRICULO_DB.keys())
+                if "Maternal I" in anos: anos.remove("Maternal I"); anos.insert(0, "Maternal I")
+                saved_ano = st.session_state.plan_config.get('ano')
+                idx_ano = anos.index(saved_ano) if saved_ano in anos else 0
+                ano = st.selectbox("ANO DE ESCOLARIDADE", anos, index=idx_ano)
+                
+                if "Maternal" in ano: opts = [f"{ano} - Turma 1", f"{ano} - Turma 2"]
                 else:
-                    filtros = chaves[idx]
-                    if filtros:
-                        c1, c2 = st.columns(2)
-                        g = c1.selectbox("EIXO / TÓPICO", filtros, key=f"f_g_{idx}")
-                        e = c2.selectbox("CONTEÚDO / PRÁTICA", [it['especifico'] for it in dados[g]], key=f"f_e_{idx}")
-                        sel = next((it for it in dados[g] if it['especifico'] == e), None)
-                        if sel:
-                            st.info(f"**Objetivo:** {sel['objetivo']}")
-                            if st.button("Adicionar à Lista ➕", key=f"btn_f_{idx}"):
-                                label_tipo = "Tecnologia" if idx == 0 else "Inglês"
-                                st.session_state.plan_conteudos.append({'tipo': label_tipo, 'eixo': sel['eixo'], 'geral': g, 'especifico': e, 'objetivo': sel['objetivo']})
-                                st.toast("Item adicionado!")
+                    qtd = {"Etapa I": 3, "Etapa II": 3, "1º Ano": 3, "2º Ano": 3, "3º Ano": 3, "4º Ano": 3, "5º Ano": 3}
+                    max_t = qtd.get(ano, 3)
+                    opts = [f"{prefix}{i}" for i in range(1, max_t + 1) for prefix in ([f"{ano} - Turma " if "Etapa" in ano else f"{ano} "])]
+                
+                valid_defaults = [t for t in st.session_state.plan_config.get('turmas', []) if t in opts]
+                turmas = st.multiselect("TURMAS VINCULADAS", opts, default=valid_defaults)
+            
+            with c4:
+                meses = {2: "Fevereiro", 3: "Março", 4: "Abril", 5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto", 9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"}
+                saved_mes = st.session_state.plan_config.get('mes')
+                idx_mes = list(meses.values()).index(saved_mes) if saved_mes in list(meses.values()) else 0
+                mes_nome = st.selectbox("MÊS DE REFERÊNCIA", list(meses.values()), index=idx_mes)
+                mes_num = [k for k, v in meses.items() if v == mes_nome][0]
+                
+                if mes_num == 2:
+                    quinzena_label = "Mês Inteiro"
+                    periodo_texto = "01/02/2026 a 28/02/2026"
+                    trimestre_doc = "1º Trimestre"
+                    st.info("Nota: Fevereiro é Planejamento Mensal.")
+                else:
+                    q_sel = st.radio("PERÍODO DE EXECUÇÃO", ["1ª Quinzena (01-15)", "2ª Quinzena (16-Fim)"], horizontal=True)
+                    quinzena_label = q_sel.split(" (")[0]
+                    tri = "1º Trimestre" if mes_num <= 4 else "2º Trimestre" if mes_num <= 8 else "3º Trimestre"
+                    ultimo = calendar.monthrange(2026, mes_num)[1]
+                    periodo_texto = f"01/{mes_num:02d}/2026 a 15/{mes_num:02d}/2026" if "1ª" in q_sel else f"16/{mes_num:02d}/2026 a {ultimo}/{mes_num:02d}/2026"
+                    trimestre_doc = tri
+            
+            if st.button("Avançar para Matriz Curricular ➔", type="primary", use_container_width=True):
+                if not professor or not turmas or not email_prof:
+                    st.error("ERRO: Preencha todos os campos obrigatórios, incluindo o e-mail.")
+                else:
+                    if st.session_state.plan_config.get('ano') != ano: st.session_state.plan_conteudos = []
+                    st.session_state.plan_config = {
+                        'professor': professor, 'email_prof': email_prof, 'ano': ano, 
+                        'turmas': turmas, 'mes': mes_nome, 'periodo': periodo_texto, 
+                        'trimestre': trimestre_doc, 'quinzena': quinzena_label
+                    }
+                    set_plan_step(2); st.rerun()
 
-        if st.session_state.plan_conteudos:
-            st.markdown("#### Conteúdos Selecionados")
-            for i, it in enumerate(st.session_state.plan_conteudos):
-                col_t, col_b = st.columns([0.90, 0.10])
-                col_t.success(f"**[{it['tipo']}]** {it['geral']}: {it['especifico']}")
-                if col_b.button("Remover", key=f"del_{i}"): 
-                    st.session_state.plan_conteudos.pop(i)
-                    st.rerun()
-
-        c1, c2 = st.columns(2)
-        c1.button("⬅ Voltar", on_click=set_plan_step, args=(1,))
-        if c2.button("Avançar para Detalhamento ➔", type="primary", use_container_width=True):
-            if not st.session_state.plan_conteudos: st.error("Selecione pelo menos um conteúdo.")
-            else: set_plan_step(3); st.rerun()
-
-    # --- PASSO 3: DETALHAMENTO E EXPORTAÇÃO ---
-    elif st.session_state.plan_step == 3:
-        st.markdown("### ✍️ Detalhamento Pedagógico")
-        
-        obj_esp = st.text_area("Objetivos Específicos", height=100, value=st.session_state.plan_config.get('obj_esp', ''))
-        c1, c2 = st.columns(2)
-        with c1: sit = st.text_area("Situação didática", height=220, value=st.session_state.plan_config.get('sit', ''))
-        with c2: rec = st.text_area("Recursos e Materiais", height=220, value=st.session_state.plan_config.get('rec', 'Descritos na situação didática'))
-        recup = st.text_area("Recuperação Contínua", height=100, value=st.session_state.plan_config.get('recup', ''))
-        
-        st.session_state.plan_config.update({'obj_esp': obj_esp, 'sit': sit, 'rec': rec, 'recup': recup})
-
-        def gerar_pdf(dados, conteudos):
-            pdf = FPDF(); pdf.add_page(); pdf.set_auto_page_break(auto=True, margin=30)
-            logo_e = "logo_escola.png" if os.path.exists("logo_escola.png") else "logo_escola.jpg"
-            if os.path.exists(logo_e): pdf.image(logo_e, 175, 8, 25)
-            pdf.set_font('Arial', 'B', 14); pdf.cell(0, 10, clean('CEIEF RAFAEL AFFONSO LEITE'), 0, 1, 'C')
-            pdf.set_font('Arial', '', 10); pdf.cell(0, 5, clean('Planejamento de Unidade de Ensino'), 0, 1, 'C'); pdf.ln(10)
-            pdf.set_fill_color(245, 247, 250); pdf.set_font("Arial", 'B', 9)
-            pdf.cell(0, 7, clean(f"DOCENTE: {dados['professor']}"), 1, 1, 'L', True)
-            pdf.cell(0, 7, clean(f"ANO: {dados['ano']} | TURMAS: {', '.join(dados['turmas'])}"), 1, 1, 'L', True)
-            pdf.cell(0, 7, clean(f"MES: {dados['mes']} | PERIODO: {dados['quinzena']} | TRIMESTRE: {dados['trimestre']}"), 1, 1, 'L', True)
-            pdf.cell(0, 7, clean(f"INTERVALO: {dados['periodo']}"), 1, 1, 'L', True); pdf.ln(5)
-            pdf.set_font("Arial", 'B', 10); pdf.cell(0, 8, clean("MATRIZ CURRICULAR SELECIONADA"), 0, 1)
-            pdf.set_fill_color(230, 230, 230); pdf.set_font("Arial", 'B', 8)
-            col_w = [45, 75, 70]
-            pdf.cell(col_w[0], 7, clean("Eixo / Tema"), 1, 0, 'C', True); pdf.cell(col_w[1], 7, clean("Habilidade Especifica"), 1, 0, 'C', True); pdf.cell(col_w[2], 7, clean("Objetivo do Ano"), 1, 1, 'C', True)
-            pdf.set_font("Arial", '', 8)
-            for it in conteudos:
-                x, y = pdf.get_x(), pdf.get_y()
-                pdf.multi_cell(col_w[0], 5, clean(f"{it['eixo']}\n({it['geral']})"), 0, 'L')
-                y1 = pdf.get_y(); pdf.set_xy(x + col_w[0], y)
-                pdf.multi_cell(col_w[1], 5, clean(it['especifico']), 0, 'L')
-                y2 = pdf.get_y(); pdf.set_xy(x + col_w[0] + col_w[1], y)
-                pdf.multi_cell(col_w[2], 5, clean(it['objetivo']), 0, 'L')
-                y3 = pdf.get_y(); max_y = max(y1, y2, y3); h_row = max_y - y
-                pdf.set_xy(x, y); pdf.cell(col_w[0], h_row, "", 1, 0); pdf.cell(col_w[1], h_row, "", 1, 0); pdf.cell(col_w[2], h_row, "", 1, 1)
-                pdf.set_y(max_y)
-            pdf.ln(5); pdf.set_font("Arial", 'B', 10); pdf.cell(0, 8, clean("DETALHAMENTO PEDAGOGICO"), 0, 1)
-            for l, v in [("Objetivos Especificos", dados['obj_esp']), ("Situação didática", dados['sit']), ("Recursos e Materiais", dados['rec']), ("Recuperação Contínua", dados['recup'])]:
-                pdf.set_font("Arial", 'B', 9); pdf.cell(0, 5, clean(l + ":"), 0, 1); pdf.set_font("Arial", '', 9); pdf.multi_cell(0, 5, clean(v)); pdf.ln(2)
-            pdf.set_font("Arial", 'B', 9); pdf.cell(0, 5, clean("Avaliação:"), 0, 1)
-            pdf.line(pdf.get_x(), pdf.get_y()+5, 200, pdf.get_y()+5); pdf.line(pdf.get_x(), pdf.get_y()+12, 200, pdf.get_y()+12); pdf.ln(15)
-            pdf.set_auto_page_break(False); pdf.set_y(-15); pdf.set_font('Arial', 'I', 7)
-            pdf.cell(0, 10, clean(f'Emitido via Sistema Planejar Integrado em: {get_brazil_time().strftime("%d/%m/%Y %H:%M:%S")} (GMT-3)'), 0, 0, 'C')
-            pdf.set_auto_page_break(True, margin=30)
-            return bytes(pdf.output())
-
-        def gerar_docx(dados, conteudos):
-            doc = Document(); style = doc.styles['Normal']; font = style.font; font.name = 'Arial'; font.size = Pt(10)
-            table_h = doc.add_table(rows=1, cols=2); table_h.autofit = False; table_h.columns[0].width = Cm(14); table_h.columns[1].width = Cm(4)
-            p = table_h.cell(0,0).paragraphs[0]; p.alignment = WD_ALIGN_PARAGRAPH.LEFT; p.add_run("CEIEF RAFAEL AFFONSO LEITE\n").bold = True; p.add_run("Planejamento Digital de Linguagens e Tecnologias")
-            logo_e = "logo_escola.png" if os.path.exists("logo_escola.png") else "logo_escola.jpg"
-            if os.path.exists(logo_e): table_h.cell(0,1).paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT; table_h.cell(0,1).paragraphs[0].add_run().add_picture(logo_e, width=Cm(3.0))
-            doc.add_paragraph(); p_info = doc.add_paragraph(); p_info.add_run(f"DOCENTE: {dados['professor']}\n").bold = True; p_info.add_run(f"ANO: {dados['ano']} | TURMAS: {', '.join(dados['turmas'])}\n"); p_info.add_run(f"MES: {dados['mes']} | PERIODO: {dados['quinzena']} | TRIMESTRE: {dados['trimestre']}\n"); p_info.add_run(f"INTERVALO: {dados['periodo']}")
-            doc.add_heading("Matriz Curricular Selecionada", 2); table = doc.add_table(rows=1, cols=3); table.style = 'Table Grid'
-            hdr = table.rows[0].cells; hdr[0].text = 'Eixo / Tema'; hdr[1].text = 'Habilidade Especifica'; hdr[2].text = 'Objetivo do Ano'
-            for cell in hdr: cell.paragraphs[0].runs[0].bold = True
-            for it in conteudos:
-                row = table.add_row().cells; row[0].text = f"{it['eixo']}\n({it['geral']})"; row[1].text = it['especifico']; row[2].text = it['objetivo']
-            doc.add_heading("Detalhamento Pedagogico", 2)
-            for l, v in [("Objetivos Especificos", dados['obj_esp']), ("Situação didática", dados['sit']), ("Recursos e Materiais", dados['rec']), ("Recuperação Contínua", dados['recup'])]:
-                p = doc.add_paragraph(); p.add_run(l + ": ").bold = True; p.add_run(v)
-            p_aval = doc.add_paragraph(); p_aval.add_run("Avaliação: ").bold = True
-            doc.add_paragraph("_" * 80); doc.add_paragraph("_" * 80)
-            doc.add_paragraph(f"\nEmitido eletronicamente em: {get_brazil_time().strftime('%d/%m/%Y %H:%M:%S')} (GMT-3)")
-            f = BytesIO(); doc.save(f); f.seek(0); return f
-
-        c1, c2 = st.columns(2)
-        if c1.button("⬅ Matriz"): set_plan_step(2); st.rerun()
-        if c2.button("GERAR PLANEJAMENTO FINAL 🚀", type="primary", use_container_width=True):
-            if not all([obj_esp, sit, rec, recup]): st.error("Erro: Preencha todos os campos.")
+        # --- PASSO 2: MATRIZ ---
+        elif st.session_state.plan_step == 2:
+            ano_sel = st.session_state.plan_config['ano']
+            st.markdown(f"### 📖 Matriz Curricular: **{ano_sel}**")
+            
+            dados = CURRICULO_DB.get(ano_sel, {})
+            infantil_anos = ["Maternal I", "Maternal II", "Etapa I", "Etapa II"] 
+            
+            if ano_sel in infantil_anos:
+                abas = st.tabs(["🗣️ Linguagem Verbal", "🔢 Linguagem Matemática", "👥 Indivíduo e Sociedade"])
+                chaves = ["LINGUAGEM VERBAL", "LINGUAGEM MATEMÁTICA", "INDIVÍDUO E SOCIEDADE"]
             else:
-                with st.spinner("Salvando no Supabase, gerando documentos e enviando e-mail..."):
-                    f_data = st.session_state.plan_config
-                    
-                    # ==========================================================
-                    # 1. SALVAR NO BANCO DE DADOS (SUPABASE)
-                    # ==========================================================
-                    df_plan = safe_read("Planejamento", ["Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao"])
-                    
-                    # Converte a lista de objetivos do sistema complexo em um texto único para salvar na tabela
-                    lista_obj_texto = " | ".join([f"({c['tipo']}) {c['especifico']}" for c in st.session_state.plan_conteudos])
-                    turmas_juntas = f"{f_data['ano']} ({', '.join(f_data['turmas'])})"
-                    
-                    novo_reg = pd.DataFrame([{
-                        "Data": get_brazil_time().strftime("%d/%m/%Y"),
-                        "Professor": f_data['professor'],
-                        "Turma": turmas_juntas,
-                        "Componente": "Vários (Ver Objetivos)",
-                        "Objetivos": lista_obj_texto,
-                        "Estrategias": f_data['sit'],
-                        "Recursos": f_data['rec'],
-                        "Avaliacao": "Ver detalhamento no PDF gerado"
-                    }])
-                    
-                    df_total = pd.concat([df_plan, novo_reg], ignore_index=True)
-                    salvou_banco = safe_update("Planejamento", df_total)
-                    # ==========================================================
+                abas = st.tabs(["💻 Tecnologia & Cultura Digital", "🗣️ Língua Inglesa"])
+                op_tec = [k for k, v in dados.items() if "INGLÊS" not in k.upper() and (v and "ORALIDADE" not in v[0].get('eixo', '').upper())]
+                op_ing = [k for k in dados.keys() if k not in op_tec]
+                chaves = [op_tec, op_ing]
 
-                    # 2. GERAR PDF E WORD
-                    w_file = gerar_docx(f_data, st.session_state.plan_conteudos)
-                    p_file = gerar_pdf(f_data, st.session_state.plan_conteudos)
-                    nome_arq = f"Plan_{f_data['mes']}_{f_data['ano'].replace(' ','')}"
-                    
-                    # 3. ENVIAR E-MAIL
-                    if f_data.get('email_prof'):
-                        sucesso_email, msg_email = enviar_email_automatico(p_file, f_data, nome_arq)
-                        if sucesso_email: st.success(f"📧 {msg_email}")
-                        else: st.warning(f"⚠️ Arquivos gerados, mas o e-mail falhou: {msg_email}")
+            for idx, aba in enumerate(abas):
+                with aba:
+                    if ano_sel in infantil_anos:
+                        area = chaves[idx]
+                        if area in dados:
+                            c1, c2 = st.columns(2)
+                            opcoes_g = sorted(list(set([it['geral'] for it in dados[area]])))
+                            g_sel = c1.selectbox(f"CONTEÚDO GERAL", opcoes_g, key=f"inf_g_{idx}")
+                            itens_filtrados = [it for it in dados[area] if it['geral'] == g_sel]
+                            opcoes_e = [it['especifico'] for it in itens_filtrados]
+                            e_sel = c2.selectbox(f"CONTEÚDO ESPECÍFICO", opcoes_e, key=f"inf_e_{idx}")
+                            sel = next((it for it in itens_filtrados if it['especifico'] == e_sel), None)
+                            if sel:
+                                st.info(f"**Objetivo:** {sel['objetivo']}")
+                                if st.button("Adicionar à Lista ➕", key=f"btn_inf_{idx}"):
+                                    st.session_state.plan_conteudos.append({'tipo': area, 'eixo': sel['eixo'], 'geral': g_sel, 'especifico': e_sel, 'objetivo': sel['objetivo']})
+                                    st.toast("Item adicionado!")
                     else:
-                        st.info("ℹ️ E-mail não enviado (endereço do professor não informado).")
+                        filtros = chaves[idx]
+                        if filtros:
+                            c1, c2 = st.columns(2)
+                            g = c1.selectbox("EIXO / TÓPICO", filtros, key=f"f_g_{idx}")
+                            e = c2.selectbox("CONTEÚDO / PRÁTICA", [it['especifico'] for it in dados[g]], key=f"f_e_{idx}")
+                            sel = next((it for it in dados[g] if it['especifico'] == e), None)
+                            if sel:
+                                st.info(f"**Objetivo:** {sel['objetivo']}")
+                                if st.button("Adicionar à Lista ➕", key=f"btn_f_{idx}"):
+                                    label_tipo = "Tecnologia" if idx == 0 else "Inglês"
+                                    st.session_state.plan_conteudos.append({'tipo': label_tipo, 'eixo': sel['eixo'], 'geral': g, 'especifico': e, 'objetivo': sel['objetivo']})
+                                    st.toast("Item adicionado!")
 
-                    # 4. AVISO DO SUPABASE E BOTÕES DE DOWNLOAD
-                    if salvou_banco:
-                        st.success("✅ Planejamento salvo com sucesso no banco de dados Supabase!")
-                    else:
-                        st.error("⚠️ Erro ao salvar no banco de dados.")
+            if st.session_state.plan_conteudos:
+                st.markdown("#### Conteúdos Selecionados")
+                for i, it in enumerate(st.session_state.plan_conteudos):
+                    col_t, col_b = st.columns([0.90, 0.10])
+                    col_t.success(f"**[{it['tipo']}]** {it['geral']}: {it['especifico']}")
+                    if col_b.button("Remover", key=f"del_{i}"): 
+                        st.session_state.plan_conteudos.pop(i)
+                        st.rerun()
 
-                    cd1, cd2 = st.columns(2)
-                    cd1.download_button("📄 Download WORD", w_file, f"{nome_arq}.docx", use_container_width=True)
-                    cd2.download_button("📕 Download PDF", p_file, f"{nome_arq}.pdf", use_container_width=True)
+            c1, c2 = st.columns(2)
+            c1.button("⬅ Voltar", on_click=set_plan_step, args=(1,))
+            if c2.button("Avançar para Detalhamento ➔", type="primary", use_container_width=True):
+                if not st.session_state.plan_conteudos: st.error("Selecione pelo menos um conteúdo.")
+                else: set_plan_step(3); st.rerun()
+
+        # --- PASSO 3: DETALHAMENTO E EXPORTAÇÃO ---
+        elif st.session_state.plan_step == 3:
+            st.markdown("### ✍️ Detalhamento Pedagógico")
+            
+            obj_esp = st.text_area("Objetivos Específicos", height=100, value=st.session_state.plan_config.get('obj_esp', ''))
+            c1, c2 = st.columns(2)
+            with c1: sit = st.text_area("Situação didática", height=220, value=st.session_state.plan_config.get('sit', ''))
+            with c2: rec = st.text_area("Recursos e Materiais", height=220, value=st.session_state.plan_config.get('rec', 'Descritos na situação didática'))
+            recup = st.text_area("Recuperação Contínua", height=100, value=st.session_state.plan_config.get('recup', ''))
+            
+            st.session_state.plan_config.update({'obj_esp': obj_esp, 'sit': sit, 'rec': rec, 'recup': recup})
+
+            def gerar_pdf(dados, conteudos):
+                pdf = FPDF(); pdf.add_page(); pdf.set_auto_page_break(auto=True, margin=30)
+                logo_e = "logo_escola.png" if os.path.exists("logo_escola.png") else "logo_escola.jpg"
+                if os.path.exists(logo_e): pdf.image(logo_e, 175, 8, 25)
+                pdf.set_font('Arial', 'B', 14); pdf.cell(0, 10, clean('CEIEF RAFAEL AFFONSO LEITE'), 0, 1, 'C')
+                pdf.set_font('Arial', '', 10); pdf.cell(0, 5, clean('Planejamento de Unidade de Ensino'), 0, 1, 'C'); pdf.ln(10)
+                pdf.set_fill_color(245, 247, 250); pdf.set_font("Arial", 'B', 9)
+                pdf.cell(0, 7, clean(f"DOCENTE: {dados['professor']}"), 1, 1, 'L', True)
+                pdf.cell(0, 7, clean(f"ANO: {dados['ano']} | TURMAS: {', '.join(dados['turmas'])}"), 1, 1, 'L', True)
+                pdf.cell(0, 7, clean(f"MES: {dados['mes']} | PERIODO: {dados['quinzena']} | TRIMESTRE: {dados['trimestre']}"), 1, 1, 'L', True)
+                pdf.cell(0, 7, clean(f"INTERVALO: {dados['periodo']}"), 1, 1, 'L', True); pdf.ln(5)
+                pdf.set_font("Arial", 'B', 10); pdf.cell(0, 8, clean("MATRIZ CURRICULAR SELECIONADA"), 0, 1)
+                pdf.set_fill_color(230, 230, 230); pdf.set_font("Arial", 'B', 8)
+                col_w = [45, 75, 70]
+                pdf.cell(col_w[0], 7, clean("Eixo / Tema"), 1, 0, 'C', True); pdf.cell(col_w[1], 7, clean("Habilidade Especifica"), 1, 0, 'C', True); pdf.cell(col_w[2], 7, clean("Objetivo do Ano"), 1, 1, 'C', True)
+                pdf.set_font("Arial", '', 8)
+                for it in conteudos:
+                    x, y = pdf.get_x(), pdf.get_y()
+                    pdf.multi_cell(col_w[0], 5, clean(f"{it['eixo']}\n({it['geral']})"), 0, 'L')
+                    y1 = pdf.get_y(); pdf.set_xy(x + col_w[0], y)
+                    pdf.multi_cell(col_w[1], 5, clean(it['especifico']), 0, 'L')
+                    y2 = pdf.get_y(); pdf.set_xy(x + col_w[0] + col_w[1], y)
+                    pdf.multi_cell(col_w[2], 5, clean(it['objetivo']), 0, 'L')
+                    y3 = pdf.get_y(); max_y = max(y1, y2, y3); h_row = max_y - y
+                    pdf.set_xy(x, y); pdf.cell(col_w[0], h_row, "", 1, 0); pdf.cell(col_w[1], h_row, "", 1, 0); pdf.cell(col_w[2], h_row, "", 1, 1)
+                    pdf.set_y(max_y)
+                pdf.ln(5); pdf.set_font("Arial", 'B', 10); pdf.cell(0, 8, clean("DETALHAMENTO PEDAGOGICO"), 0, 1)
+                for l, v in [("Objetivos Especificos", dados['obj_esp']), ("Situação didática", dados['sit']), ("Recursos e Materiais", dados['rec']), ("Recuperação Contínua", dados['recup'])]:
+                    pdf.set_font("Arial", 'B', 9); pdf.cell(0, 5, clean(l + ":"), 0, 1); pdf.set_font("Arial", '', 9); pdf.multi_cell(0, 5, clean(v)); pdf.ln(2)
+                pdf.set_font("Arial", 'B', 9); pdf.cell(0, 5, clean("Avaliação:"), 0, 1)
+                pdf.line(pdf.get_x(), pdf.get_y()+5, 200, pdf.get_y()+5); pdf.line(pdf.get_x(), pdf.get_y()+12, 200, pdf.get_y()+12); pdf.ln(15)
+                pdf.set_auto_page_break(False); pdf.set_y(-15); pdf.set_font('Arial', 'I', 7)
+                pdf.cell(0, 10, clean(f'Emitido via Sistema Planejar Integrado em: {get_brazil_time().strftime("%d/%m/%Y %H:%M:%S")} (GMT-3)'), 0, 0, 'C')
+                pdf.set_auto_page_break(True, margin=30)
+                return bytes(pdf.output())
+
+            def gerar_docx(dados, conteudos):
+                doc = Document(); style = doc.styles['Normal']; font = style.font; font.name = 'Arial'; font.size = Pt(10)
+                table_h = doc.add_table(rows=1, cols=2); table_h.autofit = False; table_h.columns[0].width = Cm(14); table_h.columns[1].width = Cm(4)
+                p = table_h.cell(0,0).paragraphs[0]; p.alignment = WD_ALIGN_PARAGRAPH.LEFT; p.add_run("CEIEF RAFAEL AFFONSO LEITE\n").bold = True; p.add_run("Planejamento Digital de Linguagens e Tecnologias")
+                logo_e = "logo_escola.png" if os.path.exists("logo_escola.png") else "logo_escola.jpg"
+                if os.path.exists(logo_e): table_h.cell(0,1).paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT; table_h.cell(0,1).paragraphs[0].add_run().add_picture(logo_e, width=Cm(3.0))
+                doc.add_paragraph(); p_info = doc.add_paragraph(); p_info.add_run(f"DOCENTE: {dados['professor']}\n").bold = True; p_info.add_run(f"ANO: {dados['ano']} | TURMAS: {', '.join(dados['turmas'])}\n"); p_info.add_run(f"MES: {dados['mes']} | PERIODO: {dados['quinzena']} | TRIMESTRE: {dados['trimestre']}\n"); p_info.add_run(f"INTERVALO: {dados['periodo']}")
+                doc.add_heading("Matriz Curricular Selecionada", 2); table = doc.add_table(rows=1, cols=3); table.style = 'Table Grid'
+                hdr = table.rows[0].cells; hdr[0].text = 'Eixo / Tema'; hdr[1].text = 'Habilidade Especifica'; hdr[2].text = 'Objetivo do Ano'
+                for cell in hdr: cell.paragraphs[0].runs[0].bold = True
+                for it in conteudos:
+                    row = table.add_row().cells; row[0].text = f"{it['eixo']}\n({it['geral']})"; row[1].text = it['especifico']; row[2].text = it['objetivo']
+                doc.add_heading("Detalhamento Pedagogico", 2)
+                for l, v in [("Objetivos Especificos", dados['obj_esp']), ("Situação didática", dados['sit']), ("Recursos e Materiais", dados['rec']), ("Recuperação Contínua", dados['recup'])]:
+                    p = doc.add_paragraph(); p.add_run(l + ": ").bold = True; p.add_run(v)
+                p_aval = doc.add_paragraph(); p_aval.add_run("Avaliação: ").bold = True
+                doc.add_paragraph("_" * 80); doc.add_paragraph("_" * 80)
+                doc.add_paragraph(f"\nEmitido eletronicamente em: {get_brazil_time().strftime('%d/%m/%Y %H:%M:%S')} (GMT-3)")
+                f = BytesIO(); doc.save(f); f.seek(0); return f
+
+            c1, c2 = st.columns(2)
+            if c1.button("⬅ Matriz"): set_plan_step(2); st.rerun()
+            if c2.button("GERAR PLANEJAMENTO FINAL 🚀", type="primary", use_container_width=True):
+                if not all([obj_esp, sit, rec, recup]): st.error("Erro: Preencha todos os campos.")
+                else:
+                    with st.spinner("Salvando no Supabase, gerando documentos e enviando e-mail..."):
+                        f_data = st.session_state.plan_config
+                        
+                        # ==========================================================
+                        # 1. SALVAR NO BANCO DE DADOS (SUPABASE)
+                        # ==========================================================
+                        df_plan = safe_read("Planejamento", ["Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao"])
+                        
+                        lista_obj_texto = " | ".join([f"({c['tipo']}) {c['especifico']}" for c in st.session_state.plan_conteudos])
+                        turmas_juntas = f"{f_data['ano']} ({', '.join(f_data['turmas'])})"
+                        
+                        novo_reg = pd.DataFrame([{
+                            "Data": get_brazil_time().strftime("%d/%m/%Y"),
+                            "Professor": f_data['professor'],
+                            "Turma": turmas_juntas,
+                            "Componente": "Vários (Ver Objetivos)",
+                            "Objetivos": lista_obj_texto,
+                            "Estrategias": f_data['sit'],
+                            "Recursos": f_data['rec'],
+                            "Avaliacao": "Ver detalhamento no PDF gerado"
+                        }])
+                        
+                        df_total = pd.concat([df_plan, novo_reg], ignore_index=True)
+                        salvou_banco = safe_update("Planejamento", df_total)
+                        
+                        # ==========================================================
+                        # 2. GERAR PDF E WORD
+                        w_file = gerar_docx(f_data, st.session_state.plan_conteudos)
+                        p_file = gerar_pdf(f_data, st.session_state.plan_conteudos)
+                        nome_arq = f"Plan_{f_data['mes']}_{f_data['ano'].replace(' ','')}"
+                        
+                        # ==========================================================
+                        # 3. ENVIAR E-MAIL
+                        if f_data.get('email_prof'):
+                            sucesso_email, msg_email = enviar_email_automatico(p_file, f_data, nome_arq)
+                            if sucesso_email: st.success(f"📧 {msg_email}")
+                            else: st.warning(f"⚠️ Arquivos gerados, mas o e-mail falhou: {msg_email}")
+                        else:
+                            st.info("ℹ️ E-mail não enviado (endereço do professor não informado).")
+
+                        if salvou_banco:
+                            st.success("✅ Planejamento salvo com sucesso no banco de dados Supabase!")
+                        else:
+                            st.error("⚠️ Erro ao salvar no banco de dados.")
+
+                        cd1, cd2 = st.columns(2)
+                        cd1.download_button("📄 Download WORD", w_file, f"{nome_arq}.docx", use_container_width=True)
+                        cd2.download_button("📕 Download PDF", p_file, f"{nome_arq}.pdf", use_container_width=True)
+
+    # -------------------------------------------------------------------------
+    # ABA 2: CONSULTAR O HISTÓRICO NO SUPABASE
+    # -------------------------------------------------------------------------
+    with tab_historico:
+        st.subheader("🗄️ Meus Planejamentos Salvos")
+        
+        df_todos = safe_read("Planejamento", ["Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao"])
+        
+        if not df_todos.empty:
+            meu_nome = st.session_state.get('usuario_nome', '')
+            df_meu_hist = df_todos[df_todos["Professor"] == meu_nome].sort_index(ascending=False)
+            
+            if df_meu_hist.empty:
+                st.info("Você ainda não possui planejamentos salvos no sistema.")
+            else:
+                opcoes_planos = [f"{row['Data']} - {row['Turma']}" for idx, row in df_meu_hist.iterrows()]
+                escolha = st.selectbox("Escolha um planejamento para visualizar os detalhes:", opcoes_planos)
+                
+                idx_escolhido = df_meu_hist.index[opcoes_planos.index(escolha)]
+                plano = df_meu_hist.loc[idx_escolhido]
+                
+                st.markdown("---")
+                st.markdown(f"### 📄 Detalhes do Planejamento: {plano['Data']}")
+                
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    st.write(f"**🏫 Turma:** {plano['Turma']}")
+                    st.write(f"**📚 Componente:** {plano['Componente']}")
+                with col_b:
+                    st.write(f"**👤 Professor:** {plano['Professor']}")
+                
+                st.info(f"**🎯 Objetivos e Conteúdos:**\n\n{plano['Objetivos']}")
+                
+                with st.expander("📝 Estratégias e Metodologia", expanded=True):
+                    st.write(plano['Estrategias'])
+                
+                with st.expander("🛠️ Recursos e Avaliação"):
+                    st.write(f"**Materiais:** {plano['Recursos']}")
+                    st.write(f"**Avaliação:** {plano['Avaliacao']}")
+                
+                if st.button("🔄 Usar este plano como base para um novo"):
+                    st.warning("Funcionalidade de edição em desenvolvimento.")
+        else:
+            st.write("O banco de dados de planejamentos está vazio.")

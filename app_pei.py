@@ -1415,9 +1415,6 @@ elif app_mode == "👥 Gestão de Alunos":
         c_aluno, c_doc = st.columns(2)
         aluno_sel = c_aluno.selectbox("1. Selecione o Estudante:", opcoes_nomes)
 
-        c_aluno, c_doc = st.columns(2)
-        aluno_sel = c_aluno.selectbox("1. Selecione o Estudante:", opcoes_nomes)
-
         # Se for novo registro, abre campo para digitar o nome
         nome_novo = ""
         if aluno_sel == "-- Novo Registro --":

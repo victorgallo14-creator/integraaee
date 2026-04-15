@@ -907,11 +907,6 @@ with st.sidebar:
     pei_level = "Fundamental" 
     doc_mode = "Dashboard"
 
-    # --- NAVEGAÇÃO CONDICIONAL BASEADA NO MÓDULO ---
-    if modulo_atuacao == "🧠 Educação Especial Inclusiva":
-        st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
-        app_mode = st.radio("Navegação", ["📊 Painel de Gestão", "👥 Gestão de Alunos", "🖼️ Carômetro"], label_visibility="collapsed")
-
 # --- NAVEGAÇÃO CONDICIONAL BASEADA NO MÓDULO ---
     app_mode = None
     app_mode_regular = None

@@ -432,7 +432,7 @@ def login():
 <div class="login-art-box">
     <div style="font-size: 6rem; margin-bottom: 1rem; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));">🧠</div>
     <h1 style="color: white; font-weight: 800; font-size: 3.5rem; margin: 0; line-height: 1;">INTEGRA</h1>
-    <p style="font-size: 1.2rem; opacity: 0.9; font-weight: 300; margin-top: 10px;">Gestão de Educação<br>Ensino Regular<br>Ed. Especial Inclusiva</p>
+    <p style="font-size: 1.2rem; opacity: 0.9; font-weight: 300; margin-top: 10px;">Gestão de Educação<br><br>Ensino Regular<br><br>Ed. Especial Inclusiva</p>
     <div style="margin-top: 40px; width: 100%;">
         <hr style="border-color: rgba(255,255,255,0.3); margin-bottom: 20px;">
         <p style="font-style: italic; font-size: 1rem; opacity: 0.9;">

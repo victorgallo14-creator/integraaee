@@ -7778,7 +7778,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
             pdf.set_auto_page_break(False); pdf.set_y(-15); pdf.set_font('Arial', 'I', 7)
             pdf.cell(0, 10, clean(f'Emitido via Sistema Planejar Integrado em: {get_brazil_time().strftime("%d/%m/%Y %H:%M:%S")} (GMT-3)'), 0, 0, 'C')
             pdf.set_auto_page_break(True, margin=30)
-            return bytes(pdf.output(dest='S').encode('latin-1'))
+            return bytes(pdf.output())
 
         def gerar_docx(dados, conteudos):
             doc = Document(); style = doc.styles['Normal']; font = style.font; font.name = 'Arial'; font.size = Pt(10)

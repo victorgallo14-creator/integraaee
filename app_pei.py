@@ -17,7 +17,7 @@ import random
 import time
 import zipfile
 import io
-from dados_curriculo import curriculo_integral
+from dados_curriculo import CURRICULO_DB
 
 MIN_DATA = date(1900, 1, 1)
 MAX_DATA = date(2100, 12, 31)

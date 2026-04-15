@@ -17,6 +17,7 @@ import random
 import time
 import zipfile
 import io
+from dados_curriculo import curriculo_integral
 
 MIN_DATA = date(1900, 1, 1)
 MAX_DATA = date(2100, 12, 31)
@@ -899,11 +900,35 @@ with st.sidebar:
         st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
         app_mode = st.radio("Navegação", ["📊 Painel de Gestão", "👥 Gestão de Alunos", "🖼️ Carômetro"], label_visibility="collapsed")
 
-    elif modulo_atuacao == "🏫 Ensino Regular":
-        app_mode = "Atas_Conselho" # Trava o sistema antigo em background
+    elif app_mode_regular == "📝 Atas de Conselho":
+        st.markdown('<div class="header-box"><div class="header-title">📝 Atas de Conselho de Classe</div></div>', unsafe_allow_html=True)
         
-        st.markdown('<p class="section-label">📌 Documentos</p>', unsafe_allow_html=True)
-        app_mode_regular = st.radio("Documentos", ["📝 Nova Ata de Conselho", "📂 Histórico de Atas", "💻 Agendamento Informática", "⚙️ Configurações"], label_visibility="collapsed")
+        # --- LÓGICA DE ABAS DINÂMICAS ---
+        # O histórico aparece para todos, mas Configurações só para você
+        lista_abas = ["📄 Gerar Nova Ata", "📜 Histórico de Atas"]
+        if st.session_state.get('usuario_matricula') == "8829405":
+            lista_abas.append("⚙️ Configurações")
+        
+        abas_ata = st.tabs(lista_abas)
+
+        with abas_ata[0]:
+            st.subheader("Gerador de Atas")
+            # ... (Aqui mantém o seu código original de preenchimento da ata) ...
+
+        with abas_ata[1]:
+            st.subheader("Consulta de Atas Salvas")
+            df_atas = safe_read("Atas_Conselho", ["id_ata", "modalidade", "turma", "dados_json"])
+            if not df_atas.empty:
+                st.dataframe(df_atas[["id_ata", "modalidade", "turma"]], use_container_width=True)
+            else:
+                st.info("Nenhuma ata registrada no histórico.")
+
+        # Só renderiza a aba de configurações se ela foi incluída na lista
+        if "⚙️ Configurações" in lista_abas:
+            with abas_ata[2]:
+                st.subheader("Configurações do Sistema de Atas")
+                st.warning("Apenas a direção tem acesso a esta área.")
+                # ... (Aqui mantém o seu código original de edição de matrizes e textos) ...
         
         st.markdown('<p class="section-label">🏫 Modalidade</p>', unsafe_allow_html=True)
         modalidade_ata = st.selectbox("Nível", ["Ensino Fundamental", "Educação Infantil", "EJA"], label_visibility="collapsed")

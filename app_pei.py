@@ -1406,8 +1406,14 @@ elif app_mode == "👥 Gestão de Alunos":
         """, unsafe_allow_html=True)
 
         df_db = load_db()
-        lista_nomes = df_db["nome"].dropna().unique().tolist() if not df_db.empty else []
+        
+        # A MÁGICA ACONTECE AQUI: Adicionamos o 'sorted()' para organizar de A a Z
+        lista_nomes = sorted(df_db["nome"].dropna().unique().tolist()) if not df_db.empty else []
+        
         opcoes_nomes = ["-- Novo Registro --"] + lista_nomes
+
+        c_aluno, c_doc = st.columns(2)
+        aluno_sel = c_aluno.selectbox("1. Selecione o Estudante:", opcoes_nomes)
 
         c_aluno, c_doc = st.columns(2)
         aluno_sel = c_aluno.selectbox("1. Selecione o Estudante:", opcoes_nomes)
@@ -1433,7 +1439,40 @@ elif app_mode == "👥 Gestão de Alunos":
         st.write("")
         if st.button("✅ Confirmar e Acessar Documento", type="primary", use_container_width=True):
             nome_final = nome_novo if aluno_sel == "-- Novo Registro --" else aluno_sel
+            
             if nome_final and nome_final.strip() != "":
+                
+                # ==========================================================
+                # TRAVA DE SEGURANÇA (PADRÃO OURO): BLINDAGEM DO BANCO DE DADOS
+                # ==========================================================
+                if doc_sel in ["PEI - Ensino Fundamental", "PEI - Educação Infantil"]:
+                    df_val = df_db[df_db['nome'] == nome_final]
+                    if not df_val.empty:
+                        row_pei = df_val[df_val['tipo_doc'] == 'PEI']
+                        if not row_pei.empty:
+                            try:
+                                dados_salvos = json.loads(row_pei.iloc[0]['dados_json'])
+                                # Tenta descobrir o modelo pelo carimbo oculto ou pelos campos já preenchidos
+                                modelo_salvo = dados_salvos.get('modelo_pei_salvo')
+                                
+                                if not modelo_salvo:
+                                    if 'aval_ling_verbal' in dados_salvos and str(dados_salvos['aval_ling_verbal']).strip() != "":
+                                        modelo_salvo = "Infantil"
+                                    elif 'aval_port' in dados_salvos and str(dados_salvos['aval_port']).strip() != "":
+                                        modelo_salvo = "Fundamental"
+
+                                # Se descobrir que já existe um PEI incompatível, trava a entrada!
+                                if modelo_salvo:
+                                    if doc_sel == "PEI - Ensino Fundamental" and modelo_salvo == "Infantil":
+                                        st.error("⚠️ **RISCO DE PERDA DE DADOS!** Este estudante já possui um PEI da **Educação Infantil** salvo no sistema. Por favor, troque a seleção acima para 'PEI - Educação Infantil' para não apagar o histórico.")
+                                        st.stop()
+                                    if doc_sel == "PEI - Educação Infantil" and modelo_salvo == "Fundamental":
+                                        st.error("⚠️ **RISCO DE PERDA DE DADOS!** Este estudante já possui um PEI do **Ensino Fundamental** salvo no sistema. Por favor, troque a seleção acima para 'PEI - Ensino Fundamental' para não apagar o histórico.")
+                                        st.stop()
+                            except:
+                                pass
+                # ==========================================================
+
                 st.session_state.ee_aluno_confirmado = nome_final
                 st.session_state.ee_doc_confirmado = doc_sel
                 

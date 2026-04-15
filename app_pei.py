@@ -918,20 +918,29 @@ with st.sidebar:
 
     if modulo_atuacao == "🧠 Educação Especial Inclusiva":
         st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
-        app_mode = st.radio("Navegação", ["📊 Painel de Gestão", "👥 Gestão de Alunos", "🖼️ Carômetro"], label_visibility="collapsed")
+        # ADICIONADA A CHAVE: key="nav_especial"
+        app_mode = st.radio(
+            "Navegação", 
+            ["📊 Painel de Gestão", "👥 Gestão de Alunos", "🖼️ Carômetro"], 
+            label_visibility="collapsed",
+            key="nav_especial"
+        )
         
     elif modulo_atuacao == "🏫 Ensino Regular":
         st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
         
-        # Monta a lista de abas. "Configurações" só aparece para a Direção
         opcoes_regular = ["💻 Agendamento Informática", "📝 Nova Ata de Conselho", "📂 Histórico de Atas", "📖 Planejamento Curricular"]
         
-        # Usamos o seu nome logado como trava de segurança em vez da matrícula, 
-        # pois o sistema de login já salva o nome na sessão perfeitamente!
         if st.session_state.get('usuario_nome') == "José Victor Souza Gallo":
             opcoes_regular.append("⚙️ Configurações")
             
-        app_mode_regular = st.radio("Navegação", opcoes_regular, label_visibility="collapsed")
+        # ADICIONADA A CHAVE: key="nav_regular"
+        app_mode_regular = st.radio(
+            "Navegação", 
+            opcoes_regular, 
+            label_visibility="collapsed",
+            key="nav_regular"
+        )
 
 
 # --- SEÇÃO GESTÃO DE ALUNOS ---

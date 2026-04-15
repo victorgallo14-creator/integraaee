@@ -900,38 +900,75 @@ with st.sidebar:
         st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
         app_mode = st.radio("Navegação", ["📊 Painel de Gestão", "👥 Gestão de Alunos", "🖼️ Carômetro"], label_visibility="collapsed")
 
-    elif app_mode_regular == "📝 Atas de Conselho":
-        st.markdown('<div class="header-box"><div class="header-title">📝 Atas de Conselho de Classe</div></div>', unsafe_allow_html=True)
+elif app_mode_regular == "📖 Planejamento Curricular":
+        st.markdown('<div class="header-box"><div class="header-title">📖 Planejamento Curricular e Semanal</div></div>', unsafe_allow_html=True)
         
-        # --- LÓGICA DE ABAS DINÂMICAS ---
-        # O histórico aparece para todos, mas Configurações só para você
-        lista_abas = ["📄 Gerar Nova Ata", "📜 Histórico de Atas"]
-        if st.session_state.get('usuario_matricula') == "8829405":
-            lista_abas.append("⚙️ Configurações")
+        # 1. IMPORTAÇÃO CORRIGIDA PARA O NOME EXATO DO ARQUIVO
+        from dados_curriculo import CURRICULO_DB
         
-        abas_ata = st.tabs(lista_abas)
+        tab_p1, tab_p2, tab_p3 = st.tabs(["📋 Novo Plano", "📚 Base Curricular", "📜 Meus Planos"])
 
-        with abas_ata[0]:
-            st.subheader("Gerador de Atas")
-            # ... (Aqui mantém o seu código original de preenchimento da ata) ...
+        with tab_p1:
+            st.subheader("Novo Planejamento Semanal")
+            df_plan = safe_read("Planejamento", ["Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao"])
+            
+            with st.form("form_planejamento"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    data_plan = st.date_input("Data do Planejamento", format="DD/MM/YYYY")
+                    prof_plan = st.text_input("Professor(a)", value=st.session_state.get('usuario_nome', ""))
+                with col2:
+                    # 2. SELETORES INTELIGENTES LIGADOS AO ARQUIVO
+                    # O seletor de Turma lê as chaves principais (Ex: Maternal II, 1º Ano...)
+                    turma_plan = st.selectbox("Turma/Ano", list(CURRICULO_DB.keys()))
+                    # O seletor de Componente lê o que tem dentro da Turma escolhida
+                    comp_plan = st.selectbox("Componente Curricular", list(CURRICULO_DB[turma_plan].keys()))
 
-        with abas_ata[1]:
-            st.subheader("Consulta de Atas Salvas")
-            df_atas = safe_read("Atas_Conselho", ["id_ata", "modalidade", "turma", "dados_json"])
-            if not df_atas.empty:
-                st.dataframe(df_atas[["id_ata", "modalidade", "turma"]], use_container_width=True)
+                # Puxa a lista final de objetivos baseada na Turma e Componente
+                objetivos_lista = CURRICULO_DB[turma_plan][comp_plan]
+                obj_selecionados = st.multiselect("Selecione os Objetivos/Conteúdos:", objetivos_lista)
+                
+                estrategias = st.text_area("Estratégias Didáticas", placeholder="Descreva como será a aula...")
+                recursos = st.text_area("Recursos e Materiais")
+                avaliacao = st.text_area("Processo de Avaliação")
+                
+                if st.form_submit_button("💾 Salvar Planejamento", use_container_width=True):
+                    if not obj_selecionados or not estrategias:
+                        st.error("Por favor, preencha os objetivos e estratégias.")
+                    else:
+                        novo_reg = pd.DataFrame([{
+                            "Data": data_plan.strftime("%d/%m/%Y"),
+                            "Professor": prof_plan,
+                            "Turma": turma_plan,
+                            "Componente": comp_plan,
+                            "Objetivos": " | ".join(obj_selecionados),
+                            "Estrategias": estrategias,
+                            "Recursos": recursos,
+                            "Avaliacao": avaliacao
+                        }])
+                        df_total = pd.concat([df_plan, novo_reg], ignore_index=True)
+                        if safe_update("Planejamento", df_total):
+                            st.success("✅ Planejamento salvo com sucesso no sistema!")
+                            st.rerun()
+
+        with tab_p2:
+            st.subheader("Consulta ao Currículo Municipal de Limeira")
+            # Ajuste para a aba de consulta buscar pelos dois níveis também
+            turma_busca = st.selectbox("Selecione a Turma/Ano:", list(CURRICULO_DB.keys()), key="busca_turma")
+            comp_busca = st.selectbox("Selecione o Componente:", list(CURRICULO_DB[turma_busca].keys()), key="busca_comp")
+            
+            for objetivo in CURRICULO_DB[turma_busca][comp_busca]:
+                st.info(objetivo)
+
+        with tab_p3:
+            st.subheader("Histórico de Planejamentos")
+            df_plan = safe_read("Planejamento", ["Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao"])
+            if not df_plan.empty:
+                # O professor logado só vê os próprios planos
+                meu_hist = df_plan[df_plan["Professor"] == st.session_state.get('usuario_nome', "")]
+                st.dataframe(meu_hist, use_container_width=True, hide_index=True)
             else:
-                st.info("Nenhuma ata registrada no histórico.")
-
-        # Só renderiza a aba de configurações se ela foi incluída na lista
-        if "⚙️ Configurações" in lista_abas:
-            with abas_ata[2]:
-                st.subheader("Configurações do Sistema de Atas")
-                st.warning("Apenas a direção tem acesso a esta área.")
-                # ... (Aqui mantém o seu código original de edição de matrizes e textos) ...
-        
-        st.markdown('<p class="section-label">🏫 Modalidade</p>', unsafe_allow_html=True)
-        modalidade_ata = st.selectbox("Nível", ["Ensino Fundamental", "Educação Infantil", "EJA"], label_visibility="collapsed")
+                st.write("Nenhum planejamento encontrado.")
 
 
 # --- SEÇÃO GESTÃO DE ALUNOS ---

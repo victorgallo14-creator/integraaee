@@ -3,3 +3,4 @@ fpdf2
 pandas
 streamlit-autorefresh
 supabase
+python-docx

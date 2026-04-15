@@ -1524,6 +1524,8 @@ elif app_mode == "👥 Gestão de Alunos":
         # Inicializa o dicionário de dados da sessão
         data = st.session_state.data_pei
 
+        data['modelo_pei_salvo'] = pei_level
+
         # --- NOVO BLOCO DE STATUS (ENTRE O TÍTULO E O FORMULÁRIO) ---
         # Verificação de segurança: só exibe se houver um aluno carregado
         if 'data_pei' in st.session_state and st.session_state.data_pei:

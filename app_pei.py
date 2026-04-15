@@ -429,16 +429,28 @@ def login():
         with c_art:
             # Atenção: HTML sem indentação para evitar renderização de bloco de código
             st.markdown("""
-<div class="login-art-box">
-    <div style="font-size: 6rem; margin-bottom: 1rem; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));">🧠</div>
-    <h1 style="color: white; font-weight: 800; font-size: 3.5rem; margin: 0; line-height: 1;">INTEGRA</h1>
-    <p style="font-size: 1.2rem; opacity: 0.9; font-weight: 300; margin-top: 10px;">Gestão de Educação<br><br>Ensino Regular<br><br>Ed. Especial Inclusiva</p>
-    <div style="margin-top: 40px; width: 100%;">
-        <hr style="border-color: rgba(255,255,255,0.3); margin-bottom: 20px;">
-        <p style="font-style: italic; font-size: 1rem; opacity: 0.9;">
-            "A inclusão acontece quando se aprende com as diferenças e não com as igualdades."
-        </p>
+<div class="login-art-box" style="background-color: #3850b7; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: white; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 2rem; box-sizing: border-box;">
+
+    <div style="font-size: 5rem; margin-bottom: 2rem; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.3));">
+        🧠
     </div>
+
+    <h1 style="font-weight: 800; font-size: 4rem; margin: 0 0 2rem 0; letter-spacing: 1px;">
+        INTEGRA
+    </h1>
+
+    <div style="font-size: 1.2rem; font-weight: 400; opacity: 0.9; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; margin-bottom: 5rem;">
+        <span style="background-color: rgba(0, 0, 0, 0.1); padding: 6px 16px; border-radius: 4px;">Gestão de Educação</span>
+        <span>Ensino Regular</span>
+        <span>Ed. Especial Inclusiva</span>
+    </div>
+
+    <hr style="width: 100%; max-width: 700px; border: none; border-top: 1px solid rgba(255, 255, 255, 0.3); margin-bottom: 2rem;">
+
+    <p style="font-size: 1rem; font-style: italic; font-weight: 600; opacity: 0.9; max-width: 700px; margin: 0;">
+        "A inclusão acontece quando se aprende com as diferenças e não com as igualdades."
+    </p>
+
 </div>
 """, unsafe_allow_html=True)
             

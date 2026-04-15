@@ -437,6 +437,8 @@ def login():
         <hr style="border-color: rgba(255,255,255,0.3); margin-bottom: 20px;">
         <p style="font-style: italic; font-size: 1rem; opacity: 0.9;">
             "A inclusão acontece quando se aprende com as diferenças e não com as igualdades."
+        <p>
+        <p>
         </p>
     </div>
 </div>

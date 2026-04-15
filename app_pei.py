@@ -30,19 +30,34 @@ st.set_page_config(
 )
 
 # --- OCULTAR TOOLBAR E MENU E RESPONSIVIDADE ---
+# --- OCULTAR TOOLBAR E MENU E RESPONSIVIDADE ---
 hide_st_style = """
             <style>
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             .stAppDeployButton {display:none;}
             
+            /* --- NOVO: SIMULAR O ZOOM DE 125% --- */
+            
+            /* 1. Aumenta a fonte base do sistema (o padrão é 16px) */
+            html, body, [class*="st-"] {
+                font-size: 1.15rem !important; 
+            }
+            
+            /* 2. Impede que a tela "wide" estique infinitamente em monitores enormes */
+            .block-container {
+                max-width: 1300px !important; /* Mantém largo, mas contido */
+                padding-top: 3rem !important; /* Dá um respiro no topo */
+                padding-bottom: 3rem !important;
+            }
+            
+            /* ------------------------------------- */
+
             /* --- COMPORTAMENTO DESKTOP (Largura > 992px) --- */
             @media (min-width: 992px) {
-                /* Esconde completamente o header */
                 header {display: none !important;}
                 [data-testid="stSidebarCollapseButton"] {display: none !important;}
                 
-                /* FORÇA A BARRA LATERAL A IR PARA O TOPO ABSOLUTO */
                 section[data-testid="stSidebar"] {
                     top: 0px !important;
                     height: 100vh !important;
@@ -51,10 +66,7 @@ hide_st_style = """
             
             /* --- COMPORTAMENTO MOBILE/TABLET (Largura <= 991px) --- */
             @media (max-width: 991px) {
-                /* Header visível para acessar o menu hambúrguer */
                 header {visibility: visible;}
-                
-                /* Ajustes para evitar que o conteúdo suba demais */
                 .header-box {
                     margin-top: 0px !important;
                 }

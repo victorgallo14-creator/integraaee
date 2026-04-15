@@ -21,6 +21,48 @@ import io
 MIN_DATA = date(1900, 1, 1)
 MAX_DATA = date(2100, 12, 31)
 
+# --- CONFIGURAÇÃO INICIAL ---
+st.set_page_config(
+    page_title="Integra | Sistema AEE",
+    layout="wide",
+    page_icon="🧠",
+    initial_sidebar_state="auto"
+)
+
+# --- OCULTAR TOOLBAR E MENU E RESPONSIVIDADE ---
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            .stAppDeployButton {display:none;}
+            
+            /* --- COMPORTAMENTO DESKTOP (Largura > 992px) --- */
+            @media (min-width: 992px) {
+                /* Esconde completamente o header */
+                header {display: none !important;}
+                [data-testid="stSidebarCollapseButton"] {display: none !important;}
+                
+                /* FORÇA A BARRA LATERAL A IR PARA O TOPO ABSOLUTO */
+                section[data-testid="stSidebar"] {
+                    top: 0px !important;
+                    height: 100vh !important;
+                }
+            }
+            
+            /* --- COMPORTAMENTO MOBILE/TABLET (Largura <= 991px) --- */
+            @media (max-width: 991px) {
+                /* Header visível para acessar o menu hambúrguer */
+                header {visibility: visible;}
+                
+                /* Ajustes para evitar que o conteúdo suba demais */
+                .header-box {
+                    margin-top: 0px !important;
+                }
+            }
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
 # --- FUNÇÕES AUXILIARES DE DESENHO (GLOBAIS) ---
 def calc_lines(pdf, text, w):
     if not text: return 1

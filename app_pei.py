@@ -1614,11 +1614,22 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 c_l1, c_l2 = st.columns(2)
                 ld_val = data.get('laudo_data')
-                if isinstance(ld_val, str): 
-                    try: ld_val = datetime.strptime(ld_val, '%Y-%m-%d').date()
-                    except: ld_val = date.today()
-                data['laudo_data'] = c_l1.date_input("Data do Laudo Médico", value=ld_val if ld_val else date.today(), format="DD/MM/YYYY", disabled=is_monitor)
-                data['laudo_medico'] = c_l2.text_input("Médico Responsável pelo Laudo", value=data.get('laudo_medico', ''), disabled=is_monitor)
+                
+                # Tenta converter a string em data; se falhar ou estiver vazio, define como None
+                if isinstance(ld_val, str) and ld_val.strip(): 
+                    try: 
+                        ld_val = datetime.strptime(ld_val, '%Y-%m-%d').date()
+                    except ValueError: 
+                        ld_val = None
+                elif not ld_val:
+                    ld_val = None
+
+                data['laudo_data'] = c_l1.date_input(
+                    "Data do Laudo Médico", 
+                    value=ld_val,  # Passando None, o campo permanecerá em branco
+                    format="DD/MM/YYYY", 
+                    disabled=is_monitor
+                )
                 
                 st.markdown("Categorias de Diagnóstico:")
                 cats = ["Deficiência", "Transtorno do Neurodesenvolvimento", "Transtornos Aprendizagem", "AH/SD", "Outros"]

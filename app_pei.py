@@ -426,19 +426,18 @@ def login():
         c_pad1, c_art, c_form, c_pad2 = st.columns([1, 4, 4, 1])
         
         # --- LADO ESQUERDO (ARTE AZUL) ---
+# --- LADO ESQUERDO (ARTE AZUL) ---
         with c_art:
-            # Atenção: HTML sem indentação para evitar renderização de bloco de código
             st.markdown("""
-<div class="login-art-box">
+<div class="login-art-box" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
     <div style="font-size: 6rem; margin-bottom: 1rem; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));">🧠</div>
     <h1 style="color: white; font-weight: 800; font-size: 3.5rem; margin: 0; line-height: 1;">INTEGRA</h1>
-    <p style="font-size: 1.2rem; opacity: 0.9; font-weight: 300; margin-top: 10px;">Gestão de Educação<br>Especial Inclusiva</p>
-    <div style="margin-top: 40px; width: 100%;">
-        <hr style="border-color: rgba(255,255,255,0.3); margin-bottom: 20px;">
-        <p style="font-style: italic; font-size: 1rem; opacity: 0.9;">
+    <p style="font-size: 1.2rem; opacity: 0.9; font-weight: 300; margin-top: 10px; margin-bottom: 0;">Gestão de Educação<br>Especial Inclusiva</p>
+    
+    <div style="margin-top: 40px; width: 100%; display: flex; flex-direction: column; align-items: center;">
+        <hr style="border-color: rgba(255,255,255,0.3); margin-bottom: 20px; width: 100%;">
+        <p style="font-style: italic; font-size: 1rem; opacity: 0.9; margin: 0;">
             "A inclusão acontece quando se aprende com as diferenças e não com as igualdades."
-        <p>
-        <p>
         </p>
     </div>
 </div>

@@ -900,75 +900,26 @@ with st.sidebar:
         st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
         app_mode = st.radio("Navegação", ["📊 Painel de Gestão", "👥 Gestão de Alunos", "🖼️ Carômetro"], label_visibility="collapsed")
 
-elif app_mode_regular == "📖 Planejamento Curricular":
-        st.markdown('<div class="header-box"><div class="header-title">📖 Planejamento Curricular e Semanal</div></div>', unsafe_allow_html=True)
+# --- NAVEGAÇÃO CONDICIONAL BASEADA NO MÓDULO ---
+    app_mode = None
+    app_mode_regular = None
+
+    if modulo_atuacao == "🧠 Educação Especial Inclusiva":
+        st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
+        app_mode = st.radio("Navegação", ["📊 Painel de Gestão", "👥 Gestão de Alunos", "🖼️ Carômetro"], label_visibility="collapsed")
         
-        # 1. IMPORTAÇÃO CORRIGIDA PARA O NOME EXATO DO ARQUIVO
-        from dados_curriculo import CURRICULO_DB
+    elif modulo_atuacao == "🏫 Ensino Regular":
+        st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
         
-        tab_p1, tab_p2, tab_p3 = st.tabs(["📋 Novo Plano", "📚 Base Curricular", "📜 Meus Planos"])
-
-        with tab_p1:
-            st.subheader("Novo Planejamento Semanal")
-            df_plan = safe_read("Planejamento", ["Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao"])
+        # Monta a lista de abas. "Configurações" só aparece para a Direção
+        opcoes_regular = ["💻 Agendamento Informática", "📝 Nova Ata de Conselho", "📂 Histórico de Atas", "📖 Planejamento Curricular"]
+        
+        # Usamos o seu nome logado como trava de segurança em vez da matrícula, 
+        # pois o sistema de login já salva o nome na sessão perfeitamente!
+        if st.session_state.get('usuario_nome') == "José Victor Souza Gallo":
+            opcoes_regular.append("⚙️ Configurações")
             
-            with st.form("form_planejamento"):
-                col1, col2 = st.columns(2)
-                with col1:
-                    data_plan = st.date_input("Data do Planejamento", format="DD/MM/YYYY")
-                    prof_plan = st.text_input("Professor(a)", value=st.session_state.get('usuario_nome', ""))
-                with col2:
-                    # 2. SELETORES INTELIGENTES LIGADOS AO ARQUIVO
-                    # O seletor de Turma lê as chaves principais (Ex: Maternal II, 1º Ano...)
-                    turma_plan = st.selectbox("Turma/Ano", list(CURRICULO_DB.keys()))
-                    # O seletor de Componente lê o que tem dentro da Turma escolhida
-                    comp_plan = st.selectbox("Componente Curricular", list(CURRICULO_DB[turma_plan].keys()))
-
-                # Puxa a lista final de objetivos baseada na Turma e Componente
-                objetivos_lista = CURRICULO_DB[turma_plan][comp_plan]
-                obj_selecionados = st.multiselect("Selecione os Objetivos/Conteúdos:", objetivos_lista)
-                
-                estrategias = st.text_area("Estratégias Didáticas", placeholder="Descreva como será a aula...")
-                recursos = st.text_area("Recursos e Materiais")
-                avaliacao = st.text_area("Processo de Avaliação")
-                
-                if st.form_submit_button("💾 Salvar Planejamento", use_container_width=True):
-                    if not obj_selecionados or not estrategias:
-                        st.error("Por favor, preencha os objetivos e estratégias.")
-                    else:
-                        novo_reg = pd.DataFrame([{
-                            "Data": data_plan.strftime("%d/%m/%Y"),
-                            "Professor": prof_plan,
-                            "Turma": turma_plan,
-                            "Componente": comp_plan,
-                            "Objetivos": " | ".join(obj_selecionados),
-                            "Estrategias": estrategias,
-                            "Recursos": recursos,
-                            "Avaliacao": avaliacao
-                        }])
-                        df_total = pd.concat([df_plan, novo_reg], ignore_index=True)
-                        if safe_update("Planejamento", df_total):
-                            st.success("✅ Planejamento salvo com sucesso no sistema!")
-                            st.rerun()
-
-        with tab_p2:
-            st.subheader("Consulta ao Currículo Municipal de Limeira")
-            # Ajuste para a aba de consulta buscar pelos dois níveis também
-            turma_busca = st.selectbox("Selecione a Turma/Ano:", list(CURRICULO_DB.keys()), key="busca_turma")
-            comp_busca = st.selectbox("Selecione o Componente:", list(CURRICULO_DB[turma_busca].keys()), key="busca_comp")
-            
-            for objetivo in CURRICULO_DB[turma_busca][comp_busca]:
-                st.info(objetivo)
-
-        with tab_p3:
-            st.subheader("Histórico de Planejamentos")
-            df_plan = safe_read("Planejamento", ["Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao"])
-            if not df_plan.empty:
-                # O professor logado só vê os próprios planos
-                meu_hist = df_plan[df_plan["Professor"] == st.session_state.get('usuario_nome', "")]
-                st.dataframe(meu_hist, use_container_width=True, hide_index=True)
-            else:
-                st.write("Nenhum planejamento encontrado.")
+        app_mode_regular = st.radio("Navegação", opcoes_regular, label_visibility="collapsed")
 
 
 # --- SEÇÃO GESTÃO DE ALUNOS ---
@@ -7582,3 +7533,70 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                         idx_col += 1
                         if idx_col >= 5:
                             idx_col = 0
+
+
+# ==============================================================================
+# MÓDULO: PLANEJAMENTO CURRICULAR E SEMANAL
+# ==============================================================================
+if app_mode_regular == "📖 Planejamento Curricular":
+    st.markdown('<div class="header-box"><div class="header-title">📖 Planejamento Curricular e Semanal</div></div>', unsafe_allow_html=True)
+    
+    from dados_curriculo import CURRICULO_DB
+    
+    tab_p1, tab_p2, tab_p3 = st.tabs(["📋 Novo Plano", "📚 Base Curricular", "📜 Meus Planos"])
+
+    with tab_p1:
+        st.subheader("Novo Planejamento Semanal")
+        df_plan = safe_read("Planejamento", ["Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao"])
+        
+        with st.form("form_planejamento"):
+            col1, col2 = st.columns(2)
+            with col1:
+                data_plan = st.date_input("Data do Planejamento", format="DD/MM/YYYY")
+                prof_plan = st.text_input("Professor(a)", value=st.session_state.get('usuario_nome', ""))
+            with col2:
+                turma_plan = st.selectbox("Turma/Ano", list(CURRICULO_DB.keys()))
+                comp_plan = st.selectbox("Componente Curricular", list(CURRICULO_DB[turma_plan].keys()))
+
+            objetivos_lista = CURRICULO_DB[turma_plan][comp_plan]
+            obj_selecionados = st.multiselect("Selecione os Objetivos/Conteúdos:", objetivos_lista)
+            
+            estrategias = st.text_area("Estratégias Didáticas", placeholder="Descreva como será a aula...")
+            recursos = st.text_area("Recursos e Materiais")
+            avaliacao = st.text_area("Processo de Avaliação")
+            
+            if st.form_submit_button("💾 Salvar Planejamento", use_container_width=True):
+                if not obj_selecionados or not estrategias:
+                    st.error("Por favor, preencha os objetivos e estratégias.")
+                else:
+                    novo_reg = pd.DataFrame([{
+                        "Data": data_plan.strftime("%d/%m/%Y"),
+                        "Professor": prof_plan,
+                        "Turma": turma_plan,
+                        "Componente": comp_plan,
+                        "Objetivos": " | ".join(obj_selecionados),
+                        "Estrategias": estrategias,
+                        "Recursos": recursos,
+                        "Avaliacao": avaliacao
+                    }])
+                    df_total = pd.concat([df_plan, novo_reg], ignore_index=True)
+                    if safe_update("Planejamento", df_total):
+                        st.success("✅ Planejamento salvo com sucesso no sistema!")
+                        st.rerun()
+
+    with tab_p2:
+        st.subheader("Consulta ao Currículo Municipal de Limeira")
+        turma_busca = st.selectbox("Selecione a Turma/Ano:", list(CURRICULO_DB.keys()), key="busca_turma")
+        comp_busca = st.selectbox("Selecione o Componente:", list(CURRICULO_DB[turma_busca].keys()), key="busca_comp")
+        
+        for objetivo in CURRICULO_DB[turma_busca][comp_busca]:
+            st.info(objetivo)
+
+    with tab_p3:
+        st.subheader("Histórico de Planejamentos")
+        df_plan = safe_read("Planejamento", ["Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao"])
+        if not df_plan.empty:
+            meu_hist = df_plan[df_plan["Professor"] == st.session_state.get('usuario_nome', "")]
+            st.dataframe(meu_hist, use_container_width=True, hide_index=True)
+        else:
+            st.write("Nenhum planejamento encontrado.")

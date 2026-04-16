@@ -7453,7 +7453,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                         else:
                             st.error("Erro ao salvar o agendamento no Supabase.")
 # ==============================================================================
-# NOVO MÓDULO: CARÔMETRO INTERATIVO (VERSÃO CORRIGIDA)
+# NOVO MÓDULO: CARÔMETRO INTERATIVO (VERSÃO CORRIGIDA E BLINDADA)
 # ==============================================================================
 elif app_mode and "Carômetro" in app_mode:
     st.markdown('<div class="header-box"><div class="header-title">🖼️ Carômetro de Estudantes</div></div>', unsafe_allow_html=True)
@@ -7465,11 +7465,9 @@ elif app_mode and "Carômetro" in app_mode:
     if df_full is None or df_full.empty:
         st.warning("⚠️ Nenhum aluno cadastrado.")
     else:
-        # 1. LIMPEZA E AGREGAÇÃO (Resolve o problema da Ayla e fotos sumidas)
+        # 1. LIMPEZA E AGREGAÇÃO (Garante que alunos únicos apareçam)
         df_temp = df_full.copy()
-        df_temp['nome'] = df_temp['nome'].str.strip() # Remove espaços extras
-        
-        # Criamos uma lista única de alunos
+        df_temp['nome'] = df_temp['nome'].str.strip()
         nomes_unicos = sorted(df_temp['nome'].unique())
         
         # 2. CONFIGURAÇÃO DA GRADE
@@ -7478,20 +7476,19 @@ elif app_mode and "Carômetro" in app_mode:
         
         st.markdown("""
             <style>
-            .caro-foto-frame { height: 160px; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px; background-color: #f1f5f9; margin: 10px 0; border: 1px dashed #cbd5e1; }
-            .caro-nome { font-weight: 800; color: #1e3a8a; font-size: 11px; height: 35px; display: flex; align-items: center; justify-content: center; text-align: center; text-transform: uppercase; line-height: 1.1; }
-            .caro-prof { font-size: 10px; color: #64748b; line-height: 1.2; text-align: center; height: 30px; }
+            .caro-foto-frame { height: 160px; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px; background-color: #f8fafc; margin: 10px 0; border: 1px dashed #cbd5e1; }
+            .caro-nome { font-weight: 800; color: #1e3a8a; font-size: 11px; height: 35px; display: flex; align-items: center; justify-content: center; text-align: center; text-transform: uppercase; line-height: 1.1; overflow: hidden; }
+            .caro-prof { font-size: 10px; color: #64748b; line-height: 1.2; margin-bottom: 8px; text-align: center; height: 30px; overflow: hidden; }
+            .stFileUploader section { padding: 0 !important; }
             </style>
         """, unsafe_allow_html=True)
 
         for nome_aluno in nomes_unicos:
-            # Busca todos os registros desse aluno para achar uma foto
+            # Busca registros desse aluno específico
             registros_aluno = df_temp[df_temp['nome'] == nome_aluno]
-            
             foto_encontrada = None
             prof_encontrado = "Não informado"
             
-            # Tenta garimpar a foto em qualquer um dos documentos (PEI, CASO, etc)
             for _, r in registros_aluno.iterrows():
                 try:
                     if r["dados_json"]:
@@ -7499,76 +7496,9 @@ elif app_mode and "Carômetro" in app_mode:
                         if not foto_encontrada:
                             foto_encontrada = d.get("foto_base64")
                         if prof_encontrado == "Não informado":
-                            prof_encontrado = d.get("prof_aee") or "Não informado"
-                except:
-                    continue # Se um registro estiver corrompido, pula para o próximo do mesmo aluno
-
-            with cols[idx_col]:
-                with st.container(border=True):
-                    st.markdown(f'<div class="caro-nome">{nome_aluno}</div>', unsafe_allow_html=True)
-                    
-                    if foto_encontrada:
-                        img_html = f"<img src='data:image/jpeg;base64,{foto_encontrada}' style='width: 100%; height: 100%; object-fit: cover;'>"
-                    else:
-                        img_html = "<div style='font-size: 40px; opacity: 0.2;'>👤</div>"
-                    
-                    st.markdown(f'<div class="caro-foto-frame">{img_html}</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="caro-prof"><b>Prof(a) AEE:</b><br>{prof_encontrado}</div>', unsafe_allow_html=True)
-
-                    # Upload de foto
-                    key_up = f"caro_up_{nome_aluno.replace(' ', '_')}"
-                    new_file = st.file_uploader("Trocar", type=["jpg", "png", "jpeg"], key=key_up, label_visibility="collapsed")
-                    
-                    if new_file:
-                        try:
-                            from PIL import Image
-                            import io, base64, time
-                            img = Image.open(new_file)
-                            if img.mode != 'RGB': img = img.convert('RGB')
-                            img.thumbnail((400, 500))
-                            buf = io.BytesIO()
-                            img.save(buf, format="JPEG", quality=85)
-                            nova_foto_b64 = base64.b64encode(buf.getvalue()).decode()
-                            
-                            # Carrega banco para sincronização
-                            df_sync = load_db(strict=True)
-                            
-                            if df_sync is None or df_sync.empty:
-                                st.error("⚠️ Falha de conexão. O banco retornou vazio. Salvamento bloqueado.")
-                                st.stop()
-                                
-                            df_sync['nome'] = df_sync['nome'].str.strip()
-                            foi_atualizado = False
-                            
-                            for i_s, r_s in df_sync.iterrows():
-                                if r_s['nome'] == nome_aluno:
-                                    try:
-                                        d_s = json.loads(r_s['dados_json'])
-                                        d_s['foto_base64'] = nova_foto_b64
-                                        df_sync.at[i_s, 'dados_json'] = json.dumps(d_s, ensure_ascii=False)
-                                        foi_atualizado = True
-                                    except:
-                                        continue
-                            
-        for nome_aluno in nomes_unicos:
-            # Busca todos os registros desse aluno para achar uma foto
-            registros_aluno = df_temp[df_temp['nome'] == nome_aluno]
-            
-            foto_encontrada = None
-            prof_encontrado = "Não informado"
-            
-            # Tenta garimpar a foto em qualquer um dos documentos
-            for _, r in registros_aluno.iterrows():
-                try:
-                    if r["dados_json"]:
-                        d = json.loads(r["dados_json"])
-                        if not foto_encontrada:
-                            foto_encontrada = d.get("foto_base64")
-                        if prof_encontrado == "Não informado":
-                            # Prioridade para Prof AEE
                             prof_encontrado = d.get("prof_aee") or d.get("resp_ee") or d.get("prof_poli") or "Não informado"
-                except:
-                    continue 
+                except Exception:
+                    pass
 
             with cols[idx_col]:
                 with st.container(border=True):
@@ -7582,7 +7512,6 @@ elif app_mode and "Carômetro" in app_mode:
                     st.markdown(f'<div class="caro-foto-frame">{img_html}</div>', unsafe_allow_html=True)
                     st.markdown(f'<div class="caro-prof"><b>Prof(a) AEE:</b><br>{prof_encontrado}</div>', unsafe_allow_html=True)
 
-                    # Upload de foto
                     key_up = f"caro_up_{nome_aluno.replace(' ', '_')}"
                     new_file = st.file_uploader("Trocar", type=["jpg", "png", "jpeg"], key=key_up, label_visibility="collapsed")
                     
@@ -7590,6 +7519,7 @@ elif app_mode and "Carômetro" in app_mode:
                         try:
                             from PIL import Image
                             import io, base64, time
+                            
                             img = Image.open(new_file)
                             if img.mode != 'RGB': img = img.convert('RGB')
                             img.thumbnail((400, 500))
@@ -7609,8 +7539,8 @@ elif app_mode and "Carômetro" in app_mode:
                                             d_s['foto_base64'] = nova_foto_b64
                                             df_sync.at[i_s, 'dados_json'] = json.dumps(d_s, ensure_ascii=False)
                                             foi_atualizado = True
-                                        except:
-                                            continue
+                                        except Exception:
+                                            pass
                                 
                                 if foi_atualizado:
                                     if len(df_sync) >= len(df_full):
@@ -7620,12 +7550,12 @@ elif app_mode and "Carômetro" in app_mode:
                                             st.rerun()
                                         else:
                                             st.error("Erro no banco.")
-                        except Exception as e:
-                            st.error(f"Erro na imagem: {e}")
+                                    else:
+                                        st.error("🛑 Erro: Perda de dados detectada.")
+                        except Exception as e_up:
+                            st.error(f"Erro na imagem: {e_up}")
 
-            # Controle da grade de colunas (Alinhado com o 'with cols[idx_col]:')
             idx_col = (idx_col + 1) % 5
-
 
 # ==============================================================================
 # MÓDULO: PLANEJAMENTO CURRICULAR E SEMANAL (SISTEMA PLANEJAR COMPLETO)

@@ -5865,12 +5865,27 @@ elif modulo_atuacao == "🏫 Ensino Regular":
     df_gestao = pd.DataFrame(json.loads(gestao_json)) if gestao_json else pd.DataFrame(GESTAO_SEED)
 
 
-    # ==============================================================================
-    # 1. TELA: NOVA ATA DE CONSELHO
-    # ==============================================================================
-    if app_mode_regular == "📝 Nova Ata de Conselho":
-        st.markdown(f"""<div class="header-box"><div class="header-title">Conselho de Classe / Termo</div><div class="header-subtitle">{modalidade_ata}</div></div>""", unsafe_allow_html=True)
-        
+# ==============================================================================
+# VIEW: CONSELHO DE CLASSE / TERMO
+# ==============================================================================
+elif app_mode_regular == "📝 Conselho de Classe":
+    
+    # --- AQUI É A MUDANÇA ---
+    # Primeiro criamos a escolha, para o Python saber o que é 'modalidade_ata'
+    modalidade_ata = st.selectbox(
+        "Selecione a Etapa de Ensino:",
+        ["Ensino Fundamental", "Educação Infantil"],
+        key="tipo_conselho"
+    )
+
+    # Agora mostramos o cabeçalho usando a escolha feita
+    st.markdown(f"""
+        <div class="header-box">
+            <div class="header-title">Conselho de Classe / Termo</div>
+            <div class="header-subtitle">{modalidade_ata}</div>
+        </div>
+    """, unsafe_allow_html=True)
+    # ------------------------
         # ------------------------------------------------------------------------------
         # MÓDULO: ENSINO FUNDAMENTAL
         # ------------------------------------------------------------------------------

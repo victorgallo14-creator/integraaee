@@ -5870,46 +5870,44 @@ elif modulo_atuacao == "🏫 Ensino Regular":
 # ==============================================================================
         elif app_mode_regular == "📝 Conselho de Classe":
             
-            # --- AQUI É A MUDANÇA ---
-            # Primeiro criamos a escolha, para o Python saber o que é 'modalidade_ata'
+            # 1. Definimos a modalidade
             modalidade_ata = st.selectbox(
                 "Selecione a Etapa de Ensino:",
                 ["Ensino Fundamental", "Educação Infantil"],
                 key="tipo_conselho"
             )
-        
-            # Agora mostramos o cabeçalho usando a escolha feita
+            
+            # 2. Mostramos o cabeçalho
             st.markdown(f"""
                 <div class="header-box">
                     <div class="header-title">Conselho de Classe / Termo</div>
                     <div class="header-subtitle">{modalidade_ata}</div>
                 </div>
             """, unsafe_allow_html=True)
-        # ------------------------
-        # ------------------------------------------------------------------------------
-        # MÓDULO: ENSINO FUNDAMENTAL
-        # ------------------------------------------------------------------------------
-        if "Fundamental" in modalidade_ata:
-            if 'data_ata_ef' not in st.session_state:
-                st.session_state.data_ata_ef = {
-                    'abaixo_basico': [{"Estudante": "", "LP": "", "M": "", "H": "", "G": "", "C": "", "A": "", "EF": "", "LT": "", "LIBRAS": ""}],
-                    'basico': [{"Estudante": "", "Ações (LP e Mat)": ""}],
-                    'obs_especiais': [{"Estudante": "", "Desempenho/Observação": ""}],
-                    'encaminhamentos': [{"Estudante": "", "Motivo": ""}],
-                    'mat_tardia': [{"Estudante": "", "Data Matrícula": "", "Total Frequência": ""}],
-                    'obs_outras': "",
-                    'assinaturas': [{"Nome": "", "Cargo/Atuação": ""}]
-                }
+
+            # 3. MÓDULO: ENSINO FUNDAMENTAL 
+            # (Note que este 'if' está alinhado com o 'modalidade_ata' acima)
+            if "Fundamental" in modalidade_ata:
+                if 'data_ata_ef' not in st.session_state:
+                    st.session_state.data_ata_ef = {
+                        'abaixo_basico': [{"Estudante": "", "LP": "", "M": "", "H": "", "G": "", "C": "", "A": "", "EF": "", "LT": "", "LIBRAS": ""}],
+                        'basico': [{"Estudante": "", "Ações (LP e Mat)": ""}],
+                        'obs_especiais': [{"Estudante": "", "Desempenho/Observação": ""}],
+                        'encaminhamentos': [{"Estudante": "", "Motivo": ""}],
+                        'mat_tardia': [{"Estudante": "", "Data Matrícula": "", "Total Frequência": ""}],
+                        'obs_outras': "",
+                        'assinaturas': [{"Nome": "", "Cargo/Atuação": ""}]
+                    }
+                    
+                if 'ata_turma_confirmada' not in st.session_state:
+                    st.session_state.ata_turma_confirmada = None
+                    st.session_state.ata_ciclo_confirmado = None
                 
-            if 'ata_turma_confirmada' not in st.session_state:
-                st.session_state.ata_turma_confirmada = None
-                st.session_state.ata_ciclo_confirmado = None
-            
-            data_ata = st.session_state.data_ata_ef
-            
-            for key in ['abaixo_basico', 'basico', 'obs_especiais', 'encaminhamentos', 'mat_tardia', 'assinaturas']:
-                if isinstance(data_ata.get(key), pd.DataFrame):
-                    data_ata[key] = data_ata[key].to_dict('records')
+                data_ata = st.session_state.data_ata_ef
+                
+                for key in ['abaixo_basico', 'basico', 'obs_especiais', 'encaminhamentos', 'mat_tardia', 'assinaturas']:
+                    if isinstance(data_ata.get(key), pd.DataFrame):
+                        data_ata[key] = data_ata[key].to_dict('records')
             
             # --- PORTÃO DE ENTRADA (GATE) ---
             if not st.session_state.ata_turma_confirmada:

@@ -5868,26 +5868,25 @@ elif modulo_atuacao == "🏫 Ensino Regular":
 # ==============================================================================
 # VIEW: CONSELHO DE CLASSE / TERMO
 # ==============================================================================
-        elif app_mode_regular == "📝 Conselho de Classe":
-            
-            # 1. Definimos a modalidade (Isso resolve o NameError)
-            modalidade_ata = st.selectbox(
-                "Selecione a Etapa de Ensino:",
-                ["Ensino Fundamental", "Educação Infantil"],
-                key="tipo_conselho"
-            )
-            
-            # 2. Mostramos o cabeçalho dinâmico
-            st.markdown(f"""
-                <div class="header-box">
-                    <div class="header-title">Conselho de Classe / Termo</div>
-                    <div class="header-subtitle">{modalidade_ata}</div>
-                </div>
-            """, unsafe_allow_html=True)
+    elif app_mode_regular == "📝 Conselho de Classe":
+        
+        # 1. Definimos a modalidade (Isso resolve o NameError)
+        modalidade_ata = st.selectbox(
+            "Selecione a Etapa de Ensino:",
+            ["Ensino Fundamental", "Educação Infantil"],
+            key="tipo_conselho"
+        )
+        
+        # 2. Mostramos o cabeçalho dinâmico
+        st.markdown(f"""
+            <div class="header-box">
+                <div class="header-title">Conselho de Classe / Termo</div>
+                <div class="header-subtitle">{modalidade_ata}</div>
+            </div>
+        """, unsafe_allow_html=True)
 
-            # 3. MÓDULO: ENSINO FUNDAMENTAL 
-            # (Note que este 'if' abaixo deve estar alinhado com o 'modalidade_ata' acima)
-            if "Fundamental" in modalidade_ata:
+        # 3. MÓDULO: ENSINO FUNDAMENTAL 
+        if "Fundamental" in modalidade_ata:
             if 'data_ata_ef' not in st.session_state:
                 st.session_state.data_ata_ef = {
                     'abaixo_basico': [{"Estudante": "", "LP": "", "M": "", "H": "", "G": "", "C": "", "A": "", "EF": "", "LT": "", "LIBRAS": ""}],

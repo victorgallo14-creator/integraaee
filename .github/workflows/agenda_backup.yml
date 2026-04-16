@@ -30,7 +30,9 @@ jobs:
       - name: Entregar as chaves (Segredos) ao robô
         run: |
           mkdir -p .streamlit
-          echo "${{ secrets.SEGREDOS_DO_APP }}" > .streamlit/secrets.toml
+          cat << 'EOF' > .streamlit/secrets.toml
+          ${{ secrets.SEGREDOS_DO_APP }}
+          EOF
 
       - name: 🚀 Executar a rotina de backup
         run: python rotina_backup.py

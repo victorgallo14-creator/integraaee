@@ -7550,18 +7550,79 @@ elif app_mode and "Carômetro" in app_mode:
                                     except:
                                         continue
                             
-                            if foi_atualizado:
-                                # Verificação de segurança para não apagar o banco se houver falha de rede
-                                if len(df_sync) >= len(df_full):
-                                    # Chamamos a safe_update que agora limpa os IDs automaticamente
-                                    if safe_update("Alunos", df_sync):
-                                        st.success("✅ Sincronizado com sucesso!")
-                                        time.sleep(1)
-                                        st.rerun()
-                                    else:
-                                        st.error("Erro na gravação.")
-                                else:
-                                    st.error("🛑 Erro: O sistema detectou perda de linhas. Operação cancelada.")
+for nome_aluno in nomes_unicos:
+            # Busca todos os registros desse aluno para achar uma foto
+            registros_aluno = df_temp[df_temp['nome'] == nome_aluno]
+            
+            foto_encontrada = None
+            prof_encontrado = "Não informado"
+            
+            # Tenta garimpar a foto em qualquer um dos documentos
+            for _, r in registros_aluno.iterrows():
+                try:
+                    if r["dados_json"]:
+                        d = json.loads(r["dados_json"])
+                        if not foto_encontrada:
+                            foto_encontrada = d.get("foto_base64")
+                        if prof_encontrado == "Não informado":
+                            prof_encontrado = d.get("prof_aee") or d.get("resp_ee") or d.get("prof_poli") or "Não informado"
+                except:
+                    continue 
+
+            with cols[idx_col]:
+                with st.container(border=True):
+                    st.markdown(f'<div class="caro-nome">{nome_aluno}</div>', unsafe_allow_html=True)
+                    
+                    if foto_encontrada:
+                        img_html = f"<img src='data:image/jpeg;base64,{foto_encontrada}' style='width: 100%; height: 100%; object-fit: cover;'>"
+                    else:
+                        img_html = "<div style='font-size: 40px; opacity: 0.2;'>👤</div>"
+                    
+                    st.markdown(f'<div class="caro-foto-frame">{img_html}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="caro-prof"><b>Prof(a) AEE:</b><br>{prof_encontrado}</div>', unsafe_allow_html=True)
+
+                    # Upload de foto
+                    key_up = f"caro_up_{nome_aluno.replace(' ', '_')}"
+                    new_file = st.file_uploader("Trocar", type=["jpg", "png", "jpeg"], key=key_up, label_visibility="collapsed")
+                    
+                    if new_file:
+                        try:
+                            from PIL import Image
+                            import io, base64, time
+                            img = Image.open(new_file)
+                            if img.mode != 'RGB': img = img.convert('RGB')
+                            img.thumbnail((400, 500))
+                            buf = io.BytesIO()
+                            img.save(buf, format="JPEG", quality=85)
+                            nova_foto_b64 = base64.b64encode(buf.getvalue()).decode()
+                            
+                            df_sync = load_db(strict=True)
+                            if df_sync is not None and not df_sync.empty:
+                                df_sync['nome'] = df_sync['nome'].str.strip()
+                                foi_atualizado = False
+                                
+                                for i_s, r_s in df_sync.iterrows():
+                                    if r_s['nome'] == nome_aluno:
+                                        try:
+                                            d_s = json.loads(r_s['dados_json'])
+                                            d_s['foto_base64'] = nova_foto_b64
+                                            df_sync.at[i_s, 'dados_json'] = json.dumps(d_s, ensure_ascii=False)
+                                            foi_atualizado = True
+                                        except:
+                                            continue
+                                
+                                if foi_atualizado:
+                                    if len(df_sync) >= len(df_full):
+                                        if safe_update("Alunos", df_sync):
+                                            st.success("✅ Sincronizado!")
+                                            time.sleep(1)
+                                            st.rerun()
+                                        else:
+                                            st.error("Erro no banco.")
+                        except Exception as e:
+                            st.error(f"Erro na imagem: {e}")
+
+            # ATENÇÃO: Esta linha deve estar alinhada com o 'with cols[idx_col]:'
             idx_col = (idx_col + 1) % 5
 
 

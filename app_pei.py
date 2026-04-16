@@ -7488,7 +7488,7 @@ elif app_mode and "Carômetro" in app_mode:
                         if not foto_encontrada:
                             foto_encontrada = d.get("foto_base64")
                         if prof_encontrado == "Não informado":
-                            prof_encontrado = d.get("prof_poli") or d.get("prof_aee") or d.get("resp_ee") or "Não informado"
+                            prof_encontrado = d.get("prof_aee") or "Não informado"
                 except:
                     continue # Se um registro estiver corrompido, pula para o próximo do mesmo aluno
 
@@ -7502,7 +7502,7 @@ elif app_mode and "Carômetro" in app_mode:
                         img_html = "<div style='font-size: 40px; opacity: 0.2;'>👤</div>"
                     
                     st.markdown(f'<div class="caro-foto-frame">{img_html}</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="caro-prof"><b>Prof(a):</b><br>{prof_encontrado}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="caro-prof"><b>Prof(a) AEE:</b><br>{prof_encontrado}</div>', unsafe_allow_html=True)
 
                     # Upload de foto
                     key_up = f"caro_up_{nome_aluno.replace(' ', '_')}"

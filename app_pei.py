@@ -7932,7 +7932,7 @@ if st.button("🔄 Gerar Backup de Segurança", type="primary", use_container_wi
             if df_backup is not None and not df_backup.empty:
                 # 2. Gera o nome da aba com a data e hora atual
                 # Exemplo: BKP_Alunos_15_04_2026_1230
-                agora = datetime.datetime.now().strftime("%d_%m_%Y_%H%M")
+                agora = pd.Timestamp.now().strftime("%d_%m_%Y_%H%M")
                 nome_aba_backup = f"BKP_Alunos_{agora}"
                 
                 # 3. Envia para o Google Sheets. 

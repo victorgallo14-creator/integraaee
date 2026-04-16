@@ -4,3 +4,4 @@ pandas
 streamlit-autorefresh
 supabase
 python-docx
+st-gsheets-connection

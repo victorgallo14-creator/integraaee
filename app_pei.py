@@ -937,7 +937,7 @@ with st.sidebar:
         
         if st.session_state.get('usuario_nome') == "José Victor Souza Gallo":
             opcoes_regular.append("⚙️ Configurações")
-            opcoes_regular.append("### 💾 Cofre de Segurança")
+            opcoes_regular.append("💾 Cofre de Segurança")
             
         # ADICIONADA A CHAVE: key="nav_regular"
         app_mode_regular = st.radio(
@@ -7920,7 +7920,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
 # FERRAMENTA DE BACKUP VERSIONADO (COFRE NO GOOGLE SHEETS)
 # ==============================================================================
 st.divider()
-st.markdown("### 💾 Cofre de Segurança")
+st.markdown("💾 Cofre de Segurança")
 st.caption("Salva uma cópia exata de todos os dados do Supabase criando uma NOVA aba na sua Planilha Google original.")
 
 if st.button("🔄 Gerar Backup de Segurança", type="primary", use_container_width=True):

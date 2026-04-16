@@ -7552,19 +7552,18 @@ elif app_mode and "Carômetro" in app_mode:
 
                                     # ==========================================================
                                     # TRAVA DE SEGURANÇA 2: PROTEÇÃO ANTI-APAGÃO
-                                    # ==========================================================
-                                    # Só permite salvar se a tabela que vai subir não perdeu linhas
-                                    if len(df_sync) >= len(df_full):
-                                        if safe_update("Alunos", df_sync):
-                                            st.success("✅ Sincronizado com segurança máxima!")
-                                            time.sleep(1)
-                                            st.rerun()
-                                        else:
-                                            st.error("Erro ao comunicar com o banco de dados.")
+# ==========================================================
+                                if len(df_sync) >= len(df_full):
+                                    if safe_update("Alunos", df_sync):
+                                        st.success("✅ Sincronizado com segurança!")
+                                        time.sleep(1)
+                                        st.rerun()
                                     else:
-                                        st.error("🛑 ERRO CRÍTICO: Perda de dados detectada. Salvamento bloqueado.")
-                            except Exception as e:
-                                st.error(f"Erro ao processar a imagem: {e}")
+                                        st.error("Erro ao comunicar com o banco de dados.")
+                                else:
+                                    st.error("🛑 ERRO CRÍTICO: Perda de dados detectada. Salvamento bloqueado.")
+                        except Exception as e:
+                            st.error(f"Erro ao processar a imagem: {e}")
 
             idx_col = (idx_col + 1) % 5
 

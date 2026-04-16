@@ -5868,23 +5868,23 @@ elif modulo_atuacao == "🏫 Ensino Regular":
 # ==============================================================================
 # VIEW: CONSELHO DE CLASSE / TERMO
 # ==============================================================================
-    elif app_mode_regular == "📝 Conselho de Classe":
+        elif app_mode_regular == "📝 Conselho de Classe":
+            
+            # --- AQUI É A MUDANÇA ---
+            # Primeiro criamos a escolha, para o Python saber o que é 'modalidade_ata'
+            modalidade_ata = st.selectbox(
+                "Selecione a Etapa de Ensino:",
+                ["Ensino Fundamental", "Educação Infantil"],
+                key="tipo_conselho"
+            )
         
-        # --- AQUI É A MUDANÇA ---
-        # Primeiro criamos a escolha, para o Python saber o que é 'modalidade_ata'
-        modalidade_ata = st.selectbox(
-            "Selecione a Etapa de Ensino:",
-            ["Ensino Fundamental", "Educação Infantil"],
-            key="tipo_conselho"
-        )
-    
-        # Agora mostramos o cabeçalho usando a escolha feita
-        st.markdown(f"""
-            <div class="header-box">
-                <div class="header-title">Conselho de Classe / Termo</div>
-                <div class="header-subtitle">{modalidade_ata}</div>
-            </div>
-        """, unsafe_allow_html=True)
+            # Agora mostramos o cabeçalho usando a escolha feita
+            st.markdown(f"""
+                <div class="header-box">
+                    <div class="header-title">Conselho de Classe / Termo</div>
+                    <div class="header-subtitle">{modalidade_ata}</div>
+                </div>
+            """, unsafe_allow_html=True)
         # ------------------------
         # ------------------------------------------------------------------------------
         # MÓDULO: ENSINO FUNDAMENTAL

@@ -7510,65 +7510,53 @@ elif app_mode and "Carômetro" in app_mode:
                     
                     if new_file:
                         try:
-                                from PIL import Image
-                                import io, base64, time
-                                img = Image.open(new_file)
-                                if img.mode != 'RGB': img = img.convert('RGB')
-                                img.thumbnail((400, 500))
-                                buf = io.BytesIO()
-                                img.save(buf, format="JPEG", quality=85)
-                                nova_foto_b64 = base64.b64encode(buf.getvalue()).decode()
+                            from PIL import Image
+                            import io, base64, time
+                            img = Image.open(new_file)
+                            if img.mode != 'RGB': img = img.convert('RGB')
+                            img.thumbnail((400, 500))
+                            buf = io.BytesIO()
+                            img.save(buf, format="JPEG", quality=85)
+                            nova_foto_b64 = base64.b64encode(buf.getvalue()).decode()
+                            
+                            # Carrega banco para sincronização
+                            df_sync = load_db(strict=True)
+                            
+                            if df_sync is None or df_sync.empty:
+                                st.error("⚠️ Falha de conexão. O banco retornou vazio. Salvamento bloqueado.")
+                                st.stop()
                                 
-                                # Sincroniza em todas as linhas do aluno no Supabase
-                                df_sync = load_db(strict=True)
-                                
-                                # ==========================================================
-                                # TRAVA DE SEGURANÇA 1: BARRAR LEITURA VAZIA
-                                # ==========================================================
-                                if df_sync is None or df_sync.empty:
-                                    st.error("⚠️ Falha de conexão. O banco retornou vazio. Salvamento bloqueado.")
-                                    st.stop()
-                                    
-                                df_sync['nome'] = df_sync['nome'].str.strip()
-                                foi_atualizado = False
-                                
-                                for i_s, r_s in df_sync.iterrows():
-                                    if r_s['nome'] == nome_aluno:
-                                        try:
-                                            d_s = json.loads(r_s['dados_json'])
-                                            d_s['foto_base64'] = nova_foto_b64
-                                            df_sync.at[i_s, 'dados_json'] = json.dumps(d_s, ensure_ascii=False)
-                                            foi_atualizado = True
-                                        except:
-                                            continue
-                                
-                                
+                            df_sync['nome'] = df_sync['nome'].str.strip()
+                            foi_atualizado = False
+                            
+                            for i_s, r_s in df_sync.iterrows():
+                                if r_s['nome'] == nome_aluno:
+                                    try:
+                                        d_s = json.loads(r_s['dados_json'])
+                                        d_s['foto_base64'] = nova_foto_b64
+                                        df_sync.at[i_s, 'dados_json'] = json.dumps(d_s, ensure_ascii=False)
+                                        foi_atualizado = True
+                                    except:
+                                        continue
+                            
                             if foi_atualizado:
-                                # ==========================================================
-                                # TRAVA DE SEGURANÇA 1.5: LIMPEZA DO NAN E PROTEÇÃO DO ID
-                                # ==========================================================
-                                # 1. Transforma o que é vazio em texto limpo
+                                # LIMPEZA DE DADOS (IMPEDE ERROS DE JSON E ID)
                                 df_sync = df_sync.fillna("")
-                                
-                                # 2. Remove a coluna 'id' do envio. 
-                                # Isso obriga o Supabase a gerar IDs novos e sequenciais automaticamente,
-                                # impedindo que o erro de "null value in column id" aconteça com alunos novos!
                                 if 'id' in df_sync.columns:
                                     df_sync = df_sync.drop(columns=['id'])
 
-                                # ==========================================================
-                                # TRAVA DE SEGURANÇA 2: PROTEÇÃO ANTI-APAGÃO
-                                # ==========================================================
+                                # TRAVA ANTI-APAGÃO
                                 if len(df_sync) >= len(df_full):
                                     if safe_update("Alunos", df_sync):
-                                        st.success("✅ Sincronizado com segurança máxima!")
+                                        st.success("✅ Sincronizado com segurança!")
                                         time.sleep(1)
                                         st.rerun()
                                     else:
                                         st.error("Erro ao comunicar com o banco de dados.")
                                 else:
-                                    st.error("🛑 ERRO CRÍTICO: Perda de dados detectada. Salvamento bloqueado.")
-
+                                    st.error("🛑 ERRO CRÍTICO: Perda de dados detectada. Operação cancelada.")
+                        except Exception as e:
+                            st.error(f"Erro ao processar imagem: {e}")
             idx_col = (idx_col + 1) % 5
 
 

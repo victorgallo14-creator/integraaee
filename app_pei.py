@@ -7935,9 +7935,14 @@ if st.button("🔄 Gerar Backup de Segurança", type="primary", use_container_wi
                 agora = pd.Timestamp.now().strftime("%d_%m_%Y_%H%M")
                 nome_aba_backup = f"BKP_Alunos_{agora}"
                 
-                # 3. Envia para o Google Sheets. 
-                # A mágica aqui é que o Streamlit cria a aba automaticamente se o nome for novo!
-                conn.update(worksheet=nome_aba_backup, data=df_backup)
+# =======================================================
+                # 3. CORREÇÃO: RECONECTAR AO GOOGLE SHEETS PARA O BACKUP
+                # =======================================================
+                from streamlit_gsheets import GSheetsConnection
+                conn_backup = st.connection("gsheets", type=GSheetsConnection)
+                
+                # 4. Envia para o Google Sheets usando a conexão que acabamos de abrir
+                conn_backup.update(worksheet=nome_aba_backup, data=df_backup)
                 
                 st.success(f"✅ Backup blindado com sucesso! Verifique sua planilha, uma nova aba chamada '{nome_aba_backup}' foi criada.")
             else:

@@ -11,39 +11,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Aceder aos ficheiros
-        uses: actions/checkout@v4 # Atualizei para v4 para tirar o aviso do Node
+        uses: actions/checkout@v4
 
       - name: Preparar Python
-        uses: actions/setup-python@v5 # Atualizei para v5 para tirar o aviso do Node
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Instalar ferramentas
         run: |
-          pip install pandas supabase streamlit st-gsheets-connection
+          pip install pandas supabase streamlit st-gsheets-connection gspread
 
-      - name: 🛡️ Diagnóstico e Entrega das Chaves
+      - name: 🛡️ Criar e Limpar Secrets
         env:
           MEUS_SEGREDOS: ${{ secrets.SEGREDOS_DO_APP }}
         run: |
           python -c "
-          import os, sys
+          import os
           conteudo = os.environ.get('MEUS_SEGREDOS', '')
-          
-          if not conteudo:
-              print('❌ ERRO: O segredo SEGREDOS_DO_APP está VAZIO no GitHub.')
-              sys.exit(1)
-          
-          print(f'✅ Segredo recebido. Tamanho: {len(conteudo)} caracteres.')
-          print(f'✅ Primeiros 5 caracteres: \"{conteudo[:5]}\"')
-          
-          if conteudo.startswith('.') or conteudo.startswith(' '):
-              print('⚠️ AVISO: Sua senha começa com um ponto ou espaço! Isso causa o erro de float.')
-          
           os.makedirs('.streamlit', exist_ok=True)
+          # O .strip() remove qualquer sujeira (ponto, espaço) no início/fim
           with open('.streamlit/secrets.toml', 'w', encoding='utf-8') as f:
-              f.write(conteudo.strip()) # O .strip() remove espaços/pontos acidentais no início e fim
-          print('✅ Arquivo secrets.toml criado com sucesso.')
+              f.write(conteudo.strip())
           "
 
       - name: 🚀 Executar Backup

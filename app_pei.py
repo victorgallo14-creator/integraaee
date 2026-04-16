@@ -160,22 +160,21 @@ def safe_read(worksheet_name, columns):
 def safe_update(worksheet_name, data):
     """
     Sincroniza do Pandas para o Supabase de forma segura.
-    Limpa a tabela e insere o novo DataFrame garantindo IDs para todos.
+    Recria o ID no formato de texto exato que o banco de dados exige.
     """
     try:
-        # 1. Preparação dos dados e limpeza de vazios
+        # 1. Limpeza contra erros de JSON
         df_to_save = data.copy()
         df_to_save = df_to_save.fillna("") 
         
-        # 2. A GRANDE SACADA: Forçar a numeração no Python!
-        # Como o banco não gera IDs sozinho, nós recriamos a coluna ID
-        # dando um número sequencial (1, 2, 3...) para cada linha.
-        # Isso garante que NENHUM registro fique com ID 'null'.
-        df_to_save['id'] = range(1, len(df_to_save) + 1)
+        # 2. A SOLUÇÃO FINAL: Montagem do ID Textual!
+        # Em vez de números ou vazio, juntamos o Nome e o Tipo de Documento.
+        # Ex: "ARTHUR FASCIO ZANETTI" + " (" + "AVALIACAO" + ")"
+        df_to_save['id'] = df_to_save['nome'].astype(str).str.strip() + " (" + df_to_save['tipo_doc'].astype(str).str.strip() + ")"
         
         data_dict = df_to_save.to_dict(orient="records")
         
-        # 3. Execução: Deleta os antigos e insere os novos perfeitamente numerados
+        # 3. Atualização Segura
         supabase.table(worksheet_name).delete().neq("nome", "FORCAR_LIMPEZA_TOTAL").execute()
         supabase.table(worksheet_name).insert(data_dict).execute()
         

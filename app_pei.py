@@ -7920,7 +7920,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
         # FERRAMENTA DE BACKUP VERSIONADO (COFRE NO GOOGLE SHEETS E LOCAL)
         # ==============================================================================
         st.divider()
-        st.markdown("### 💾 Cofre de Segurança")
+        st.markdown("💾 Cofre de Segurança")
         st.caption("Crie cópias de segurança do seu banco de dados na nuvem (Google Sheets) ou baixe para o seu computador.")
 
         # --- OPÇÃO 1: BACKUP NA NUVEM (NOVA ABA NO GOOGLE SHEETS) ---

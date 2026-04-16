@@ -160,26 +160,25 @@ def safe_read(worksheet_name, columns):
 def safe_update(worksheet_name, data):
     """
     Sincroniza do Pandas para o Supabase de forma segura.
-    Limpa a tabela e insere o novo DataFrame tratando IDs e valores nulos.
+    Limpa a tabela e insere o novo DataFrame garantindo IDs para todos.
     """
     try:
-        # 1. Limpeza Radical: Deleta TUDO da tabela antes de reinserir
-        # O filtro .neq("nome", "___") é um truque para selecionar todas as linhas
-        supabase.table(worksheet_name).delete().neq("nome", "FORCAR_LIMPEZA_TOTAL").execute()
+        # 1. Preparação dos dados e limpeza de vazios
+        df_to_save = data.copy()
+        df_to_save = df_to_save.fillna("") 
         
-        if not data.empty:
-            # 2. Proteção de ID: Removemos a coluna ID para o Supabase gerar a dele automaticamente
-            df_to_save = data.copy()
-            if "id" in df_to_save.columns:
-                df_to_save = df_to_save.drop(columns=["id"])
-            
-            # 3. Limpeza de Dados: Converte NaNs e vazios para o formato que o Supabase aceita
-            df_to_save = df_to_save.fillna("") 
-            data_dict = df_to_save.to_dict(orient="records")
-            
-            # 4. Inserção
-            supabase.table(worksheet_name).insert(data_dict).execute()
-            
+        # 2. A GRANDE SACADA: Forçar a numeração no Python!
+        # Como o banco não gera IDs sozinho, nós recriamos a coluna ID
+        # dando um número sequencial (1, 2, 3...) para cada linha.
+        # Isso garante que NENHUM registro fique com ID 'null'.
+        df_to_save['id'] = range(1, len(df_to_save) + 1)
+        
+        data_dict = df_to_save.to_dict(orient="records")
+        
+        # 3. Execução: Deleta os antigos e insere os novos perfeitamente numerados
+        supabase.table(worksheet_name).delete().neq("nome", "FORCAR_LIMPEZA_TOTAL").execute()
+        supabase.table(worksheet_name).insert(data_dict).execute()
+        
         return True
     except Exception as e:
         st.error(f"Erro crítico ao atualizar {worksheet_name}: {e}")

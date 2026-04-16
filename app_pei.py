@@ -7565,6 +7565,7 @@ elif app_mode and "Carômetro" in app_mode:
                         if not foto_encontrada:
                             foto_encontrada = d.get("foto_base64")
                         if prof_encontrado == "Não informado":
+                            # Prioridade para Prof AEE
                             prof_encontrado = d.get("prof_aee") or d.get("resp_ee") or d.get("prof_poli") or "Não informado"
                 except:
                     continue 
@@ -7622,7 +7623,7 @@ elif app_mode and "Carômetro" in app_mode:
                         except Exception as e:
                             st.error(f"Erro na imagem: {e}")
 
-            # ATENÇÃO: Esta linha deve estar alinhada com o 'with cols[idx_col]:'
+            # Controle da grade de colunas (Alinhado com o 'with cols[idx_col]:')
             idx_col = (idx_col + 1) % 5
 
 

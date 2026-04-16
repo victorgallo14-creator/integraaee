@@ -7923,46 +7923,63 @@ elif app_mode_regular == "💾 Cofre de Segurança":
     st.markdown('<div class="header-box"><div class="header-title">💾 Cofre de Segurança</div></div>', unsafe_allow_html=True)
     st.caption("Crie cópias de segurança do seu banco de dados na nuvem (Google Sheets) ou descarregue para o seu computador.")
 
-    # --- OPÇÃO 1: BACKUP NA NUVEM (HISTÓRICO ACUMULATIVO) ---
+    # --- OPÇÃO 1: BACKUP NA NUVEM (HISTÓRICO ACUMULATIVO SEM FOTOS) ---
     if st.button("🔄 Gerar Backup de Segurança (Nuvem)", type="primary", use_container_width=True):
-        with st.spinner("A guardar no cofre da nuvem..."):
+        with st.spinner("A filtrar imagens pesadas e a guardar textos no cofre da nuvem..."):
             try:
-                # 1. Puxa os dados do Supabase
+                # 1. Puxa os dados originais do Supabase
                 df_novo_backup = load_db()
                 
                 if df_novo_backup is not None and not df_novo_backup.empty:
                     import pandas as pd
-                    # Cria o carimbo de data/hora
-                    agora_str = pd.Timestamp.now().strftime("%d/%m/%Y %H:%M")
+                    import json
                     
-                    # Adiciona uma nova coluna a dizer exatamente quando este backup foi feito
-                    df_novo_backup.insert(0, "DATA_DO_BACKUP", agora_str)
+                    # =====================================================================
+                    # FILTRO INTELIGENTE: Remove a foto em base64 para o Google não travar
+                    # =====================================================================
+                    df_limpo = df_novo_backup.copy()
+                    if 'dados_json' in df_limpo.columns:
+                        for idx, row in df_limpo.iterrows():
+                            try:
+                                if row['dados_json']:
+                                    dados = json.loads(row['dados_json'])
+                                    if 'foto_base64' in dados:
+                                        del dados['foto_base64'] # Apaga a foto do backup
+                                        dados['info_backup'] = "Foto removida por limite de tamanho do Google Sheets"
+                                    # Grava o JSON de volta, agora levinho
+                                    df_limpo.at[idx, 'dados_json'] = json.dumps(dados, ensure_ascii=False)
+                            except Exception:
+                                continue
+                    
+                    # 2. Cria o carimbo de data/hora e insere na primeira coluna
+                    agora_str = pd.Timestamp.now().strftime("%d/%m/%Y %H:%M")
+                    df_limpo.insert(0, "DATA_DO_BACKUP", agora_str)
                     
                     from streamlit_gsheets import GSheetsConnection
                     conn_backup = st.connection("gsheets", type=GSheetsConnection)
                     
-                    # 2. Lê os backups antigos (se existirem) na aba Cofre_Historico
+                    # 3. Lê os backups antigos na aba Cofre_Historico
                     try:
                         df_historico_antigo = conn_backup.read(worksheet="Cofre_Historico", ttl=0)
                     except Exception:
-                        df_historico_antigo = pd.DataFrame() # Se estiver vazia, começa do zero
+                        df_historico_antigo = pd.DataFrame() 
                     
-                    # 3. Junta os dados antigos com o backup de hoje (sem apagar nada!)
+                    # 4. Junta os dados antigos com o backup novo limpo
                     if not df_historico_antigo.empty and len(df_historico_antigo.columns) > 0:
-                        df_final = pd.concat([df_historico_antigo, df_novo_backup], ignore_index=True)
+                        df_final = pd.concat([df_historico_antigo, df_limpo], ignore_index=True)
                     else:
-                        df_final = df_novo_backup
+                        df_final = df_limpo
                         
-                    # 4. Grava a linha do tempo completa de volta na aba
+                    # 5. Grava tudo no Google Sheets
                     conn_backup.update(worksheet="Cofre_Historico", data=df_final)
                     
-                    st.success(f"✅ Backup blindado com sucesso! Os dados de hoje foram adicionados ao seu 'Cofre_Historico'.")
+                    st.success(f"✅ Backup blindado com sucesso! Os dados foram guardados na aba 'Cofre_Historico'.")
                 else:
                     st.error("🛑 O banco de dados do Supabase está vazio. Operação cancelada.")
             except Exception as e:
-                st.error(f"Erro de comunicação: Certifique-se de que criou a aba 'Cofre_Historico' manualmente. Detalhe: {e}")
+                st.error(f"Erro ao salvar no Google Sheets: {e}")
 
-    # --- OPÇÃO 2: BACKUP FÍSICO (DOWNLOAD IMEDIATO) ---
+    # --- OPÇÃO 2: BACKUP FÍSICO (DOWNLOAD IMEDIATO COM FOTOS) ---
     st.markdown("<br>", unsafe_allow_html=True)
     st.caption("Prefere ter o ficheiro físico no seu computador para segurança máxima? Descarregue agora:")
     
@@ -7974,9 +7991,9 @@ elif app_mode_regular == "💾 Cofre de Segurança":
             agora_str = pd.Timestamp.now().strftime("%d_%m_%Y")
             
             st.download_button(
-                label="📥 Descarregar Backup Físico (Excel/CSV)",
+                label="📥 Descarregar Backup Físico Completo (Excel/CSV)",
                 data=csv,
-                file_name=f"Backup_Alunos_{agora_str}.csv",
+                file_name=f"Backup_Alunos_COMPLETO_{agora_str}.csv",
                 mime="text/csv",
                 use_container_width=True
             )

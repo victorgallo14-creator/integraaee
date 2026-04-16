@@ -5684,6 +5684,8 @@ elif app_mode == "👥 Gestão de Alunos":
             st.download_button("📥 BAIXAR DECLARAÇÃO", st.session_state.pdf_bytes_dec, f"Declaracao_{data_dec.get('nome','aluno')}.pdf", "application/pdf", type="primary")
 
 
+
+
 elif modulo_atuacao == "🏫 Ensino Regular":
     
     # ==============================================================================
@@ -5865,72 +5867,33 @@ elif modulo_atuacao == "🏫 Ensino Regular":
     df_gestao = pd.DataFrame(json.loads(gestao_json)) if gestao_json else pd.DataFrame(GESTAO_SEED)
 
 
-elif modulo_atuacao == "🏫 Ensino Regular":
+    # ==============================================================================
+    # 1. TELA: NOVA ATA DE CONSELHO
+    # ==============================================================================
+    if app_mode_regular == "📝 Nova Ata de Conselho":
+        st.markdown(f"""<div class="header-box"><div class="header-title">Conselho de Classe / Termo</div><div class="header-subtitle">{modalidade_ata}</div></div>""", unsafe_allow_html=True)
         
-        # ==============================================================================
-        # CARREGAMENTO GLOBAL DE CONFIGURAÇÕES (O CÉREBRO DO SISTEMA)
-        # ==============================================================================
-        df_config = safe_read("Config_Ata", ["chave", "valor"])
-        
-        def get_config(chave, padrao):
-            if not df_config.empty and chave in df_config["chave"].values:
-                return df_config.loc[df_config["chave"] == chave, "valor"].values[0]
-            return padrao
-
-        # --- Textos do Fundamental ---
-        texto_base_padrao_ef = "Com base: na Resolução SME nº 07/2024, considerando as orientações da Resolução nº 02/2025 que atualiza o calendário escolar da Rede Municipal em decorrência da portaria nº 729 de 21 de fevereiro de 2025, que dispõe sobre o Calendário Escolar do ano de 2026 das Escolas da Rede Municipal de Ensino de Limeira, e no inciso V do artigo 5º, faz a indicação sobre a realização do Conselho de Ciclo/ Educação Infantil e Educação de Jovens e Adultos; no plano de trabalho para o ano de 2026, produzido no Conselho de Ciclo do 3º trimestre de 2025; na avaliação diagnóstica elaborada em fevereiro de 2026 e nas avaliações realizadas na unidade escolar no primeiro trimestre de 2026. Essa ata possibilita a análise sobre aprendizagem e desempenho dos estudantes e os resultados das estratégias de ensino empregadas."
-        texto_base_ata_ef = get_config("texto_base_ata", texto_base_padrao_ef)
-        
-        propostas_padrao_ef = """1. Recuperação contínua de aprendizagem dos estudantes;
-2. Intervenções pontuais e individuais;
-3. Organização de recursos pedagógicos e situações didáticas eficientes e coerentes;
-4. Encaminhamento à Direção/Serviço Social Escolar para busca ativa de estudantes com baixa frequência;
-5. Proposta de compensação de ausências para o próximo trimestre;
-6. Informar as famílias dos alunos com desempenho insuficiente e/ou baixa frequência visando a conscientização;
-7. Indicar o aluno para Ação Pedagógica Complementar;
-8. Propor atividades interdisciplinares objetivando o avanço do processo de aprendizagem;
-9. Emitir relatórios solicitando suporte e avaliação de profissionais da saúde;
-10. Sistematizar atividades para consolidação dos conteúdos;"""
-        propostas_ata_ef = get_config("propostas_ata", propostas_padrao_ef)
-
-        # ... (pulei as definições da infantil para encurtar, mas mantenha-as se estiverem no seu código) ...
-
-        # ==============================================================================
-        # VIEW: CONSELHO DE CLASSE / TERMO
-        # ==============================================================================
-        if app_mode_regular == "📝 Conselho de Classe":
-            
-            # 1. Escolha da etapa (Cria a variável ANTES de usá-la)
-            modalidade_ata = st.selectbox(
-                "Selecione a Etapa de Ensino:",
-                ["Ensino Fundamental", "Educação Infantil"],
-                key="tipo_conselho"
-            )
-            
-            # 2. Cabeçalho
-            st.markdown(f"""
-                <div class="header-box">
-                    <div class="header-title">Conselho de Classe / Termo</div>
-                    <div class="header-subtitle">{modalidade_ata}</div>
-                </div>
-            """, unsafe_allow_html=True)
-
-            # 3. MÓDULO: ENSINO FUNDAMENTAL
-            if "Fundamental" in modalidade_ata:
-                if 'data_ata_ef' not in st.session_state:
-                    st.session_state.data_ata_ef = {
-                        'abaixo_basico': [{"Estudante": "", "LP": "", "M": "", "H": "", "G": "", "C": "", "A": "", "EF": "", "LT": "", "LIBRAS": ""}],
-                        'basico': [{"Estudante": "", "Ações (LP e Mat)": ""}],
-                        'obs_especiais': [{"Estudante": "", "Desempenho/Observação": ""}],
-                        'encaminhamentos': [{"Estudante": "", "Motivo": ""}],
-                        'mat_tardia': [{"Estudante": "", "Data Matrícula": "", "Total Frequência": ""}],
-                        'obs_outras': "",
-                        'assinaturas': [{"Nome": "", "Cargo/Atuação": ""}]
-                    }
+        # ------------------------------------------------------------------------------
+        # MÓDULO: ENSINO FUNDAMENTAL
+        # ------------------------------------------------------------------------------
+        if "Fundamental" in modalidade_ata:
+            if 'data_ata_ef' not in st.session_state:
+                st.session_state.data_ata_ef = {
+                    'abaixo_basico': [{"Estudante": "", "LP": "", "M": "", "H": "", "G": "", "C": "", "A": "", "EF": "", "LT": "", "LIBRAS": ""}],
+                    'basico': [{"Estudante": "", "Ações (LP e Mat)": ""}],
+                    'obs_especiais': [{"Estudante": "", "Desempenho/Observação": ""}],
+                    'encaminhamentos': [{"Estudante": "", "Motivo": ""}],
+                    'mat_tardia': [{"Estudante": "", "Data Matrícula": "", "Total Frequência": ""}],
+                    'obs_outras': "",
+                    'assinaturas': [{"Nome": "", "Cargo/Atuação": ""}]
+                }
                 
-                data_ata = st.session_state.data_ata_ef
-                # ... segue o resto do seu código ...
-                        
+            if 'ata_turma_confirmada' not in st.session_state:
+                st.session_state.ata_turma_confirmada = None
+                st.session_state.ata_ciclo_confirmado = None
+            
+            data_ata = st.session_state.data_ata_ef
+            
             for key in ['abaixo_basico', 'basico', 'obs_especiais', 'encaminhamentos', 'mat_tardia', 'assinaturas']:
                 if isinstance(data_ata.get(key), pd.DataFrame):
                     data_ata[key] = data_ata[key].to_dict('records')
@@ -7203,6 +7166,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                     trimestre_limpo = str(data_inf.get('trimestre', 'Trimestre')).replace('/', '-')
                     st.download_button("📥 BAIXAR ATA DO INFANTIL", st.session_state.pdf_bytes_ata, f"Ata_Infantil_{turma_limpa}_{trimestre_limpo}.pdf", "application/pdf", type="primary")
 
+   
     # ==============================================================================
     # 2. TELA: HISTÓRICO DE ATAS
     # ==============================================================================

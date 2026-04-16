@@ -159,19 +159,30 @@ def safe_read(worksheet_name, columns):
 
 def safe_update(worksheet_name, data):
     """
-    Sincroniza do Pandas para o Supabase (Recados, Agenda).
-    Imita o comportamento do GSheets deletando os antigos e inserindo o novo DF limpo.
+    Sincroniza do Pandas para o Supabase de forma segura.
+    Limpa a tabela e insere o novo DataFrame tratando IDs e valores nulos.
     """
     try:
-        supabase.table(worksheet_name).delete().gte("id", 1).execute()
+        # 1. Limpeza Radical: Deleta TUDO da tabela antes de reinserir
+        # O filtro .neq("nome", "___") é um truque para selecionar todas as linhas
+        supabase.table(worksheet_name).delete().neq("nome", "FORCAR_LIMPEZA_TOTAL").execute()
+        
         if not data.empty:
-            if "id" in data.columns:
-                data = data.drop(columns=["id"])
-            data = data.where(pd.notnull(data), None) # Converte NaNs para Null
-            supabase.table(worksheet_name).insert(data.to_dict(orient="records")).execute()
+            # 2. Proteção de ID: Removemos a coluna ID para o Supabase gerar a dele automaticamente
+            df_to_save = data.copy()
+            if "id" in df_to_save.columns:
+                df_to_save = df_to_save.drop(columns=["id"])
+            
+            # 3. Limpeza de Dados: Converte NaNs e vazios para o formato que o Supabase aceita
+            df_to_save = df_to_save.fillna("") 
+            data_dict = df_to_save.to_dict(orient="records")
+            
+            # 4. Inserção
+            supabase.table(worksheet_name).insert(data_dict).execute()
+            
         return True
     except Exception as e:
-        st.error(f"Erro ao atualizar {worksheet_name}: {e}")
+        st.error(f"Erro crítico ao atualizar {worksheet_name}: {e}")
         return False
 
 def create_backup(df_atual):
@@ -7540,23 +7551,17 @@ elif app_mode and "Carômetro" in app_mode:
                                         continue
                             
                             if foi_atualizado:
-                                # LIMPEZA DE DADOS (IMPEDE ERROS DE JSON E ID)
-                                df_sync = df_sync.fillna("")
-                                if 'id' in df_sync.columns:
-                                    df_sync = df_sync.drop(columns=['id'])
-
-                                # TRAVA ANTI-APAGÃO
+                                # Verificação de segurança para não apagar o banco se houver falha de rede
                                 if len(df_sync) >= len(df_full):
+                                    # Chamamos a safe_update que agora limpa os IDs automaticamente
                                     if safe_update("Alunos", df_sync):
-                                        st.success("✅ Sincronizado com segurança!")
+                                        st.success("✅ Sincronizado com sucesso!")
                                         time.sleep(1)
                                         st.rerun()
                                     else:
-                                        st.error("Erro ao comunicar com o banco de dados.")
+                                        st.error("Erro na gravação.")
                                 else:
-                                    st.error("🛑 ERRO CRÍTICO: Perda de dados detectada. Operação cancelada.")
-                        except Exception as e:
-                            st.error(f"Erro ao processar imagem: {e}")
+                                    st.error("🛑 Erro: O sistema detectou perda de linhas. Operação cancelada.")
             idx_col = (idx_col + 1) % 5
 
 

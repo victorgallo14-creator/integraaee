@@ -7510,37 +7510,61 @@ elif app_mode and "Carômetro" in app_mode:
                     
                     if new_file:
                         try:
-                            from PIL import Image
-                            import io, base64, time
-                            img = Image.open(new_file)
-                            if img.mode != 'RGB': img = img.convert('RGB')
-                            img.thumbnail((400, 500))
-                            buf = io.BytesIO()
-                            img.save(buf, format="JPEG", quality=85)
-                            nova_foto_b64 = base64.b64encode(buf.getvalue()).decode()
-                            
-                            # Sincroniza em todas as linhas do aluno no Supabase
-                            df_sync = load_db(strict=True)
-                            df_sync['nome'] = df_sync['nome'].str.strip()
-                            foi_atualizado = False
-                            
-                            for i_s, r_s in df_sync.iterrows():
-                                if r_s['nome'] == nome_aluno:
-                                    try:
-                                        d_s = json.loads(r_s['dados_json'])
-                                        d_s['foto_base64'] = nova_foto_b64
-                                        df_sync.at[i_s, 'dados_json'] = json.dumps(d_s, ensure_ascii=False)
-                                        foi_atualizado = True
-                                    except:
-                                        continue
-                            
-                            if foi_atualizado:
-                                if safe_update("Alunos", df_sync):
-                                    st.success("✅ Sincronizado!")
-                                    time.sleep(1)
-                                    st.rerun()
-                        except:
-                            st.error("Erro ao processar.")
+                                from PIL import Image
+                                import io, base64, time
+                                img = Image.open(new_file)
+                                if img.mode != 'RGB': img = img.convert('RGB')
+                                img.thumbnail((400, 500))
+                                buf = io.BytesIO()
+                                img.save(buf, format="JPEG", quality=85)
+                                nova_foto_b64 = base64.b64encode(buf.getvalue()).decode()
+                                
+                                # Sincroniza em todas as linhas do aluno no Supabase
+                                df_sync = load_db(strict=True)
+                                
+                                # ==========================================================
+                                # TRAVA DE SEGURANÇA 1: BARRAR LEITURA VAZIA
+                                # ==========================================================
+                                if df_sync is None or df_sync.empty:
+                                    st.error("⚠️ Falha de conexão. O banco retornou vazio. Salvamento bloqueado.")
+                                    st.stop()
+                                    
+                                df_sync['nome'] = df_sync['nome'].str.strip()
+                                foi_atualizado = False
+                                
+                                for i_s, r_s in df_sync.iterrows():
+                                    if r_s['nome'] == nome_aluno:
+                                        try:
+                                            d_s = json.loads(r_s['dados_json'])
+                                            d_s['foto_base64'] = nova_foto_b64
+                                            df_sync.at[i_s, 'dados_json'] = json.dumps(d_s, ensure_ascii=False)
+                                            foi_atualizado = True
+                                        except:
+                                            continue
+                                
+                                if foi_atualizado:
+                                    # ==========================================================
+                                    # TRAVA DE SEGURANÇA 1.5: LIMPEZA DO "NAN" (O QUE CAUSOU O ERRO!)
+                                    # ==========================================================
+                                    # Transforma qualquer célula vazia/NaN em um texto vazio.
+                                    # Isso impede que o JSON quebre e aborte o envio no meio do caminho!
+                                    df_sync = df_sync.fillna("")
+
+                                    # ==========================================================
+                                    # TRAVA DE SEGURANÇA 2: PROTEÇÃO ANTI-APAGÃO
+                                    # ==========================================================
+                                    # Só permite salvar se a tabela que vai subir não perdeu linhas
+                                    if len(df_sync) >= len(df_full):
+                                        if safe_update("Alunos", df_sync):
+                                            st.success("✅ Sincronizado com segurança máxima!")
+                                            time.sleep(1)
+                                            st.rerun()
+                                        else:
+                                            st.error("Erro ao comunicar com o banco de dados.")
+                                    else:
+                                        st.error("🛑 ERRO CRÍTICO: Perda de dados detectada. Salvamento bloqueado.")
+                            except Exception as e:
+                                st.error(f"Erro ao processar a imagem: {e}")
 
             idx_col = (idx_col + 1) % 5
 

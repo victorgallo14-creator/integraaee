@@ -28,11 +28,11 @@ jobs:
           pip install supabase
 
       - name: Entregar as chaves (Segredos) ao robô
+        env:
+          MEUS_SEGREDOS: ${{ secrets.SEGREDOS_DO_APP }}
         run: |
           mkdir -p .streamlit
-          cat << 'EOF' > .streamlit/secrets.toml
-          ${{ secrets.SEGREDOS_DO_APP }}
-          EOF
+          echo "$MEUS_SEGREDOS" > .streamlit/secrets.toml
 
       - name: 🚀 Executar a rotina de backup
         run: python rotina_backup.py

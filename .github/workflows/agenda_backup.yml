@@ -1,0 +1,36 @@
+name: 🔄 Agenda de Backups do Integra
+
+on:
+  schedule:
+    # 07h00 no Brasil
+    - cron: '0 10 * * *'
+    
+    # 09h30, 12h30 e 16h30 no Brasil
+    - cron: '30 12,15,19 * * *'
+    
+  workflow_dispatch: # Botão manual
+
+jobs:
+  fazer-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aceder aos ficheiros do projeto
+        uses: actions/checkout@v3
+
+      - name: Preparar o ambiente Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Instalar ferramentas necessárias
+        run: |
+          pip install -r requirements.txt
+          pip install supabase
+
+      - name: Entregar as chaves (Segredos) ao robô
+        run: |
+          mkdir -p .streamlit
+          echo "${{ secrets.SEGREDOS_DO_APP }}" > .streamlit/secrets.toml
+
+      - name: 🚀 Executar a rotina de backup
+        run: python rotina_backup.py

@@ -7921,47 +7921,50 @@ if app_mode_regular == "📖 Planejamento Curricular":
 # ==============================================================================
 elif app_mode_regular == "💾 Cofre de Segurança":
     st.markdown('<div class="header-box"><div class="header-title">💾 Cofre de Segurança</div></div>', unsafe_allow_html=True)
-    st.caption("Crie cópias de segurança do seu banco de dados na nuvem (Google Sheets) ou baixe para o seu computador.")
+    st.caption("Crie cópias de segurança do seu banco de dados na nuvem (Google Sheets) ou descarregue para o seu computador.")
 
-    # --- OPÇÃO 1: BACKUP NA NUVEM (NOVA ABA NO GOOGLE SHEETS) ---
+    # --- OPÇÃO 1: BACKUP NA NUVEM (HISTÓRICO ACUMULATIVO) ---
     if st.button("🔄 Gerar Backup de Segurança (Nuvem)", type="primary", use_container_width=True):
-        with st.spinner("Conectando ao Google e preparando o cofre..."):
+        with st.spinner("A guardar no cofre da nuvem..."):
             try:
                 # 1. Puxa os dados do Supabase
-                df_backup = load_db()
+                df_novo_backup = load_db()
                 
-                if df_backup is not None and not df_backup.empty:
+                if df_novo_backup is not None and not df_novo_backup.empty:
                     import pandas as pd
-                    agora = pd.Timestamp.now().strftime("%d_%m_%Y_%H%M")
-                    nome_aba_backup = f"BKP_{agora}"
+                    # Cria o carimbo de data/hora
+                    agora_str = pd.Timestamp.now().strftime("%d/%m/%Y %H:%M")
                     
-                    # 2. Conexão Direta via GSpread (Ignora o cache do Streamlit)
+                    # Adiciona uma nova coluna a dizer exatamente quando este backup foi feito
+                    df_novo_backup.insert(0, "DATA_DO_BACKUP", agora_str)
+                    
                     from streamlit_gsheets import GSheetsConnection
                     conn_backup = st.connection("gsheets", type=GSheetsConnection)
-                    client = conn_backup.client # Motor direto do Google
                     
-                    url_planilha = st.secrets["connections"]["gsheets"]["spreadsheet"]
-                    planilha = client.open_by_url(url_planilha)
+                    # 2. Lê os backups antigos (se existirem) na aba Cofre_Historico
+                    try:
+                        df_historico_antigo = conn_backup.read(worksheet="Cofre_Historico", ttl=0)
+                    except Exception:
+                        df_historico_antigo = pd.DataFrame() # Se estiver vazia, começa do zero
                     
-                    # 3. Cria a aba nova
-                    nova_aba = planilha.add_worksheet(title=nome_aba_backup, rows="2000", cols="40")
+                    # 3. Junta os dados antigos com o backup de hoje (sem apagar nada!)
+                    if not df_historico_antigo.empty and len(df_historico_antigo.columns) > 0:
+                        df_final = pd.concat([df_historico_antigo, df_novo_backup], ignore_index=True)
+                    else:
+                        df_final = df_novo_backup
+                        
+                    # 4. Grava a linha do tempo completa de volta na aba
+                    conn_backup.update(worksheet="Cofre_Historico", data=df_final)
                     
-                    # 4. Prepara os dados (converte a tabela para o formato de lista que o Google entende)
-                    # Inclui o cabeçalho + os dados
-                    dados_para_google = [df_backup.columns.values.tolist()] + df_backup.values.tolist()
-                    
-                    # 5. Grava tudo de uma vez começando na célula A1
-                    nova_aba.update('A1', dados_para_google)
-                    
-                    st.success(f"✅ Backup blindado com sucesso! Verifique sua planilha, a aba '{nome_aba_backup}' foi criada e preenchida.")
+                    st.success(f"✅ Backup blindado com sucesso! Os dados de hoje foram adicionados ao seu 'Cofre_Historico'.")
                 else:
-                    st.error("🛑 O banco do Supabase está vazio. Operação cancelada.")
+                    st.error("🛑 O banco de dados do Supabase está vazio. Operação cancelada.")
             except Exception as e:
-                st.error(f"Erro na comunicação direta com a nuvem: {e}")
+                st.error(f"Erro de comunicação: Certifique-se de que criou a aba 'Cofre_Historico' manualmente. Detalhe: {e}")
 
     # --- OPÇÃO 2: BACKUP FÍSICO (DOWNLOAD IMEDIATO) ---
     st.markdown("<br>", unsafe_allow_html=True)
-    st.caption("Prefere ter o arquivo físico no seu computador para segurança máxima? Baixe agora:")
+    st.caption("Prefere ter o ficheiro físico no seu computador para segurança máxima? Descarregue agora:")
     
     try:
         df_fisico = load_db()
@@ -7971,7 +7974,7 @@ elif app_mode_regular == "💾 Cofre de Segurança":
             agora_str = pd.Timestamp.now().strftime("%d_%m_%Y")
             
             st.download_button(
-                label="📥 Baixar Backup Físico (Excel/CSV)",
+                label="📥 Descarregar Backup Físico (Excel/CSV)",
                 data=csv,
                 file_name=f"Backup_Alunos_{agora_str}.csv",
                 mime="text/csv",

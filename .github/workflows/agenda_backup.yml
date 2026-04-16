@@ -2,52 +2,49 @@ name: 🔄 Agenda de Backups do Integra
 
 on:
   schedule:
-    # 07h00 no Brasil (Minuto 0, Hora 10)
     - cron: '0 10 * * *'
-    
-    # 09h30, 12h30 e 16h30 no Brasil (Minuto 30, Horas 12, 15 e 19)
     - cron: '30 12,15,19 * * *'
-    
-  workflow_dispatch: # Botão manual
+  workflow_dispatch: 
 
 jobs:
   fazer-backup:
     runs-on: ubuntu-latest
     steps:
-      - name: Aceder aos ficheiros do projeto
-        uses: actions/checkout@v3
+      - name: Aceder aos ficheiros
+        uses: actions/checkout@v4 # Atualizei para v4 para tirar o aviso do Node
 
-      - name: Preparar o ambiente Python
-        uses: actions/setup-python@v4
+      - name: Preparar Python
+        uses: actions/setup-python@v5 # Atualizei para v5 para tirar o aviso do Node
         with:
           python-version: '3.11'
 
-      - name: Instalar ferramentas necessárias
+      - name: Instalar ferramentas
         run: |
-          pip install -r requirements.txt
-          pip install supabase
+          pip install pandas supabase streamlit st-gsheets-connection
 
-      - name: 🛡️ Entregar e Validar as Chaves pelo Python
+      - name: 🛡️ Diagnóstico e Entrega das Chaves
         env:
           MEUS_SEGREDOS: ${{ secrets.SEGREDOS_DO_APP }}
         run: |
           python -c "
-          import os, sys, tomllib
+          import os, sys
           conteudo = os.environ.get('MEUS_SEGREDOS', '')
-          if not conteudo.strip():
-              print('🔴 ERRO CRÍTICO: O segredo está vazio no GitHub!')
+          
+          if not conteudo:
+              print('❌ ERRO: O segredo SEGREDOS_DO_APP está VAZIO no GitHub.')
               sys.exit(1)
-          try:
-              tomllib.loads(conteudo)
-              print('✅ Texto formatado corretamente! A guardar no cofre...')
-          except Exception as e:
-              print(f'🔴 ERRO NA FORMATAÇÃO DO TEXTO: {e}')
-              print(f'O texto secreto começa com: {conteudo[:20]}...')
-              sys.exit(1)
+          
+          print(f'✅ Segredo recebido. Tamanho: {len(conteudo)} caracteres.')
+          print(f'✅ Primeiros 5 caracteres: \"{conteudo[:5]}\"')
+          
+          if conteudo.startswith('.') or conteudo.startswith(' '):
+              print('⚠️ AVISO: Sua senha começa com um ponto ou espaço! Isso causa o erro de float.')
+          
           os.makedirs('.streamlit', exist_ok=True)
           with open('.streamlit/secrets.toml', 'w', encoding='utf-8') as f:
-              f.write(conteudo)
+              f.write(conteudo.strip()) # O .strip() remove espaços/pontos acidentais no início e fim
+          print('✅ Arquivo secrets.toml criado com sucesso.')
           "
 
-      - name: 🚀 Executar a rotina de backup
+      - name: 🚀 Executar Backup
         run: python rotina_backup.py

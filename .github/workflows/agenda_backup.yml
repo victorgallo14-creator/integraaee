@@ -27,12 +27,31 @@ jobs:
           pip install -r requirements.txt
           pip install supabase
 
-      - name: Entregar as chaves (Segredos) ao robô
+      - name: 🛡️ Entregar e Validar as Chaves pelo Python
         env:
           MEUS_SEGREDOS: ${{ secrets.SEGREDOS_DO_APP }}
         run: |
-          mkdir -p .streamlit
-          echo "$MEUS_SEGREDOS" > .streamlit/secrets.toml
+          python -c "
+          import os, sys, tomllib
+          
+          conteudo = os.environ.get('MEUS_SEGREDOS', '')
+          if not conteudo.strip():
+              print('🔴 ERRO CRÍTICO: O segredo está vazio no GitHub!')
+              sys.exit(1)
+              
+          try:
+              # O Python vai testar a leitura do ficheiro antes de o guardar
+              tomllib.loads(conteudo)
+              print('✅ Texto formatado corretamente! A guardar no cofre...')
+          except Exception as e:
+              print(f'🔴 ERRO NA FORMATAÇÃO DO TEXTO: {e}')
+              print(f'O texto secreto que está no GitHub começa com: {conteudo[:10]}...')
+              sys.exit(1)
+              
+          os.makedirs('.streamlit', exist_ok=True)
+          with open('.streamlit/secrets.toml', 'w', encoding='utf-8') as f:
+              f.write(conteudo)
+          "
 
       - name: 🚀 Executar a rotina de backup
         run: python rotina_backup.py

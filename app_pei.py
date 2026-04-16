@@ -5865,27 +5865,12 @@ elif modulo_atuacao == "🏫 Ensino Regular":
     df_gestao = pd.DataFrame(json.loads(gestao_json)) if gestao_json else pd.DataFrame(GESTAO_SEED)
 
 
-# ==============================================================================
-# VIEW: CONSELHO DE CLASSE / TERMO
-# ==============================================================================
-elif app_mode_regular == "📝 Conselho de Classe":
-    
-    # --- AQUI É A MUDANÇA ---
-    # Primeiro criamos a escolha, para o Python saber o que é 'modalidade_ata'
-    modalidade_ata = st.selectbox(
-        "Selecione a Etapa de Ensino:",
-        ["Ensino Fundamental", "Educação Infantil"],
-        key="tipo_conselho"
-    )
-
-    # Agora mostramos o cabeçalho usando a escolha feita
-    st.markdown(f"""
-        <div class="header-box">
-            <div class="header-title">Conselho de Classe / Termo</div>
-            <div class="header-subtitle">{modalidade_ata}</div>
-        </div>
-    """, unsafe_allow_html=True)
-    # ------------------------
+    # ==============================================================================
+    # 1. TELA: NOVA ATA DE CONSELHO
+    # ==============================================================================
+    if app_mode_regular == "📝 Nova Ata de Conselho":
+        st.markdown(f"""<div class="header-box"><div class="header-title">Conselho de Classe / Termo</div><div class="header-subtitle">{modalidade_ata}</div></div>""", unsafe_allow_html=True)
+        
         # ------------------------------------------------------------------------------
         # MÓDULO: ENSINO FUNDAMENTAL
         # ------------------------------------------------------------------------------
@@ -7932,85 +7917,63 @@ if app_mode_regular == "📖 Planejamento Curricular":
             st.write("O banco de dados de planejamentos está vazio.")
 
 # ==============================================================================
-# VIEW: COFRE DE SEGURANÇA
-# ==============================================================================
-elif app_mode_regular == "💾 Cofre de Segurança":
-    st.markdown('<div class="header-box"><div class="header-title">💾 Cofre de Segurança</div></div>', unsafe_allow_html=True)
-    st.caption("Crie cópias de segurança do seu banco de dados na nuvem (Google Sheets) ou descarregue para o seu computador.")
+        # FERRAMENTA DE BACKUP VERSIONADO (COFRE NO GOOGLE SHEETS E LOCAL)
+        # ==============================================================================
+        st.divider()
+        st.markdown("💾 Cofre de Segurança")
+        st.caption("Crie cópias de segurança do seu banco de dados na nuvem (Google Sheets) ou baixe para o seu computador.")
 
-    # --- OPÇÃO 1: BACKUP NA NUVEM (HISTÓRICO ACUMULATIVO SEM FOTOS) ---
-    if st.button("🔄 Gerar Backup de Segurança (Nuvem)", type="primary", use_container_width=True):
-        with st.spinner("A filtrar imagens pesadas e a guardar textos no cofre da nuvem..."):
-            try:
-                # 1. Puxa os dados originais do Supabase
-                df_novo_backup = load_db()
-                
-                if df_novo_backup is not None and not df_novo_backup.empty:
-                    import pandas as pd
-                    import json
+        # --- OPÇÃO 1: BACKUP NA NUVEM (NOVA ABA NO GOOGLE SHEETS) ---
+        if st.button("🔄 Gerar Backup de Segurança (Nuvem)", type="primary", use_container_width=True):
+            with st.spinner("Construindo aba e copiando dados no Google Sheets..."):
+                try:
+                    df_backup = load_db()
                     
-                    # =====================================================================
-                    # FILTRO INTELIGENTE: Remove a foto em base64 para o Google não travar
-                    # =====================================================================
-                    df_limpo = df_novo_backup.copy()
-                    if 'dados_json' in df_limpo.columns:
-                        for idx, row in df_limpo.iterrows():
-                            try:
-                                if row['dados_json']:
-                                    dados = json.loads(row['dados_json'])
-                                    if 'foto_base64' in dados:
-                                        del dados['foto_base64'] # Apaga a foto do backup
-                                        dados['info_backup'] = "Foto removida por limite de tamanho do Google Sheets"
-                                    # Grava o JSON de volta, agora levinho
-                                    df_limpo.at[idx, 'dados_json'] = json.dumps(dados, ensure_ascii=False)
-                            except Exception:
-                                continue
-                    
-                    # 2. Cria o carimbo de data/hora e insere na primeira coluna
-                    agora_str = pd.Timestamp.now().strftime("%d/%m/%Y %H:%M")
-                    df_limpo.insert(0, "DATA_DO_BACKUP", agora_str)
-                    
-                    from streamlit_gsheets import GSheetsConnection
-                    conn_backup = st.connection("gsheets", type=GSheetsConnection)
-                    
-                    # 3. Lê os backups antigos na aba Cofre_Historico
-                    try:
-                        df_historico_antigo = conn_backup.read(worksheet="Cofre_Historico", ttl=0)
-                    except Exception:
-                        df_historico_antigo = pd.DataFrame() 
-                    
-                    # 4. Junta os dados antigos com o backup novo limpo
-                    if not df_historico_antigo.empty and len(df_historico_antigo.columns) > 0:
-                        df_final = pd.concat([df_historico_antigo, df_limpo], ignore_index=True)
-                    else:
-                        df_final = df_limpo
+                    if df_backup is not None and not df_backup.empty:
+                        agora = pd.Timestamp.now().strftime("%d_%m_%Y_%H%M")
+                        nome_aba_backup = f"BKP_{agora}"
                         
-                    # 5. Grava tudo no Google Sheets
-                    conn_backup.update(worksheet="Cofre_Historico", data=df_final)
-                    
-                    st.success(f"✅ Backup blindado com sucesso! Os dados foram guardados na aba 'Cofre_Historico'.")
-                else:
-                    st.error("🛑 O banco de dados do Supabase está vazio. Operação cancelada.")
-            except Exception as e:
-                st.error(f"Erro ao salvar no Google Sheets: {e}")
+                        from streamlit_gsheets import GSheetsConnection
+                        conn_backup = st.connection("gsheets", type=GSheetsConnection)
+                        
+                        # 1. A SOLUÇÃO: Forçar a criação da aba vazia antes de jogar os dados
+                        try:
+                            # Puxa o link da sua planilha que já está salvo nos segredos do sistema
+                            url_planilha = st.secrets["connections"]["gsheets"]["spreadsheet"]
+                            planilha_mestra = conn_backup.client.open_by_url(url_planilha)
+                            
+                            # Manda o Google criar a aba com espaço de sobra (ex: 2000 linhas)
+                            planilha_mestra.add_worksheet(title=nome_aba_backup, rows="2000", cols="40")
+                        except Exception as erro_aba:
+                            # Se der um pequeno erro na criação, ele ignora e tenta salvar mesmo assim
+                            pass 
+                        
+                        # 2. Agora sim, atualiza a aba recém-criada com a tabela inteira!
+                        conn_backup.update(worksheet=nome_aba_backup, data=df_backup)
+                        
+                        st.success(f"✅ Backup blindado com sucesso! A aba '{nome_aba_backup}' foi criada na sua planilha original.")
+                    else:
+                        st.error("🛑 O banco do Supabase está vazio. Operação cancelada.")
+                except Exception as e:
+                    st.error(f"Erro na comunicação com a nuvem: {e}")
 
-    # --- OPÇÃO 2: BACKUP FÍSICO (DOWNLOAD IMEDIATO COM FOTOS) ---
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.caption("Prefere ter o ficheiro físico no seu computador para segurança máxima? Descarregue agora:")
-    
-    try:
-        df_fisico = load_db()
-        if df_fisico is not None and not df_fisico.empty:
-            import pandas as pd
-            csv = df_fisico.to_csv(index=False).encode('utf-8')
-            agora_str = pd.Timestamp.now().strftime("%d_%m_%Y")
-            
-            st.download_button(
-                label="📥 Descarregar Backup Físico Completo (Excel/CSV)",
-                data=csv,
-                file_name=f"Backup_Alunos_COMPLETO_{agora_str}.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
-    except Exception:
-        pass
+        # --- OPÇÃO 2: BACKUP FÍSICO (DOWNLOAD IMEDIATO) ---
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.caption("Prefere ter o arquivo físico no seu computador para segurança máxima? Baixe agora (não precisa de internet):")
+        
+        try:
+            df_fisico = load_db()
+            if df_fisico is not None and not df_fisico.empty:
+                # Converte o banco de dados para formato CSV (Excel)
+                csv = df_fisico.to_csv(index=False).encode('utf-8')
+                agora_str = pd.Timestamp.now().strftime("%d_%m_%Y")
+                
+                st.download_button(
+                    label="📥 Baixar Backup Físico (Excel/CSV)",
+                    data=csv,
+                    file_name=f"Backup_Alunos_{agora_str}.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+        except Exception:
+            pass # Apenas esconde o botão se o banco estiver indisponível no momento

@@ -2,10 +2,10 @@ name: 🔄 Agenda de Backups do Integra
 
 on:
   schedule:
-    # 07h00 no Brasil
+    # 07h00 no Brasil (Minuto 0, Hora 10)
     - cron: '0 10 * * *'
     
-    # 09h30, 12h30 e 16h30 no Brasil
+    # 09h30, 12h30 e 16h30 no Brasil (Minuto 30, Horas 12, 15 e 19)
     - cron: '30 12,15,19 * * *'
     
   workflow_dispatch: # Botão manual
@@ -33,21 +33,17 @@ jobs:
         run: |
           python -c "
           import os, sys, tomllib
-          
           conteudo = os.environ.get('MEUS_SEGREDOS', '')
           if not conteudo.strip():
               print('🔴 ERRO CRÍTICO: O segredo está vazio no GitHub!')
               sys.exit(1)
-              
           try:
-              # O Python vai testar a leitura do ficheiro antes de o guardar
               tomllib.loads(conteudo)
               print('✅ Texto formatado corretamente! A guardar no cofre...')
           except Exception as e:
               print(f'🔴 ERRO NA FORMATAÇÃO DO TEXTO: {e}')
-              print(f'O texto secreto que está no GitHub começa com: {conteudo[:10]}...')
+              print(f'O texto secreto começa com: {conteudo[:20]}...')
               sys.exit(1)
-              
           os.makedirs('.streamlit', exist_ok=True)
           with open('.streamlit/secrets.toml', 'w', encoding='utf-8') as f:
               f.write(conteudo)

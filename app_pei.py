@@ -7550,7 +7550,7 @@ elif app_mode and "Carômetro" in app_mode:
                                     except:
                                         continue
                             
-for nome_aluno in nomes_unicos:
+        for nome_aluno in nomes_unicos:
             # Busca todos os registros desse aluno para achar uma foto
             registros_aluno = df_temp[df_temp['nome'] == nome_aluno]
             

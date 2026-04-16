@@ -7542,28 +7542,32 @@ elif app_mode and "Carômetro" in app_mode:
                                         except:
                                             continue
                                 
-                                if foi_atualizado:
-                                    # ==========================================================
-                                    # TRAVA DE SEGURANÇA 1.5: LIMPEZA DO "NAN" (O QUE CAUSOU O ERRO!)
-                                    # ==========================================================
-                                    # Transforma qualquer célula vazia/NaN em um texto vazio.
-                                    # Isso impede que o JSON quebre e aborte o envio no meio do caminho!
-                                    df_sync = df_sync.fillna("")
+                                
+                            if foi_atualizado:
+                                # ==========================================================
+                                # TRAVA DE SEGURANÇA 1.5: LIMPEZA DO NAN E PROTEÇÃO DO ID
+                                # ==========================================================
+                                # 1. Transforma o que é vazio em texto limpo
+                                df_sync = df_sync.fillna("")
+                                
+                                # 2. Remove a coluna 'id' do envio. 
+                                # Isso obriga o Supabase a gerar IDs novos e sequenciais automaticamente,
+                                # impedindo que o erro de "null value in column id" aconteça com alunos novos!
+                                if 'id' in df_sync.columns:
+                                    df_sync = df_sync.drop(columns=['id'])
 
-                                    # ==========================================================
-                                    # TRAVA DE SEGURANÇA 2: PROTEÇÃO ANTI-APAGÃO
-# ==========================================================
+                                # ==========================================================
+                                # TRAVA DE SEGURANÇA 2: PROTEÇÃO ANTI-APAGÃO
+                                # ==========================================================
                                 if len(df_sync) >= len(df_full):
                                     if safe_update("Alunos", df_sync):
-                                        st.success("✅ Sincronizado com segurança!")
+                                        st.success("✅ Sincronizado com segurança máxima!")
                                         time.sleep(1)
                                         st.rerun()
                                     else:
                                         st.error("Erro ao comunicar com o banco de dados.")
                                 else:
                                     st.error("🛑 ERRO CRÍTICO: Perda de dados detectada. Salvamento bloqueado.")
-                        except Exception as e:
-                            st.error(f"Erro ao processar a imagem: {e}")
 
             idx_col = (idx_col + 1) % 5
 

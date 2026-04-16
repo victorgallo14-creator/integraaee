@@ -7917,35 +7917,63 @@ if app_mode_regular == "📖 Planejamento Curricular":
             st.write("O banco de dados de planejamentos está vazio.")
 
 # ==============================================================================
-# FERRAMENTA DE BACKUP VERSIONADO (COFRE NO GOOGLE SHEETS)
-# ==============================================================================
-st.divider()
-st.markdown("💾 Cofre de Segurança")
-st.caption("Salva uma cópia exata de todos os dados do Supabase criando uma NOVA aba na sua Planilha Google original.")
+        # FERRAMENTA DE BACKUP VERSIONADO (COFRE NO GOOGLE SHEETS E LOCAL)
+        # ==============================================================================
+        st.divider()
+        st.markdown("### 💾 Cofre de Segurança")
+        st.caption("Crie cópias de segurança do seu banco de dados na nuvem (Google Sheets) ou baixe para o seu computador.")
 
-if st.button("🔄 Gerar Backup de Segurança", type="primary", use_container_width=True):
-    with st.spinner("Construindo cofre e copiando dados..."):
+        # --- OPÇÃO 1: BACKUP NA NUVEM (NOVA ABA NO GOOGLE SHEETS) ---
+        if st.button("🔄 Gerar Backup de Segurança (Nuvem)", type="primary", use_container_width=True):
+            with st.spinner("Construindo aba e copiando dados no Google Sheets..."):
+                try:
+                    df_backup = load_db()
+                    
+                    if df_backup is not None and not df_backup.empty:
+                        agora = pd.Timestamp.now().strftime("%d_%m_%Y_%H%M")
+                        nome_aba_backup = f"BKP_{agora}"
+                        
+                        from streamlit_gsheets import GSheetsConnection
+                        conn_backup = st.connection("gsheets", type=GSheetsConnection)
+                        
+                        # 1. A SOLUÇÃO: Forçar a criação da aba vazia antes de jogar os dados
+                        try:
+                            # Puxa o link da sua planilha que já está salvo nos segredos do sistema
+                            url_planilha = st.secrets["connections"]["gsheets"]["spreadsheet"]
+                            planilha_mestra = conn_backup.client.open_by_url(url_planilha)
+                            
+                            # Manda o Google criar a aba com espaço de sobra (ex: 2000 linhas)
+                            planilha_mestra.add_worksheet(title=nome_aba_backup, rows="2000", cols="40")
+                        except Exception as erro_aba:
+                            # Se der um pequeno erro na criação, ele ignora e tenta salvar mesmo assim
+                            pass 
+                        
+                        # 2. Agora sim, atualiza a aba recém-criada com a tabela inteira!
+                        conn_backup.update(worksheet=nome_aba_backup, data=df_backup)
+                        
+                        st.success(f"✅ Backup blindado com sucesso! A aba '{nome_aba_backup}' foi criada na sua planilha original.")
+                    else:
+                        st.error("🛑 O banco do Supabase está vazio. Operação cancelada.")
+                except Exception as e:
+                    st.error(f"Erro na comunicação com a nuvem: {e}")
+
+        # --- OPÇÃO 2: BACKUP FÍSICO (DOWNLOAD IMEDIATO) ---
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.caption("Prefere ter o arquivo físico no seu computador para segurança máxima? Baixe agora (não precisa de internet):")
+        
         try:
-            # 1. Puxa os dados mais recentes do Supabase
-            df_backup = load_db()
-            
-            if df_backup is not None and not df_backup.empty:
-                # 2. Gera o nome da aba com a data e hora atual
-                # Exemplo: BKP_Alunos_15_04_2026_1230
-                agora = pd.Timestamp.now().strftime("%d_%m_%Y_%H%M")
-                nome_aba_backup = f"BKP_Alunos_{agora}"
+            df_fisico = load_db()
+            if df_fisico is not None and not df_fisico.empty:
+                # Converte o banco de dados para formato CSV (Excel)
+                csv = df_fisico.to_csv(index=False).encode('utf-8')
+                agora_str = pd.Timestamp.now().strftime("%d_%m_%Y")
                 
-# =======================================================
-                # 3. CORREÇÃO: RECONECTAR AO GOOGLE SHEETS PARA O BACKUP
-                # =======================================================
-                from streamlit_gsheets import GSheetsConnection
-                conn_backup = st.connection("gsheets", type=GSheetsConnection)
-                
-                # 4. Envia para o Google Sheets usando a conexão que acabamos de abrir
-                conn_backup.update(worksheet=nome_aba_backup, data=df_backup)
-                
-                st.success(f"✅ Backup blindado com sucesso! Verifique sua planilha, uma nova aba chamada '{nome_aba_backup}' foi criada.")
-            else:
-                st.error("🛑 O banco do Supabase parece vazio. Backup cancelado para evitar a criação de abas em branco.")
-        except Exception as e:
-            st.error(f"Erro ao gerar o cofre de backup: {e}")
+                st.download_button(
+                    label="📥 Baixar Backup Físico (Excel/CSV)",
+                    data=csv,
+                    file_name=f"Backup_Alunos_{agora_str}.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+        except Exception:
+            pass # Apenas esconde o botão se o banco estiver indisponível no momento

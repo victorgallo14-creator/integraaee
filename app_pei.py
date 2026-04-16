@@ -5685,19 +5685,16 @@ elif app_mode == "👥 Gestão de Alunos":
 
 
 elif modulo_atuacao == "🏫 Ensino Regular":
-        # ==============================================================================
-        # CARREGAMENTO GLOBAL DE CONFIGURAÇÕES
-        # ==============================================================================
-        df_config = safe_read("Config_Ata", ["chave", "valor"])
-        
-        def get_config(chave, padrao):
-            if not df_config.empty and chave in df_config["chave"].values:
-                return df_config.loc[df_config["chave"] == chave, "valor"].values[0]
-            return padrao
-
-        # Definição de textos base (Fundamental e Infantil)
-        texto_base_ata_ef = get_config("texto_base_ata", "Com base na Resolução...")
-        propostas_ata_ef = get_config("propostas_ata", "1. Recuperação...")
+    
+    # ==============================================================================
+    # CARREGAMENTO GLOBAL DE CONFIGURAÇÕES (O CÉREBRO DO SISTEMA)
+    # ==============================================================================
+    df_config = safe_read("Config_Ata", ["chave", "valor"])
+    
+    def get_config(chave, padrao):
+        if not df_config.empty and chave in df_config["chave"].values:
+            return df_config.loc[df_config["chave"] == chave, "valor"].values[0]
+        return padrao
 
     # --- Textos do Fundamental ---
     texto_base_padrao_ef = "Com base: na Resolução SME nº 07/2024, considerando as orientações da Resolução nº 02/2025 que atualiza o calendário escolar da Rede Municipal em decorrência da portaria nº 729 de 21 de fevereiro de 2025, que dispõe sobre o Calendário Escolar do ano de 2026 das Escolas da Rede Municipal de Ensino de Limeira, e no inciso V do artigo 5º, faz a indicação sobre a realização do Conselho de Ciclo/ Educação Infantil e Educação de Jovens e Adultos; no plano de trabalho para o ano de 2026, produzido no Conselho de Ciclo do 3º trimestre de 2025; na avaliação diagnóstica elaborada em fevereiro de 2026 e nas avaliações realizadas na unidade escolar no primeiro trimestre de 2026. Essa ata possibilita a análise sobre aprendizagem e desempenho dos estudantes e os resultados das estratégias de ensino empregadas."

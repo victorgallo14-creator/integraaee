@@ -7206,53 +7206,54 @@ elif modulo_atuacao == "🏫 Ensino Regular":
     # ==============================================================================
     # 2. TELA: HISTÓRICO DE ATAS
     # ==============================================================================
-    if app_mode_regular == "📂 Histórico de Atas":
-        st.markdown('<div class="header-box"><div class="header-title">Histórico de Atas</div></div>', unsafe_allow_html=True)
-        df_atas = safe_read("Atas_Conselho", ["id_ata", "modalidade", "turma", "dados_json"])
-        
-        if df_atas.empty:
-            st.info("Nenhuma ata salva ainda.")
-        else:
-            df_display = df_atas[["id_ata", "modalidade", "turma"]].copy()
-            df_display.columns = ["ID / Título da Ata", "Modalidade", "Turma"]
-            st.dataframe(df_display, use_container_width=True, hide_index=True)
-            
-            st.divider()
-            st.subheader("🔄 Carregar Ata")
-            c_sel, c_btn = st.columns([3, 1])
-            ata_selecionada = c_sel.selectbox("Selecione a Ata:", df_atas["id_ata"].tolist(), label_visibility="collapsed")
-            
-            if c_btn.button("Carregar Dados", type="primary", use_container_width=True):
-                dados_row = df_atas[df_atas["id_ata"] == ata_selecionada].iloc[0]
-                try:
-                    dados_json = json.loads(dados_row["dados_json"])
-                    for key in ['abaixo_basico', 'basico', 'mat_tardia', 'obs_especiais', 'encaminhamentos', 'assinaturas']:
-                        if key in dados_json and isinstance(dados_json[key], list):
-                            dados_json[key] = pd.DataFrame(dados_json[key])
-                            
-                    if "Fundamental" in dados_row["modalidade"]:
-                        st.session_state.data_ata_ef = dados_json
-                        st.session_state.ata_turma_confirmada = dados_json.get('turma', '')
-                        st.session_state.ata_ciclo_confirmado = dados_json.get('ciclo', '')
-                        
-                    elif "Infantil" in dados_row["modalidade"]:
-                        st.session_state.data_ata_inf = dados_json
-                        st.session_state.ata_turma_confirmada_inf = dados_json.get('turma', '')
-                        st.session_state.ata_ciclo_confirmado_inf = dados_json.get('ciclo', '')
-                        
-                    st.success(f"Ata '{ata_selecionada}' carregada! Vá para 'Nova Ata' e certifique-se de escolher a modalidade correta no menu lateral.")
-                except Exception as e:
-                    st.error(f"Erro ao carregar: {e}")
-            
-            st.divider()
-            if not is_monitor:
-                with st.expander("⚠️ Excluir Ata"):
-                    c_del_sel, c_del_btn = st.columns([3, 1])
-                    ata_excluir = c_del_sel.selectbox("Ata:", df_atas["id_ata"].tolist(), key="del_ata_sel", label_visibility="collapsed")
-                    if c_del_btn.button("🗑️ Excluir", type="secondary", use_container_width=True):
-                        safe_update("Atas_Conselho", df_atas[df_atas["id_ata"] != ata_excluir])
-                        st.success("Excluída!")
-                        time.sleep(1); st.rerun()
+        a
+        if app_mode_regular == "📂 Histórico de Atas":
+                st.markdown('<div class="header-box"><div class="header-title">Histórico de Atas</div></div>', unsafe_allow_html=True)
+                df_atas = safe_read("Atas_Conselho", ["id_ata", "modalidade", "turma", "dados_json"])
+                
+                if df_atas.empty:
+                    st.info("Nenhuma ata salva ainda.")
+                else:
+                    df_display = df_atas[["id_ata", "modalidade", "turma"]].copy()
+                    df_display.columns = ["ID / Título da Ata", "Modalidade", "Turma"]
+                    st.dataframe(df_display, use_container_width=True, hide_index=True)
+                    
+                    st.divider()
+                    st.subheader("🔄 Carregar Ata")
+                    c_sel, c_btn = st.columns([3, 1])
+                    ata_selecionada = c_sel.selectbox("Selecione a Ata:", df_atas["id_ata"].tolist(), label_visibility="collapsed")
+                    
+                    if c_btn.button("Carregar Dados", type="primary", use_container_width=True):
+                        dados_row = df_atas[df_atas["id_ata"] == ata_selecionada].iloc[0]
+                        try:
+                            dados_json = json.loads(dados_row["dados_json"])
+                            for key in ['abaixo_basico', 'basico', 'mat_tardia', 'obs_especiais', 'encaminhamentos', 'assinaturas']:
+                                if key in dados_json and isinstance(dados_json[key], list):
+                                    dados_json[key] = pd.DataFrame(dados_json[key])
+                                    
+                            if "Fundamental" in dados_row["modalidade"]:
+                                st.session_state.data_ata_ef = dados_json
+                                st.session_state.ata_turma_confirmada = dados_json.get('turma', '')
+                                st.session_state.ata_ciclo_confirmado = dados_json.get('ciclo', '')
+                                
+                            elif "Infantil" in dados_row["modalidade"]:
+                                st.session_state.data_ata_inf = dados_json
+                                st.session_state.ata_turma_confirmada_inf = dados_json.get('turma', '')
+                                st.session_state.ata_ciclo_confirmado_inf = dados_json.get('ciclo', '')
+                                
+                            st.success(f"Ata '{ata_selecionada}' carregada! Vá para 'Nova Ata' e certifique-se de escolher a modalidade correta no menu lateral.")
+                        except Exception as e:
+                            st.error(f"Erro ao carregar: {e}")
+                    
+                    st.divider()
+                    if not is_monitor:
+                        with st.expander("⚠️ Excluir Ata"):
+                            c_del_sel, c_del_btn = st.columns([3, 1])
+                            ata_excluir = c_del_sel.selectbox("Ata:", df_atas["id_ata"].tolist(), key="del_ata_sel", label_visibility="collapsed")
+                            if c_del_btn.button("🗑️ Excluir", type="secondary", use_container_width=True):
+                                safe_update("Atas_Conselho", df_atas[df_atas["id_ata"] != ata_excluir])
+                                st.success("Excluída!")
+                                time.sleep(1); st.rerun()
 
     # ==============================================================================
     # 3. TELA: CONFIGURAÇÕES (O CÉREBRO DA AUTOMAÇÃO)

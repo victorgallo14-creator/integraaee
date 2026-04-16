@@ -937,6 +937,7 @@ with st.sidebar:
         
         if st.session_state.get('usuario_nome') == "José Victor Souza Gallo":
             opcoes_regular.append("⚙️ Configurações")
+            opcoes_regular.append("### 💾 Cofre de Segurança")
             
         # ADICIONADA A CHAVE: key="nav_regular"
         app_mode_regular = st.radio(
@@ -7914,3 +7915,32 @@ if app_mode_regular == "📖 Planejamento Curricular":
                     st.warning("Funcionalidade de edição em desenvolvimento.")
         else:
             st.write("O banco de dados de planejamentos está vazio.")
+
+# ==============================================================================
+# FERRAMENTA DE BACKUP VERSIONADO (COFRE NO GOOGLE SHEETS)
+# ==============================================================================
+st.divider()
+st.markdown("### 💾 Cofre de Segurança")
+st.caption("Salva uma cópia exata de todos os dados do Supabase criando uma NOVA aba na sua Planilha Google original.")
+
+if st.button("🔄 Gerar Backup de Segurança", type="primary", use_container_width=True):
+    with st.spinner("Construindo cofre e copiando dados..."):
+        try:
+            # 1. Puxa os dados mais recentes do Supabase
+            df_backup = load_db()
+            
+            if df_backup is not None and not df_backup.empty:
+                # 2. Gera o nome da aba com a data e hora atual
+                # Exemplo: BKP_Alunos_15_04_2026_1230
+                agora = datetime.datetime.now().strftime("%d_%m_%Y_%H%M")
+                nome_aba_backup = f"BKP_Alunos_{agora}"
+                
+                # 3. Envia para o Google Sheets. 
+                # A mágica aqui é que o Streamlit cria a aba automaticamente se o nome for novo!
+                conn.update(worksheet=nome_aba_backup, data=df_backup)
+                
+                st.success(f"✅ Backup blindado com sucesso! Verifique sua planilha, uma nova aba chamada '{nome_aba_backup}' foi criada.")
+            else:
+                st.error("🛑 O banco do Supabase parece vazio. Backup cancelado para evitar a criação de abas em branco.")
+        except Exception as e:
+            st.error(f"Erro ao gerar o cofre de backup: {e}")

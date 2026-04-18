@@ -359,6 +359,23 @@ def login():
         # --- CSS DA TELA DE LOGIN (NO-SCROLL LAYOUT) ---
         st.markdown("""
             <style>
+                /* --- ESCONDER BARRA DO GITHUB, FORK, MENU E RODAPÉ --- */
+                [data-testid="stHeader"] {
+                    display: none !important;
+                }
+                .stApp > header {
+                    display: none !important;
+                    background-color: transparent !important;
+                }
+                .stDeployButton {
+                    display: none !important;
+                }
+                #MainMenu {
+                    visibility: hidden !important;
+                }
+                footer {
+                    visibility: hidden !important;
+                }
 
                 /* Remove padding padrão do Streamlit para ocupar a tela toda */
                 .block-container {

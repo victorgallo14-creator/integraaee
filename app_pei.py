@@ -458,16 +458,41 @@ def login():
                     line-height: 1.2;
                     text-align: justify; /* Texto justificado */
                 }
+
+                /* --- COLE O NOVO BLOCO AQUI --- */
+                @media (max-width: 768px) {
+                    div[data-testid="stHorizontalBlock"] {
+                        flex-direction: column !important;
+                        align-items: center !important;
+                    }
+                    .login-art-box {
+                        border-radius: 16px 16px 0 0 !important;
+                        padding: 20px !important;
+                        height: auto !important; 
+                        min-height: auto !important;
+                        width: 100% !important;
+                    }
+                    .login-art-box h1 { font-size: 2.5rem !important; }
+                    .login-art-box div[style*="font-size: 6rem"] { font-size: 4rem !important; }
+                    .login-art-box hr, .login-art-box p:last-child { display: none; }
+
+                    div[data-testid="column"]:nth-of-type(3),
+                    div[data-testid="stColumn"]:nth-of-type(3) {
+                        border-radius: 0 0 16px 16px !important;
+                        padding: 1.5rem !important;
+                        height: auto !important;
+                        width: 100% !important;
+                    }
+                    /* Esconde os espaçadores laterais no mobile */
+                    div[data-testid="column"]:nth-of-type(1),
+                    div[data-testid="column"]:nth-of-type(4) {
+                        display: none !important;
+                    }
+                }
+                /* ------------------------------ */
+
             </style>
         """, unsafe_allow_html=True)
-        
-        # Espaçamento para centralizar verticalmente na tela
-        st.write("")
-        st.write("")
-
-        # Layout em Colunas: Spacer, Arte, Form, Spacer
-        # Ajuste de proporção para ficar elegante
-        c_pad1, c_art, c_form, c_pad2 = st.columns([1, 4, 4, 1])
 
         
 # --- LADO ESQUERDO (ARTE AZUL) ---

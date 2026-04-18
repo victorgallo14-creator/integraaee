@@ -469,36 +469,6 @@ def login():
         # Ajuste de proporção para ficar elegante
         c_pad1, c_art, c_form, c_pad2 = st.columns([1, 4, 4, 1])
 
-/* --- RESPONSIVIDADE PARA MOBILE --- */
-                @media (max-width: 768px) {
-                    /* Faz o Streamlit empilhar as colunas em telas pequenas */
-                    div[data-testid="stHorizontalBlock"] {
-                        flex-direction: column !important;
-                        align-items: center !important;
-                    }
-
-                    /* Transforma o painel Azul (Arte) em um banner de topo */
-                    .login-art-box {
-                        border-radius: 16px 16px 0 0 !important; /* Arredonda só em cima */
-                        padding: 20px !important;
-                        height: auto !important; 
-                        min-height: auto !important;
-                    }
-                    
-                    /* Reduz o tamanho da fonte e do ícone no mobile */
-                    .login-art-box h1 { font-size: 2.5rem !important; }
-                    .login-art-box div[style*="font-size: 6rem"] { font-size: 4rem !important; }
-                    .login-art-box hr, .login-art-box p:last-child { display: none; } /* Esconde a citação para economizar espaço */
-
-                    /* Transforma o painel Branco (Formulário) na base */
-                    div[data-testid="column"]:nth-of-type(3),
-                    div[data-testid="stColumn"]:nth-of-type(3) {
-                        border-radius: 0 0 16px 16px !important; /* Arredonda só embaixo */
-                        padding: 1.5rem !important;
-                        height: auto !important;
-                        width: 100% !important;
-                    }
-                }
         
 # --- LADO ESQUERDO (ARTE AZUL) ---
         with c_art:

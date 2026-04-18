@@ -7934,9 +7934,12 @@ if app_mode_regular == "📖 Planejamento Curricular":
         else:
             st.write("O banco de dados de planejamentos está vazio.")
 
-# ==============================================================================
+        # ==============================================================================
         # FERRAMENTA DE BACKUP VERSIONADO (COFRE NO GOOGLE SHEETS E LOCAL)
         # ==============================================================================
+        
+if app_mode_regular == "💾 Cofre de Segurança":
+
         st.divider()
         st.markdown("💾 Cofre de Segurança")
         st.caption("Crie cópias de segurança do seu banco de dados na nuvem (Google Sheets) ou baixe para o seu computador.")

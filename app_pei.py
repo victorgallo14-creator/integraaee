@@ -360,15 +360,6 @@ def login():
         st.markdown("""
             <style>
 
-            /* --- PREVENIR SCROLL HORIZONTAL GERAL --- */
-                html, body, [data-testid="stAppViewContainer"], .block-container {
-                    overflow-x: hidden !important;
-                    max-width: 100vw !important;
-                }
-                
-                * {
-                    box-sizing: border-box !important;
-                }
                 /* Remove padding padrão do Streamlit para ocupar a tela toda */
                 .block-container {
                     padding-top: 0rem !important;
@@ -469,28 +460,26 @@ def login():
                     text-align: justify; /* Texto justificado */
                 }
 
-/* --- RESPONSIVIDADE PARA MOBILE (FORÇADO) --- */
+/* --- RESPONSIVIDADE PARA MOBILE (FORÇADO E INFALÍVEL) --- */
                 @media (max-width: 768px) {
-                    /* Força o container principal a empilhar e remove o gap nativo */
+                    /* Destrói o comportamento de flexbox nativo para forçar empilhamento */
                     div[data-testid="stHorizontalBlock"] {
-                        flex-direction: column !important;
-                        align-items: center !important;
-                        gap: 0 !important; 
+                        display: block !important; 
+                        width: 100% !important;
                     }
 
-                    /* Quebra a largura fixa que o Streamlit impõe nas colunas */
+                    /* Força CADA coluna a ocupar 100% da tela como um bloco isolado */
                     div[data-testid="column"], 
                     div[data-testid="stColumn"] {
                         width: 100% !important;
                         min-width: 100% !important;
                         max-width: 100% !important;
-                        flex: 1 1 100% !important;
                         display: block !important;
                         margin: 0 !important;
-                        padding: 0 !important; /* Remove margens escondidas do Streamlit */
+                        padding: 0 !important;
                     }
 
-                    /* Esconde as colunas de espaçamento (1 e 4) */
+                    /* Esconde os espaços laterais (1 e 4) */
                     div[data-testid="column"]:nth-of-type(1),
                     div[data-testid="stColumn"]:nth-of-type(1),
                     div[data-testid="column"]:nth-of-type(4),
@@ -498,29 +487,30 @@ def login():
                         display: none !important;
                     }
 
-                    /* Transforma o painel Azul (Arte) em um banner de topo */
+                    /* Banner Azul (Vai ficar no Topo) */
                     .login-art-box {
                         border-radius: 16px 16px 0 0 !important; 
                         padding: 30px 20px !important;
                         height: auto !important; 
                         min-height: auto !important;
                         width: 100% !important;
-                        margin: 0 !important;
+                        box-sizing: border-box !important;
                     }
                     
-                    /* Ajustes visuais para a arte não ocupar a tela toda */
+                    /* Ajuste de fontes para não quebrar a tela do celular */
                     .login-art-box h1 { font-size: 2.2rem !important; margin-top: 5px !important; }
                     .login-art-box div[style*="font-size: 6rem"] { font-size: 3.5rem !important; margin-bottom: 0 !important; }
                     .login-art-box hr, .login-art-box p:last-child { display: none !important; } 
 
-                    /* Transforma o painel Branco (Formulário) na base */
+                    /* Formulário Branco (Vai ficar Embaixo) */
                     div[data-testid="column"]:nth-of-type(3),
                     div[data-testid="stColumn"]:nth-of-type(3) {
                         border-radius: 0 0 16px 16px !important; 
                         padding: 1.5rem !important;
                         height: auto !important;
                         width: 100% !important;
-                        margin: 0 !important;
+                        box-sizing: border-box !important;
+                        box-shadow: none !important;
                     }
                 }
                 /* ------------------------------ */

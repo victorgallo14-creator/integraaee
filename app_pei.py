@@ -375,11 +375,23 @@ def login():
                     background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
                 }
                 
+                /* --- FORÇAR AS COLUNAS A ESTICAREM JUNTAS --- */
+                div[data-testid="stHorizontalBlock"] {
+                    align-items: stretch !important;
+                }
+
+                /* Container da Coluna da Arte (Coluna 2) */
+                div[data-testid="column"]:nth-of-type(2),
+                div[data-testid="stColumn"]:nth-of-type(2) {
+                    display: flex;
+                    flex-direction: column;
+                }
+
                 /* Painel Esquerdo (Arte) */
                 .login-art-box {
                     background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
-                    min-height: 600px; /* Altura ajustada */
-                    border-radius: 16px 0 0 16px; /* Arredondado apenas na esquerda */
+                    height: 100% !important; 
+                    border-radius: 16px 0 0 16px; 
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
@@ -390,19 +402,18 @@ def login():
                     box-shadow: -5px 10px 25px rgba(37, 99, 235, 0.2);
                 }
                 
-                /* Painel Direito (Formulário) - Target the specific column wrapper (3rd column) */
+                /* Painel Direito (Formulário) - Coluna 3 */
                 div[data-testid="column"]:nth-of-type(3),
                 div[data-testid="stColumn"]:nth-of-type(3) {
                     background-color: white;
                     padding: 2rem 3rem !important;
-                    border-radius: 0 16px 16px 0; /* Arredondado apenas na direita */
-                    min-height: 600px; /* Mesma altura da arte */
+                    border-radius: 0 16px 16px 0; 
+                    height: 100% !important; 
                     display: flex;
                     flex-direction: column;
-                    justify-content: flex-start; /* Alinhado ao topo para abas */
+                    justify-content: center; 
                     box-shadow: 5px 10px 25px rgba(0,0,0,0.05);
                 }
-
                 /* Tipografia */
                 .welcome-title {
                     font-size: 1.8rem;
@@ -461,7 +472,7 @@ def login():
 # --- LADO ESQUERDO (ARTE AZUL) ---
         with c_art:
             st.markdown("""
-<div class="login-art-box" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; height: 100%; min-height: 635px;">
+<div class="login-art-box" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; height: 100%;">
 <div style="font-size: 6rem; margin-bottom: 1rem; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));">🧠</div>
 <h1 style="color: white; font-weight: 800; font-size: 3.5rem; margin: 0; line-height: 1;">INTEGRA</h1>
 <p style="font-size: 1.2rem; opacity: 0.9; font-weight: 300; margin-top: 10px; margin-bottom: 0;">Gestão de Educação<br>Especial Inclusiva</p>

@@ -5869,6 +5869,13 @@ elif modulo_atuacao == "🏫 Ensino Regular":
     # 1. TELA: NOVA ATA DE CONSELHO
     # ==============================================================================
     if app_mode_regular == "📝 Nova Ata de Conselho":
+
+        # 1. CRIE/DEFINA A VARIÁVEL AQUI ANTES DE QUALQUER COISA
+        modalidade_ata = st.radio(
+            "Selecione a modalidade da ata:", 
+            ["Ensino Fundamental", "Educação Infantil"],
+            horizontal=True
+        )
         st.markdown(f"""<div class="header-box"><div class="header-title">Conselho de Classe / Termo</div><div class="header-subtitle">{modalidade_ata}</div></div>""", unsafe_allow_html=True)
         
         # ------------------------------------------------------------------------------

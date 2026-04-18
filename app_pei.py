@@ -493,6 +493,14 @@ def login():
 
             </style>
         """, unsafe_allow_html=True)
+        
+        # Espaçamento para centralizar verticalmente na tela
+        st.write("")
+        st.write("")
+
+        # Layout em Colunas: Spacer, Arte, Form, Spacer
+        # Ajuste de proporção para ficar elegante
+        c_pad1, c_art, c_form, c_pad2 = st.columns([1, 4, 4, 1])
 
         
 # --- LADO ESQUERDO (ARTE AZUL) ---

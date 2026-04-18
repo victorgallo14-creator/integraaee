@@ -359,6 +359,16 @@ def login():
         # --- CSS DA TELA DE LOGIN (NO-SCROLL LAYOUT) ---
         st.markdown("""
             <style>
+
+            /* --- PREVENIR SCROLL HORIZONTAL GERAL --- */
+                html, body, [data-testid="stAppViewContainer"], .block-container {
+                    overflow-x: hidden !important;
+                    max-width: 100vw !important;
+                }
+                
+                * {
+                    box-sizing: border-box !important;
+                }
                 /* Remove padding padrão do Streamlit para ocupar a tela toda */
                 .block-container {
                     padding-top: 0rem !important;
@@ -476,6 +486,8 @@ def login():
                         max-width: 100% !important;
                         flex: 1 1 100% !important;
                         display: block !important;
+                        margin: 0 !important;
+                        padding: 0 !important; /* Remove margens escondidas do Streamlit */
                     }
 
                     /* Esconde as colunas de espaçamento (1 e 4) */

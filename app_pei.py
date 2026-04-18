@@ -6123,7 +6123,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                         
                     for i, row in enumerate(data_ata['assinaturas']):
                         c1, c2, c3 = st.columns([5, 4, 2])
-                        row['Nome'] = c1.text_input("Nome", value=row.get('Nome', ''), key=f"sig_nome_{i}", placeholder="Ex: Ana Silva", label_visibility="collapsed")
+                        row['Nome'] = c1.text_input("Nome", value=row.get('Nome', ''), key=f"sig_nome_{i}", placeholder="Ex: José Victor Souza Gallo", label_visibility="collapsed")
                         row['Cargo/Atuação'] = c2.text_input("Cargo", value=row.get('Cargo/Atuação', ''), key=f"sig_cargo_{i}", placeholder="Ex: Diretor de Escola", label_visibility="collapsed")
                         
                         b1, b2, b3 = c3.columns(3)

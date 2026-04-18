@@ -159,24 +159,35 @@ def safe_read(worksheet_name, columns):
 
 def safe_update(worksheet_name, data):
     """
-    Sincroniza do Pandas para o Supabase de forma segura.
-    Recria o ID no formato de texto exato que o banco de dados exige.
+    Sincroniza do Pandas para o Supabase de forma segura e adaptável para qualquer tabela.
     """
     try:
         # 1. Limpeza contra erros de JSON
         df_to_save = data.copy()
         df_to_save = df_to_save.fillna("") 
         
-        # 2. A SOLUÇÃO FINAL: Montagem do ID Textual!
-        # Em vez de números ou vazio, juntamos o Nome e o Tipo de Documento.
-        # Ex: "ARTHUR FASCIO ZANETTI" + " (" + "AVALIACAO" + ")"
-        df_to_save['id'] = df_to_save['nome'].astype(str).str.strip() + " (" + df_to_save['tipo_doc'].astype(str).str.strip() + ")"
-        
+        # 2. SEPARAÇÃO INTELIGENTE POR TABELA
+        if worksheet_name == "Alunos":
+            # Lógica específica e blindada para os alunos
+            df_to_save['id'] = df_to_save['nome'].astype(str).str.strip() + " (" + df_to_save['tipo_doc'].astype(str).str.strip() + ")"
+            supabase.table(worksheet_name).delete().neq("nome", "FORCAR_LIMPEZA_TOTAL").execute()
+            
+        elif worksheet_name == "Atas_Conselho":
+            # Lógica específica para as atas
+            supabase.table(worksheet_name).delete().neq("id_ata", "FORCAR_LIMPEZA_TOTAL").execute()
+            
+        elif worksheet_name in ["Recados", "Agenda"]:
+            # Lógica para os quadros de comunicação
+            supabase.table(worksheet_name).delete().neq("Data", "FORCAR_LIMPEZA_TOTAL").execute()
+            
+        else:
+            # Caso você crie outra tabela no futuro e use essa função
+            pass
+
+        # 3. Gravação no Banco de Dados
         data_dict = df_to_save.to_dict(orient="records")
-        
-        # 3. Atualização Segura
-        supabase.table(worksheet_name).delete().neq("nome", "FORCAR_LIMPEZA_TOTAL").execute()
-        supabase.table(worksheet_name).insert(data_dict).execute()
+        if len(data_dict) > 0:
+            supabase.table(worksheet_name).insert(data_dict).execute()
         
         return True
     except Exception as e:

@@ -6000,23 +6000,24 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                 if isinstance(data_ata.get(key), pd.DataFrame):
                     data_ata[key] = data_ata[key].to_dict('records')
             
-            # --- PORTÃO DE ENTRADA (GATE) ---
+        # --- PORTÃO DE ENTRADA (GATE) ---
             if not st.session_state.ata_turma_confirmada:
                 st.markdown("""
                 <div style='background-color: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;'>
-                    <h3 style='color: #1e293b; margin-top:0;'>🚪 Selecione a Turma</h3>
-                    <p style='color: #64748b;'>Para iniciar o preenchimento de uma nova ata, selecione abaixo o Ciclo e a Turma.</p>
+                    <h3 style='color: #1e293b; margin-top:0;'>🚪 Selecione a Turma e o Trimestre</h3>
+                    <p style='color: #64748b;'>Se já existir uma ata salva para esta turma e trimestre, ela será carregada automaticamente para você continuar.</p>
                 </div>
                 <br>
                 """, unsafe_allow_html=True)
                 
-                c_c, c_t = st.columns(2)
+                c_c, c_t, c_tri = st.columns([2, 2, 1])
                 ciclo_sel = c_c.selectbox("1. Selecione o Ciclo:", ["Ciclo I (1º ao 3º ano)", "Ciclo II (4º e 5º ano)"])
                 
                 turmas_bd = df_matriz[df_matriz['Ciclo'] == ciclo_sel]['Turma'].unique().tolist()
                 turmas_disp = turmas_bd + ["Outra Turma..."]
                 
                 turma_sel = c_t.selectbox("2. Selecione a Turma:", turmas_disp)
+                trimestre_sel = c_tri.selectbox("3. Trimestre:", ["1º Trimestre", "2º Trimestre", "3º Trimestre"])
                 
                 if turma_sel == "Outra Turma...":
                     turma_sel = st.text_input("Digite o nome da turma:")
@@ -6024,10 +6025,32 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                 st.write("")
                 if st.button("✅ Confirmar e Acessar Formulário", type="primary", use_container_width=True):
                     if turma_sel:
+                        # 1. Monta o ID que deve estar no banco
+                        id_buscado = f"{turma_sel} - {trimestre_sel} (Ensino Fundamental)"
+                        df_atas = safe_read("Atas_Conselho", ["id_ata", "modalidade", "turma", "dados_json"])
+                        
+                        # 2. Verifica se a ata já existe no histórico
+                        if not df_atas.empty and id_buscado in df_atas["id_ata"].values:
+                            dados_row = df_atas[df_atas["id_ata"] == id_buscado].iloc[0]
+                            st.session_state.data_ata_ef = json.loads(dados_row["dados_json"])
+                            st.toast("Rascunho anterior carregado com sucesso!", icon="🔄")
+                        else:
+                            # 3. Se não existe, cria um template zerado
+                            st.session_state.data_ata_ef = {
+                                'abaixo_basico': [{"Estudante": "", "LP": "", "M": "", "H": "", "G": "", "C": "", "A": "", "EF": "", "LT": "", "LIBRAS": ""}],
+                                'basico': [{"Estudante": "", "Ações (LP e Mat)": ""}],
+                                'obs_especiais': [{"Estudante": "", "Desempenho/Observação": ""}],
+                                'encaminhamentos': [{"Estudante": "", "Motivo": ""}],
+                                'mat_tardia': [{"Estudante": "", "Data Matrícula": "", "Total Frequência": ""}],
+                                'obs_outras': "",
+                                'assinaturas': [{"Nome": "", "Cargo/Atuação": ""}],
+                                'ciclo': ciclo_sel,
+                                'turma': turma_sel,
+                                'trimestre': trimestre_sel
+                            }
+                        
                         st.session_state.ata_ciclo_confirmado = ciclo_sel
                         st.session_state.ata_turma_confirmada = turma_sel
-                        data_ata['ciclo'] = ciclo_sel
-                        data_ata['turma'] = turma_sel
                         st.rerun()
                     else:
                         st.warning("⚠️ Por favor, informe o nome da turma.")
@@ -6666,17 +6689,17 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                 if isinstance(data_inf.get(key), pd.DataFrame):
                     data_inf[key] = data_inf[key].to_dict('records')
             
-            # --- PORTÃO DE ENTRADA (GATE) ---
+# --- PORTÃO DE ENTRADA (GATE) ---
             if not st.session_state.ata_turma_confirmada_inf:
                 st.markdown("""
                 <div style='background-color: #fdf4ff; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #f5d0fe;'>
-                    <h3 style='color: #86198f; margin-top:0;'>🧸 Selecione a Turma (Educação Infantil)</h3>
-                    <p style='color: #a21caf;'>Para iniciar o preenchimento da ata do Infantil, selecione a Etapa e a Turma.</p>
+                    <h3 style='color: #86198f; margin-top:0;'>🧸 Selecione a Turma e o Trimestre</h3>
+                    <p style='color: #a21caf;'>Se já existir uma ata salva para esta turma e trimestre, ela será carregada automaticamente para você continuar.</p>
                 </div>
                 <br>
                 """, unsafe_allow_html=True)
                 
-                c_c, c_t = st.columns(2)
+                c_c, c_t, c_tri = st.columns([2, 2, 1])
                 ciclo_sel = c_c.selectbox("1. Selecione a Fase/Etapa:", ["Maternal II", "1ª Etapa", "2ª Etapa", "Educação Infantil"])
                 
                 if ciclo_sel == "Educação Infantil":
@@ -6687,16 +6710,39 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                 turmas_disp = turmas_bd + ["Outra Turma..."]
                 
                 turma_sel = c_t.selectbox("2. Selecione a Turma:", turmas_disp)
+                trimestre_sel = c_tri.selectbox("3. Trimestre:", ["1º Trimestre", "2º Trimestre", "3º Trimestre"], key="tri_gate_inf")
+                
                 if turma_sel == "Outra Turma...":
                     turma_sel = st.text_input("Digite o nome da turma:")
                 
                 st.write("")
                 if st.button("✅ Confirmar e Acessar Formulário do Infantil", type="primary", use_container_width=True):
                     if turma_sel:
+                        # 1. Monta o ID do Infantil (note que o seu sistema salva como "(Infantil)")
+                        id_buscado = f"{turma_sel} - {trimestre_sel} (Infantil)"
+                        df_atas = safe_read("Atas_Conselho", ["id_ata", "modalidade", "turma", "dados_json"])
+                        
+                        # 2. Verifica se a ata já existe
+                        if not df_atas.empty and id_buscado in df_atas["id_ata"].values:
+                            dados_row = df_atas[df_atas["id_ata"] == id_buscado].iloc[0]
+                            st.session_state.data_ata_inf = json.loads(dados_row["dados_json"])
+                            st.toast("Rascunho anterior carregado com sucesso!", icon="🔄")
+                        else:
+                            # 3. Cria um template zerado se for nova
+                            st.session_state.data_ata_inf = {
+                                'abaixo_basico': [{"Estudante": "", "LV": "", "LM": "", "IS": "", "A": "", "CCM": "", "LT": "", "LIBRAS": ""}],
+                                'obs_especiais': [{"Estudante": "", "Desempenho/Observação": ""}],
+                                'encaminhamentos': [{"Estudante": "", "Motivo": ""}],
+                                'mat_tardia': [{"Estudante": "", "Data Matrícula": "", "Total Frequência": ""}],
+                                'obs_outras': "",
+                                'assinaturas': [{"Nome": "", "Cargo/Atuação": ""}],
+                                'ciclo': ciclo_sel,
+                                'turma': turma_sel,
+                                'trimestre': trimestre_sel
+                            }
+                        
                         st.session_state.ata_ciclo_confirmado_inf = ciclo_sel
                         st.session_state.ata_turma_confirmada_inf = turma_sel
-                        data_inf['ciclo'] = ciclo_sel
-                        data_inf['turma'] = turma_sel
                         st.rerun()
                     else:
                         st.warning("⚠️ Por favor, informe o nome da turma.")

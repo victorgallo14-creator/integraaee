@@ -6063,7 +6063,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                     st.info("Descreva o desempenho alcançado pela classe em cada componente curricular no trimestre atual.")
                     
                     c_lp, c_mat = st.columns(2)
-                    data_ata['sin_lp'] = c_lp.text_area("Língua Portuguesa", value=data_ata.get('sin_lp', ''), height=120)
+                    data_ata['sin_lp'] = c_lp.text_area("Língua Portuguesa", value=data_ata.get('sin_lp', ''), placeholder="Ex: A turma demonstrou avanço na leitura, mas precisa melhorar na produção de texto...", height=120)
                     data_ata['sin_mat'] = c_mat.text_area("Matemática", value=data_ata.get('sin_mat', ''), height=120)
                     
                     c_h, c_g = st.columns(2)

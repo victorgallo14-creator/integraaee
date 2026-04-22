@@ -7796,7 +7796,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
             st.markdown(f"### 📖 Matriz Curricular: **{ano_sel}**")
             
             dados = CURRICULO_DB.get(ano_sel, {})
-            infantil_anos = ["Maternal I", "Maternal II", "Etapa I", "Etapa II"] 
+            infantil_anos = ["Maternal I"] 
             
             if ano_sel in infantil_anos:
                 abas = st.tabs(["🗣️ Linguagem Verbal", "🔢 Linguagem Matemática", "👥 Indivíduo e Sociedade"])

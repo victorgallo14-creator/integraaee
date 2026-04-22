@@ -6133,7 +6133,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                     for i, row in enumerate(data_ata['obs_especiais']):
                         c1, c2, c3 = st.columns([3, 6, 1])
                         row['Estudante'] = c1.text_input("Estudante Especial", value=row.get('Estudante', ''), key=f"obs_est_{i}")
-                        row['Desempenho/Observação'] = c2.text_area("Desempenho/Observações", value=row.get('Desempenho/Observação', ''), key=f"obs_des_{i}", height=68)
+                        row['Desempenho/Observação'] = c2.text_area("Desempenho/Observações - Preenchimento Exclusivo AEE", value=row.get('Desempenho/Observação', ''), key=f"obs_des_{i}", height=68)
                         if c3.button("🗑️", key=f"del_obs_{i}"):
                             data_ata['obs_especiais'].pop(i); st.rerun()
                     if st.button("➕ Adicionar Aluno Especial", key="add_obs"):
@@ -6145,7 +6145,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                     for i, row in enumerate(data_ata['encaminhamentos']):
                         c1, c2, c3 = st.columns([3, 6, 1])
                         row['Estudante'] = c1.text_input("Estudante Encaminhado", value=row.get('Estudante', ''), key=f"enc_est_{i}")
-                        row['Motivo'] = c2.text_area("Motivo do Encaminhamento", value=row.get('Motivo', ''), key=f"enc_mot_{i}", height=68)
+                        row['Motivo'] = c2.text_area("Motivo do Encaminhamento - Preenchimento pelo Professor Polivalente", value=row.get('Motivo', ''), key=f"enc_mot_{i}", height=68)
                         if c3.button("🗑️", key=f"del_enc_{i}"):
                             data_ata['encaminhamentos'].pop(i); st.rerun()
                     if st.button("➕ Adicionar Encaminhamento", key="add_enc"):

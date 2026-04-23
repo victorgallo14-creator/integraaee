@@ -8052,7 +8052,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
             if c2.button("GERAR PLANEJAMENTO FINAL 🚀", type="primary", use_container_width=True):
                 if not all([obj_esp, sit, rec, recup]): st.error("Erro: Preencha todos os campos.")
                 else:
-                    with st.spinner("Salvando no Supabase, gerando documentos e enviando e-mail..."):
+                    with st.spinner("Salvando, gerando documentos e enviando e-mail..."):
                         f_data = st.session_state.plan_config
                         
                         # ==========================================================
@@ -8100,7 +8100,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
                             st.info("ℹ️ E-mail não enviado (endereço do professor não informado).")
 
                         if salvou_banco:
-                            st.success("✅ Planejamento salvo com sucesso no banco de dados Supabase!")
+                            st.success("✅ Planejamento salvo com sucesso!")
                         else:
                             st.error("⚠️ Erro ao salvar no banco de dados.")
 

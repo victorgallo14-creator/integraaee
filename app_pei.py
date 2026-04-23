@@ -7772,10 +7772,16 @@ if app_mode_regular == "📖 Planejamento Curricular":
     st.markdown('<div class="header-box"><div class="header-title">📖 Sistema Planejar Integrado</div></div>', unsafe_allow_html=True)
     st.write("")
     
-# =========================================================================
+    # =========================================================================
     # AQUI ESTÃO AS DUAS GRANDES ABAS DO SISTEMA
     # =========================================================================
-    tab_realizar, tab_historico = st.tabs(["📝 Realizar Planejamento", "📂 Meus Planejamentos"])
+    matricula_atual = st.session_state.get('usuario_matricula', '') 
+    is_gestor = matricula_atual in MATRICULAS_GESTAO
+
+    if is_gestor:
+        tab_realizar, tab_historico, tab_validacao = st.tabs(["📝 Realizar Planejamento", "📂 Meus Planejamentos", "✅ Validação Pedagógica"])
+    else:
+        tab_realizar, tab_historico = st.tabs(["📝 Realizar Planejamento", "📂 Meus Planejamentos"])
 
     # -------------------------------------------------------------------------
     # ABA 1: FAZER O PLANEJAMENTO (PASSOS 1, 2 E 3)

@@ -8042,7 +8042,8 @@ if app_mode_regular == "📖 Planejamento Curricular":
     with tab_historico:
         st.subheader("🗄️ Meus Planejamentos Salvos")
         
-        df_todos = safe_read("Planejamento", ["Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao"])
+        # IMPORTANTE: Adicionado o "id" na lista de colunas para permitir exclusão e edição precisas
+        df_todos = safe_read("Planejamento", ["id", "Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao"])
         
         if not df_todos.empty:
             meu_nome = st.session_state.get('usuario_nome', '')
@@ -8051,11 +8052,13 @@ if app_mode_regular == "📖 Planejamento Curricular":
             if df_meu_hist.empty:
                 st.info("Você ainda não possui planejamentos salvos no sistema.")
             else:
-                opcoes_planos = [f"{row['Data']} - {row['Turma']}" for idx, row in df_meu_hist.iterrows()]
-                escolha = st.selectbox("Escolha um planejamento para visualizar os detalhes:", opcoes_planos)
+                # Inclui o ID ou a data no nome para facilitar a identificação única
+                opcoes_planos = [f"{row['Data']} - {row['Turma']} (Ref: {row['id']})" for idx, row in df_meu_hist.iterrows()]
+                escolha = st.selectbox("Escolha um planejamento para visualizar:", opcoes_planos)
                 
                 idx_escolhido = df_meu_hist.index[opcoes_planos.index(escolha)]
                 plano = df_meu_hist.loc[idx_escolhido]
+                id_plano = plano['id'] # Pegamos o ID único do Supabase
                 
                 st.markdown("---")
                 st.markdown(f"### 📄 Detalhes do Planejamento: {plano['Data']}")
@@ -8076,8 +8079,43 @@ if app_mode_regular == "📖 Planejamento Curricular":
                     st.write(f"**Materiais:** {plano['Recursos']}")
                     st.write(f"**Avaliação:** {plano['Avaliacao']}")
                 
-                if st.button("🔄 Usar este plano como base para um novo"):
-                    st.warning("Funcionalidade de edição em desenvolvimento.")
+                st.markdown("---")
+                st.markdown("### ⚙️ Ações do Planejamento")
+                
+                # --- EDIÇÃO ---
+                with st.expander("✏️ Editar este planejamento"):
+                    with st.form(key=f"form_edit_{id_plano}"):
+                        st.markdown("Altere os campos abaixo e salve para atualizar o banco de dados:")
+                        edit_estrategias = st.text_area("Estratégias e Metodologia", value=plano['Estrategias'], height=150)
+                        edit_recursos = st.text_area("Recursos e Materiais", value=plano['Recursos'], height=100)
+                        edit_avaliacao = st.text_area("Avaliação", value=plano['Avaliacao'], height=100)
+                        
+                        if st.form_submit_button("💾 Salvar Alterações", type="primary"):
+                            try:
+                                # Atualiza o registro específico no Supabase usando o ID
+                                supabase.table("Planejamento").update({
+                                    "Estrategias": edit_estrategias,
+                                    "Recursos": edit_recursos,
+                                    "Avaliacao": edit_avaliacao
+                                }).eq("id", id_plano).execute()
+                                
+                                st.success("Planejamento atualizado com sucesso!")
+                                st.rerun() # Recarrega a página para exibir os novos dados
+                            except Exception as e:
+                                st.error(f"Erro ao atualizar no banco de dados: {e}")
+
+                # --- EXCLUSÃO ---
+                # Usamos um botão simples fora do form para a exclusão
+                if st.button("🗑️ Apagar este planejamento", type="secondary", use_container_width=True):
+                    try:
+                        # Deleta o registro específico no Supabase usando o ID
+                        supabase.table("Planejamento").delete().eq("id", id_plano).execute()
+                        
+                        st.success("Planejamento apagado com sucesso!")
+                        st.rerun() # Recarrega a página para atualizar a lista do selectbox
+                    except Exception as e:
+                        st.error(f"Erro ao apagar no banco de dados: {e}")
+                        
         else:
             st.write("O banco de dados de planejamentos está vazio.")
 

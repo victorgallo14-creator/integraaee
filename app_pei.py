@@ -33,6 +33,8 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 
+MATRICULAS_GESTAO = ['8829405', '8011512', '8258411', '7047682', '7905754', '88286861']
+
 MIN_DATA = date(1900, 1, 1)
 MAX_DATA = date(2100, 12, 31)
 
@@ -8109,13 +8111,13 @@ if app_mode_regular == "📖 Planejamento Curricular":
                         cd2.download_button("📕 Download PDF", p_file, f"{nome_arq}.pdf", use_container_width=True)
 
     # -------------------------------------------------------------------------
-    # ABA 2: CONSULTAR O HISTÓRICO NO SUPABASE
+    # ABA 2: CONSULTAR O HISTÓRICO DO PROFESSOR
     # -------------------------------------------------------------------------
     with tab_historico:
         st.subheader("🗄️ Meus Planejamentos Salvos")
         
-        # IMPORTANTE: Adicionado o "id" na lista de colunas para permitir exclusão e edição precisas
-        df_todos = safe_read("Planejamento", ["id", "Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao"])
+        # ATENÇÃO: Adicionei Status e Observacoes na busca
+        df_todos = safe_read("Planejamento", ["id", "Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao", "Status", "Observacoes"])
         
         if not df_todos.empty:
             meu_nome = st.session_state.get('usuario_nome', '')
@@ -8124,16 +8126,29 @@ if app_mode_regular == "📖 Planejamento Curricular":
             if df_meu_hist.empty:
                 st.info("Você ainda não possui planejamentos salvos no sistema.")
             else:
-                # Inclui o ID ou a data no nome para facilitar a identificação única
                 opcoes_planos = [f"{row['Data']} - {row['Turma']} (Ref: {row['id']})" for idx, row in df_meu_hist.iterrows()]
                 escolha = st.selectbox("Escolha um planejamento para visualizar:", opcoes_planos)
                 
                 idx_escolhido = df_meu_hist.index[opcoes_planos.index(escolha)]
                 plano = df_meu_hist.loc[idx_escolhido]
-                id_plano = plano['id'] # Pegamos o ID único do Supabase
+                id_plano = plano['id'] 
                 
                 st.markdown("---")
                 st.markdown(f"### 📄 Detalhes do Planejamento: {plano['Data']}")
+                
+                # --- NOVO: FEEDBACK VISUAL DO STATUS ---
+                status_atual = plano.get('Status', 'Aguardando')
+                if status_atual == 'Validado':
+                    st.success("✅ **STATUS:** Este planejamento foi validado pela Equipe Gestora.")
+                elif status_atual == 'Correção':
+                    st.error("⚠️ **STATUS:** Este planejamento requer adequações. Leia os apontamentos abaixo e edite.")
+                else:
+                    st.warning("⏳ **STATUS:** Planejamento aguardando análise da Equipe Gestora.")
+                
+                obs_gestao = plano.get('Observacoes', '')
+                if obs_gestao and obs_gestao.strip() != "":
+                    st.info(f"**🗣️ Apontamentos da Gestão:**\n\n{obs_gestao}")
+                # ----------------------------------------
                 
                 col_a, col_b = st.columns(2)
                 with col_a:
@@ -8142,7 +8157,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
                 with col_b:
                     st.write(f"**👤 Professor:** {plano['Professor']}")
                 
-                st.info(f"**🎯 Objetivos e Conteúdos:**\n\n{plano['Objetivos']}")
+                st.write(f"**🎯 Objetivos e Conteúdos:**\n{plano['Objetivos']}")
                 
                 with st.expander("📝 Estratégias e Metodologia", expanded=True):
                     st.write(plano['Estrategias'])
@@ -8154,41 +8169,75 @@ if app_mode_regular == "📖 Planejamento Curricular":
                 st.markdown("---")
                 st.markdown("### ⚙️ Ações do Planejamento")
                 
-                # --- EDIÇÃO ---
-                with st.expander("✏️ Editar este planejamento"):
-                    with st.form(key=f"form_edit_{id_plano}"):
-                        st.markdown("Altere os campos abaixo e salve para atualizar o banco de dados:")
-                        edit_estrategias = st.text_area("Estratégias e Metodologia", value=plano['Estrategias'], height=150)
-                        edit_recursos = st.text_area("Recursos e Materiais", value=plano['Recursos'], height=100)
-                        edit_avaliacao = st.text_area("Avaliação", value=plano['Avaliacao'], height=100)
-                        
-                        if st.form_submit_button("💾 Salvar Alterações", type="primary"):
-                            try:
-                                # Atualiza o registro específico no Supabase usando o ID
-                                supabase.table("Planejamento").update({
-                                    "Estrategias": edit_estrategias,
-                                    "Recursos": edit_recursos,
-                                    "Avaliacao": edit_avaliacao
-                                }).eq("id", id_plano).execute()
-                                
-                                st.success("Planejamento atualizado com sucesso!")
-                                st.rerun() # Recarrega a página para exibir os novos dados
-                            except Exception as e:
-                                st.error(f"Erro ao atualizar no banco de dados: {e}")
-
-                # --- EXCLUSÃO ---
-                if st.button("🗑️ Apagar este planejamento", type="secondary", use_container_width=True):
-                    try:
-                        # Deleta o registro específico no Supabase usando o ID
-                        supabase.table("Planejamento").delete().eq("id", id_plano).execute()
-                        
-                        st.success("Planejamento apagado com sucesso!")
-                        st.rerun() # Recarrega a página para atualizar a lista do selectbox
-                    except Exception as e:
-                        st.error(f"Erro ao apagar no banco de dados: {e}")
-                        
+                # ... [MANTENHA O CÓDIGO DOS BOTÕES DE EDITAR E EXCLUIR QUE JÁ ESTAVAM AQUI] ...
+                
         else:
             st.write("O banco de dados de planejamentos está vazio.")
+
+
+    # -------------------------------------------------------------------------
+    # ABA 3: VALIDAÇÃO PEDAGÓGICA (APENAS PARA GESTORES)
+    # -------------------------------------------------------------------------
+    if is_gestor:
+        with tab_validacao:
+            st.subheader("✅ Gestão e Validação de Planejamentos")
+            
+            df_geral = safe_read("Planejamento", ["id", "Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao", "Status", "Observacoes"])
+            
+            if not df_geral.empty:
+                # Preenche valores vazios em planejamentos antigos para não dar erro
+                df_geral['Status'] = df_geral['Status'].fillna('Aguardando')
+                
+                # Filtro rápido para a coordenação achar o que precisa
+                status_filtro = st.radio("Filtrar por Status:", ["Todos", "Aguardando", "Correção", "Validado"], horizontal=True)
+                
+                df_filtrado = df_geral if status_filtro == "Todos" else df_geral[df_geral['Status'] == status_filtro]
+                
+                if df_filtrado.empty:
+                    st.info(f"Nenhum planejamento encontrado com o status '{status_filtro}'.")
+                else:
+                    opcoes_val = [f"{row['Data']} | {row['Professor']} | {row['Turma']} ({row['Status']})" for idx, row in df_filtrado.iterrows()]
+                    escolha_val = st.selectbox("Selecione o planejamento para análise:", opcoes_val)
+                    
+                    idx_val = df_filtrado.index[opcoes_val.index(escolha_val)]
+                    plano_val = df_filtrado.loc[idx_val]
+                    id_plano_val = plano_val['id']
+                    
+                    st.markdown("---")
+                    st.markdown(f"### Análise: Prof. {plano_val['Professor']} ({plano_val['Turma']})")
+                    
+                    with st.expander("🔍 Visualizar Conteúdo do Planejamento", expanded=True):
+                        st.info(f"**Objetivos/Habilidades:**\n{plano_val['Objetivos']}")
+                        st.write(f"**Situação Didática:**\n{plano_val['Estrategias']}")
+                        st.write(f"**Recursos e Avaliação:**\n{plano_val['Recursos']} | {plano_val['Avaliacao']}")
+                    
+                    # Formulário da Coordenação
+                    with st.form(key=f"form_val_{id_plano_val}"):
+                        st.markdown("#### 📋 Parecer da Coordenação/Direção")
+                        
+                        lista_status = ["Aguardando", "Validado", "Correção"]
+                        idx_status_atual = lista_status.index(plano_val['Status']) if plano_val['Status'] in lista_status else 0
+                        
+                        novo_status = st.radio("Mudar Status para:", lista_status, index=idx_status_atual, horizontal=True)
+                        
+                        nova_obs = st.text_area("Apontamentos / Devolutiva:", 
+                                              value=plano_val.get('Observacoes', ''), 
+                                              height=120,
+                                              help="Se solicitar correção, explique aqui o que precisa ser alterado.")
+                        
+                        if st.form_submit_button("Salvar Validação", type="primary"):
+                            try:
+                                supabase.table("Planejamento").update({
+                                    "Status": novo_status,
+                                    "Observacoes": nova_obs
+                                }).eq("id", id_plano_val).execute()
+                                
+                                st.success("Parecer pedagógico salvo com sucesso!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Erro ao salvar validação: {e}")
+            else:
+                st.write("Nenhum planejamento foi enviado pelos professores ainda.")
 
         # ==============================================================================
         # FERRAMENTA DE BACKUP VERSIONADO (COFRE NO GOOGLE SHEETS E LOCAL)

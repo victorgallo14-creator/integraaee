@@ -7715,70 +7715,11 @@ elif app_mode and "Carômetro" in app_mode:
 
             idx_col = (idx_col + 1) % 5
 
-# ==============================================================================
-# MÓDULO: PLANEJAMENTO CURRICULAR E SEMANAL (SISTEMA PLANEJAR COMPLETO)
-# ==============================================================================
-if app_mode_regular == "📖 Planejamento Curricular":
-    
-    # --- CONFIGURAÇÕES DE EMAIL ---
-    EMAIL_REMETENTE = "coord.rafaelaffonsoleite@gmail.com" 
-    SENHA_APP_GOOGLE = "olsi hriz zocu oiyt" 
-    EMAIL_COORDENACAO = "coord.rafaelaffonsoleite@gmail.com" 
-    
-    from dados_curriculo import CURRICULO_DB
-
-    # --- GESTÃO DE ESTADO ISOLADA PARA O MÓDULO ---
-    if 'plan_step' not in st.session_state: st.session_state.plan_step = 1
-    if 'plan_conteudos' not in st.session_state: st.session_state.plan_conteudos = []
-    if 'plan_config' not in st.session_state: st.session_state.plan_config = {}
-
-    def set_plan_step(s): st.session_state.plan_step = s
-
-    def clean(t): 
-        return t.encode('latin-1', 'replace').decode('latin-1') if t else ""
-        
-    def get_brazil_time():
-        fuso_br = timezone(timedelta(hours=-3))
-        return datetime.now(fuso_br)
-
-    def enviar_email_automatico(pdf_bytes, dados, nome_arquivo):
-        if "xxxx" in SENHA_APP_GOOGLE: return False, "Configuração de e-mail pendente."
-        try:
-            msg = MIMEMultipart()
-            msg['From'] = EMAIL_REMETENTE
-            msg['To'] = EMAIL_COORDENACAO
-            recipients = [EMAIL_COORDENACAO]
-            if dados.get('email_prof') and "@" in dados['email_prof']:
-                msg['Cc'] = dados['email_prof']
-                recipients.append(dados['email_prof'])
-            msg['Subject'] = f"Planejamento Entregue: {dados['professor']} - {dados['mes']}"
-            corpo = f"Olá,\n\nUm novo planejamento pedagógico foi gerado.\n\nDocente: {dados['professor']}\nAno/Turma: {dados['ano']} - {', '.join(dados['turmas'])}\nPeríodo: {dados['periodo']} ({dados['quinzena']})"
-            msg.attach(MIMEText(corpo, 'plain'))
-            part = MIMEBase('application', 'octet-stream')
-            part.set_payload(pdf_bytes)
-            encoders.encode_base64(part)
-            part.add_header('Content-Disposition', f"attachment; filename= {nome_arquivo}.pdf")
-            msg.attach(part)
-            server = smtplib.SMTP('smtp.gmail.com', 587)
-            server.starttls()
-            server.login(EMAIL_REMETENTE, SENHA_APP_GOOGLE)
-            server.sendmail(EMAIL_REMETENTE, recipients, msg.as_string())
-            server.quit()
-            return True, "E-mail enviado com sucesso!"
-        except Exception as e:
-            return False, f"Falha no envio do e-mail: {str(e)}"
-
-    st.markdown('<div class="header-box"><div class="header-title">📖 Sistema Planejar Integrado</div></div>', unsafe_allow_html=True)
-    st.write("")
-    
-# =========================================================================
+    # =========================================================================
     # DEFINIÇÃO DE PERMISSÕES DA EQUIPA GESTORA
     # =========================================================================
-    # Matrículas com acesso total de validação
     MATRICULAS_GESTAO = ['8829405', '8011512', '8258411', '7047682', '88286861']
 
-    # Verifica se o utilizador atual pertence à equipa gestora
-    # (Substitua 'usuario_matricula' pela chave correta que guarda a matrícula no seu login)
     matricula_atual = st.session_state.get('usuario_matricula', '') 
     is_gestor = matricula_atual in MATRICULAS_GESTAO
 
@@ -7866,14 +7807,12 @@ if app_mode_regular == "📖 Planejamento Curricular":
             
             dados = CURRICULO_DB.get(ano_sel, {})
             
-            # 1. Definir qual lista de Libras usar (Direto das variáveis externas)
             lista_libras = []
             if ano_sel in ["Etapa I", "Etapa II"]:
                 lista_libras = LIBRAS_INFANTIL
             elif ano_sel in ["1º Ano", "2º Ano", "3º Ano", "4º Ano", "5º Ano"]:
                 lista_libras = LIBRAS_FUNDAMENTAL
 
-            # 2. Configurar os Separadores e Categorias
             titulos = []
             chaves = []
             
@@ -7881,11 +7820,9 @@ if app_mode_regular == "📖 Planejamento Curricular":
                 titulos = ["🗣️ Linguagem Verbal", "🔢 Linguagem Matemática", "👥 Indivíduo e Sociedade"]
                 chaves = ["LINGUAGEM VERBAL", "LINGUAGEM MATEMÁTICA", "INDIVÍDUO E SOCIEDADE"]
             elif ano_sel == "Maternal II":
-                # Maternal II (Sem Libras nas Diretrizes Iniciais)
                 titulos = ["💻 Cultura Digital", "📱 Mundo Digital", "🧩 Pensamento Computacional", "🗣️ Inglês: Oralidade"]
                 chaves = ["CULTURA DIGITAL", "MUNDO DIGITAL", "PENSAMENTO COMPUTACIONAL", "INGLÊS: ORALIDADE"]
             else:
-                # Separa as disciplinas de Tecnologia e de Inglês dinamicamente
                 op_tec = [k for k in dados.keys() if "INGLÊS" not in k.upper()]
                 op_ing = [k for k in dados.keys() if "INGLÊS" in k.upper()]
                 
@@ -7896,19 +7833,16 @@ if app_mode_regular == "📖 Planejamento Curricular":
                     titulos.append("🗣️ Língua Inglesa")
                     chaves.append(op_ing)
 
-            # Adiciona o separador de Libras dinamicamente, se houver currículo para o ano
             if lista_libras:
                 titulos.append("🤟 LIBRAS (Nivelamento)")
                 chaves.append("ABA_LIBRAS")
 
             abas = st.tabs(titulos)
 
-            # 3. Construir o conteúdo dentro de cada Separador
             for idx, aba in enumerate(abas):
                 with aba:
                     categoria = chaves[idx]
                     
-                    # -------- LÓGICA EXCLUSIVA PARA LIBRAS --------
                     if categoria == "ABA_LIBRAS":
                         c1, c2 = st.columns(2)
                         opcoes_g = sorted(list(set([it['geral'] for it in lista_libras])))
@@ -7931,7 +7865,6 @@ if app_mode_regular == "📖 Planejamento Curricular":
                                 })
                                 st.toast("Conteúdo de Libras adicionado!")
                                 
-                    # -------- LÓGICA PARA MATERNAL I E II --------
                     elif ano_sel in ["Maternal I", "Maternal II"]:
                         if categoria in dados:
                             c1, c2 = st.columns(2)
@@ -7955,7 +7888,6 @@ if app_mode_regular == "📖 Planejamento Curricular":
                                     })
                                     st.toast("Item adicionado!")
                                     
-                    # -------- LÓGICA PARA AS OUTRAS DISCIPLINAS --------
                     else:
                         filtros = categoria 
                         if filtros:
@@ -7977,7 +7909,6 @@ if app_mode_regular == "📖 Planejamento Curricular":
                                     })
                                     st.toast("Item adicionado!")
 
-            # Exibe os conteúdos selecionados
             if st.session_state.plan_conteudos:
                 st.markdown("#### Conteúdos Selecionados")
                 for i, it in enumerate(st.session_state.plan_conteudos):
@@ -8066,17 +7997,21 @@ if app_mode_regular == "📖 Planejamento Curricular":
             if c2.button("GERAR PLANEJAMENTO FINAL 🚀", type="primary", use_container_width=True):
                 if not all([obj_esp, sit, rec, recup]): st.error("Erro: Preencha todos os campos.")
                 else:
-                    with st.spinner("A salvar no Supabase, a gerar documentos e a enviar e-mail..."):
+                    with st.spinner("A guardar no Supabase, a gerar documentos e a enviar e-mail..."):
                         f_data = st.session_state.plan_config
                         
                         # ==========================================================
-                        # 1. GUARDAR NO SUPABASE (COM CAMPOS DE VALIDAÇÃO)
+                        # 1. GUARDAR NO SUPABASE
                         # ==========================================================
                         lista_obj_texto = " | ".join([f"({c['tipo']}) {c['especifico']}" for c in st.session_state.plan_conteudos])
                         turmas_juntas = f"{f_data['ano']} ({', '.join(f_data['turmas'])})"
                         
+                        # NOVO: Incluímos o campo Periodo para ser guardado no Supabase
+                        texto_periodo_banco = f"{f_data['mes']} - {f_data['quinzena']} ({f_data['periodo']})"
+                        
                         novo_reg = {
                             "Data": get_brazil_time().strftime("%d/%m/%Y"),
+                            "Periodo": texto_periodo_banco, # <--- AQUI ESTÁ A COLUNA NOVA
                             "Professor": f_data['professor'],
                             "Turma": turmas_juntas,
                             "Componente": "Vários (Ver Objetivos)",
@@ -8127,16 +8062,27 @@ if app_mode_regular == "📖 Planejamento Curricular":
     with tab_historico:
         st.subheader("🗄️ Meus Planejamentos Guardados")
         
-        df_todos = safe_read("Planejamento", ["id", "Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao", "Status", "Observacoes"])
+        # Pede a nova coluna 'Periodo'
+        df_todos = safe_read("Planejamento", ["id", "Data", "Periodo", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao", "Status", "Observacoes"])
         
         if not df_todos.empty:
+            # Blindagem caso a coluna Periodo, Status ou Observacoes ainda não exista no Supabase
+            if 'Periodo' not in df_todos.columns: df_todos['Periodo'] = 'Não informado'
+            else: df_todos['Periodo'] = df_todos['Periodo'].fillna('Não informado')
+            
+            if 'Status' not in df_todos.columns: df_todos['Status'] = 'Aguardando'
+            else: df_todos['Status'] = df_todos['Status'].fillna('Aguardando')
+            
+            if 'Observacoes' not in df_todos.columns: df_todos['Observacoes'] = ''
+            
             meu_nome = st.session_state.get('usuario_nome', '')
             df_meu_hist = df_todos[df_todos["Professor"] == meu_nome].sort_index(ascending=False)
             
             if df_meu_hist.empty:
                 st.info("Ainda não tem planeamentos guardados no sistema.")
             else:
-                opcoes_planos = [f"{row['Data']} - {row['Turma']} (Ref: {row['id']})" for idx, row in df_meu_hist.iterrows()]
+                # Mostra o Período e a Turma na dropdown para ser mais fácil localizar
+                opcoes_planos = [f"{row['Periodo']} | {row['Turma']} (Criado em {row['Data']})" for idx, row in df_meu_hist.iterrows()]
                 escolha = st.selectbox("Escolha um planejamento para visualizar:", opcoes_planos)
                 
                 idx_escolhido = df_meu_hist.index[opcoes_planos.index(escolha)]
@@ -8144,7 +8090,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
                 id_plano = plano['id'] 
                 
                 st.markdown("---")
-                st.markdown(f"### 📄 Detalhes do Planejamento: {plano['Data']}")
+                st.markdown(f"### 📄 Planejamento: {plano['Periodo']}")
                 
                 status_atual = plano.get('Status', 'Aguardando')
                 if status_atual == 'Validado':
@@ -8161,7 +8107,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
                 col_a, col_b = st.columns(2)
                 with col_a:
                     st.write(f"**🏫 Turma:** {plano['Turma']}")
-                    st.write(f"**📚 Componente:** {plano['Componente']}")
+                    st.write(f"**📅 Salvo em:** {plano['Data']}")
                 with col_b:
                     st.write(f"**👤 Professor:** {plano['Professor']}")
                 
@@ -8202,7 +8148,6 @@ if app_mode_regular == "📖 Planejamento Curricular":
                 if st.button("🗑️ Apagar este planejamento", type="secondary", use_container_width=True):
                     try:
                         supabase.table("Planejamento").delete().eq("id", id_plano).execute()
-                        
                         st.success("Planejamento apagado com sucesso!")
                         st.rerun() 
                     except Exception as e:
@@ -8218,20 +8163,17 @@ if app_mode_regular == "📖 Planejamento Curricular":
         with tab_validacao:
             st.subheader("✅ Gestão e Validação de Planejamentos")
             
-            df_geral = safe_read("Planejamento", ["id", "Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao", "Status", "Observacoes"])
+            df_geral = safe_read("Planejamento", ["id", "Data", "Periodo", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao", "Status", "Observacoes"])
             
             if not df_geral.empty:
-                # =========================================================
-                # CORREÇÃO AQUI: Blindagem para evitar o KeyError
-                # =========================================================
-                if 'Status' not in df_geral.columns:
-                    df_geral['Status'] = 'Aguardando'
-                else:
-                    df_geral['Status'] = df_geral['Status'].fillna('Aguardando')
-                    
-                if 'Observacoes' not in df_geral.columns:
-                    df_geral['Observacoes'] = ''
-                # =========================================================
+                # Blindagem das colunas
+                if 'Periodo' not in df_geral.columns: df_geral['Periodo'] = 'Não informado'
+                else: df_geral['Periodo'] = df_geral['Periodo'].fillna('Não informado')
+                
+                if 'Status' not in df_geral.columns: df_geral['Status'] = 'Aguardando'
+                else: df_geral['Status'] = df_geral['Status'].fillna('Aguardando')
+                
+                if 'Observacoes' not in df_geral.columns: df_geral['Observacoes'] = ''
                 
                 status_filtro = st.radio("Filtrar por Status:", ["Todos", "Aguardando", "Correção", "Validado"], horizontal=True)
                 
@@ -8240,7 +8182,8 @@ if app_mode_regular == "📖 Planejamento Curricular":
                 if df_filtrado.empty:
                     st.info(f"Nenhum planejamento encontrado com o status '{status_filtro}'.")
                 else:
-                    opcoes_val = [f"{row['Data']} | {row['Professor']} | {row['Turma']} ({row['Status']})" for idx, row in df_filtrado.iterrows()]
+                    # Dropdown de seleção de Validação também com o Período
+                    opcoes_val = [f"Prof. {row['Professor']} | {row['Periodo']} | {row['Turma']} ({row['Status']})" for idx, row in df_filtrado.iterrows()]
                     escolha_val = st.selectbox("Selecione o planejamento para análise:", opcoes_val)
                     
                     idx_val = df_filtrado.index[opcoes_val.index(escolha_val)]
@@ -8249,6 +8192,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
                     
                     st.markdown("---")
                     st.markdown(f"### Análise: Prof. {plano_val['Professor']} ({plano_val['Turma']})")
+                    st.caption(f"**Período:** {plano_val['Periodo']} | **Salvo no sistema em:** {plano_val['Data']}")
                     
                     with st.expander("🔍 Visualizar Conteúdo do Planejamento", expanded=True):
                         st.info(f"**Objetivos/Habilidades:**\n{plano_val['Objetivos']}")

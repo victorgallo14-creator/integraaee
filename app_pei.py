@@ -6700,7 +6700,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                 """, unsafe_allow_html=True)
                 
                 c_c, c_t, c_tri = st.columns([2, 2, 1])
-                ciclo_sel = c_c.selectbox("1. Selecione a Fase/Etapa:", ["Maternal II", "1ª Etapa", "2ª Etapa", "Educação Infantil"])
+                ciclo_sel = c_c.selectbox("1. Selecione a Fase/Etapa:", ["Maternal I", "Maternal II", "1ª Etapa", "2ª Etapa", "Educação Infantil"])
                 
                 if ciclo_sel == "Educação Infantil":
                     turmas_bd = df_matriz[df_matriz['Ciclo'].str.contains("Infantil|Etapa|Maternal", na=False)]['Turma'].unique().tolist()

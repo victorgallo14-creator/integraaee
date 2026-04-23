@@ -18,6 +18,8 @@ import time
 import zipfile
 import io
 from dados_curriculo import CURRICULO_DB
+from dados_curriculo import LIBRAS_INFANTIL
+from dados_curriculo import LIBRAS_FUNDAMENTAL
 from docx import Document
 from docx.shared import Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -7850,11 +7852,11 @@ if app_mode_regular == "📖 Planejamento Curricular":
             dados = CURRICULO_DB.get(ano_sel, {})
             
             # 1. Definir qual lista de Libras usar (Direto das variáveis externas)
-            lista_libras = []
+            CURRICULO_DB = []
             if ano_sel in ["Etapa I", "Etapa II"]:
-                lista_libras = LIBRAS_INFANTIL
+                CURRICULO_DB = LIBRAS_INFANTIL
             elif ano_sel in ["1º Ano", "2º Ano", "3º Ano", "4º Ano", "5º Ano"]:
-                lista_libras = LIBRAS_FUNDAMENTAL
+                CURRICULO_DB = LIBRAS_FUNDAMENTAL
 
             # 2. Configurar as Abas e Categorias
             titulos = []
@@ -7880,7 +7882,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
                     chaves.append(op_ing)
 
             # Adiciona a aba de Libras dinamicamente, se houver currículo para a série
-            if lista_libras:
+            if CURRICULO_DB:
                 titulos.append("🤟 LIBRAS (Nivelamento)")
                 chaves.append("ABA_LIBRAS")
 
@@ -7894,10 +7896,10 @@ if app_mode_regular == "📖 Planejamento Curricular":
                     # -------- LÓGICA EXCLUSIVA PARA LIBRAS --------
                     if categoria == "ABA_LIBRAS":
                         c1, c2 = st.columns(2)
-                        opcoes_g = sorted(list(set([it['geral'] for it in lista_libras])))
+                        opcoes_g = sorted(list(set([it['geral'] for it in CURRICULO_DB])))
                         g_sel = c1.selectbox("EIXO / TÓPICO (Libras)", opcoes_g, key=f"lib_g_{idx}")
                         
-                        itens_filtrados = [it for it in lista_libras if it['geral'] == g_sel]
+                        itens_filtrados = [it for it in CURRICULO_DB if it['geral'] == g_sel]
                         opcoes_e = [it['especifico'] for it in itens_filtrados]
                         e_sel = c2.selectbox("CONTEÚDO / PRÁTICA", opcoes_e, key=f"lib_e_{idx}")
                         

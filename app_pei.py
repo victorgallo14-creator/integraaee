@@ -7781,6 +7781,52 @@ if app_mode_regular == "📖 Planejamento Curricular":
     is_gestor = matricula_atual in MATRICULAS_GESTAO
 
     # =========================================================================
+    # FUNÇÃO: GERAR PDF DO HISTÓRICO COM VALIDAÇÃO
+    # =========================================================================
+    def gerar_pdf_historico(plano):
+        # Função auxiliar para evitar erros de acentuação no PDF
+        def cln(text):
+            return str(text).encode('latin-1', 'replace').decode('latin-1')
+            
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_auto_page_break(auto=True, margin=20)
+        
+        # Logotipo (se existir)
+        logo_e = "logo_escola.png" if os.path.exists("logo_escola.png") else "logo_escola.jpg"
+        if os.path.exists(logo_e): pdf.image(logo_e, 175, 8, 25)
+        
+        # Cabeçalho
+        pdf.set_font('Arial', 'B', 14)
+        pdf.cell(0, 10, cln('CEIEF RAFAEL AFFONSO LEITE'), 0, 1, 'C')
+        pdf.set_font('Arial', '', 10)
+        pdf.cell(0, 5, cln('Planejamento de Unidade de Ensino - Arquivo Oficial'), 0, 1, 'C')
+        pdf.ln(10)
+        
+        # Bloco de Informações Iniciais
+        pdf.set_fill_color(245, 247, 250)
+        pdf.set_font("Arial", 'B', 9)
+        pdf.cell(0, 7, cln(f"DOCENTE: {plano.get('Professor', '')}"), 1, 1, 'L', True)
+        pdf.cell(0, 7, cln(f"TURMA(S): {plano.get('Turma', '')}"), 1, 1, 'L', True)
+        pdf.cell(0, 7, cln(f"PERÍODO: {plano.get('Periodo', 'Não informado')}"), 1, 1, 'L', True)
+        pdf.cell(0, 7, cln(f"DATA DO REGISTRO: {plano.get('Data', '')}"), 1, 1, 'L', True)
+        pdf.ln(5)
+        
+        # Função interna para adicionar as secções de texto
+        def add_secao(titulo, texto):
+            pdf.set_font("Arial", 'B', 10)
+            pdf.cell(0, 8, cln(titulo), 0, 1)
+            pdf.set_font("Arial", '', 9)
+            pdf.multi_cell(0, 5, cln(texto))
+            pdf.ln(3)
+
+        # Adicionar os conteúdos do planeamento
+        add_secao("Matriz Curricular e Objetivos:", plano.get('Objetivos', ''))
+        add_secao("Estratégias e Situação Didática:", plano.get('Estrategias', ''))
+        add_secao("Recursos e Materiais:", plano.get('Recursos', ''))
+        add_secao("Critérios de Avaliação:", plano.get('Avaliacao', ''))
+
+    # =========================================================================
     # CRIAÇÃO DOS SEPARADORES (TABS) DINÂMICOS
     # =========================================================================
     if is_gestor:

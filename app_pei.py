@@ -5944,11 +5944,11 @@ elif modulo_atuacao == "🏫 Ensino Regular":
         {"Ciclo": "Maternal II", "Turma": "Maternal II 2", "Disciplina": "Professor de Ed. Infantil", "Professor": "Lucineide Almeida da Silva"},
         {"Ciclo": "Maternal II", "Turma": "Maternal II 2", "Disciplina": "Artes", "Professor": ""},
         {"Ciclo": "Maternal II", "Turma": "Maternal II 2", "Disciplina": "Educação Física", "Professor": "Fernando Indig Bongiovanni"},
-        {"Ciclo": "Maternal II", "Turma": "Maternal II 2", "Disciplina": "Linguagens e Tecnologias", "Professor": "Elaine Cristina Neves Fahl"}
+        {"Ciclo": "Maternal II", "Turma": "Maternal II 2", "Disciplina": "Linguagens e Tecnologias", "Professor": "Elaine Cristina Neves Fahl"},
 
-        {"Ciclo": "Maternal I", "Turma": "Maternal I 1", "Disciplina": "Linguagem Verbal", "Professor": "Ana Beatriz Santos Oliveira"}
-        {"Ciclo": "Maternal I", "Turma": "Maternal I 1", "Disciplina": "Linguagem Matemática", "Professor": "Ana Beatriz Santos Oliveira"}
-        {"Ciclo": "Maternal I", "Turma": "Maternal I 1", "Disciplina": "Individuo e Sociedade", "Professor": "Ana Beatriz Santos Oliveira"}
+        {"Ciclo": "Maternal I", "Turma": "Maternal I 1", "Disciplina": "Linguagem Verbal", "Professor": "Ana Beatriz Santos Oliveira"},
+        {"Ciclo": "Maternal I", "Turma": "Maternal I 1", "Disciplina": "Linguagem Matemática", "Professor": "Ana Beatriz Santos Oliveira"},
+        {"Ciclo": "Maternal I", "Turma": "Maternal I 1", "Disciplina": "Individuo e Sociedade", "Professor": "Ana Beatriz Santos Oliveira"},
         {"Ciclo": "Maternal I", "Turma": "Maternal I 1", "Disciplina": "Artes", "Professor": ""},
         {"Ciclo": "Maternal I", "Turma": "Maternal I 1", "Disciplina": "Educação Física", "Professor": ""},
     ]

@@ -8221,7 +8221,17 @@ if app_mode_regular == "📖 Planejamento Curricular":
             df_geral = safe_read("Planejamento", ["id", "Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao", "Status", "Observacoes"])
             
             if not df_geral.empty:
-                df_geral['Status'] = df_geral['Status'].fillna('Aguardando')
+                # =========================================================
+                # CORREÇÃO AQUI: Blindagem para evitar o KeyError
+                # =========================================================
+                if 'Status' not in df_geral.columns:
+                    df_geral['Status'] = 'Aguardando'
+                else:
+                    df_geral['Status'] = df_geral['Status'].fillna('Aguardando')
+                    
+                if 'Observacoes' not in df_geral.columns:
+                    df_geral['Observacoes'] = ''
+                # =========================================================
                 
                 status_filtro = st.radio("Filtrar por Status:", ["Todos", "Aguardando", "Correção", "Validado"], horizontal=True)
                 

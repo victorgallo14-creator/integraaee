@@ -7984,12 +7984,11 @@ if app_mode_regular == "📖 Planejamento Curricular":
                         # ==========================================================
                         # 1. SALVAR NO BANCO DE DADOS (SUPABASE)
                         # ==========================================================
-                        df_plan = safe_read("Planejamento", ["Data", "Professor", "Turma", "Componente", "Objetivos", "Estrategias", "Recursos", "Avaliacao"])
-                        
                         lista_obj_texto = " | ".join([f"({c['tipo']}) {c['especifico']}" for c in st.session_state.plan_conteudos])
                         turmas_juntas = f"{f_data['ano']} ({', '.join(f_data['turmas'])})"
                         
-                        novo_reg = pd.DataFrame([{
+                        # Montamos apenas o dicionário com a linha nova
+                        novo_reg = {
                             "Data": get_brazil_time().strftime("%d/%m/%Y"),
                             "Professor": f_data['professor'],
                             "Turma": turmas_juntas,
@@ -7998,10 +7997,20 @@ if app_mode_regular == "📖 Planejamento Curricular":
                             "Estrategias": f_data['sit'],
                             "Recursos": f_data['rec'],
                             "Avaliacao": "Ver detalhamento no PDF gerado"
-                        }])
+                        }
                         
-                        df_total = pd.concat([df_plan, novo_reg], ignore_index=True)
-                        salvou_banco = safe_update("Planejamento", df_total)
+                        # Inserimos a linha diretamente no Supabase
+                        try:
+                            # Se você tiver acesso direto ao cliente do supabase no arquivo:
+                            supabase.table("Planejamento").insert(novo_reg).execute()
+                            salvou_banco = True
+                            
+                            # OBS: Se o cliente supabase não estiver importado aqui, mas você tiver
+                            # uma função no seu arquivo de banco de dados para inserir (ex: safe_insert),
+                            # substitua a linha acima por: salvou_banco = safe_insert("Planejamento", novo_reg)
+                        except Exception as e:
+                            st.error(f"Erro ao inserir registro no Supabase: {e}")
+                            salvou_banco = False
                         
                         # ==========================================================
                         # 2. GERAR PDF E WORD

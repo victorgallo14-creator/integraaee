@@ -256,6 +256,42 @@ def delete_student(student_name):
     except Exception as e:
         st.error(f"Erro ao excluir: {e}")
         return False
+
+
+def load_carometro_db():
+    """Carrega todos os registros da nova tabela Carometro"""
+    try:
+        response = supabase.table("Carometro").select("*").execute()
+        return pd.DataFrame(response.data)
+    except Exception as e:
+        st.error(f"Erro ao carregar Carômetro: {e}")
+        return pd.DataFrame()
+
+def save_carometro_entry(nome, turma, foto_b64):
+    """Salva ou atualiza um aluno na tabela Carometro"""
+    try:
+        # Tenta encontrar se o aluno já existe nessa turma para atualizar
+        existente = supabase.table("Carometro").select("id").eq("nome", nome).eq("turma", turma).execute()
+        
+        dados = {"nome": nome, "turma": turma, "foto_base64": foto_b64}
+        
+        if existente.data:
+            id_reg = existente.data[0]['id']
+            supabase.table("Carometro").update(dados).eq("id", id_reg).execute()
+        else:
+            supabase.table("Carometro").insert(dados).execute()
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar no Carômetro: {e}")
+        return False
+
+def delete_carometro_entry(id_reg):
+    """Remove um registro da tabela Carometro"""
+    try:
+        supabase.table("Carometro").delete().eq("id", id_reg).execute()
+        return True
+    except Exception:
+        return False
 # --- FIM DAS FUNÇÕES DE BANCO DE DADOS ---
 
 
@@ -1033,7 +1069,7 @@ with st.sidebar:
     elif modulo_atuacao == "🏫 Ensino Regular":
         st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
         
-        opcoes_regular = ["💻 Agendamento Informática", "📝 Nova Ata de Conselho", "📂 Histórico de Atas", "📖 Planejamento Curricular"]
+        opcoes_regular = ["🖼️ Carômetro Escolar", "💻 Agendamento Informática", "📝 Nova Ata de Conselho", "📂 Histórico de Atas", "📖 Planejamento Curricular"]
         
         if st.session_state.get('usuario_nome') == "José Victor Souza Gallo":
             opcoes_regular.append("⚙️ Configurações")
@@ -8445,3 +8481,79 @@ if app_mode_regular == "💾 Cofre de Segurança":
                 )
         except Exception:
             pass # Apenas esconde o botão se o banco estiver indisponível no momento
+
+
+# ==============================================================================
+# MÓDULO EXCLUSIVO: ABA CARÔMETRO (ENSINO REGULAR)
+# ==============================================================================
+elif app_mode_regular == "🖼️ Carômetro Escolar":
+    st.markdown('<div class="header-box"><div class="header-title">🖼️ Aba Carômetro</div></div>', unsafe_allow_html=True)
+    st.info("Esta aba é exclusiva do Ensino Regular e utiliza uma base de dados separada.")
+
+    turmas_escola = [
+        "B1-1", "B2-1", "B2-2", "M1-1", "M2-1", "M2-2",
+        "ETAPA 1-1", "ETAPA 1-2", "ETAPA 1-3",
+        "ETAPA 2-1", "ETAPA 2-2", "ETAPA 2-3",
+        "1º ANO 1", "1º ANO 2", "1º ANO 3", "2º ANO 1", "2º ANO 2", "2º ANO 3",
+        "3º ANO 1", "3º ANO 2", "3º ANO 3", "4º ANO 1", "4º ANO 2", "4º ANO 3",
+        "5º ANO 1", "5º ANO 2", "5º ANO 3",
+        "BILÍNGUE 1", "BILÍNGUE 2", "BILÍNGUE 3"
+    ]
+
+    turma_sel = st.selectbox("Selecione a Turma:", ["-- Escolha --"] + turmas_escola)
+
+    if turma_sel != "-- Escolha --":
+        # Carrega apenas da tabela 'Carometro'
+        df_caro = load_carometro_db()
+        
+        # Filtro de Turma
+        if not df_caro.empty:
+            df_turma = df_caro[df_caro['turma'] == turma_sel].sort_values(by="nome")
+        else:
+            df_turma = pd.DataFrame()
+
+        # Formulário para adicionar aluno novo nesta tabela
+        with st.expander(f"➕ Cadastrar Aluno em {turma_sel}"):
+            with st.form("add_carometro"):
+                n_nome = st.text_input("Nome Completo:").upper()
+                n_foto = st.file_uploader("Foto:", type=["jpg", "png", "jpeg"])
+                if st.form_submit_button("Salvar na Aba Carômetro"):
+                    if n_nome:
+                        b64 = None
+                        if n_foto:
+                            from PIL import Image
+                            import io, base64
+                            img = Image.open(n_foto).convert('RGB')
+                            img.thumbnail((400, 500))
+                            buf = io.BytesIO()
+                            img.save(buf, format="JPEG", quality=80)
+                            b64 = base64.b64encode(buf.getvalue()).decode()
+                        
+                        if save_carometro_entry(n_nome, turma_sel, b64):
+                            st.success("Salvo com sucesso!")
+                            time.sleep(1)
+                            st.rerun()
+                    else:
+                        st.error("Nome é obrigatório.")
+
+        st.divider()
+
+        # Exibição da Grade
+        if df_turma.empty:
+            st.warning(f"Nenhum aluno encontrado na turma {turma_sel}.")
+        else:
+            cols = st.columns(5)
+            for idx, row in enumerate(df_turma.itertuples()):
+                with cols[idx % 5]:
+                    with st.container(border=True):
+                        st.markdown(f"<div style='font-size:10px; font-weight:bold; text-align:center; height:30px;'>{row.nome}</div>", unsafe_allow_html=True)
+                        
+                        if row.foto_base64:
+                            st.markdown(f'<img src="data:image/jpeg;base64,{row.foto_base64}" style="width:100%; border-radius:5px;">', unsafe_allow_html=True)
+                        else:
+                            st.markdown("<div style='text-align:center; font-size:40px; padding:20px; background:#f0f2f6; border-radius:5px;'>👤</div>", unsafe_allow_html=True)
+                        
+                        # Opções individuais
+                        if st.button("🗑️", key=f"del_{row.id}"):
+                            if delete_carometro_entry(row.id):
+                                st.rerun()

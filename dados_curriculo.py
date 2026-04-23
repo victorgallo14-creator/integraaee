@@ -1,6 +1,71 @@
 # ARQUIVO: dados_curriculo.py
 # Baseado INTEGRALMENTE nas tabelas oficiais do Currículo Fundamental e Infantil Linguagens e Tecnologias (2025)
 
+# ==============================================================================
+# VARIÁVEIS DE LIBRAS (NIVELAMENTO)
+# ==============================================================================
+LIBRAS_INFANTIL = [
+    {
+        "eixo": "LIBRAS",
+        "geral": "Comunicação Visual e Empatia: Atenção Visual e Cultura",
+        "especifico": "- Como chamar a atenção de forma adequada (toque suave no ombro/braço, acenar no campo de visão).\n- Contato visual (olho no olho) sustentado durante as brincadeiras e momentos de fala/sinalização na roda.",
+        "objetivo": "Reconhecer a Libras como a lingua natural da comunidade surda, desenvolvendo atitudes de inclusão e respeito diário.",
+        "trimestre": "1º, 2º e 3º Trimestres"
+    },
+    {
+        "eixo": "LIBRAS",
+        "geral": "Identidade e Sobrevivência: Sinais Iniciais e Necessidades",
+        "especifico": "- Identidade: Sinal do nome, eu, você, ele, meu, seu.\n- Fisiologia: Água, banheiro, fome, sede, dor, sono, frio, calor, xixi, cocô.\n- Saudações: Oi, tchau, tudo bem?",
+        "objetivo": "Desenvolver a coordenação motora para aprender a soletração (alfabeto manual) e cumprimentos básicos completos.",
+        "trimestre": "1º Trimestre"
+    },
+    {
+        "eixo": "LIBRAS",
+        "geral": "Rotina Conjunta e Emoções: Convívio, Brincar e O Tempo",
+        "especifico": "- Ações da rotina escolar: Brincar, comer, lanchar, sentar, levantar, deitar, dividir, esperar, fazer fila, guardar, pintar, desenhar, correr, pular, cair.\n- Emoções e Sensações: Feliz, triste, chorar, rir, bravo, assustado, surpreso, com nojo, cansado, calmo, vergonha.\n- Brinquedos e Parque: Bola, boneca, carrinho, urso, bloco de montar, escorregador, balanço, areia.\n- Clima (Básico): Sol, chuva, vento, nuvem",
+        "objetivo": "Estabelecer diálogos curtos para iniciar conversas com colegas surdos e reconhecer o ambiente escolar em detalhes.",
+        "trimestre": "2º Trimestre"
+    },
+    {
+        "eixo": "LIBRAS",
+        "geral": "Vocabulário Base Lúdico: Acolhimento, Natureza e Alimentação",
+        "especifico": "- Cortesia: Abraço, beijo, amigo, ajudar, desculpa, por favor, obrigado, de nada, emprestar.\n- Animais (Estimação/Selvagens/Jardim): Cachorro, gato, peixe, passarinho, borboleta, formiga, sapo, leão, macaco, elefante, girafa, cobra, cavalo, vaca, porco.\n- Alimentos e Bebidas: Maçã, banana, uva, laranja, melancia, leite, suco, água, pão, biscoito/bolacha, bolo, carne, arroz, feijão.\n- Cores: Azul, amarelo, vermelho, verde, rosa, roxo, laranja, branco, preto",
+        "objetivo": "Formar um repertório lexical básico e emergencial para o convívio familiar, expressando ações comuns e cores.",
+        "trimestre": "3º Trimestre"
+    }
+    ]
+
+LIBRAS_FUNDAMENTAL = [
+    {
+        "eixo": "LIBRAS",
+        "geral": "Cultura Surda e Comunicação Inclusiva: Prática Bilingue e Quebra de Barreiras",
+        "especifico": "- Diferença entre surdo e deficiente auditivo. Acessibilidade.\n- Uso contínuo do espaço de sinalização e contato visual.\n- Prática do 'desligamento sonoro' (sinalizar sem usar a Voz).",
+        "objetivo": "Reconhecer a Libras como língua natural da comunidade surda, desenvolvendo respeito e utilizando o espaço visual adequadamente",
+        "trimestre": "1º, 2º e 3º Trimestres"
+    },
+    {
+        "eixo": "LIBRAS",
+        "geral": "Alfabeto, Numerais, Pronomes e Apresentação: Fundamentos da Língua",
+        "especifico": "- Alfabeto Manual completo (A-Z).\n- Numerais de 0 a 50 (diferenciando cardinais, quantitativos e ordinais).\n- Pronomes: Eu, você, ele/ela, nós, eles/elas, meu, seu.\n- Apresentação: Qual o seu nome? Seu sinal? Quantos anos? Onde você mora? Tudo bem?\n- Saudações: Bom dia, boa tarde, boa noite, com licença, por favor, obrigado, desculpa",
+        "objetivo": "Desenvolver a soletração (alfabeto manual), numerais, pronomes e estabelecer diálogos básicos de apresentação.",
+        "trimestre": "1º Trimestre"
+    },
+    {
+        "eixo": "LIBRAS",
+        "geral": "Contexto Escolar, Interrogação e Verbos de Ação: Escola, Dúvidas e Verbos",
+        "especifico": "- Escola e Materiais: Escola, sala de aula, pátio, banheiro, diretoria, biblioteca, lápis, borracha, caneta, caderno, livro, mochila, tesoura, cola, régua.\n- Interrogação: Quem? O que? Onde? Quando? Qual? Como? Por que? Quantos?\n- Verbos (Ação/Estado): Aprender, estudar, ler, escrever, entender, não entender, perguntar, responder, saber, não saber, ter, não ter, querer, não querer.",
+        "objetivo": "Estruturar o vocabulário escolar em detalhes, utilizar pronomes interrogativos e expressar verbos de ação e estado.",
+        "trimestre": "2º Trimestre"
+    },
+    {
+        "eixo": "LIBRAS",
+        "geral": "Família, Vestuário, Transportes e Calendário: Sociedade e Tempo",
+        "especifico": "\n- Família e Pessoas: Mãe, pai, filho(a), irmão(ã), avó, avô, tio(a), primo(a), homem, mulher, criança, bebê, jovem, idoso.\n- Cores: Azul, amarelo, vermelho, verde, preto, branco, cinza, marrom.\n- Vestuário: Roupa, calça, blusa, camisa, saia, vestido, sapato, tênis, meia, boné.\n- Transportes: Carro, ônibus, bicicleta, moto, caminhão, avião.\n- Calendário: Dias da semana (Segunda a Domingo).",
+        "objetivo": "Formar um repertório lexical robusto envolvendo o convívio familiar, vestuário, cores, meios de transporte e calendário.",
+        "trimestre": "3º Trimestre"
+    }
+]
+
 CURRICULO_DB = {
     # ==============================================================================
     # EDUCAÇÃO INFANTIL - MATERNAL II

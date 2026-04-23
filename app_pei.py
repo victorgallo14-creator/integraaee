@@ -8487,8 +8487,9 @@ if app_mode_regular == "💾 Cofre de Segurança":
 # MÓDULO EXCLUSIVO: ABA CARÔMETRO (ENSINO REGULAR)
 # ==============================================================================
 elif app_mode_regular == "🖼️ Carômetro Escolar":
-    st.markdown('<div class="header-box"><div class="header-title">🖼️ Aba Carômetro</div></div>', unsafe_allow_html=True)
-    st.info("Esta aba é exclusiva do Ensino Regular e utiliza uma base de dados separada.")
+    st.markdown('<div class="header-box"><div class="header-title">🖼️ Carômetro Escolar</div></div>', unsafe_allow_html=True)
+    st.markdown("Visualize as turmas. A foto atualizada aqui reflete no sistema.")
+    st.divider()
 
     turmas_escola = [
         "B1-1", "B2-1", "B2-2", "M1-1", "M2-1", "M2-2",
@@ -8503,57 +8504,69 @@ elif app_mode_regular == "🖼️ Carômetro Escolar":
     turma_sel = st.selectbox("Selecione a Turma:", ["-- Escolha --"] + turmas_escola)
 
     if turma_sel != "-- Escolha --":
-        # Carrega apenas da tabela 'Carometro'
+        # Carrega os alunos do banco de dados do Carômetro
         df_caro = load_carometro_db()
         
-        # Filtro de Turma
         if not df_caro.empty:
             df_turma = df_caro[df_caro['turma'] == turma_sel].sort_values(by="nome")
         else:
             df_turma = pd.DataFrame()
 
-        # Formulário para adicionar aluno novo nesta tabela
-        with st.expander(f"➕ Cadastrar Aluno em {turma_sel}"):
-            with st.form("add_carometro"):
-                n_nome = st.text_input("Nome Completo:").upper()
-                n_foto = st.file_uploader("Foto:", type=["jpg", "png", "jpeg"])
-                if st.form_submit_button("Salvar na Aba Carômetro"):
-                    if n_nome:
-                        b64 = None
-                        if n_foto:
-                            from PIL import Image
-                            import io, base64
-                            img = Image.open(n_foto).convert('RGB')
-                            img.thumbnail((400, 500))
-                            buf = io.BytesIO()
-                            img.save(buf, format="JPEG", quality=80)
-                            b64 = base64.b64encode(buf.getvalue()).decode()
-                        
-                        if save_carometro_entry(n_nome, turma_sel, b64):
-                            st.success("Salvo com sucesso!")
-                            time.sleep(1)
-                            st.rerun()
-                    else:
-                        st.error("Nome é obrigatório.")
-
-        st.divider()
-
-        # Exibição da Grade
         if df_turma.empty:
-            st.warning(f"Nenhum aluno encontrado na turma {turma_sel}.")
+            st.warning(f"⚠️ Nenhum aluno encontrado na turma {turma_sel}.")
         else:
+            # 1. CONFIGURAÇÃO DA GRADE (Idêntico ao AEE)
             cols = st.columns(5)
-            for idx, row in enumerate(df_turma.itertuples()):
-                with cols[idx % 5]:
+            idx_col = 0
+            
+            # CSS EXATAMENTE IGUAL AO DO AEE
+            st.markdown("""
+                <style>
+                .caro-foto-frame { height: 160px; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px; background-color: #f8fafc; margin: 10px 0; border: 1px dashed #cbd5e1; }
+                .caro-nome { font-weight: 800; color: #1e3a8a; font-size: 11px; height: 35px; display: flex; align-items: center; justify-content: center; text-align: center; text-transform: uppercase; line-height: 1.1; overflow: hidden; }
+                .caro-prof { font-size: 10px; color: #64748b; line-height: 1.2; margin-bottom: 8px; text-align: center; height: 20px; overflow: hidden; }
+                .stFileUploader section { padding: 0 !important; }
+                </style>
+            """, unsafe_allow_html=True)
+
+            for row in df_turma.itertuples():
+                with cols[idx_col]:
                     with st.container(border=True):
-                        st.markdown(f"<div style='font-size:10px; font-weight:bold; text-align:center; height:30px;'>{row.nome}</div>", unsafe_allow_html=True)
+                        st.markdown(f'<div class="caro-nome">{row.nome}</div>', unsafe_allow_html=True)
                         
+                        # Verifica se tem foto
                         if row.foto_base64:
-                            st.markdown(f'<img src="data:image/jpeg;base64,{row.foto_base64}" style="width:100%; border-radius:5px;">', unsafe_allow_html=True)
+                            img_html = f"<img src='data:image/jpeg;base64,{row.foto_base64}' style='width: 100%; height: 100%; object-fit: cover;'>"
                         else:
-                            st.markdown("<div style='text-align:center; font-size:40px; padding:20px; background:#f0f2f6; border-radius:5px;'>👤</div>", unsafe_allow_html=True)
+                            img_html = "<div style='font-size: 40px; opacity: 0.2;'>👤</div>"
+                            
+                        st.markdown(f'<div class="caro-foto-frame">{img_html}</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="caro-prof"><b>Turma:</b> {row.turma}</div>', unsafe_allow_html=True)
                         
-                        # Opções individuais
-                        if st.button("🗑️", key=f"del_{row.id}"):
-                            if delete_carometro_entry(row.id):
-                                st.rerun()
+                        # Botão de upload idêntico ao AEE (Label "collapsed" para ficar clean)
+                        key_up = f"caro_up_reg_{row.id}"
+                        new_file = st.file_uploader("Trocar", type=["jpg", "png", "jpeg"], key=key_up, label_visibility="collapsed")
+                        
+                        if new_file:
+                            try:
+                                from PIL import Image
+                                import io, base64, time
+                                
+                                img = Image.open(new_file)
+                                if img.mode != 'RGB': img = img.convert('RGB')
+                                img.thumbnail((400, 500))
+                                buf = io.BytesIO()
+                                img.save(buf, format="JPEG", quality=85)
+                                nova_foto_b64 = base64.b64encode(buf.getvalue()).decode()
+                                
+                                # Salva a nova foto no banco de dados usando a função do carômetro
+                                if save_carometro_entry(row.nome, row.turma, nova_foto_b64):
+                                    st.success("✅ Foto atualizada!")
+                                    time.sleep(1)
+                                    st.rerun()
+                                else:
+                                    st.error("Erro ao atualizar banco.")
+                            except Exception as e_up:
+                                st.error(f"Erro na imagem: {e_up}")
+
+                idx_col = (idx_col + 1) % 5

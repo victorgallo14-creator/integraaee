@@ -64,7 +64,7 @@ LIBRAS_FUNDAMENTAL = [
         "objetivo": "Formar um repertório lexical robusto envolvendo o convívio familiar, vestuário, cores, meios de transporte e calendário.",
         "trimestre": "3º Trimestre"
     }
-]
+    ]
 
 CURRICULO_DB = {
     # ==============================================================================

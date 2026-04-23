@@ -7774,7 +7774,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
     tab_realizar, tab_historico = st.tabs(["📝 Realizar Planejamento", "📂 Meus Planejamentos"])
 
     # -------------------------------------------------------------------------
-    # ABA 1: FAZER O PLANEAMENTO (PASSOS 1, 2 E 3)
+    # ABA 1: FAZER O PLANEJAMENTO (PASSOS 1, 2 E 3)
     # -------------------------------------------------------------------------
     with tab_realizar:
         progresso = {1: 33, 2: 66, 3: 100}
@@ -7848,66 +7848,120 @@ if app_mode_regular == "📖 Planejamento Curricular":
             st.markdown(f"### 📖 Matriz Curricular: **{ano_sel}**")
             
             dados = CURRICULO_DB.get(ano_sel, {})
-            infantil_anos = ["Maternal I"] 
             
-            if ano_sel in infantil_anos:
+            # 1. Definir qual lista de Libras usar (Direto das variáveis externas)
+            lista_libras = []
+            if ano_sel in ["Etapa I", "Etapa II"]:
+                lista_libras = LIBRAS_INFANTIL
+            elif ano_sel in ["1º Ano", "2º Ano", "3º Ano", "4º Ano", "5º Ano"]:
+                lista_libras = LIBRAS_FUNDAMENTAL
+
+            # 2. Configurar as Abas e Categorias
+            titulos = []
+            chaves = []
+            
+            if ano_sel == "Maternal I":
                 titulos = ["🗣️ Linguagem Verbal", "🔢 Linguagem Matemática", "👥 Indivíduo e Sociedade"]
                 chaves = ["LINGUAGEM VERBAL", "LINGUAGEM MATEMÁTICA", "INDIVÍDUO E SOCIEDADE"]
-                
-                # Prepara dinamicamente caso Libras seja adicionado ao Maternal no futuro
-                if "LIBRAS" in dados:
-                    titulos.append("🤟 Libras")
-                    chaves.append("LIBRAS")
-                    
-                abas = st.tabs(titulos)
+            elif ano_sel == "Maternal II":
+                # Caso do Maternal II (Sem Libras nas Diretrizes Iniciais)
+                titulos = ["💻 Cultura Digital", "📱 Mundo Digital", "🧩 Pensamento Computacional", "🗣️ Inglês: Oralidade"]
+                chaves = ["CULTURA DIGITAL", "MUNDO DIGITAL", "PENSAMENTO COMPUTACIONAL", "INGLÊS: ORALIDADE"]
             else:
-                # Separa os conteúdos filtrando "LIBRAS" das outras categorias
-                op_tec = [k for k, v in dados.items() if "INGLÊS" not in k.upper() and "LIBRAS" not in k.upper() and (v and "ORALIDADE" not in v[0].get('eixo', '').upper())]
-                op_ing = [k for k in dados.keys() if k not in op_tec and "LIBRAS" not in k.upper()]
-                op_libras = ["LIBRAS"] if "LIBRAS" in dados else []
+                # Separa as disciplinas de Tecnologia e de Inglês dinamicamente
+                op_tec = [k for k in dados.keys() if "INGLÊS" not in k.upper()]
+                op_ing = [k for k in dados.keys() if "INGLÊS" in k.upper()]
                 
-                titulos = ["💻 Tecnologia & Cultura Digital", "🗣️ Língua Inglesa"]
-                chaves = [op_tec, op_ing]
-                
-                # Adiciona a aba de Libras apenas se houver conteúdo cadastrado
-                if op_libras:
-                    titulos.append("🤟 LIBRAS (Nivelamento)")
-                    chaves.append(op_libras)
-                    
-                abas = st.tabs(titulos)
+                if op_tec:
+                    titulos.append("💻 Tecnologia & Cultura Digital")
+                    chaves.append(op_tec)
+                if op_ing:
+                    titulos.append("🗣️ Língua Inglesa")
+                    chaves.append(op_ing)
 
+            # Adiciona a aba de Libras dinamicamente, se houver currículo para a série
+            if lista_libras:
+                titulos.append("🤟 LIBRAS (Nivelamento)")
+                chaves.append("ABA_LIBRAS")
+
+            abas = st.tabs(titulos)
+
+            # 3. Construir o conteúdo dentro de cada Aba
             for idx, aba in enumerate(abas):
                 with aba:
-                    if ano_sel in infantil_anos:
-                        area = chaves[idx]
-                        if area in dados:
+                    categoria = chaves[idx]
+                    
+                    # -------- LÓGICA EXCLUSIVA PARA LIBRAS --------
+                    if categoria == "ABA_LIBRAS":
+                        c1, c2 = st.columns(2)
+                        opcoes_g = sorted(list(set([it['geral'] for it in lista_libras])))
+                        g_sel = c1.selectbox("EIXO / TÓPICO (Libras)", opcoes_g, key=f"lib_g_{idx}")
+                        
+                        itens_filtrados = [it for it in lista_libras if it['geral'] == g_sel]
+                        opcoes_e = [it['especifico'] for it in itens_filtrados]
+                        e_sel = c2.selectbox("CONTEÚDO / PRÁTICA", opcoes_e, key=f"lib_e_{idx}")
+                        
+                        sel = next((it for it in itens_filtrados if it['especifico'] == e_sel), None)
+                        if sel:
+                            st.info(f"**Objetivo:** {sel['objetivo']}")
+                            if st.button("Adicionar à Lista ➕", key=f"btn_lib_{idx}"):
+                                st.session_state.plan_conteudos.append({
+                                    'tipo': 'Libras', 
+                                    'eixo': sel['eixo'], 
+                                    'geral': g_sel, 
+                                    'especifico': e_sel, 
+                                    'objetivo': sel['objetivo']
+                                })
+                                st.toast("Conteúdo de Libras adicionado!")
+                                
+                    # -------- LÓGICA PARA MATERNAL I E II --------
+                    elif ano_sel in ["Maternal I", "Maternal II"]:
+                        # Para o Maternal II as chaves são diretas, tratamos da mesma forma que o I
+                        if categoria in dados:
                             c1, c2 = st.columns(2)
-                            opcoes_g = sorted(list(set([it['geral'] for it in dados[area]])))
-                            g_sel = c1.selectbox(f"CONTEÚDO GERAL", opcoes_g, key=f"inf_g_{idx}")
-                            itens_filtrados = [it for it in dados[area] if it['geral'] == g_sel]
+                            opcoes_g = sorted(list(set([it['geral'] for it in dados[categoria]])))
+                            g_sel = c1.selectbox("CONTEÚDO GERAL", opcoes_g, key=f"inf_g_{idx}")
+                            
+                            itens_filtrados = [it for it in dados[categoria] if it['geral'] == g_sel]
                             opcoes_e = [it['especifico'] for it in itens_filtrados]
-                            e_sel = c2.selectbox(f"CONTEÚDO ESPECÍFICO", opcoes_e, key=f"inf_e_{idx}")
+                            e_sel = c2.selectbox("CONTEÚDO ESPECÍFICO", opcoes_e, key=f"inf_e_{idx}")
+                            
                             sel = next((it for it in itens_filtrados if it['especifico'] == e_sel), None)
                             if sel:
                                 st.info(f"**Objetivo:** {sel['objetivo']}")
                                 if st.button("Adicionar à Lista ➕", key=f"btn_inf_{idx}"):
-                                    st.session_state.plan_conteudos.append({'tipo': area, 'eixo': sel['eixo'], 'geral': g_sel, 'especifico': e_sel, 'objetivo': sel['objetivo']})
+                                    st.session_state.plan_conteudos.append({
+                                        'tipo': categoria, 
+                                        'eixo': sel['eixo'], 
+                                        'geral': g_sel, 
+                                        'especifico': e_sel, 
+                                        'objetivo': sel['objetivo']
+                                    })
                                     st.toast("Item adicionado!")
+                                    
+                    # -------- LÓGICA PARA AS OUTRAS DISCIPLINAS --------
                     else:
-                        filtros = chaves[idx]
+                        filtros = categoria # lista de chaves (ex: ['CULTURA DIGITAL', 'MUNDO DIGITAL'])
                         if filtros:
                             c1, c2 = st.columns(2)
                             g = c1.selectbox("EIXO / TÓPICO", filtros, key=f"f_g_{idx}")
                             e = c2.selectbox("CONTEÚDO / PRÁTICA", [it['especifico'] for it in dados[g]], key=f"f_e_{idx}")
+                            
                             sel = next((it for it in dados[g] if it['especifico'] == e), None)
                             if sel:
                                 st.info(f"**Objetivo:** {sel['objetivo']}")
                                 if st.button("Adicionar à Lista ➕", key=f"btn_f_{idx}"):
-                                    # Mapeia dinamicamente o título a ser exibido no resumo baseado na aba escolhida
-                                    label_tipo = "Tecnologia" if idx == 0 else "Inglês" if idx == 1 else "Libras"
-                                    st.session_state.plan_conteudos.append({'tipo': label_tipo, 'eixo': sel['eixo'], 'geral': g, 'especifico': e, 'objetivo': sel['objetivo']})
+                                    label_tipo = "Tecnologia" if idx == 0 else "Inglês"
+                                    st.session_state.plan_conteudos.append({
+                                        'tipo': label_tipo, 
+                                        'eixo': sel['eixo'], 
+                                        'geral': g, 
+                                        'especifico': e, 
+                                        'objetivo': sel['objetivo']
+                                    })
                                     st.toast("Item adicionado!")
 
+            # Exibe os conteúdos selecionados
             if st.session_state.plan_conteudos:
                 st.markdown("#### Conteúdos Selecionados")
                 for i, it in enumerate(st.session_state.plan_conteudos):
@@ -8022,10 +8076,6 @@ if app_mode_regular == "📖 Planejamento Curricular":
                             # Se você tiver acesso direto ao cliente do supabase no arquivo:
                             supabase.table("Planejamento").insert(novo_reg).execute()
                             salvou_banco = True
-                            
-                            # OBS: Se o cliente supabase não estiver importado aqui, mas você tiver
-                            # uma função no seu arquivo de banco de dados para inserir (ex: safe_insert),
-                            # substitua a linha acima por: salvou_banco = safe_insert("Planejamento", novo_reg)
                         except Exception as e:
                             st.error(f"Erro ao inserir registro no Supabase: {e}")
                             salvou_banco = False
@@ -8125,7 +8175,6 @@ if app_mode_regular == "📖 Planejamento Curricular":
                                 st.error(f"Erro ao atualizar no banco de dados: {e}")
 
                 # --- EXCLUSÃO ---
-                # Usamos um botão simples fora do form para a exclusão
                 if st.button("🗑️ Apagar este planejamento", type="secondary", use_container_width=True):
                     try:
                         # Deleta o registro específico no Supabase usando o ID

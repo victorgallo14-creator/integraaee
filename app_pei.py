@@ -7397,7 +7397,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
         with t_conf[1]:
             st.info("💡 Escolha a Etapa/Maternal e defina os conteúdos cobrados para aquela idade.")
             
-            etapa_edit = st.selectbox("Selecione a Etapa para editar os conteúdos:", ["1ª Etapa", "2ª Etapa", "Maternal II"])
+            etapa_edit = st.selectbox("Selecione a Etapa para editar os conteúdos:", ["1ª Etapa", "2ª Etapa", "Maternal II", "Maternal I"])
             criterios_tela = get_criterios_infantil(etapa_edit)
             
             novo_texto_base_inf = st.text_area("Texto Base da Síntese Avaliativa (Infantil)", value=texto_base_ata_inf, height=120)

@@ -7715,6 +7715,63 @@ elif app_mode and "Carômetro" in app_mode:
 
             idx_col = (idx_col + 1) % 5
 
+    # ==============================================================================
+# MÓDULO: PLANEJAMENTO CURRICULAR E SEMANAL (SISTEMA PLANEJAR COMPLETO)
+# ==============================================================================
+if app_mode_regular == "📖 Planejamento Curricular":
+    
+    # --- CONFIGURAÇÕES DE EMAIL ---
+    EMAIL_REMETENTE = "coord.rafaelaffonsoleite@gmail.com" 
+    SENHA_APP_GOOGLE = "olsi hriz zocu oiyt" 
+    EMAIL_COORDENACAO = "coord.rafaelaffonsoleite@gmail.com" 
+    
+    from dados_curriculo import CURRICULO_DB
+
+    # --- GESTÃO DE ESTADO ISOLADA PARA O MÓDULO ---
+    if 'plan_step' not in st.session_state: st.session_state.plan_step = 1
+    if 'plan_conteudos' not in st.session_state: st.session_state.plan_conteudos = []
+    if 'plan_config' not in st.session_state: st.session_state.plan_config = {}
+
+    def set_plan_step(s): st.session_state.plan_step = s
+
+    def clean(t): 
+        return t.encode('latin-1', 'replace').decode('latin-1') if t else ""
+        
+    def get_brazil_time():
+        fuso_br = timezone(timedelta(hours=-3))
+        return datetime.now(fuso_br)
+
+    def enviar_email_automatico(pdf_bytes, dados, nome_arquivo):
+        if "xxxx" in SENHA_APP_GOOGLE: return False, "Configuração de e-mail pendente."
+        try:
+            msg = MIMEMultipart()
+            msg['From'] = EMAIL_REMETENTE
+            msg['To'] = EMAIL_COORDENACAO
+            recipients = [EMAIL_COORDENACAO]
+            if dados.get('email_prof') and "@" in dados['email_prof']:
+                msg['Cc'] = dados['email_prof']
+                recipients.append(dados['email_prof'])
+            msg['Subject'] = f"Planejamento Entregue: {dados['professor']} - {dados['mes']}"
+            corpo = f"Olá,\n\nUm novo planejamento pedagógico foi gerado.\n\nDocente: {dados['professor']}\nAno/Turma: {dados['ano']} - {', '.join(dados['turmas'])}\nPeríodo: {dados['periodo']} ({dados['quinzena']})"
+            msg.attach(MIMEText(corpo, 'plain'))
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(pdf_bytes)
+            encoders.encode_base64(part)
+            part.add_header('Content-Disposition', f"attachment; filename= {nome_arquivo}.pdf")
+            msg.attach(part)
+            server = smtplib.SMTP('smtp.gmail.com', 587)
+            server.starttls()
+            server.login(EMAIL_REMETENTE, SENHA_APP_GOOGLE)
+            server.sendmail(EMAIL_REMETENTE, recipients, msg.as_string())
+            server.quit()
+            return True, "E-mail enviado com sucesso!"
+        except Exception as e:
+            return False, f"Falha no envio do e-mail: {str(e)}"
+
+    st.markdown('<div class="header-box"><div class="header-title">📖 Sistema Planejar Integrado</div></div>', unsafe_allow_html=True)
+    st.write("")
+    
+
     # =========================================================================
     # DEFINIÇÃO DE PERMISSÕES DA EQUIPA GESTORA
     # =========================================================================

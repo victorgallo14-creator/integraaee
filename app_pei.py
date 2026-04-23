@@ -611,6 +611,7 @@ def login():
                                     st.session_state.authenticated = True
                                     st.session_state.usuario_nome = nome_prof
                                     st.session_state.user_role = 'professor'
+                                    st.session_state.usuario_matricula = user_id_limpo
                                     authenticated_as_prof = True
                                     st.toast(f"Acesso Docente autorizado. Bem-vindo(a), {nome_prof}!", icon="🔓")
                                     time.sleep(1); st.rerun()

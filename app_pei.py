@@ -7768,7 +7768,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
     st.markdown('<div class="header-box"><div class="header-title">📖 Sistema Planejar Integrado</div></div>', unsafe_allow_html=True)
     st.write("")
     
-    # =========================================================================
+# =========================================================================
     # AQUI ESTÃO AS DUAS GRANDES ABAS DO SISTEMA
     # =========================================================================
     tab_realizar, tab_historico = st.tabs(["📝 Realizar Planejamento", "📂 Meus Planejamentos"])
@@ -7851,13 +7851,30 @@ if app_mode_regular == "📖 Planejamento Curricular":
             infantil_anos = ["Maternal I"] 
             
             if ano_sel in infantil_anos:
-                abas = st.tabs(["🗣️ Linguagem Verbal", "🔢 Linguagem Matemática", "👥 Indivíduo e Sociedade"])
+                titulos = ["🗣️ Linguagem Verbal", "🔢 Linguagem Matemática", "👥 Indivíduo e Sociedade"]
                 chaves = ["LINGUAGEM VERBAL", "LINGUAGEM MATEMÁTICA", "INDIVÍDUO E SOCIEDADE"]
+                
+                # Prepara dinamicamente caso Libras seja adicionado ao Maternal no futuro
+                if "LIBRAS" in dados:
+                    titulos.append("🤟 Libras")
+                    chaves.append("LIBRAS")
+                    
+                abas = st.tabs(titulos)
             else:
-                abas = st.tabs(["💻 Tecnologia & Cultura Digital", "🗣️ Língua Inglesa"])
-                op_tec = [k for k, v in dados.items() if "INGLÊS" not in k.upper() and (v and "ORALIDADE" not in v[0].get('eixo', '').upper())]
-                op_ing = [k for k in dados.keys() if k not in op_tec]
+                # Separa os conteúdos filtrando "LIBRAS" das outras categorias
+                op_tec = [k for k, v in dados.items() if "INGLÊS" not in k.upper() and "LIBRAS" not in k.upper() and (v and "ORALIDADE" not in v[0].get('eixo', '').upper())]
+                op_ing = [k for k in dados.keys() if k not in op_tec and "LIBRAS" not in k.upper()]
+                op_libras = ["LIBRAS"] if "LIBRAS" in dados else []
+                
+                titulos = ["💻 Tecnologia & Cultura Digital", "🗣️ Língua Inglesa"]
                 chaves = [op_tec, op_ing]
+                
+                # Adiciona a aba de Libras apenas se houver conteúdo cadastrado
+                if op_libras:
+                    titulos.append("🤟 LIBRAS (Nivelamento)")
+                    chaves.append(op_libras)
+                    
+                abas = st.tabs(titulos)
 
             for idx, aba in enumerate(abas):
                 with aba:
@@ -7886,7 +7903,8 @@ if app_mode_regular == "📖 Planejamento Curricular":
                             if sel:
                                 st.info(f"**Objetivo:** {sel['objetivo']}")
                                 if st.button("Adicionar à Lista ➕", key=f"btn_f_{idx}"):
-                                    label_tipo = "Tecnologia" if idx == 0 else "Inglês"
+                                    # Mapeia dinamicamente o título a ser exibido no resumo baseado na aba escolhida
+                                    label_tipo = "Tecnologia" if idx == 0 else "Inglês" if idx == 1 else "Libras"
                                     st.session_state.plan_conteudos.append({'tipo': label_tipo, 'eixo': sel['eixo'], 'geral': g, 'especifico': e, 'objetivo': sel['objetivo']})
                                     st.toast("Item adicionado!")
 
@@ -8014,12 +8032,14 @@ if app_mode_regular == "📖 Planejamento Curricular":
                         
                         # ==========================================================
                         # 2. GERAR PDF E WORD
+                        # ==========================================================
                         w_file = gerar_docx(f_data, st.session_state.plan_conteudos)
                         p_file = gerar_pdf(f_data, st.session_state.plan_conteudos)
                         nome_arq = f"Plan_{f_data['mes']}_{f_data['ano'].replace(' ','')}"
                         
                         # ==========================================================
                         # 3. ENVIAR E-MAIL
+                        # ==========================================================
                         if f_data.get('email_prof'):
                             sucesso_email, msg_email = enviar_email_automatico(p_file, f_data, nome_arq)
                             if sucesso_email: st.success(f"📧 {msg_email}")

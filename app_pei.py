@@ -170,20 +170,25 @@ def safe_update(worksheet_name, data):
         
         # 2. SEPARAÇÃO INTELIGENTE POR TABELA
         if worksheet_name == "Alunos":
-            # Lógica específica e blindada para os alunos
             df_to_save['id'] = df_to_save['nome'].astype(str).str.strip() + " (" + df_to_save['tipo_doc'].astype(str).str.strip() + ")"
             supabase.table(worksheet_name).delete().neq("nome", "FORCAR_LIMPEZA_TOTAL").execute()
             
         elif worksheet_name == "Atas_Conselho":
-            # Lógica específica para as atas
             supabase.table(worksheet_name).delete().neq("id_ata", "FORCAR_LIMPEZA_TOTAL").execute()
             
         elif worksheet_name in ["Recados", "Agenda"]:
-            # Lógica para os quadros de comunicação
             supabase.table(worksheet_name).delete().neq("Data", "FORCAR_LIMPEZA_TOTAL").execute()
             
+        elif worksheet_name == "Config_Ata":
+            # Removemos a coluna 'id' para evitar o erro "4.0" (float -> int) 
+            # O Supabase irá recriar os IDs automaticamente como inteiros perfeitos
+            if 'id' in df_to_save.columns:
+                df_to_save = df_to_save.drop(columns=['id'])
+            
+            # Limpamos a tabela para não duplicar dados
+            supabase.table(worksheet_name).delete().neq("chave", "FORCAR_LIMPEZA_TOTAL").execute()
+            
         else:
-            # Caso você crie outra tabela no futuro e use essa função
             pass
 
         # 3. Gravação no Banco de Dados
@@ -195,7 +200,6 @@ def safe_update(worksheet_name, data):
     except Exception as e:
         st.error(f"Erro crítico ao atualizar {worksheet_name}: {e}")
         return False
-
 def create_backup(df_atual):
     pass # Backups agora são gerenciados nativamente pela infraestrutura do Supabase
 

@@ -732,7 +732,7 @@ if st.session_state.authenticated:
         # Título alterado para <div> para não aparecer o ícone de link
         st.markdown("<div style='text-align: center; color: #1e293b; font-size: 32px; font-weight: bold; margin-bottom: 40px;'>Seja bem-vindo(a)! Escolha seu ambiente de trabalho:</div>", unsafe_allow_html=True)
         
-        col1, col2, col3, col4 = st.columns([1, 2, 2, 1])
+        col1, col2, col3, col4 = st.columns(4) # Alterado para 4 colunas
         
         # --- BOTÃO 1: ENSINO REGULAR (ESQUERDA) ---
         with col2:
@@ -760,6 +760,21 @@ if st.session_state.authenticated:
                 st.session_state.modulo_atuacao = "🧠 Educação Especial Inclusiva"
                 st.rerun()
                 
+        # --- BOTÃO 3: ADM (DIREITA) ---
+
+        with col4:
+            st.markdown(f"""
+                <div class="card" onclick="window.location.href='#administrativo'">
+                    <div style="font-size: 50px;">📂</div>
+                    <div class="card-title">Administrativo</div>
+                    <p style="font-size: 14px; color: #666;">Almoxarifado e Biblioteca</p>
+                </div>
+            """, unsafe_allow_html=True)
+            if st.button("Acessar Administrativo", key="btn_admin"):
+                st.session_state.app_mode = "📂 Administrativo"
+                st.rerun()
+
+        
         # st.stop() bloqueia o carregamento da sidebar até a pessoa clicar num botão
         st.stop()
 

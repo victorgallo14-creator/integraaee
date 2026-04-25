@@ -8604,16 +8604,16 @@ elif app_mode_regular == "🖼️ Carômetro Escolar":
 
                 idx_col = (idx_col + 1) % 5
 
-import uuid
-import time
-from datetime import datetime
 
-# ---------------------------------------------------------
+    # Leitura dos dados
+    df_estoque = safe_read("Almoxarifado_Estoque", ["id", "item", "quantidade", "categoria"])
+    df_pedidos = safe_read("Almoxarifado_Pedidos", ["id", "data", "professor", "item", "quantidade", "status"])
+    
+    # ---------------------------------------------------------
     # 🔒 CONTROLE DE ACESSO AS ABAS
     # ---------------------------------------------------------
+    MATRICULAS_GESTAO = ['8829405', '8011512', '8258411', '7047682', '88286861']
     
-    # Pega a matrícula do usuário logado no session_state 
-    # (Se a sua variável de login tiver outro nome, como 'usuario_login' ou 'matricula', troque abaixo)
     matricula_usuario_logado = st.session_state.get('usuario_matricula', '') 
     
     eh_gestao = matricula_usuario_logado in MATRICULAS_GESTAO

@@ -8919,191 +8919,183 @@ import requests
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
+import base64
 from datetime import datetime, timedelta
 
 # ==============================================================================
-# MÓDULO: SALA DE LEITURA (GESTÃO BIBLIOGRÁFICA)
+# MÓDULO: SALA DE LEITURA (GESTÃO BIBLIOGRÁFICA COM CARÔMETRO)
 # ==============================================================================
 if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sala de Leitura"]:
-    st.markdown('<div class="header-box"><div class="header-title">📚 Gestão de Acervo Bibliográfico</div></div>', unsafe_allow_html=True)
+    st.markdown('<div class="header-box"><div class="header-title">📚 Gestão de Acervo e Leitores</div></div>', unsafe_allow_html=True)
     
     if st.button("⬅️ Retornar ao Menu Principal", key="voltar_bib"):
         st.session_state.modulo_atuacao = None
         st.rerun()
 
-    # ---------------------------------------------------------
-    # 🔒 CONTROLE DE ACESSO E SEGURANÇA TÉCNICA
-    # ---------------------------------------------------------
-    MATRICULAS_GESTAO = ['8829405', '8011512', '8258411', '7047682', '88286861']
-    matricula_atual = str(st.session_state.get('usuario_matricula', '')).strip() 
-    eh_gestao = matricula_atual in MATRICULAS_GESTAO
-    usuario_nome = st.session_state.get('usuario_nome', 'Visitante')
+    # --- CARREGAMENTO DE DADOS ---
+    # Carrega alunos do Carômetro para servirem de base para os Leitores
+    df_carometro = load_carometro_db() 
+    if not df_carometro.empty:
+        df_carometro['nome_upper'] = df_carometro['nome'].str.upper()
+        df_carometro['display_leitor'] = df_carometro['nome_upper'] + " (" + df_carometro['turma'].str.upper() + ")"
+        lista_leitores = sorted(df_carometro['display_leitor'].tolist())
+    else:
+        lista_leitores = []
 
-    # Recuperação de dados via integração com base de dados
-    df_acervo = safe_read("Biblioteca_Acervo", ["id", "isbn", "titulo", "autor", "editora", "ano", "genero", "resumo", "capa_url", "cdd"])
+    # Dados das tabelas bibliográficas
+    df_acervo = safe_read("Biblioteca_Acervo", ["id", "isbn", "titulo", "autor", "resumo", "capa_url", "cdd"])
     df_exemplares = safe_read("Biblioteca_Exemplares", ["id", "id_acervo", "tombo", "status_conservacao", "disponivel"])
     df_emp = safe_read("Biblioteca_Emprestimos", ["id", "id_exemplar", "leitor", "data_saida", "data_prevista", "status", "renovacoes"])
-    df_reservas = safe_read("Biblioteca_Reservas", ["id", "id_acervo", "leitor", "data_reserva", "status"])
+    
+    # Segurança
+    MATRICULAS_GESTAO = ['8829405', '8011512', '8258411', '7047682', '88286861']
+    eh_gestao = str(st.session_state.get('usuario_matricula', '')).strip() in MATRICULAS_GESTAO
+    usuario_logado = st.session_state.get('usuario_nome', 'Visitante').upper()
 
-    # ---------------------------------------------------------
-    # INTERFACE DE ACESSO (PERFIS DISTINTOS)
-    # ---------------------------------------------------------
+    # --- INTERFACE DE NAVEGAÇÃO ---
     if eh_gestao:
-        tabs = st.tabs([
-            "🔍 Consulta de Acervo", 
-            "👤 Gestão de Leitores", 
-            "🔄 Circulação (Empréstimo/Devolução)", 
-            "🗃️ Catalogação Técnica (ISBN)", 
-            "📊 Indicadores e Auditoria"
-        ])
-        tab_vitrine, tab_perfil, tab_circ, tab_cat, tab_dash = tabs
+        tabs = st.tabs(["🔍 Consulta Acervo", "🔄 Circulação (Balcão)", "🗃️ Catalogação ISBN", "📊 Indicadores"])
+        tab_vitrine, tab_circ, tab_cat, tab_dash = tabs
     else:
-        tab_vitrine, tab_perfil = st.tabs(["🔍 Consulta de Acervo", "👤 Prontuário do Leitor"])
+        tab_vitrine, tab_perfil = st.tabs(["🔍 Consulta de Acervo", "👤 Meu Prontuário"])
 
     # =========================================================
-    # MÓDULO 1: PORTAL DO LEITOR / CONSULTA PÚBLICA
+    # 🔄 MÓDULO DE CIRCULAÇÃO (BALCÃO COM FOTO DO ALUNO)
+    # =========================================================
+    if eh_gestao:
+        with tab_circ:
+            col_e, col_d = st.columns(2)
+            
+            with col_e:
+                st.markdown("### 📤 Empréstimo (Saída)")
+                with st.form("form_saida_livro", clear_on_submit=True):
+                    leitor_sel = st.selectbox("Selecione o Aluno (Base Carômetro):", ["-- Selecione --"] + lista_leitores)
+                    tombo_scan = st.text_input("Bipar Tombo do Livro (Código de Barras):")
+                    prazo = st.selectbox("Prazo de Devolução:", ["7 dias (Aluno)", "15 dias (Docente)", "30 dias (Especial)"])
+                    
+                    # Mostrar foto do aluno selecionado para conferência
+                    if leitor_sel != "-- Selecione --":
+                        aluno_info = df_carometro[df_carometro['display_leitor'] == leitor_sel].iloc[0]
+                        if aluno_info.get('foto_base64'):
+                            try:
+                                img_bytes = base64.b64decode(aluno_info['foto_base64'])
+                                st.image(img_bytes, width=150, caption="Conferência Identidade")
+                            except: pass
+
+                    if st.form_submit_button("Efetivar Empréstimo", type="primary", use_container_width=True):
+                        if leitor_sel != "-- Selecione --" and tombo_scan:
+                            exemplar = df_exemplares[df_exemplares['tombo'] == tombo_scan]
+                            if exemplar.empty:
+                                st.error("Erro: Tombo não localizado!")
+                            elif not exemplar.iloc[0]['disponivel']:
+                                st.error("Erro: Este exemplar já consta como emprestado.")
+                            else:
+                                # Lógica de salvamento
+                                dias = 7 if "7" in prazo else 15 if "15" in prazo else 30
+                                dt_prev = (datetime.now() + timedelta(days=dias)).strftime("%d/%m/%Y")
+                                
+                                supabase.table("Biblioteca_Emprestimos").insert({
+                                    "id": str(uuid.uuid4()), "id_exemplar": exemplar.iloc[0]['id'],
+                                    "leitor": leitor_sel, "data_saida": datetime.now().strftime("%d/%m/%Y"),
+                                    "data_prevista": dt_prev, "status": "Ativo", "renovacoes": 0
+                                }).execute()
+                                
+                                supabase.table("Biblioteca_Exemplares").update({"disponivel": False}).eq("id", exemplar.iloc[0]['id']).execute()
+                                st.success(f"Empréstimo de {leitor_sel} registrado! Devolução: {dt_prev}")
+                                time.sleep(1.5); st.rerun()
+
+            with col_d:
+                st.markdown("### 📥 Devolução (Retorno)")
+                with st.form("form_retorno_livro", clear_on_submit=True):
+                    tombo_in = st.text_input("Bipar Tombo para Devolução:")
+                    estado = st.selectbox("Estado de Conservação:", ["Íntegro", "Necessita Reparo", "Avariado"])
+                    
+                    if st.form_submit_button("Confirmar Recebimento", use_container_width=True):
+                        if tombo_in:
+                            ex_in = df_exemplares[df_exemplares['tombo'] == tombo_in]
+                            if not ex_in.empty:
+                                id_ex = ex_in.iloc[0]['id']
+                                emp_ativo = df_emp[(df_emp['id_exemplar'] == id_ex) & (df_emp['status'] == 'Ativo')]
+                                
+                                if not emp_ativo.empty:
+                                    supabase.table("Biblioteca_Emprestimos").update({"status": "Devolvido"}).eq("id", emp_ativo.iloc[0]['id']).execute()
+                                    dispo = True if estado == "Íntegro" else False
+                                    supabase.table("Biblioteca_Exemplares").update({"disponivel": dispo, "status_conservacao": estado}).eq("id", id_ex).execute()
+                                    st.success("✅ Devolução concluída e exemplar liberado!")
+                                    time.sleep(1); st.rerun()
+                                else:
+                                    st.warning("Este livro não consta como emprestado.")
+                            else:
+                                st.error("Tombo inválido.")
+
+    # =========================================================
+    # 🔍 CONSULTA DE ACERVO (VITRINE COM CAPAS)
     # =========================================================
     with tab_vitrine:
-        st.subheader("Consulta Bibliográfica")
-        busca = st.text_input("Filtrar por Título, Autor ou Descritores...", placeholder="Insira o termo de pesquisa...")
+        st.subheader("Pesquisa Bibliográfica")
+        busca_txt = st.text_input("Filtrar por Título ou Autor:", placeholder="Ex: Monteiro Lobato...")
         
         if not df_acervo.empty:
-            if busca:
-                resultados = df_acervo[
-                    df_acervo['titulo'].str.contains(busca, case=False) | 
-                    df_acervo['autor'].str.contains(busca, case=False)
-                ]
-            else:
-                st.markdown("### 📚 Aquisições Recentes")
-                resultados = df_acervo.tail(8)
-
-            if not resultados.empty:
-                cols = st.columns(4)
-                for i, (_, row_data) in enumerate(resultados.iterrows()):
-                    with cols[i % 4]:
-                        capa = row_data['capa_url'] if pd.notnull(row_data['capa_url']) else "https://via.placeholder.com/120x180?text=Sem+Imagem"
-                        st.markdown(f"""
-                        <div style="text-align: center; border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
-                            <img src="{capa}" style="width: 100px; height: 150px; object-fit: cover; border-radius: 4px;">
-                            <div style="font-weight: bold; font-size: 13px; margin-top: 5px; height: 35px; overflow: hidden;">{row_data['titulo']}</div>
-                            <div style="font-size: 11px; color: #666;">{row_data['autor']}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        if st.button(f"Ficha Técnica", key=f"det_{row_data['id']}", use_container_width=True):
-                            st.session_state.livro_foco = row_data['id']
-                            st.rerun()
-
-        # Detalhamento Técnico da Obra
-        if 'livro_foco' in st.session_state and st.session_state.livro_foco:
-            st.divider()
-            livro = df_acervo[df_acervo['id'] == st.session_state.livro_foco].iloc[0]
-            c_img, c_det = st.columns([1, 3])
+            res = df_acervo[df_acervo['titulo'].str.contains(busca_txt, case=False) | df_acervo['autor'].str.contains(busca_txt, case=False)] if busca_txt else df_acervo.tail(12)
             
-            with c_det:
-                st.markdown(f"## {livro['titulo']}")
-                st.markdown(f"**Autor:** {livro['autor']} | **Classificação (CDD):** {livro['cdd']}")
-                st.markdown(f"**Editora:** {livro['editora']} | **Ano:** {livro['ano']}")
-                st.markdown("**Sinopse Técnica:**")
-                st.write(livro['resumo'] if pd.notnull(livro['resumo']) else "Sinopse não cadastrada.")
-                
-                if st.button("Fechar Detalhes"):
-                    st.session_state.livro_foco = None
-                    st.rerun()
+            cols_v = st.columns(4)
+            for i, (_, row) in enumerate(res.iterrows()):
+                with cols_v[i % 4]:
+                    capa = row['capa_url'] if pd.notnull(row['capa_url']) else "https://via.placeholder.com/120x180?text=SALA+LEITURA"
+                    st.markdown(f"""
+                    <div style="text-align: center; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; background: white; margin-bottom: 15px;">
+                        <img src="{capa}" style="width: 100px; height: 145px; object-fit: cover; border-radius: 4px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">
+                        <div style="font-weight: bold; font-size: 13px; margin-top: 8px; height: 35px; overflow: hidden; color: #1e293b;">{row['titulo']}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    if st.button("Ver Ficha", key=f"v_{row['id']}", use_container_width=True):
+                        st.session_state.focus_livro = row['id']
+                        st.rerun()
 
     # =========================================================
-    # MÓDULO 2: GESTÃO TÉCNICA E CATALOGAÇÃO (RESTRITO)
+    # 🗃️ CATALOGAÇÃO TÉCNICA (MANUTENÇÃO DO CÓDIGO ISBN)
     # =========================================================
     if eh_gestao:
-        # --- CATALOGAÇÃO TÉCNICA VIA ISBN ---
         with tab_cat:
-            st.subheader("Procedimento de Catalogação Automatizada")
-            st.info("A recuperação de metadados bibliográficos é realizada via API internacional baseada no padrão ISBN.")
-            
-            with st.form("isbn_capture"):
-                isbn_input = st.text_input("Código ISBN (10 ou 13 dígitos):", placeholder="Ex: 9788535914849")
-                exec_capture = st.form_submit_button("Recuperar Metadados Bibliográficos")
-                
-            if exec_capture and isbn_input:
-                try:
-                    resp = requests.get(f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn_input}").json()
-                    if "items" in resp:
-                        meta = resp["items"][0]["volumeInfo"]
-                        st.session_state.isbn_cache = {
-                            "titulo": meta.get("title", ""),
-                            "autor": ", ".join(meta.get("authors", [])),
-                            "editora": meta.get("publisher", ""),
-                            "ano": meta.get("publishedDate", "")[:4],
-                            "resumo": meta.get("description", ""),
-                            "capa_url": meta.get("imageLinks", {}).get("thumbnail", "").replace("http:", "https:"),
-                            "isbn": isbn_input
-                        }
-                        st.success("Metadados recuperados com sucesso.")
-                    else:
-                        st.error("Metadados não localizados para o ISBN informado.")
-                except Exception as e:
-                    st.error(f"Falha na comunicação com o serviço de metadados: {e}")
+            st.subheader("Processamento Técnico de Acervo")
+            with st.form("isbn_api"):
+                c_isbn, c_btn_isbn = st.columns([3, 1])
+                isbn_val = c_isbn.text_input("Código ISBN (10 ou 13 dígitos):")
+                if c_btn_isbn.form_submit_button("🌐 Buscar Metadados"):
+                    try:
+                        r = requests.get(f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn_val}").json()
+                        if "items" in r:
+                            v_info = r["items"][0]["volumeInfo"]
+                            st.session_state.isbn_data = {
+                                "titulo": v_info.get("title", ""), "autor": ", ".join(v_info.get("authors", [])),
+                                "resumo": v_info.get("description", ""), "isbn": isbn_val,
+                                "capa": v_info.get("imageLinks", {}).get("thumbnail", "").replace("http:", "https:")
+                            }
+                            st.success("Dados recuperados da base mundial!")
+                        else: st.error("ISBN não localizado.")
+                    except: st.error("Erro na conexão com API.")
 
-            # Formulário de Registro Patrimonial
-            with st.form("save_catalog"):
-                st.markdown("##### Dados Bibliográficos")
-                cache = st.session_state.get('isbn_cache', {})
-                f1, f2 = st.columns([3, 1])
-                t_final = f1.text_input("Título Oficial", value=cache.get('titulo', ''))
-                i_final = f2.text_input("ISBN", value=cache.get('isbn', ''))
-                
-                res_final = st.text_area("Sinopse / Resumo", value=cache.get('resumo', ''))
-                
-                st.markdown("##### Registro de Exemplares (Patrimonial)")
-                qtd_exemplares = st.number_input("Quantidade de Exemplares para Incorporação", min_value=1, step=1)
-                prefixo_tombo = st.text_input("Prefixo de Tombamento (Ex: SALA-2026-)")
-                
-                if st.form_submit_button("Confirmar Catalogação e Gerar Tombos", type="primary"):
-                    if t_final:
+            # Cadastro Final
+            if 'isbn_data' in st.session_state:
+                with st.form("save_book"):
+                    d = st.session_state.isbn_data
+                    st.text_input("Título Oficial", value=d['titulo'], key="t_in")
+                    st.text_area("Sinopse", value=d['resumo'], key="s_in")
+                    q_exemplares = st.number_input("Quantidade de Cópias Físicas:", min_value=1, step=1)
+                    prefix = st.text_input("Prefixo de Tombamento (Ex: RA-):")
+                    
+                    if st.form_submit_button("💾 Incorporar ao Patrimônio"):
                         new_id = str(uuid.uuid4())
-                        # Registro da Obra Matriz
                         supabase.table("Biblioteca_Acervo").insert({
-                            "id": new_id, "isbn": i_final, "titulo": t_final, "autor": cache.get('autor', ''),
-                            "resumo": res_final, "capa_url": cache.get('capa_url', '')
+                            "id": new_id, "isbn": d['isbn'], "titulo": d['titulo'], 
+                            "autor": d['autor'], "resumo": d['resumo'], "capa_url": d['capa']
                         }).execute()
                         
-                        # Registro de Exemplares Individuais
-                        for i in range(qtd_exemplares):
-                            tombo = f"{prefixo_tombo}{i+1:04d}"
+                        for i in range(q_exemplares):
                             supabase.table("Biblioteca_Exemplares").insert({
-                                "id": str(uuid.uuid4()), "id_acervo": new_id, "tombo": tombo, "disponivel": True
+                                "id": str(uuid.uuid4()), "id_acervo": new_id, 
+                                "tombo": f"{prefix}{i+1:04d}", "disponivel": True
                             }).execute()
-                        
-                        st.success("Catalogação concluída e exemplares incorporados ao patrimônio.")
-                        st.session_state.isbn_cache = {}
-                        time.sleep(2); st.rerun()
+                        st.success("Acervo atualizado!"); st.session_state.isbn_data = None; time.sleep(1); st.rerun()
 
-        # --- MÓDULO DE CIRCULAÇÃO (EXPEDIÇÃO) ---
-        with tab_circ:
-            st.subheader("Módulo de Circulação de Acervo")
-            c_out, c_in = st.columns(2)
-            
-            with c_out:
-                st.markdown("##### Processar Saída (Empréstimo)")
-                with st.form("emp_form", clear_on_submit=True):
-                    tombo_scan = st.text_input("Identificador de Tombamento (Tombo/Barcode)")
-                    leitor_id = st.text_input("Identificação do Requisitante")
-                    if st.form_submit_button("Efetivar Empréstimo", use_container_width=True):
-                        # Lógica de validação e atualização (conforme padrões anteriores)
-                        st.info("Processando validação de pendências...")
-
-            with c_in:
-                st.markdown("##### Processar Entrada (Devolução)")
-                with st.form("dev_form", clear_on_submit=True):
-                    tombo_scan_in = st.text_input("Identificador de Tombamento")
-                    conservacao = st.selectbox("Estado de Conservação", ["Íntegro", "Avariado", "Necessita Reparo"])
-                    if st.form_submit_button("Efetivar Devolução", use_container_width=True):
-                        st.info("Atualizando disponibilidade de acervo...")
-
-        # --- INDICADORES E AUDITORIA ---
-        with tab_dash:
-            st.subheader("Auditoria de Acervo e Indicadores de Leitura")
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Obras Catalogadas", len(df_acervo))
-            col2.metric("Itens em Circulação", len(df_emp[df_emp['status'] == 'Ativo']))
-            col3.metric("Taxa de Inadimplência", f"{len(df_emp[df_emp['status'] == 'Ativo'])} itens")
+# ... (Continuação do módulo para Auditoria e Dashboards)

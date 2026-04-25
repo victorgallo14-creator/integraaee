@@ -8812,45 +8812,44 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
     df_pedidos = safe_read("Almoxarifado_Pedidos", ["id", "data", "professor", "item", "quantidade", "status"])
     
     # ---------------------------------------------------------
-    # 🔒 CONTROLE DE ACESSO AS ABAS
+    # 🔒 CONTROLO DE ACESSO ÀS ABAS
     # ---------------------------------------------------------
     MATRICULAS_GESTAO = ['8829405', '8011512', '8258411', '7047682', '88286861']
     
-    # Força a variável a ser Texto e remove espaços em branco acidentais
     matricula_usuario_logado = str(st.session_state.get('usuario_matricula', '')).strip() 
     
     eh_gestao = matricula_usuario_logado in MATRICULAS_GESTAO
 
     if eh_gestao:
         tab_req, tab_retro, tab_baixa, tab_estoque = st.tabs([
-            "🙋 Minha Requisição", "📝 Lançamento Retroativo", "✅ Dar Baixa", "📈 Estoque"
+            "🙋 Nova Solicitação", "📝 Registo Manual", "📦 Expedição", "📈 Inventário"
         ])
     else:
-        tab_req, = st.tabs(["🙋 Minha Requisição"])
+        tab_req, = st.tabs(["🙋 Nova Solicitação"])
 
 
     # =========================================================
     # ÁREA DE ACESSO LIVRE (TODOS VEEM)
     # =========================================================
 
-    # --- ABA 1: REQUISIÇÃO (Visão do Professor) ---
+    # --- ABA 1: NOVA SOLICITAÇÃO E HISTÓRICO (Visão do Professor) ---
     with tab_req:
-        st.subheader("Nova Requisição de Materiais")
+        st.subheader("Solicitação de Materiais")
         
         if not df_estoque.empty:
             if 'reset_carrinho' not in st.session_state:
                 st.session_state.reset_carrinho = 0
 
             itens_selecionados = st.multiselect(
-                "1. Selecione um ou mais materiais:", 
+                "1. Selecione um ou mais materiais no catálogo:", 
                 df_estoque['item'].tolist(),
                 key=f"carrinho_almox_{st.session_state.reset_carrinho}",
-                placeholder="Clique aqui e digite para buscar..."
+                placeholder="Clique aqui e digite para procurar..."
             )
             
             if itens_selecionados:
                 with st.form("form_requisicao"):
-                    st.markdown("##### 2. Defina as quantidades:")
+                    st.markdown("##### 2. Defina as quantidades necessárias:")
                     
                     dict_quantidades = {}
                     cols = st.columns(2)
@@ -8859,7 +8858,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                         cat = df_estoque[df_estoque['item'] == item].iloc[0]['categoria']
                         dict_quantidades[item] = target_col.number_input(f"📦 {item} ({cat})", min_value=1, step=1, key=f"req_{item}")
                         
-                    if st.form_submit_button("Enviar Pedido Completo", type="primary", use_container_width=True):
+                    if st.form_submit_button("Enviar Solicitação", type="primary", use_container_width=True):
                         agora = datetime.now().strftime("%d/%m/%Y %H:%M")
                         usuario = st.session_state.get('usuario_nome', 'Usuário')
                         
@@ -8874,12 +8873,37 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                             }
                             supabase.table("Almoxarifado_Pedidos").insert(novo_pedido).execute()
                             
-                        st.success("✅ Pedido enviado com sucesso!")
+                        st.success("✅ Solicitação enviada com sucesso para o setor administrativo!")
                         st.session_state.reset_carrinho += 1 
                         time.sleep(1.5)
                         st.rerun()
         else:
-            st.warning("Não há itens cadastrados no catálogo.")
+            st.warning("Não há itens registados no catálogo atual.")
+
+        # --- HISTÓRICO DE SOLICITAÇÕES ---
+        st.divider()
+        st.markdown("##### 🕒 O Meu Histórico de Solicitações")
+        
+        usuario_atual = st.session_state.get('usuario_nome', 'Usuário')
+        meus_pedidos = df_pedidos[df_pedidos['professor'] == usuario_atual]
+        
+        if meus_pedidos.empty:
+            st.info("Ainda não possui solicitações registadas no sistema.")
+        else:
+            # Inverte a ordem para os mais recentes aparecerem no topo
+            meus_pedidos_exibicao = meus_pedidos.iloc[::-1][["data", "item", "quantidade", "status"]]
+            
+            st.dataframe(
+                meus_pedidos_exibicao, 
+                column_config={
+                    "data": "Data/Hora",
+                    "item": "Material Solicitado",
+                    "quantidade": "Qtd.",
+                    "status": "Situação"
+                },
+                use_container_width=True, 
+                hide_index=True
+            )
 
 
     # =========================================================
@@ -8887,34 +8911,34 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
     # =========================================================
     if eh_gestao:
 
-        # --- ABA 2: LANÇAMENTO RETROATIVO EM LOTE ---
+        # --- ABA 2: REGISTO MANUAL DE SAÍDAS (Lançamento Retroativo) ---
         with tab_retro:
-            st.subheader("Lançar Requisições de Papel")
-            st.info("Use esta aba para descontar do estoque os materiais que já foram entregues fisicamente.")
+            st.subheader("Registo de Entregas Físicas")
+            st.info("Utilize esta aba para abater do inventário os materiais que já foram fornecidos fisicamente.")
 
             with st.form("form_retroativo", clear_on_submit=True):
                 col_p, col_d = st.columns(2)
-                nome_recebedor = col_p.text_input("Nome de quem recebeu o material:", placeholder="Ex: Maria Oliveira")
-                data_entrega = col_d.date_input("Data da entrega real:", datetime.now())
+                nome_recebedor = col_p.text_input("Profissional requisitante:", placeholder="Ex: Maria Oliveira")
+                data_entrega = col_d.date_input("Data efetiva da entrega:", datetime.now())
                 
                 itens_papel = st.multiselect(
-                    "Selecione todos os itens entregues:", 
+                    "Selecione os itens fornecidos:", 
                     df_estoque['item'].tolist(),
-                    placeholder="Busque os materiais aqui..."
+                    placeholder="Procure os materiais aqui..."
                 )
                 
                 st.divider()
                 dict_qtds = {}
                 if itens_papel:
-                    st.markdown("##### Quantidades:")
+                    st.markdown("##### Quantidades fornecidas:")
                     cols_retro = st.columns(2)
                     for i, item in enumerate(itens_papel):
                         target_col = cols_retro[i % 2]
                         dict_qtds[item] = target_col.number_input(f"{item}", min_value=1, step=1, key=f"retro_{item}")
 
-                if st.form_submit_button("🚀 Lançar e Atualizar Estoque", type="primary", use_container_width=True):
+                if st.form_submit_button("🚀 Registar Saídas e Atualizar Inventário", type="primary", use_container_width=True):
                     if not nome_recebedor or not itens_papel:
-                        st.error("Preencha o nome e selecione ao menos um item.")
+                        st.error("Preencha o nome do requisitante e selecione ao menos um item.")
                     else:
                         data_formatada = data_entrega.strftime("%d/%m/%Y")
                         for item_nome, qtd in dict_qtds.items():
@@ -8928,75 +8952,75 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                             nova_qtd = max(0, int(estoque_atual) - int(qtd))
                             supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", item_nome).execute()
                         
-                        st.success(f"✅ {len(itens_papel)} itens lançados para {nome_recebedor}.")
+                        st.success(f"✅ Registos processados com sucesso para {nome_recebedor}.")
                         time.sleep(1.5)
                         st.rerun()
 
-        # --- ABA 3: DAR BAIXA (Agrupado por Professor) ---
+        # --- ABA 3: EXPEDIÇÃO ---
         with tab_baixa:
-            st.subheader("Pedidos Aguardando Entrega")
+            st.subheader("Requisições Pendentes de Atendimento")
             pendentes = df_pedidos[df_pedidos['status'] == 'Pendente']
             
             if pendentes.empty:
-                st.info("🎉 Nenhuma requisição pendente no momento.")
+                st.info("🎉 Todas as solicitações foram atendidas.")
             else:
                 grupos_pedidos = pendentes.groupby(['data', 'professor'])
                 
                 for (data_pedido, prof_nome), grupo in grupos_pedidos:
-                    with st.expander(f"📦 Pedido de {prof_nome} | 📅 {data_pedido} | ({len(grupo)} itens)"):
+                    with st.expander(f"📦 Solicitação de {prof_nome} | 📅 {data_pedido} | ({len(grupo)} itens pendentes)"):
                         for _, row in grupo.iterrows():
                             c1, c2 = st.columns([3, 2])
                             estoque_disp = df_estoque[df_estoque['item'] == row['item']].iloc[0]['quantidade']
                             
-                            c1.write(f"🔹 **{row['quantidade']}x** {row['item']} *(Estoque: {estoque_disp})*")
+                            c1.write(f"🔹 **{row['quantidade']}x** {row['item']} *(Disponível: {estoque_disp})*")
                             
-                            if c2.button("✅ Entregar Item", key=f"entregar_{row['id']}", use_container_width=True):
+                            if c2.button("✅ Processar Saída", key=f"entregar_{row['id']}", use_container_width=True):
                                 supabase.table("Almoxarifado_Pedidos").update({"status": "Entregue"}).eq("id", row['id']).execute()
                                 
                                 nova_qtd = int(estoque_disp) - int(row['quantidade'])
-                                if nova_qtd < 0: nova_qtd = 0 # Trava para não negativar
+                                if nova_qtd < 0: nova_qtd = 0 
                                     
                                 supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", row['item']).execute()
-                                st.success(f"Baixa de '{row['item']}' realizada!")
+                                st.success(f"Saída do item '{row['item']}' registada com sucesso!")
                                 time.sleep(1)
                                 st.rerun()
 
-        # --- ABA 4: CONTROLE DE ESTOQUE E CADASTRO ---
+        # --- ABA 4: INVENTÁRIO ---
         with tab_estoque:
             col_list, col_add = st.columns([3, 2])
             
             with col_list:
-                st.subheader("Inventário Atual")
+                st.subheader("Posição do Inventário")
                 st.dataframe(df_estoque[["item", "quantidade", "categoria"]], use_container_width=True, hide_index=True)
                 
             with col_add:
-                st.subheader("📥 Entrada de Carga em Lote")
-                st.info("Selecione os materiais que chegaram e adicione as quantidades de uma vez.")
+                st.subheader("📥 Recebimento de Materiais")
+                st.info("Registe a entrada de novos insumos no almoxarifado.")
                 
                 if 'reset_entrada' not in st.session_state:
                     st.session_state.reset_entrada = 0
 
                 itens_entrada = st.multiselect(
-                    "Quais materiais chegaram?", 
+                    "Selecione os materiais recebidos:", 
                     df_estoque['item'].tolist() if not df_estoque.empty else [],
                     key=f"entrada_estoque_{st.session_state.reset_entrada}",
-                    placeholder="Busque os itens aqui..."
+                    placeholder="Procure os itens aqui..."
                 )
                 
                 if itens_entrada:
                     with st.form("form_entrada_lote"):
-                        st.markdown("##### Quantidades Recebidas:")
+                        st.markdown("##### Volumes Recebidos:")
                         dict_entradas = {}
                         for item in itens_entrada:
                             dict_entradas[item] = st.number_input(f"➕ {item}", min_value=1, step=1, key=f"ent_{item}")
                         
-                        if st.form_submit_button("Somar Tudo ao Estoque", type="primary", use_container_width=True):
+                        if st.form_submit_button("Confirmar Entrada no Inventário", type="primary", use_container_width=True):
                             for item_nome, qtd_recebida in dict_entradas.items():
                                 atual = df_estoque[df_estoque['item'] == item_nome].iloc[0]['quantidade']
                                 nova_qtd = int(atual) + int(qtd_recebida)
                                 supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", item_nome).execute()
                             
-                            st.success(f"✅ {len(itens_entrada)} materiais foram atualizados com sucesso no inventário!")
+                            st.success(f"✅ {len(itens_entrada)} materiais foram incorporados ao inventário!")
                             st.session_state.reset_entrada += 1
                             time.sleep(1.5)
                             st.rerun()

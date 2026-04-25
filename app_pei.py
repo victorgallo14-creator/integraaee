@@ -8795,6 +8795,7 @@ elif st.session_state.get("modulo_atuacao") == "📚  Sala de Leitura":
 import uuid
 import time
 from datetime import datetime
+import streamlit.components.v1 as components
 
 # ==============================================================================
 # MÓDULO: ADMINISTRATIVO (ALMOXARIFADO)
@@ -8811,84 +8812,82 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
     df_pedidos = safe_read("Almoxarifado_Pedidos", ["id", "data", "professor", "item", "quantidade", "status"])
     
     # ---------------------------------------------------------
-    # 🔒 CONTROLO DE ACESSO ÀS ABAS
+    # 🔒 CONTROLE DE ACESSO
     # ---------------------------------------------------------
     MATRICULAS_GESTAO = ['8829405', '8011512', '8258411', '7047682', '88286861']
-    
     matricula_usuario_logado = str(st.session_state.get('usuario_matricula', '')).strip() 
-    
     eh_gestao = matricula_usuario_logado in MATRICULAS_GESTAO
 
-    if eh_gestao:
-        tab_req, tab_retro, tab_baixa, tab_estoque = st.tabs([
-            "🙋 Nova Solicitação", "📝 Registo Manual", "📦 Expedição", "📈 Inventário"
-        ])
-    else:
-        tab_req, = st.tabs(["🙋 Nova Solicitação"])
-
-
     # =========================================================
-    # ÁREA DE ACESSO LIVRE (TODOS VEEM)
+    # TELA DE IMPRESSÃO DO COMPROVANTE (SOBREPÕE AS ABAS)
     # =========================================================
-
-    # --- ABA 1: NOVA SOLICITAÇÃO E HISTÓRICO (Visão do Professor) ---
-    with tab_req:
-        st.subheader("Solicitação de Materiais")
+    if eh_gestao and 'comprovante_almox' in st.session_state and st.session_state.comprovante_almox:
+        st.success("✅ Saída processada com sucesso no inventário!")
+        st.markdown("### 🖨️ Comprovante de Entrega")
         
-        # Sistema de Comprovante: Verifica se acabou de fazer um pedido
-        if 'comprovante_almox' in st.session_state and st.session_state.comprovante_almox:
-            st.success("✅ Solicitação registada com sucesso!")
-            st.markdown("### 🖨️ Comprovante de Requisição")
-            
-            # Gera o HTML do Cupom estilo Bobina Não Fiscal
-            cupom_html = f"""
-            <div id="cupom_impressao" style="width: 300px; padding: 15px; border: 1px dashed #000; font-family: 'Courier New', Courier, monospace; font-size: 14px; background: #fff; color: #000; margin: 0 auto;">
-                <div style="text-align: center; margin-bottom: 10px;">
-                    <strong>ALMOXARIFADO CENTRAL</strong><br>
-                    COMPROVANTE DE REQUISIÇÃO<br>
-                    --------------------------------
-                </div>
-                <strong>Data:</strong> {st.session_state.comprovante_almox['data']}<br>
-                <strong>Requisitante:</strong> {st.session_state.comprovante_almox['professor']}<br>
-                --------------------------------<br>
-                <strong>ITENS SOLICITADOS:</strong><br>
-                <ul style="padding-left: 20px; margin-top: 5px; margin-bottom: 5px;">
-                    {st.session_state.comprovante_almox['itens_html']}
-                </ul>
-                --------------------------------<br>
-                <div style="text-align: center; margin-top: 30px;">
-                    ________________________________<br>
-                    <span style="font-size: 12px;">Assinatura do Requisitante</span>
-                </div>
+        cupom_html = f"""
+        <div id="cupom_impressao" style="width: 280px; padding: 15px; border: 1px dashed #000; font-family: 'Courier New', Courier, monospace; font-size: 13px; background: #fff; color: #000; margin: 0 auto;">
+            <div style="text-align: center; margin-bottom: 10px;">
+                <strong>CEIEF RAFAEL AFFONSO LEITE</strong><br>
+                ALMOXARIFADO CENTRAL<br>
+                COMPROVANTE DE ENTREGA<br>
+                --------------------------------
             </div>
-            
-            <script>
-            function imprimirCupom() {{
-                var conteudo = document.getElementById('cupom_impressao').outerHTML;
-                var tela_impressao = window.open('', '', 'height=600,width=400');
-                tela_impressao.document.write('<html><head><title>Cupom Almoxarifado</title></head>');
-                tela_impressao.document.write('<body style="margin: 0; padding: 10px;">');
-                tela_impressao.document.write(conteudo);
-                tela_impressao.document.write('</body></html>');
-                tela_impressao.document.close();
-                tela_impressao.focus();
-                setTimeout(function() {{ tela_impressao.print(); }}, 500);
-            }}
-            </script>
-            
-            <button onclick="imprimirCupom()" style="display: block; width: 100%; max-width: 330px; margin: 15px auto; padding: 12px; background-color: #2e7d32; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer;">🖨️ Imprimir na Bobina</button>
-            """
-            
-            # Exibe o cupão na tela do Streamlit
-            import streamlit.components.v1 as components
-            components.html(cupom_html, height=450)
-            
-            if st.button("🔄 Fechar e Fazer Nova Solicitação", use_container_width=True):
-                st.session_state.comprovante_almox = None
-                st.rerun()
+            <strong>Data:</strong> {st.session_state.comprovante_almox['data']}<br>
+            <strong>Requisitante:</strong> {st.session_state.comprovante_almox['professor']}<br>
+            --------------------------------<br>
+            <strong>ITENS ENTREGUES:</strong><br>
+            <ul style="padding-left: 15px; margin-top: 5px; margin-bottom: 5px;">
+                {st.session_state.comprovante_almox['itens_html']}
+            </ul>
+            --------------------------------<br>
+            <div style="text-align: center; margin-top: 30px;">
+                ________________________________<br>
+                <span style="font-size: 11px;">Assinatura do Requisitante</span><br><br>
+                ________________________________<br>
+                <span style="font-size: 11px;">Assinatura do Almoxarifado</span>
+            </div>
+        </div>
+        
+        <script>
+        function imprimirCupom() {{
+            var conteudo = document.getElementById('cupom_impressao').outerHTML;
+            var tela_impressao = window.open('', '', 'height=600,width=400');
+            tela_impressao.document.write('<html><head><title>Cupom Almoxarifado</title></head>');
+            tela_impressao.document.write('<body style="margin: 0; padding: 10px;">');
+            tela_impressao.document.write(conteudo);
+            tela_impressao.document.write('</body></html>');
+            tela_impressao.document.close();
+            tela_impressao.focus();
+            setTimeout(function() {{ tela_impressao.print(); }}, 500);
+        }}
+        </script>
+        
+        <button onclick="imprimirCupom()" style="display: block; width: 100%; max-width: 330px; margin: 15px auto; padding: 12px; background-color: #2e7d32; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer;">🖨️ Imprimir na Bobina</button>
+        """
+        
+        components.html(cupom_html, height=550)
+        
+        if st.button("🔄 Fechar Comprovante e Voltar ao Sistema", use_container_width=True):
+            st.session_state.comprovante_almox = None
+            st.rerun()
 
+    # =========================================================
+    # ÁREA PRINCIPAL DO SISTEMA (ABAS)
+    # =========================================================
+    else:
+        if eh_gestao:
+            tab_req, tab_retro, tab_baixa, tab_estoque = st.tabs([
+                "🙋 Nova Solicitação", "📝 Registro Manual", "📦 Expedição", "📈 Inventário"
+            ])
         else:
-            # Formulário Padrão de Solicitação
+            tab_req, = st.tabs(["🙋 Nova Solicitação"])
+
+
+        # --- ABA 1: NOVA SOLICITAÇÃO E HISTÓRICO (Visão do Professor) ---
+        with tab_req:
+            st.subheader("Solicitação de Materiais")
+            
             if not df_estoque.empty:
                 if 'reset_carrinho' not in st.session_state:
                     st.session_state.reset_carrinho = 0
@@ -8915,8 +8914,6 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                             agora = datetime.now().strftime("%d/%m/%Y %H:%M")
                             usuario = st.session_state.get('usuario_nome', 'Usuário')
                             
-                            itens_html_lista = ""
-                            
                             for item_nome, qtd in dict_quantidades.items():
                                 novo_pedido = {
                                     "id": str(uuid.uuid4()),
@@ -8928,180 +8925,185 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                                 }
                                 supabase.table("Almoxarifado_Pedidos").insert(novo_pedido).execute()
                                 
-                                # Adiciona o item na lista do comprovante HTML
-                                itens_html_lista += f"<li>{qtd}x {item_nome}</li>"
-                                
-                            # Prepara os dados para o comprovante
-                            st.session_state.comprovante_almox = {
-                                'data': agora,
-                                'professor': usuario,
-                                'itens_html': itens_html_lista
-                            }
-                            
+                            st.success("✅ Solicitação enviada com sucesso para o setor administrativo!")
                             st.session_state.reset_carrinho += 1 
+                            time.sleep(1.5)
                             st.rerun()
             else:
-                st.warning("Não há itens registados no catálogo atual.")
+                st.warning("Não há itens registrados no catálogo atual.")
 
             # --- HISTÓRICO DE SOLICITAÇÕES ---
             st.divider()
-            st.markdown("##### 🕒 O Meu Histórico de Solicitações")
+            st.markdown("##### 🕒 Meu Histórico de Solicitações")
             
             usuario_atual = st.session_state.get('usuario_nome', 'Usuário')
             meus_pedidos = df_pedidos[df_pedidos['professor'] == usuario_atual]
             
             if meus_pedidos.empty:
-                st.info("Ainda não possui solicitações registadas no sistema.")
+                st.info("Ainda não possui solicitações registradas no sistema.")
             else:
                 meus_pedidos_exibicao = meus_pedidos.iloc[::-1][["data", "item", "quantidade", "status"]]
-                
                 st.dataframe(
                     meus_pedidos_exibicao, 
-                    column_config={
-                        "data": "Data/Hora",
-                        "item": "Material Solicitado",
-                        "quantidade": "Qtd.",
-                        "status": "Situação"
-                    },
-                    use_container_width=True, 
-                    hide_index=True
+                    column_config={"data": "Data/Hora", "item": "Material Solicitado", "quantidade": "Qtd.", "status": "Situação"},
+                    use_container_width=True, hide_index=True
                 )
 
+        # =========================================================
+        # 🔒 ÁREA RESTRITA (SÓ A GESTÃO VÊ)
+        # =========================================================
+        if eh_gestao:
 
-    # =========================================================
-    # 🔒 ÁREA RESTRITA (SÓ A GESTÃO VÊ)
-    # =========================================================
-    if eh_gestao:
+            # --- ABA 2: REGISTRO MANUAL DE SAÍDAS ---
+            with tab_retro:
+                st.subheader("Registro de Entregas Físicas")
+                st.info("Utilize esta aba para abater do inventário os materiais que já foram fornecidos fisicamente.")
 
-        # --- ABA 2: REGISTO MANUAL DE SAÍDAS (Lançamento Retroativo) ---
-        with tab_retro:
-            st.subheader("Registo de Entregas Físicas")
-            st.info("Utilize esta aba para abater do inventário os materiais que já foram fornecidos fisicamente.")
+                with st.form("form_retroativo", clear_on_submit=True):
+                    col_p, col_d = st.columns(2)
+                    nome_recebedor = col_p.text_input("Profissional requisitante:", placeholder="Ex: Maria Oliveira")
+                    data_entrega = col_d.date_input("Data efetiva da entrega:", datetime.now())
+                    
+                    itens_papel = st.multiselect("Selecione os itens fornecidos:", df_estoque['item'].tolist())
+                    
+                    st.divider()
+                    dict_qtds = {}
+                    if itens_papel:
+                        cols_retro = st.columns(2)
+                        for i, item in enumerate(itens_papel):
+                            target_col = cols_retro[i % 2]
+                            dict_qtds[item] = target_col.number_input(f"{item}", min_value=1, step=1, key=f"retro_{item}")
 
-            with st.form("form_retroativo", clear_on_submit=True):
-                col_p, col_d = st.columns(2)
-                nome_recebedor = col_p.text_input("Profissional requisitante:", placeholder="Ex: Maria Oliveira")
-                data_entrega = col_d.date_input("Data efetiva da entrega:", datetime.now())
-                
-                itens_papel = st.multiselect(
-                    "Selecione os itens fornecidos:", 
-                    df_estoque['item'].tolist(),
-                    placeholder="Procure os materiais aqui..."
-                )
-                
-                st.divider()
-                dict_qtds = {}
-                if itens_papel:
-                    st.markdown("##### Quantidades fornecidas:")
-                    cols_retro = st.columns(2)
-                    for i, item in enumerate(itens_papel):
-                        target_col = cols_retro[i % 2]
-                        dict_qtds[item] = target_col.number_input(f"{item}", min_value=1, step=1, key=f"retro_{item}")
-
-                if st.form_submit_button("🚀 Registar Saídas e Atualizar Inventário", type="primary", use_container_width=True):
-                    if not nome_recebedor or not itens_papel:
-                        st.error("Preencha o nome do requisitante e selecione ao menos um item.")
-                    else:
-                        data_formatada = data_entrega.strftime("%d/%m/%Y")
-                        for item_nome, qtd in dict_qtds.items():
-                            novo_p = {
-                                "id": str(uuid.uuid4()), "data": data_formatada, "professor": nome_recebedor,
-                                "item": item_nome, "quantidade": qtd, "status": "Entregue"
-                            }
-                            supabase.table("Almoxarifado_Pedidos").insert(novo_p).execute()
+                    if st.form_submit_button("🚀 Registrar Saídas e Imprimir Comprovante", type="primary", use_container_width=True):
+                        if not nome_recebedor or not itens_papel:
+                            st.error("Preencha o nome do requisitante e selecione ao menos um item.")
+                        else:
+                            data_formatada = data_entrega.strftime("%d/%m/%Y")
+                            itens_html_lista = ""
                             
-                            estoque_atual = df_estoque[df_estoque['item'] == item_nome].iloc[0]['quantidade']
-                            nova_qtd = max(0, int(estoque_atual) - int(qtd))
-                            supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", item_nome).execute()
-                        
-                        st.success(f"✅ Registos processados com sucesso para {nome_recebedor}.")
-                        time.sleep(1.5)
-                        st.rerun()
-
-        # --- ABA 3: EXPEDIÇÃO ---
-        with tab_baixa:
-            st.subheader("Requisições Pendentes de Atendimento")
-            pendentes = df_pedidos[df_pedidos['status'] == 'Pendente']
-            
-            if pendentes.empty:
-                st.info("🎉 Todas as solicitações foram atendidas.")
-            else:
-                grupos_pedidos = pendentes.groupby(['data', 'professor'])
-                
-                for (data_pedido, prof_nome), grupo in grupos_pedidos:
-                    with st.expander(f"📦 Solicitação de {prof_nome} | 📅 {data_pedido} | ({len(grupo)} itens pendentes)"):
-                        for _, row in grupo.iterrows():
-                            c1, c2 = st.columns([3, 2])
-                            estoque_disp = df_estoque[df_estoque['item'] == row['item']].iloc[0]['quantidade']
-                            
-                            c1.write(f"🔹 **{row['quantidade']}x** {row['item']} *(Disponível: {estoque_disp})*")
-                            
-                            if c2.button("✅ Processar Saída", key=f"entregar_{row['id']}", use_container_width=True):
-                                supabase.table("Almoxarifado_Pedidos").update({"status": "Entregue"}).eq("id", row['id']).execute()
+                            for item_nome, qtd in dict_qtds.items():
+                                novo_p = {
+                                    "id": str(uuid.uuid4()), "data": data_formatada, "professor": nome_recebedor,
+                                    "item": item_nome, "quantidade": qtd, "status": "Entregue"
+                                }
+                                supabase.table("Almoxarifado_Pedidos").insert(novo_p).execute()
                                 
-                                nova_qtd = int(estoque_disp) - int(row['quantidade'])
-                                if nova_qtd < 0: nova_qtd = 0 
+                                estoque_atual = df_estoque[df_estoque['item'] == item_nome].iloc[0]['quantidade']
+                                nova_qtd = max(0, int(estoque_atual) - int(qtd))
+                                supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", item_nome).execute()
+                                
+                                itens_html_lista += f"<li>{qtd}x {item_nome}</li>"
+                            
+                            # Gera o comprovante e chama a tela de impressão
+                            st.session_state.comprovante_almox = {
+                                'data': datetime.now().strftime("%d/%m/%Y %H:%M"),
+                                'professor': nome_recebedor,
+                                'itens_html': itens_html_lista
+                            }
+                            st.rerun()
+
+            # --- ABA 3: EXPEDIÇÃO (Baixa Inteligente) ---
+            with tab_baixa:
+                st.subheader("Requisições Pendentes de Atendimento")
+                pendentes = df_pedidos[df_pedidos['status'] == 'Pendente']
+                
+                if pendentes.empty:
+                    st.info("🎉 Todas as solicitações foram atendidas.")
+                else:
+                    grupos_pedidos = pendentes.groupby(['data', 'professor'])
+                    
+                    for (data_pedido, prof_nome), grupo in grupos_pedidos:
+                        with st.expander(f"📦 Solicitação de {prof_nome} | 📅 {data_pedido} | ({len(grupo)} itens pendentes)"):
+                            
+                            # O NOVO BOTÃO MÁGICO: Resolve tudo de uma vez e gera o cupom
+                            if st.button("🚀 Processar Saída de TODOS os Itens e Imprimir", key=f"all_{prof_nome}_{data_pedido}", type="primary", use_container_width=True):
+                                itens_html_lista = ""
+                                
+                                for _, row in grupo.iterrows():
+                                    supabase.table("Almoxarifado_Pedidos").update({"status": "Entregue"}).eq("id", row['id']).execute()
                                     
-                                supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", row['item']).execute()
-                                st.success(f"Saída do item '{row['item']}' registada com sucesso!")
-                                time.sleep(1)
+                                    estoque_disp = df_estoque[df_estoque['item'] == row['item']].iloc[0]['quantidade']
+                                    nova_qtd = max(0, int(estoque_disp) - int(row['quantidade']))
+                                    supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", row['item']).execute()
+                                    
+                                    itens_html_lista += f"<li>{row['quantidade']}x {row['item']}</li>"
+                                    
+                                st.session_state.comprovante_almox = {
+                                    'data': datetime.now().strftime("%d/%m/%Y %H:%M"),
+                                    'professor': prof_nome,
+                                    'itens_html': itens_html_lista
+                                }
                                 st.rerun()
 
-        # --- ABA 4: INVENTÁRIO (Com Relatório) ---
-        with tab_estoque:
-            col_list, col_add = st.columns([3, 2])
-            
-            with col_list:
-                c_tit, c_btn = st.columns([2, 1])
-                c_tit.subheader("Posição do Inventário")
-                
-                # Botão para emissão de Relatório
-                if not df_estoque.empty:
-                    csv_estoque = df_estoque[["item", "categoria", "quantidade"]].sort_values(by="item").to_csv(index=False).encode('utf-8')
-                    c_btn.download_button(
-                        label="📥 Exportar Relatório",
-                        data=csv_estoque,
-                        file_name=f"relatorio_estoque_{datetime.now().strftime('%d_%m_%Y')}.csv",
-                        mime="text/csv",
-                        use_container_width=True
-                    )
-                
-                st.dataframe(df_estoque[["item", "quantidade", "categoria"]], use_container_width=True, hide_index=True)
-                
-            with col_add:
-                st.subheader("📥 Recebimento de Materiais")
-                st.info("Registe a entrada de novos insumos no almoxarifado.")
-                
-                if 'reset_entrada' not in st.session_state:
-                    st.session_state.reset_entrada = 0
-
-                itens_entrada = st.multiselect(
-                    "Selecione os materiais recebidos:", 
-                    df_estoque['item'].tolist() if not df_estoque.empty else [],
-                    key=f"entrada_estoque_{st.session_state.reset_entrada}",
-                    placeholder="Procure os itens aqui..."
-                )
-                
-                if itens_entrada:
-                    with st.form("form_entrada_lote"):
-                        st.markdown("##### Volumes Recebidos:")
-                        dict_entradas = {}
-                        for item in itens_entrada:
-                            dict_entradas[item] = st.number_input(f"➕ {item}", min_value=1, step=1, key=f"ent_{item}")
-                        
-                        if st.form_submit_button("Confirmar Entrada no Inventário", type="primary", use_container_width=True):
-                            for item_nome, qtd_recebida in dict_entradas.items():
-                                atual = df_estoque[df_estoque['item'] == item_nome].iloc[0]['quantidade']
-                                nova_qtd = int(atual) + int(qtd_recebida)
-                                supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", item_nome).execute()
+                            st.divider()
+                            st.caption("Ou processe os itens individualmente caso falte algo no estoque:")
                             
-                            st.success(f"✅ {len(itens_entrada)} materiais foram incorporados ao inventário!")
-                            st.session_state.reset_entrada += 1
-                            time.sleep(1.5)
-                            st.rerun()
+                            for _, row in grupo.iterrows():
+                                c1, c2 = st.columns([3, 2])
+                                estoque_disp = df_estoque[df_estoque['item'] == row['item']].iloc[0]['quantidade']
+                                
+                                c1.write(f"🔹 **{row['quantidade']}x** {row['item']} *(Disponível: {estoque_disp})*")
+                                
+                                if c2.button("✅ Processar Saída", key=f"entregar_{row['id']}", use_container_width=True):
+                                    supabase.table("Almoxarifado_Pedidos").update({"status": "Entregue"}).eq("id", row['id']).execute()
+                                    nova_qtd = max(0, int(estoque_disp) - int(row['quantidade']))
+                                    supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", row['item']).execute()
+                                    st.success(f"Saída do item '{row['item']}' registrada com sucesso!")
+                                    time.sleep(1)
+                                    st.rerun()
+
+            # --- ABA 4: INVENTÁRIO (Com Relatório) ---
+            with tab_estoque:
+                col_list, col_add = st.columns([3, 2])
+                
+                with col_list:
+                    c_tit, c_btn = st.columns([2, 1])
+                    c_tit.subheader("Posição do Inventário")
+                    
+                    if not df_estoque.empty:
+                        csv_estoque = df_estoque[["item", "categoria", "quantidade"]].sort_values(by="item").to_csv(index=False).encode('utf-8')
+                        c_btn.download_button(
+                            label="📥 Exportar Relatório", data=csv_estoque,
+                            file_name=f"relatorio_estoque_{datetime.now().strftime('%d_%m_%Y')}.csv",
+                            mime="text/csv", use_container_width=True
+                        )
+                    
+                    st.dataframe(df_estoque[["item", "quantidade", "categoria"]], use_container_width=True, hide_index=True)
+                    
+                with col_add:
+                    st.subheader("📥 Recebimento de Materiais")
+                    st.info("Registre a entrada de novos insumos no almoxarifado.")
+                    
+                    if 'reset_entrada' not in st.session_state:
+                        st.session_state.reset_entrada = 0
+
+                    itens_entrada = st.multiselect(
+                        "Selecione os materiais recebidos:", 
+                        df_estoque['item'].tolist() if not df_estoque.empty else [],
+                        key=f"entrada_estoque_{st.session_state.reset_entrada}",
+                        placeholder="Procure os itens aqui..."
+                    )
+                    
+                    if itens_entrada:
+                        with st.form("form_entrada_lote"):
+                            st.markdown("##### Volumes Recebidos:")
+                            dict_entradas = {}
+                            for item in itens_entrada:
+                                dict_entradas[item] = st.number_input(f"➕ {item}", min_value=1, step=1, key=f"ent_{item}")
+                            
+                            if st.form_submit_button("Confirmar Entrada no Inventário", type="primary", use_container_width=True):
+                                for item_nome, qtd_recebida in dict_entradas.items():
+                                    atual = df_estoque[df_estoque['item'] == item_nome].iloc[0]['quantidade']
+                                    nova_qtd = int(atual) + int(qtd_recebida)
+                                    supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", item_nome).execute()
+                                
+                                st.success(f"✅ {len(itens_entrada)} materiais foram incorporados ao inventário!")
+                                st.session_state.reset_entrada += 1
+                                time.sleep(1.5)
+                                st.rerun()
 
 
 # ==============================================================================
 # MÓDULO: SALA DE LEITURA (BIBLIOTECA)
 # ==============================================================================
-# ... (O módulo da Sala de Leitura permanece inalterado)
+# ... (O código deste módulo continua igual)

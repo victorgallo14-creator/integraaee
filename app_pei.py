@@ -8604,32 +8604,37 @@ elif app_mode_regular == "🖼️ Carômetro Escolar":
 
                 idx_col = (idx_col + 1) % 5
 
+import uuid
+import time
+from datetime import datetime
+
 # ==============================================================================
 # MÓDULO: ADMINISTRATIVO (ALMOXARIFADO)
 # ==============================================================================
-elif st.session_state.get("modulo_atuacao") == "📂 Administrativo":
+if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
     st.markdown('<div class="header-box"><div class="header-title">📦 Gestão de Almoxarifado</div></div>', unsafe_allow_html=True)
     
-    if st.button("⬅️ Voltar ao Início"):
-        st.session_state.app_mode = None
+    if st.button("⬅️ Voltar ao Início", key="voltar_adm"):
+        st.session_state.modulo_atuacao = None
         st.rerun()
 
     # Leitura dos dados
     df_estoque = safe_read("Almoxarifado_Estoque", ["id", "item", "quantidade", "categoria"])
     df_pedidos = safe_read("Almoxarifado_Pedidos", ["id", "data", "professor", "item", "quantidade", "status"])
     
-    tab_req, tab_baixa, tab_estoque = st.tabs(["📝 Requisitar Material", "✅ Dar Baixa (Saída)", "📈 Controle de Estoque"])
+    tab_req, tab_retro, tab_baixa, tab_estoque = st.tabs([
+        "🙋 Minha Requisição", "📝 Lançamento Retroativo", "✅ Dar Baixa", "📈 Estoque"
+    ])
 
-  # --- ABA 1: REQUISIÇÃO (Visão do Professor) ---
+    # --- ABA 1: REQUISIÇÃO (Visão do Professor) ---
     with tab_req:
         st.subheader("Nova Requisição de Materiais")
         
         if not df_estoque.empty:
-            # 1. Usamos um contador no session_state para criar uma "chave dinâmica"
+            # Controle de ID dinâmico para limpar o multiselect após o envio
             if 'reset_carrinho' not in st.session_state:
                 st.session_state.reset_carrinho = 0
 
-            # 2. Selecionar vários itens (A chave muda sempre que o pedido é enviado, limpando o campo)
             itens_selecionados = st.multiselect(
                 "1. Selecione um ou mais materiais:", 
                 df_estoque['item'].tolist(),
@@ -8637,15 +8642,16 @@ elif st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                 placeholder="Clique aqui e digite para buscar..."
             )
             
-            # 3. Mostrar os campos de quantidade apenas se algum item foi escolhido
             if itens_selecionados:
                 with st.form("form_requisicao"):
-                    st.markdown("##### 2. Defina as quantidades para cada item:")
+                    st.markdown("##### 2. Defina as quantidades:")
                     
                     dict_quantidades = {}
-                    for item in itens_selecionados:
+                    cols = st.columns(2)
+                    for i, item in enumerate(itens_selecionados):
+                        target_col = cols[i % 2]
                         cat = df_estoque[df_estoque['item'] == item].iloc[0]['categoria']
-                        dict_quantidades[item] = st.number_input(f"📦 {item} ({cat})", min_value=1, step=1, key=f"req_{item}")
+                        dict_quantidades[item] = target_col.number_input(f"📦 {item} ({cat})", min_value=1, step=1, key=f"req_{item}")
                         
                     if st.form_submit_button("Enviar Pedido Completo", type="primary", use_container_width=True):
                         agora = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -8663,14 +8669,58 @@ elif st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                             supabase.table("Almoxarifado_Pedidos").insert(novo_pedido).execute()
                             
                         st.success("✅ Pedido enviado com sucesso!")
-                        # O GRANDE TRUQUE: Somamos +1 no contador. O ID do widget muda e ele nasce limpo no rerun!
-                        st.session_state.reset_carrinho += 1
+                        st.session_state.reset_carrinho += 1 # Limpa o formulário
                         time.sleep(1.5)
                         st.rerun()
         else:
-            st.warning("Não há itens cadastrados no estoque.")
+            st.warning("Não há itens cadastrados no catálogo.")
 
-# --- ABA 2: BAIXA (Visão Administrativa/Secretaria) ---
+    # --- ABA 2: LANÇAMENTO RETROATIVO EM LOTE ---
+    with tab_retro:
+        st.subheader("Lançar Requisições de Papel")
+        st.info("Use esta aba para descontar do estoque os materiais que já foram entregues fisicamente.")
+
+        with st.form("form_retroativo", clear_on_submit=True):
+            col_p, col_d = st.columns(2)
+            nome_recebedor = col_p.text_input("Nome de quem recebeu o material:", placeholder="Ex: Maria Oliveira")
+            data_entrega = col_d.date_input("Data da entrega real:", datetime.now())
+            
+            itens_papel = st.multiselect(
+                "Selecione todos os itens entregues:", 
+                df_estoque['item'].tolist(),
+                placeholder="Busque os materiais aqui..."
+            )
+            
+            st.divider()
+            dict_qtds = {}
+            if itens_papel:
+                st.markdown("##### Quantidades:")
+                cols_retro = st.columns(2)
+                for i, item in enumerate(itens_papel):
+                    target_col = cols_retro[i % 2]
+                    dict_qtds[item] = target_col.number_input(f"{item}", min_value=1, step=1, key=f"retro_{item}")
+
+            if st.form_submit_button("🚀 Lançar e Atualizar Estoque", type="primary", use_container_width=True):
+                if not nome_recebedor or not itens_papel:
+                    st.error("Preencha o nome e selecione ao menos um item.")
+                else:
+                    data_formatada = data_entrega.strftime("%d/%m/%Y")
+                    for item_nome, qtd in dict_qtds.items():
+                        novo_p = {
+                            "id": str(uuid.uuid4()), "data": data_formatada, "professor": nome_recebedor,
+                            "item": item_nome, "quantidade": qtd, "status": "Entregue"
+                        }
+                        supabase.table("Almoxarifado_Pedidos").insert(novo_p).execute()
+                        
+                        estoque_atual = df_estoque[df_estoque['item'] == item_nome].iloc[0]['quantidade']
+                        nova_qtd = max(0, int(estoque_atual) - int(qtd))
+                        supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", item_nome).execute()
+                    
+                    st.success(f"✅ {len(itens_papel)} itens lançados para {nome_recebedor}.")
+                    time.sleep(1.5)
+                    st.rerun()
+
+    # --- ABA 3: DAR BAIXA (Agrupado por Professor) ---
     with tab_baixa:
         st.subheader("Pedidos Aguardando Entrega")
         pendentes = df_pedidos[df_pedidos['status'] == 'Pendente']
@@ -8678,67 +8728,136 @@ elif st.session_state.get("modulo_atuacao") == "📂 Administrativo":
         if pendentes.empty:
             st.info("🎉 Nenhuma requisição pendente no momento.")
         else:
-            # O GRANDE TRUQUE: Agrupa os itens pela Data/Hora e nome do Professor
             grupos_pedidos = pendentes.groupby(['data', 'professor'])
             
             for (data_pedido, prof_nome), grupo in grupos_pedidos:
-                # Cria uma "Caixa" (expander) para cada pedido completo
                 with st.expander(f"📦 Pedido de {prof_nome} | 📅 {data_pedido} | ({len(grupo)} itens)"):
-                    
-                    st.markdown("Verifique os itens abaixo e confirme a entrega individualmente:")
-                    
                     for _, row in grupo.iterrows():
                         c1, c2 = st.columns([3, 2])
-                        
-                        # Busca no dataframe de estoque quanto tem desse item hoje
                         estoque_disp = df_estoque[df_estoque['item'] == row['item']].iloc[0]['quantidade']
                         
-                        # Mostra o item solicitado e o saldo atual em estoque para facilitar a decisão
                         c1.write(f"🔹 **{row['quantidade']}x** {row['item']} *(Estoque: {estoque_disp})*")
                         
-                        # Botão de baixa individual para aquele item
                         if c2.button("✅ Entregar Item", key=f"entregar_{row['id']}", use_container_width=True):
-                            
-                            # 1. Atualiza o status APENAS desta linha do pedido para "Entregue"
                             supabase.table("Almoxarifado_Pedidos").update({"status": "Entregue"}).eq("id", row['id']).execute()
                             
-                            # 2. Faz a conta matemática blindada (nunca fica negativo)
                             nova_qtd = int(estoque_disp) - int(row['quantidade'])
-                            if nova_qtd < 0:
-                                nova_qtd = 0 # Trava no zero, não apaga a linha do banco de dados!
+                            if nova_qtd < 0: nova_qtd = 0 # Trava para não negativar
                                 
-                            # 3. Atualiza a quantidade no banco de dados
                             supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", row['item']).execute()
-                            
-                            st.success(f"Baixa de '{row['item']}' realizada com sucesso!")
+                            st.success(f"Baixa de '{row['item']}' realizada!")
                             time.sleep(1)
                             st.rerun()
 
-    # --- ABA 3: ESTOQUE (Entradas e Cadastro) ---
+    # --- ABA 4: CONTROLE DE ESTOQUE E CADASTRO ---
     with tab_estoque:
         col_list, col_add = st.columns([2, 1])
         
         with col_list:
-            st.subheader("Itens Cadastrados")
+            st.subheader("Inventário Atual")
             st.dataframe(df_estoque[["item", "quantidade", "categoria"]], use_container_width=True, hide_index=True)
             
         with col_add:
-            st.subheader("📥 Entrada/Novo Item")
-            with st.form("form_estoque"):
-                nome = st.text_input("Nome do Material")
-                cat = st.selectbox("Categoria", ["Papelaria", "Limpeza", "Escritório", "Outros"])
-                qtd_ini = st.number_input("Quantidade (Entrada)", min_value=0)
+            st.subheader("📥 Entrada de Carga")
+            with st.form("form_estoque", clear_on_submit=True):
+                nome = st.selectbox("Selecione o Material", df_estoque['item'].tolist() if not df_estoque.empty else ["Nenhum"])
+                qtd_ini = st.number_input("Quantidade (Chegou na Escola)", min_value=1)
                 
-                if st.form_submit_button("Registrar/Atualizar"):
-                    # Verifica se já existe para somar ou criar novo
-                    if nome in df_estoque['item'].values:
+                if st.form_submit_button("Somar ao Estoque", type="primary"):
+                    if not df_estoque.empty:
                         atual = df_estoque[df_estoque['item'] == nome].iloc[0]['quantidade']
                         supabase.table("Almoxarifado_Estoque").update({"quantidade": int(atual) + qtd_ini}).eq("item", nome).execute()
-                    else:
-                        supabase.table("Almoxarifado_Estoque").insert({"id": str(uuid.uuid4()), "item": nome, "quantidade": qtd_ini, "categoria": cat}).execute()
-                    st.success("Estoque atualizado!")
+                        st.success(f"Estoque de {nome} atualizado!")
+                        time.sleep(1)
+                        st.rerun()
+
+
+# ==============================================================================
+# MÓDULO: SALA DE LEITURA (BIBLIOTECA)
+# ==============================================================================
+# IMPORTANTE: Garanta que o nome abaixo está exatamente igual à "key" que você passa ao clicar no botão na Home
+elif st.session_state.get("modulo_atuacao") == "📚  Sala de Leitura" or st.session_state.get("modulo_atuacao") == "📚 Sala de Leitura":
+    st.markdown('<div class="header-box"><div class="header-title">📚 Sala de Leitura</div></div>', unsafe_allow_html=True)
+    
+    if st.button("⬅️ Voltar ao Início", key="voltar_bib"):
+        st.session_state.modulo_atuacao = None
+        st.rerun()
+
+    df_acervo = safe_read("SalaLeitura_Acervo", ["id", "titulo", "autor", "qtd_total", "qtd_disponivel"])
+    df_emp = safe_read("SalaLeitura_Emprestimos", ["id", "livro_titulo", "leitor", "data_saida", "data_retorno_prevista", "status"])
+
+    tab_pesquisa, tab_novo_emp, tab_ativos, tab_admin = st.tabs([
+        "🔍 Pesquisar Acervo", "📖 Novo Empréstimo", "⏳ Livros Emprestados", "⚙️ Gerenciar Livros"
+    ])
+
+    with tab_pesquisa:
+        busca = st.text_input("Buscar por título do livro ou autor")
+        if not df_acervo.empty:
+            resultado = df_acervo[df_acervo['titulo'].str.contains(busca, case=False) | df_acervo['autor'].str.contains(busca, case=False)]
+            st.dataframe(resultado[["titulo", "autor", "qtd_disponivel"]], use_container_width=True, hide_index=True)
+
+    with tab_novo_emp:
+        st.subheader("Registrar Saída de Livro")
+        with st.form("form_emprestimo", clear_on_submit=True):
+            livros_disp = df_acervo[df_acervo['qtd_disponivel'] > 0]['titulo'].tolist() if not df_acervo.empty else []
+            livro_sel = st.selectbox("Selecione um Livro Disponível", livros_disp)
+            leitor_nome = st.text_input("Nome do Aluno ou Professor")
+            data_prev = st.date_input("Previsão de Devolução")
+            
+            if st.form_submit_button("Confirmar Empréstimo", type="primary"):
+                if livro_sel and leitor_nome:
+                    novo_e = {
+                        "id": str(uuid.uuid4()), "livro_titulo": livro_sel, "leitor": leitor_nome,
+                        "data_saida": datetime.now().strftime("%d/%m/%Y"),
+                        "data_retorno_prevista": data_prev.strftime("%d/%m/%Y"), "status": "Ativo"
+                    }
+                    supabase.table("SalaLeitura_Emprestimos").insert(novo_e).execute()
+                    
+                    qtd_at = df_acervo[df_acervo['titulo'] == livro_sel].iloc[0]['qtd_disponivel']
+                    supabase.table("SalaLeitura_Acervo").update({"qtd_disponivel": int(qtd_at) - 1}).eq("titulo", livro_sel).execute()
+                    
+                    st.success(f"Empréstimo registrado com sucesso!")
                     time.sleep(1)
                     st.rerun()
+
+    with tab_ativos:
+        st.subheader("Empréstimos Pendentes (Aguardando Devolução)")
+        ativos = df_emp[df_emp['status'] == 'Ativo']
+        if ativos.empty:
+            st.info("Todos os livros estão na escola. Nenhum empréstimo pendente.")
+        else:
+            for _, row in ativos.iterrows():
+                c1, c2 = st.columns([3, 1])
+                c1.write(f"📖 **{row['livro_titulo']}**\n👤 Com: {row['leitor']} | 📅 Volta: {row['data_retorno_prevista']}")
+                if c2.button("📥 Registrar Devolução", key=f"dev_{row['id']}", use_container_width=True):
+                    supabase.table("SalaLeitura_Emprestimos").update({"status": "Devolvido"}).eq("id", row['id']).execute()
+                    
+                    qtd_at = df_acervo[df_acervo['titulo'] == row['livro_titulo']].iloc[0]['qtd_disponivel']
+                    supabase.table("SalaLeitura_Acervo").update({"qtd_disponivel": int(qtd_at) + 1}).eq("titulo", row['livro_titulo']).execute()
+                    
+                    st.success("Livro devolvido à prateleira!")
+                    time.sleep(1)
+                    st.rerun()
+
+    with tab_admin:
+        st.subheader("Cadastrar Novo Título no Acervo")
+        with st.form("cad_livro", clear_on_submit=True):
+            t = st.text_input("Título da Obra")
+            a = st.text_input("Nome do Autor")
+            q = st.number_input("Quantidade Total de Exemplares Físicos", min_value=1)
+            if st.form_submit_button("Salvar no Acervo"):
+                if t:
+                    supabase.table("SalaLeitura_Acervo").insert({
+                        "id": str(uuid.uuid4()), "titulo": t, "autor": a, "qtd_total": q, "qtd_disponivel": q
+                    }).execute()
+                    st.success("Novo livro cadastrado com sucesso!")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("O título não pode ficar em branco.")
+
+
+#BIBLIOTECA###
 
 elif st.session_state.get("modulo_atuacao") == "📚  Sala de Leitura":
     st.markdown('<div class="header-box"><div class="header-title">📚 Gestão da Sala de Leitura</div></div>', unsafe_allow_html=True)

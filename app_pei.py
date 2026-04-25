@@ -9109,7 +9109,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                                     else:
                                         st.error("Selecione pelo menos um item para processar.")
 
-            # --- ABA 4: INVENTÁRIO (Com Relatório) ---
+            # --- ABA 4: INVENTÁRIO (Com PDF Oficial) ---
             with tab_estoque:
                 col_list, col_add = st.columns([3, 2])
                 
@@ -9118,14 +9118,81 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                     c_tit.subheader("Posição do Inventário")
                     
                     if not df_estoque.empty:
-                        csv_estoque = df_estoque[["item", "categoria", "quantidade"]].sort_values(by="item").to_csv(index=False).encode('utf-8')
+                        # -------------------------------------------------------------
+                        # MOTOR DE GERAÇÃO DO PDF CORPORATIVO
+                        # -------------------------------------------------------------
+                        def gerar_pdf_inventario(df, usuario):
+                            pdf = FPDF()
+                            pdf.add_page()
+                            pdf.set_left_margin(10)
+                            pdf.set_right_margin(10)
+
+                            # Cabeçalho Oficial
+                            pdf.set_font("Arial", "B", 14)
+                            pdf.cell(0, 8, "CEIEF RAFAEL AFFONSO LEITE", ln=True, align="C")
+                            pdf.set_font("Arial", "B", 10)
+                            pdf.cell(0, 6, "ALMOXARIFADO ESCOLAR", ln=True, align="C")
+                            pdf.cell(0, 6, "RELATORIO DE INVENTARIO", ln=True, align="C")
+                            pdf.ln(5)
+
+                            # Metadados do Relatório
+                            pdf.set_font("Arial", "", 9)
+                            pdf.cell(0, 5, f"Data/Hora de Emissao: {datetime.now().strftime('%d/%m/%Y as %H:%M')}", ln=True)
+                            
+                            # Tratamento para acentos no nome do utilizador
+                            nome_seguro = str(usuario).encode('latin-1', 'replace').decode('latin-1')
+                            pdf.cell(0, 5, f"Emitido por: {nome_seguro}", ln=True)
+                            pdf.ln(5)
+
+                            # Cabeçalho da Tabela
+                            pdf.set_font("Arial", "B", 9)
+                            pdf.set_fill_color(200, 220, 255) # Azul clarinho corporativo
+                            pdf.cell(100, 8, "Material / Insumo", border=1, fill=True)
+                            pdf.cell(50, 8, "Categoria", border=1, fill=True)
+                            pdf.cell(40, 8, "Saldo Atual", border=1, ln=True, align="C", fill=True)
+
+                            # Linhas da Tabela
+                            pdf.set_font("Arial", "", 9)
+                            df_sorted = df.sort_values(by=["categoria", "item"])
+                            
+                            # Para alternar a cor da linha (efeito zebra)
+                            fill = False 
+                            pdf.set_fill_color(245, 245, 245)
+
+                            for _, row in df_sorted.iterrows():
+                                # Tratamento para garantir que acentos (ç, ã, etc) não quebrem o PDF
+                                item_nome = str(row['item']).encode('latin-1', 'replace').decode('latin-1')[:55]
+                                categoria = str(row['categoria']).encode('latin-1', 'replace').decode('latin-1')[:25]
+                                qtd = str(row['quantidade'])
+
+                                pdf.cell(100, 7, item_nome, border=1, fill=fill)
+                                pdf.cell(50, 7, categoria, border=1, fill=fill)
+                                pdf.cell(40, 7, qtd, border=1, ln=True, align="C", fill=fill)
+                                fill = not fill # Alterna a cor para a próxima linha
+
+                            # Rodapé
+                            pdf.ln(10)
+                            pdf.set_font("Arial", "I", 8)
+                            pdf.cell(0, 5, f"Total de itens catalogados: {len(df_sorted)}", ln=True)
+                            pdf.cell(0, 5, "Documento gerado automaticamente pelo Sistema de Gestao Escolar.", ln=True)
+
+                            return pdf.output(dest="S").encode("latin-1")
+
+                        # Executa a função passando os dados e o nome de quem está logado
+                        usuario_logado = st.session_state.get('usuario_nome', 'Gestor(a)')
+                        pdf_bytes = gerar_pdf_inventario(df_estoque, usuario_logado)
+
+                        # Botão de Download do PDF
                         c_btn.download_button(
-                            label="📥 Exportar Relatório", data=csv_estoque,
-                            file_name=f"relatorio_estoque_{datetime.now().strftime('%d_%m_%Y')}.csv",
-                            mime="text/csv", use_container_width=True
+                            label="📄 Emitir Relatório (PDF)", 
+                            data=pdf_bytes,
+                            file_name=f"Inventario_Almoxarifado_{datetime.now().strftime('%d_%m_%Y')}.pdf",
+                            mime="application/pdf", 
+                            use_container_width=True
                         )
                     
-                    st.dataframe(df_estoque[["item", "quantidade", "categoria"]], use_container_width=True, hide_index=True)
+                    # Exibe a tabela na tela
+                    st.dataframe(df_estoque[["item", "quantidade", "categoria"]].sort_values(by="item"), use_container_width=True, hide_index=True)
                     
                 with col_add:
                     st.subheader("📥 Recebimento de Materiais")
@@ -9158,8 +9225,3 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                                 st.session_state.reset_entrada += 1
                                 time.sleep(1.5)
                                 st.rerun()
-
-# ==============================================================================
-# MÓDULO: SALA DE LEITURA (BIBLIOTECA)
-# ==============================================================================
-# ... (O módulo da Biblioteca continua aqui abaixo sem alterações)

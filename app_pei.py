@@ -8690,3 +8690,87 @@ elif st.session_state.app_mode == "📂 Administrativo":
                     st.success("Estoque atualizado!")
                     time.sleep(1)
                     st.rerun()
+
+elif st.session_state.app_mode == "📚 Sala de Leitura":
+    st.markdown('<div class="header-box"><div class="header-title">📚 Gestão da Sala de Leitura</div></div>', unsafe_allow_html=True)
+    
+    if st.button("⬅️ Voltar"):
+        st.session_state.app_mode = None
+        st.rerun()
+
+    # Carregar dados
+    df_acervo = safe_read("SalaLeitura_Acervo", ["id", "titulo", "autor", "qtd_total", "qtd_disponivel"])
+    df_emp = safe_read("SalaLeitura_Emprestimos", ["id", "livro_titulo", "leitor", "data_saida", "data_retorno_prevista", "status"])
+
+    tab_pesquisa, tab_novo_emp, tab_ativos, tab_admin = st.tabs([
+        "🔍 Pesquisar Acervo", "📖 Novo Empréstimo", "⏳ Empréstimos Ativos", "⚙️ Gerenciar Acervo"
+    ])
+
+    # --- ABA 1: PESQUISA ---
+    with tab_pesquisa:
+        busca = st.text_input("Buscar por título ou autor")
+        if not df_acervo.empty:
+            resultado = df_acervo[df_acervo['titulo'].str.contains(busca, case=False) | df_acervo['autor'].str.contains(busca, case=False)]
+            st.dataframe(resultado[["titulo", "autor", "qtd_disponivel"]], use_container_width=True, hide_index=True)
+
+    # --- ABA 2: NOVO EMPRÉSTIMO ---
+    with tab_novo_emp:
+        st.subheader("Registrar Saída de Livro")
+        with st.form("form_emprestimo", clear_on_submit=True):
+            # Só mostra livros que têm pelo menos 1 exemplar disponível
+            livros_disp = df_acervo[df_acervo['qtd_disponivel'] > 0]['titulo'].tolist()
+            livro_sel = st.selectbox("Livro", livros_disp)
+            leitor_nome = st.text_input("Nome do Aluno/Professor")
+            data_prev = st.date_input("Previsão de Devolução")
+            
+            if st.form_submit_button("Confirmar Empréstimo", type="primary"):
+                if livro_sel and leitor_nome:
+                    # 1. Registra o empréstimo
+                    novo_e = {
+                        "id": str(uuid.uuid4()), "livro_titulo": livro_sel, "leitor": leitor_nome,
+                        "data_saida": datetime.now().strftime("%d/%m/%Y"),
+                        "data_retorno_prevista": data_prev.strftime("%d/%m/%Y"), "status": "Ativo"
+                    }
+                    supabase.table("SalaLeitura_Emprestimos").insert(novo_e).execute()
+                    
+                    # 2. Diminui a quantidade disponível no acervo
+                    qtd_at = df_acervo[df_acervo['titulo'] == livro_sel].iloc[0]['qtd_disponivel']
+                    supabase.table("SalaLeitura_Acervo").update({"qtd_disponivel": int(qtd_at) - 1}).eq("titulo", livro_sel).execute()
+                    
+                    st.success(f"Empréstimo de '{livro_sel}' registrado para {leitor_nome}!")
+                    time.sleep(1)
+                    st.rerun()
+
+    # --- ABA 3: EMPRÉSTIMOS ATIVOS E DEVOLUÇÃO ---
+    with tab_ativos:
+        st.subheader("Livros em posse de leitores")
+        ativos = df_emp[df_emp['status'] == 'Ativo']
+        if ativos.empty:
+            st.info("Não há empréstimos pendentes no momento.")
+        else:
+            for _, row in ativos.iterrows():
+                c1, c2 = st.columns([3, 1])
+                c1.write(f"📖 **{row['livro_titulo']}**\n👤 Leitor: {row['leitor']} | 📅 Devolução: {row['data_retorno_prevista']}")
+                if c2.button("Registrar Devolução", key=f"dev_{row['id']}"):
+                    # 1. Muda status para Devolvido
+                    supabase.table("SalaLeitura_Emprestimos").update({"status": "Devolvido"}).eq("id", row['id']).execute()
+                    # 2. Devolve o exemplar ao estoque disponível
+                    qtd_at = df_acervo[df_acervo['titulo'] == row['livro_titulo']].iloc[0]['qtd_disponivel']
+                    supabase.table("SalaLeitura_Acervo").update({"qtd_disponivel": int(qtd_at) + 1}).eq("titulo", row['livro_titulo']).execute()
+                    st.success("Livro devolvido ao acervo!")
+                    time.sleep(1)
+                    st.rerun()
+
+    # --- ABA 4: ADMINISTRAÇÃO DO ACERVO ---
+    with tab_admin:
+        st.subheader("Cadastrar Novo Título")
+        with st.form("cad_livro"):
+            t = st.text_input("Título do Livro")
+            a = st.text_input("Autor")
+            q = st.number_input("Quantidade Total de Exemplares", min_value=1)
+            if st.form_submit_button("Salvar no Acervo"):
+                supabase.table("SalaLeitura_Acervo").insert({
+                    "id": str(uuid.uuid4()), "titulo": t, "autor": a, "qtd_total": q, "qtd_disponivel": q
+                }).execute()
+                st.success("Livro cadastrado!")
+                st.rerun()

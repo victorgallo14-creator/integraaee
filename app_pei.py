@@ -8884,7 +8884,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
             tab_req, = st.tabs(["🙋 Nova Solicitação"])
 
 
-        # --- ABA 1: NOVA SOLICITAÇÃO E HISTÓRICO (Visão do Professor) ---
+        # --- ABA 1: NOVA SOLICITAÇÃO E HISTÓRICO ---
         with tab_req:
             st.subheader("Solicitação de Materiais")
             
@@ -8994,7 +8994,6 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                                 
                                 itens_html_lista += f"<li>{qtd}x {item_nome}</li>"
                             
-                            # Gera o comprovante e chama a tela de impressão
                             st.session_state.comprovante_almox = {
                                 'data': datetime.now().strftime("%d/%m/%Y %H:%M"),
                                 'professor': nome_recebedor,
@@ -9002,7 +9001,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                             }
                             st.rerun()
 
-            # --- ABA 3: EXPEDIÇÃO (Baixa Inteligente) ---
+            # --- ABA 3: EXPEDIÇÃO (BAIXA PARCIAL E INTELIGENTE) ---
             with tab_baixa:
                 st.subheader("Requisições Pendentes de Atendimento")
                 pendentes = df_pedidos[df_pedidos['status'] == 'Pendente']
@@ -9015,42 +9014,78 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                     for (data_pedido, prof_nome), grupo in grupos_pedidos:
                         with st.expander(f"📦 Solicitação de {prof_nome} | 📅 {data_pedido} | ({len(grupo)} itens pendentes)"):
                             
-                            # O NOVO BOTÃO MÁGICO: Resolve tudo de uma vez e gera o cupom
-                            if st.button("🚀 Processar Saída de TODOS os Itens e Imprimir", key=f"all_{prof_nome}_{data_pedido}", type="primary", use_container_width=True):
-                                itens_html_lista = ""
+                            st.markdown("Selecione os itens e altere as quantidades caso queira entregar mais ou menos do que o solicitado:")
+                            
+                            # Gera uma chave única e limpa para o formulário
+                            chave_form = f"form_{prof_nome.replace(' ', '')}_{str(data_pedido).replace('/', '').replace(':', '').replace(' ', '')}"
+                            
+                            with st.form(chave_form):
+                                selecoes = {}
                                 
                                 for _, row in grupo.iterrows():
-                                    supabase.table("Almoxarifado_Pedidos").update({"status": "Entregue"}).eq("id", row['id']).execute()
-                                    
+                                    c1, c2, c3 = st.columns([0.5, 3, 1.5])
                                     estoque_disp = df_estoque[df_estoque['item'] == row['item']].iloc[0]['quantidade']
-                                    nova_qtd = max(0, int(estoque_disp) - int(row['quantidade']))
-                                    supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", row['item']).execute()
                                     
-                                    itens_html_lista += f"<li>{row['quantidade']}x {row['item']}</li>"
+                                    # Checkbox que permite excluir o item desta entrega (mantendo-o pendente)
+                                    entregar_item = c1.checkbox("", value=True, key=f"chk_{row['id']}")
                                     
-                                st.session_state.comprovante_almox = {
-                                    'data': datetime.now().strftime("%d/%m/%Y %H:%M"),
-                                    'professor': prof_nome,
-                                    'itens_html': itens_html_lista
-                                }
-                                st.rerun()
-
-                            st.divider()
-                            st.caption("Ou processe os itens individualmente caso falte algo no estoque:")
-                            
-                            for _, row in grupo.iterrows():
-                                c1, c2 = st.columns([3, 2])
-                                estoque_disp = df_estoque[df_estoque['item'] == row['item']].iloc[0]['quantidade']
+                                    c2.markdown(f"**{row['item']}**<br><span style='font-size:12px; color:#666;'>Pedido: {row['quantidade']} | Estoque: {estoque_disp}</span>", unsafe_allow_html=True)
+                                    
+                                    # Campo para alterar a quantidade que será entregue agora
+                                    qtd_entregar = c3.number_input("Qtd Liberada", min_value=1, value=int(row['quantidade']), key=f"qtd_{row['id']}")
+                                    
+                                    selecoes[row['id']] = {
+                                        'entregar': entregar_item,
+                                        'qtd_entregar': qtd_entregar,
+                                        'item': row['item'],
+                                        'qtd_pedida': int(row['quantidade'])
+                                    }
                                 
-                                c1.write(f"🔹 **{row['quantidade']}x** {row['item']} *(Disponível: {estoque_disp})*")
-                                
-                                if c2.button("✅ Processar Saída", key=f"entregar_{row['id']}", use_container_width=True):
-                                    supabase.table("Almoxarifado_Pedidos").update({"status": "Entregue"}).eq("id", row['id']).execute()
-                                    nova_qtd = max(0, int(estoque_disp) - int(row['quantidade']))
-                                    supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", row['item']).execute()
-                                    st.success(f"Saída do item '{row['item']}' registrada com sucesso!")
-                                    time.sleep(1)
-                                    st.rerun()
+                                st.divider()
+                                if st.form_submit_button("🚀 Processar Selecionados e Imprimir Cupom", type="primary", use_container_width=True):
+                                    itens_html_lista = ""
+                                    algum_selecionado = False
+                                    
+                                    for row_id, info in selecoes.items():
+                                        if info['entregar']:
+                                            algum_selecionado = True
+                                            item_nome = info['item']
+                                            qtd_liberada = info['qtd_entregar']
+                                            qtd_original = info['qtd_pedida']
+                                            
+                                            # 1. Atualiza o pedido atual como Entregue (com a qtde que realmente saiu)
+                                            supabase.table("Almoxarifado_Pedidos").update({"status": "Entregue", "quantidade": qtd_liberada}).eq("id", row_id).execute()
+                                            
+                                            # 2. SE ENTREGOU MENOS: Cria um novo pedido pendente automático com o que faltou!
+                                            if qtd_liberada < qtd_original:
+                                                qtd_restante = qtd_original - qtd_liberada
+                                                novo_pendente = {
+                                                    "id": str(uuid.uuid4()),
+                                                    "data": data_pedido, # Mantém a data original do pedido
+                                                    "professor": prof_nome,
+                                                    "item": item_nome,
+                                                    "quantidade": qtd_restante,
+                                                    "status": "Pendente"
+                                                }
+                                                supabase.table("Almoxarifado_Pedidos").insert(novo_pendente).execute()
+                                                
+                                            # 3. Atualiza o Estoque descontando a quantidade liberada
+                                            estoque_atual = df_estoque[df_estoque['item'] == item_nome].iloc[0]['quantidade']
+                                            nova_qtd_estoque = max(0, int(estoque_atual) - qtd_liberada)
+                                            supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd_estoque}).eq("item", item_nome).execute()
+                                            
+                                            # 4. Adiciona o item ao comprovante
+                                            itens_html_lista += f"<li>{qtd_liberada}x {item_nome}</li>"
+                                            
+                                    if algum_selecionado:
+                                        st.session_state.comprovante_almox = {
+                                            'data': datetime.now().strftime("%d/%m/%Y %H:%M"),
+                                            'professor': prof_nome,
+                                            'itens_html': itens_html_lista
+                                        }
+                                        st.rerun()
+                                    else:
+                                        st.error("Selecione pelo menos um item para processar.")
 
             # --- ABA 4: INVENTÁRIO (Com Relatório) ---
             with tab_estoque:
@@ -9106,4 +9141,4 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
 # ==============================================================================
 # MÓDULO: SALA DE LEITURA (BIBLIOTECA)
 # ==============================================================================
-# ... (O código deste módulo continua igual)
+# ... (O módulo da Biblioteca continua aqui abaixo sem alterações)

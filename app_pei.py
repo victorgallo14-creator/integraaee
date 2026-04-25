@@ -9077,44 +9077,105 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                                 supabase.table("Biblioteca_Exemplares").update({"disponivel": True, "status_conservacao": "Íntegro"}).eq("id", ex_in.iloc[0]['id']).execute()
                                 st.success("✅ Devolução registrada no acervo!"); time.sleep(1); st.rerun()
 
-    # =========================================================
+# =========================================================
     # 4. CATALOGAÇÃO TÉCNICA (ADMINISTRATIVO)
     # =========================================================
     if eh_gestao:
         with tab_cat:
-            st.subheader("Incorporação de Acervo via ISBN")
-            with st.form("isbn_search"):
+            st.subheader("Procedimento de Catalogação Automatizada")
+            st.info("Insira o código ISBN para recuperação de metadados bibliográficos via API internacional.")
+            
+            with st.form("isbn_search_form"):
                 c_isbn, c_bt = st.columns([3, 1])
-                isbn_val = c_isbn.text_input("Código ISBN (Internacional):")
-                if c_bt.form_submit_button("🌐 Buscar Metadados"):
-                    try:
-                        r = requests.get(f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn_val}").json()
-                        if "items" in r:
-                            v = r["items"][0]["volumeInfo"]
-                            st.session_state.temp_book = {
-                                "titulo": v.get("title", "").upper(), "autor": ", ".join(v.get("authors", [])).upper(),
-                                "resumo": v.get("description", ""), "isbn": isbn_val,
-                                "capa": v.get("imageLinks", {}).get("thumbnail", "").replace("http:", "https:")
-                            }
-                            st.success("Metadados recuperados da base mundial.")
-                        else: st.error("Obra não localizada.")
-                    except: st.error("Falha na comunicação com o serviço ISBN.")
+                isbn_input = c_isbn.text_input("Código ISBN (10 ou 13 dígitos):", placeholder="Ex: 9788535914849")
+                buscar_metadados = c_bt.form_submit_button("🌐 Consultar Base")
 
-            if 'temp_book' in st.session_state:
-                with st.form("confirm_cat"):
+            if buscar_metadados and isbn_input:
+                # Tratamento de dados: remove hífens, espaços e caracteres especiais
+                isbn_limpo = "".join(filter(str.isdigit, isbn_input))
+                
+                if not isbn_limpo:
+                    st.error("Erro: O código ISBN deve conter apenas números.")
+                else:
+                    try:
+                        # Tentativa 1: Busca estrita por prefixo ISBN
+                        url = f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn_limpo}"
+                        response = requests.get(url, timeout=10)
+                        data = response.json()
+                        
+                        # Tentativa 2 (Fallback): Busca geral pelo código numérico caso a estrita falhe
+                        if "items" not in data:
+                            url_fallback = f"https://www.googleapis.com/books/v1/volumes?q={isbn_limpo}"
+                            response = requests.get(url_fallback, timeout=10)
+                            data = response.json()
+
+                        if "items" in data:
+                            meta = data["items"][0]["volumeInfo"]
+                            
+                            # Extração segura de metadados com valores padrão (evita KeyErrors)
+                            st.session_state.temp_book = {
+                                "titulo": meta.get("title", "Título Não Localizado").upper(),
+                                "autor": ", ".join(meta.get("authors", ["Autor Desconhecido"])).upper(),
+                                "editora": meta.get("publisher", "Editora Não Informada").upper(),
+                                "ano": meta.get("publishedDate", "N/D")[:4],
+                                "resumo": meta.get("description", "Sinopse não disponível na base de dados."),
+                                "isbn": isbn_limpo,
+                                "capa": meta.get("imageLinks", {}).get("thumbnail", "").replace("http:", "https:")
+                            }
+                            st.success("Metadados recuperados com sucesso.")
+                        else:
+                            st.error(f"Obra com ISBN {isbn_limpo} não localizada na base mundial.")
+                            
+                    except requests.exceptions.RequestException as e:
+                        st.error(f"Falha de comunicação com o serviço de metadados: {e}")
+
+            # Formulário de Confirmação e Registo Patrimonial
+            if 'temp_book' in st.session_state and st.session_state.temp_book:
+                with st.form("confirm_catalog_form"):
                     t = st.session_state.temp_book
-                    st.text_input("Título", value=t['titulo'], key="t_edit")
-                    st.text_area("Sinopse", value=t['resumo'], key="s_edit")
-                    q_cops = st.number_input("Número de Exemplares:", min_value=1, step=1)
-                    if st.form_submit_button("💾 Salvar e Gerar Tombos", type="primary"):
-                        id_ac = str(uuid.uuid4())
+                    st.markdown("##### Revisão de Dados Bibliográficos")
+                    
+                    col_f1, col_f2 = st.columns([3, 1])
+                    titulo_final = col_f1.text_input("Título Oficial", value=t['titulo'])
+                    isbn_final = col_f2.text_input("ISBN Validado", value=t['isbn'], disabled=True)
+                    
+                    autor_final = st.text_input("Autor(es)", value=t['autor'])
+                    resumo_final = st.text_area("Sinopse Técnica", value=t['resumo'], height=150)
+                    
+                    st.divider()
+                    st.markdown("##### Registro de Patrimônio Físico")
+                    col_q1, col_q2 = st.columns(2)
+                    qtd_cops = col_q1.number_input("Volumes para Incorporação:", min_value=1, step=1)
+                    prefixo = col_q2.text_input("Prefixo de Tombamento:", value="SALA-")
+                    
+                    if st.form_submit_button("💾 Efetivar Catalogação e Gerar Tombos", type="primary", use_container_width=True):
+                        # Lógica de persistência no banco de dados
+                        id_obra = str(uuid.uuid4())
+                        
+                        # Inserção na Tabela de Acervo
                         supabase.table("Biblioteca_Acervo").insert({
-                            "id": id_ac, "isbn": t['isbn'], "titulo": t['titulo'], 
-                            "autor": t['autor'], "resumo": t['resumo'], "capa_url": t['capa']
+                            "id": id_obra,
+                            "isbn": t['isbn'],
+                            "titulo": titulo_final,
+                            "autor": autor_final,
+                            "editora": t['editora'],
+                            "ano": t['ano'],
+                            "resumo": resumo_final,
+                            "capa_url": t['capa']
                         }).execute()
-                        for i in range(q_cops):
+                        
+                        # Inserção de Exemplares com Identificadores de Tombo Únicos
+                        for i in range(qtd_cops):
+                            tombo_gerado = f"{prefixo}{datetime.now().year}-{t['isbn'][-4:]}-{i+1:03d}"
                             supabase.table("Biblioteca_Exemplares").insert({
-                                "id": str(uuid.uuid4()), "id_acervo": id_ac, 
-                                "tombo": f"RA-{t['isbn'][-4:]}-{i+1:03d}", "disponivel": True
+                                "id": str(uuid.uuid4()),
+                                "id_acervo": id_obra,
+                                "tombo": tombo_gerado,
+                                "status_conservacao": "Íntegro",
+                                "disponivel": True
                             }).execute()
-                        st.success("Catalogação concluída."); st.session_state.temp_book = None; time.sleep(1); st.rerun()
+                            
+                        st.success(f"Catalogação concluída. {qtd_cops} exemplares incorporados ao património.")
+                        st.session_state.temp_book = None
+                        time.sleep(1.5)
+                        st.rerun()

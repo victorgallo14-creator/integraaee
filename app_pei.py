@@ -735,7 +735,7 @@ if st.session_state.authenticated:
         col1, col2, col3, col4 = st.columns(4) # Alterado para 4 colunas
         
         # --- BOTÃO 1: ENSINO REGULAR (ESQUERDA) ---
-        with col2:
+        with col1:
             st.markdown("""
             <div style='background-color: #eff6ff; padding: 35px 20px; border-radius: 12px; text-align: center; border: 2px solid #3b82f6; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
                 <div style='font-size: 55px; margin-bottom: 15px;'>🏫</div>
@@ -748,7 +748,7 @@ if st.session_state.authenticated:
                 st.rerun()
 
         # --- BOTÃO 2: EDUCAÇÃO ESPECIAL (DIREITA) ---
-        with col3:
+        with col2:
             st.markdown("""
             <div style='background-color: #f0fdf4; padding: 35px 20px; border-radius: 12px; text-align: center; border: 2px solid #22c55e; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
                 <div style='font-size: 55px; margin-bottom: 15px;'>🧠</div>
@@ -759,12 +759,26 @@ if st.session_state.authenticated:
             if st.button("Acessar Educação Especial", type="primary", use_container_width=True, key="btn_ee"):
                 st.session_state.modulo_atuacao = "🧠 Educação Especial Inclusiva"
                 st.rerun()
-                
+
+        # --- BOTÃO 3: ADM (DIREITA) ---
+
+        with col3:
+            st.markdown("""
+            <div style='background-color: #fdfbf0; padding: 35px 20px; border-radius: 12px; text-align: center; border: 2px solid #22c55e; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+                <div style='font-size: 55px; margin-bottom: 15px;'>📚 </div>
+                <div style='color: #15803d; font-size: 24px; font-weight: 700; margin: 0;'>Sala de Leitura</div>
+            </div>
+            """, unsafe_allow_html=True)
+            st.write("")
+            if st.button("Acessar Educação Especial", type="primary", use_container_width=True, key="btn_ee"):
+                st.session_state.modulo_atuacao = "📚  Sala de Leitura"
+                st.rerun()
+
         # --- BOTÃO 3: ADM (DIREITA) ---
 
         with col4:
             st.markdown("""
-            <div style='background-color: #f0fdf4; padding: 35px 20px; border-radius: 12px; text-align: center; border: 2px solid #22c55e; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+            <div style='background-color: #fdfbf0; padding: 35px 20px; border-radius: 12px; text-align: center; border: 2px solid #22c55e; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
                 <div style='font-size: 55px; margin-bottom: 15px;'>📂</div>
                 <div style='color: #15803d; font-size: 24px; font-weight: 700; margin: 0;'>Administrativo</div>
             </div>

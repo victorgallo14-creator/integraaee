@@ -8603,3 +8603,90 @@ elif app_mode_regular == "🖼️ Carômetro Escolar":
                                 st.error(f"Erro na imagem: {e_up}")
 
                 idx_col = (idx_col + 1) % 5
+
+# ==============================================================================
+# MÓDULO: ADMINISTRATIVO (ALMOXARIFADO)
+# ==============================================================================
+elif st.session_state.app_mode == "📂 Administrativo":
+    st.markdown('<div class="header-box"><div class="header-title">📦 Gestão de Almoxarifado</div></div>', unsafe_allow_html=True)
+    
+    if st.button("⬅️ Voltar ao Início"):
+        st.session_state.app_mode = None
+        st.rerun()
+
+    # Leitura dos dados
+    df_estoque = safe_read("Almoxarifado_Estoque", ["id", "item", "quantidade", "categoria"])
+    df_pedidos = safe_read("Almoxarifado_Pedidos", ["id", "data", "professor", "item", "quantidade", "status"])
+    
+    tab_req, tab_baixa, tab_estoque = st.tabs(["📝 Requisitar Material", "✅ Dar Baixa (Saída)", "📈 Controle de Estoque"])
+
+    # --- ABA 1: REQUISIÇÃO (Visão do Professor) ---
+    with tab_req:
+        st.subheader("Nova Requisição")
+        with st.form("form_requisicao", clear_on_submit=True):
+            if not df_estoque.empty:
+                item_sel = st.selectbox("Selecione o Material", df_estoque['item'].tolist())
+                qtd_solic = st.number_input("Quantidade Necessária", min_value=1, step=1)
+                if st.form_submit_button("Enviar Pedido", type="primary"):
+                    novo_pedido = {
+                        "id": str(uuid.uuid4()),
+                        "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        "professor": st.session_state.get('usuario_nome', 'Usuário'),
+                        "item": item_sel,
+                        "quantidade": qtd_solic,
+                        "status": "Pendente"
+                    }
+                    supabase.table("Almoxarifado_Pedidos").insert(novo_pedido).execute()
+                    st.success("Requisição enviada com sucesso!")
+                    time.sleep(1)
+                    st.rerun()
+            else:
+                st.warning("Não há itens cadastrados no estoque.")
+
+    # --- ABA 2: BAIXA (Visão Administrativa/Secretaria) ---
+    with tab_baixa:
+        st.subheader("Pedidos Aguardando Entrega")
+        pendentes = df_pedidos[df_pedidos['status'] == 'Pendente']
+        
+        if pendentes.empty:
+            st.info("Nenhuma requisição pendente.")
+        else:
+            for _, row in pendentes.iterrows():
+                with st.expander(f"📦 {row['item']} - {row['professor']}"):
+                    st.write(f"**Quantidade:** {row['quantidade']} | **Data:** {row['data']}")
+                    if st.button(f"Confirmar Entrega e Dar Baixa", key=f"entregar_{row['id']}"):
+                        # 1. Atualiza status do pedido
+                        supabase.table("Almoxarifado_Pedidos").update({"status": "Entregue"}).eq("id", row['id']).execute()
+                        # 2. Subtrai do estoque
+                        estoque_atual = df_estoque[df_estoque['item'] == row['item']].iloc[0]['quantidade']
+                        nova_qtd = max(0, int(estoque_atual) - int(row['quantidade']))
+                        supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", row['item']).execute()
+                        st.success("Baixa realizada e estoque atualizado!")
+                        time.sleep(1)
+                        st.rerun()
+
+    # --- ABA 3: ESTOQUE (Entradas e Cadastro) ---
+    with tab_estoque:
+        col_list, col_add = st.columns([2, 1])
+        
+        with col_list:
+            st.subheader("Itens Cadastrados")
+            st.dataframe(df_estoque[["item", "quantidade", "categoria"]], use_container_width=True, hide_index=True)
+            
+        with col_add:
+            st.subheader("📥 Entrada/Novo Item")
+            with st.form("form_estoque"):
+                nome = st.text_input("Nome do Material")
+                cat = st.selectbox("Categoria", ["Papelaria", "Limpeza", "Escritório", "Outros"])
+                qtd_ini = st.number_input("Quantidade (Entrada)", min_value=0)
+                
+                if st.form_submit_button("Registrar/Atualizar"):
+                    # Verifica se já existe para somar ou criar novo
+                    if nome in df_estoque['item'].values:
+                        atual = df_estoque[df_estoque['item'] == nome].iloc[0]['quantidade']
+                        supabase.table("Almoxarifado_Estoque").update({"quantidade": int(atual) + qtd_ini}).eq("item", nome).execute()
+                    else:
+                        supabase.table("Almoxarifado_Estoque").insert({"id": str(uuid.uuid4()), "item": nome, "quantidade": qtd_ini, "categoria": cat}).execute()
+                    st.success("Estoque atualizado!")
+                    time.sleep(1)
+                    st.rerun()

@@ -8751,26 +8751,53 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
 
     # --- ABA 4: CONTROLE DE ESTOQUE E CADASTRO ---
     with tab_estoque:
-        col_list, col_add = st.columns([2, 1])
+        # Alterei levemente a proporção das colunas para caber melhor o formulário múltiplo
+        col_list, col_add = st.columns([3, 2])
         
         with col_list:
             st.subheader("Inventário Atual")
             st.dataframe(df_estoque[["item", "quantidade", "categoria"]], use_container_width=True, hide_index=True)
             
         with col_add:
-            st.subheader("📥 Entrada de Carga")
-            with st.form("form_estoque", clear_on_submit=True):
-                nome = st.selectbox("Selecione o Material", df_estoque['item'].tolist() if not df_estoque.empty else ["Nenhum"])
-                qtd_ini = st.number_input("Quantidade (Chegou na Escola)", min_value=1)
-                
-                if st.form_submit_button("Somar ao Estoque", type="primary"):
-                    if not df_estoque.empty:
-                        atual = df_estoque[df_estoque['item'] == nome].iloc[0]['quantidade']
-                        supabase.table("Almoxarifado_Estoque").update({"quantidade": int(atual) + qtd_ini}).eq("item", nome).execute()
-                        st.success(f"Estoque de {nome} atualizado!")
-                        time.sleep(1)
-                        st.rerun()
+            st.subheader("📥 Entrada de Carga em Lote")
+            st.info("Selecione os materiais que chegaram e adicione as quantidades de uma vez.")
+            
+            # Controle para limpar a caixa de seleção após o envio (mesmo truque do carrinho)
+            if 'reset_entrada' not in st.session_state:
+                st.session_state.reset_entrada = 0
 
+            # 1. Seleciona múltiplos itens
+            itens_entrada = st.multiselect(
+                "Quais materiais chegaram?", 
+                df_estoque['item'].tolist() if not df_estoque.empty else [],
+                key=f"entrada_estoque_{st.session_state.reset_entrada}",
+                placeholder="Busque os itens aqui..."
+            )
+            
+            # 2. Abre o formulário para colocar as quantidades
+            if itens_entrada:
+                with st.form("form_entrada_lote"):
+                    st.markdown("##### Quantidades Recebidas:")
+                    
+                    dict_entradas = {}
+                    for item in itens_entrada:
+                        # Exibe o campo para colocar o valor que chegou
+                        dict_entradas[item] = st.number_input(f"➕ {item}", min_value=1, step=1, key=f"ent_{item}")
+                    
+                    if st.form_submit_button("Somar Tudo ao Estoque", type="primary", use_container_width=True):
+                        # 3. Processa todos de uma vez
+                        for item_nome, qtd_recebida in dict_entradas.items():
+                            # Busca o quanto tem atualmente
+                            atual = df_estoque[df_estoque['item'] == item_nome].iloc[0]['quantidade']
+                            # Faz a soma matemática
+                            nova_qtd = int(atual) + int(qtd_recebida)
+                            # Atualiza no Supabase
+                            supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", item_nome).execute()
+                        
+                        st.success(f"✅ {len(itens_entrada)} materiais foram atualizados com sucesso no inventário!")
+                        st.session_state.reset_entrada += 1 # Limpa a seleção
+                        time.sleep(1.5)
+                        st.rerun()
 
 # ==============================================================================
 # MÓDULO: SALA DE LEITURA (BIBLIOTECA)

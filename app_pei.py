@@ -8795,6 +8795,7 @@ import uuid
 import time
 from datetime import datetime
 import streamlit.components.v1 as components
+from fpdf import FPDF
 
 # ==============================================================================
 # MÓDULO: ADMINISTRATIVO (ALMOXARIFADO)
@@ -8959,7 +8960,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                 st.subheader("Registo de Entregas Físicas")
                 st.info("Utilize esta aba para abater do inventário os materiais que já foram fornecidos fisicamente.")
 
-                # Busca dinâmica de profissionais no banco para a lista do selectbox
+                # Busca dinâmica de profissionais
                 df_prof = safe_read("Professores", ["nome"])
                 df_mon = safe_read("Monitores", ["nome"])
                 
@@ -8968,13 +8969,15 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                 if not df_mon.empty:  lista_profs.extend(df_mon['nome'].dropna().tolist())
                 if not df_pedidos.empty: lista_profs.extend(df_pedidos['professor'].dropna().tolist())
                 
+                # Padronização em Maiúsculas
+                lista_profs = [str(nome).upper() for nome in lista_profs]
                 lista_profs = sorted(list(set(lista_profs)))
 
                 with st.form("form_retroativo", clear_on_submit=True):
                     st.markdown("##### 1. Dados do Requisitante")
                     col_p, col_d = st.columns([2, 1])
                     nome_selecionado = col_p.selectbox("Selecione o Profissional:", ["-- Escolher da Lista --"] + lista_profs)
-                    nome_manual = col_p.text_input("Ou digite o nome (caso não esteja na lista acima):", placeholder="Ex: Maria Oliveira")
+                    nome_manual = col_p.text_input("Ou digite o nome (caso não esteja na lista acima):", placeholder="Ex: MARIA OLIVEIRA")
                     
                     data_entrega = col_d.date_input("Data efetiva da entrega:", datetime.now())
                     
@@ -8992,8 +8995,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                     st.divider()
                     if st.form_submit_button("🚀 Registar Saídas e Imprimir Comprovativo", type="primary", use_container_width=True):
                         
-                        # Lógica Inteligente: O nome digitado prevalece. Se não digitar, pega do Selectbox.
-                        nome_final = nome_manual.strip() if nome_manual.strip() else nome_selecionado
+                        nome_final = nome_manual.strip().upper() if nome_manual.strip() else nome_selecionado
                         
                         if nome_final == "-- Escolher da Lista --" or not nome_final:
                             st.error("Erro: Selecione um profissional da lista ou digite o nome.")
@@ -9038,7 +9040,6 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                             
                             st.markdown("Selecione os itens e altere as quantidades caso queira entregar mais ou menos do que o solicitado:")
                             
-                            # Gera uma chave única e limpa para o formulário
                             chave_form = f"form_{prof_nome.replace(' ', '')}_{str(data_pedido).replace('/', '').replace(':', '').replace(' ', '')}"
                             
                             with st.form(chave_form):
@@ -9048,12 +9049,8 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                                     c1, c2, c3 = st.columns([0.5, 3, 1.5])
                                     estoque_disp = df_estoque[df_estoque['item'] == row['item']].iloc[0]['quantidade']
                                     
-                                    # Checkbox que permite excluir o item desta entrega (mantendo-o pendente)
                                     entregar_item = c1.checkbox("", value=True, key=f"chk_{row['id']}")
-                                    
                                     c2.markdown(f"**{row['item']}**<br><span style='font-size:12px; color:#666;'>Pedido: {row['quantidade']} | Estoque: {estoque_disp}</span>", unsafe_allow_html=True)
-                                    
-                                    # Campo para alterar a quantidade que será entregue agora
                                     qtd_entregar = c3.number_input("Qtd Liberada", min_value=1, value=int(row['quantidade']), key=f"qtd_{row['id']}")
                                     
                                     selecoes[row['id']] = {
@@ -9075,10 +9072,8 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                                             qtd_liberada = info['qtd_entregar']
                                             qtd_original = info['qtd_pedida']
                                             
-                                            # 1. Atualiza o pedido atual como Entregue (com a qtde que realmente saiu)
                                             supabase.table("Almoxarifado_Pedidos").update({"status": "Entregue", "quantidade": qtd_liberada}).eq("id", row_id).execute()
                                             
-                                            # 2. SE ENTREGOU MENOS: Cria um novo pedido pendente automático com o que faltou
                                             if qtd_liberada < qtd_original:
                                                 qtd_restante = qtd_original - qtd_liberada
                                                 novo_pendente = {
@@ -9091,12 +9086,10 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                                                 }
                                                 supabase.table("Almoxarifado_Pedidos").insert(novo_pendente).execute()
                                                 
-                                            # 3. Atualiza o Estoque descontando a quantidade liberada
                                             estoque_atual = df_estoque[df_estoque['item'] == item_nome].iloc[0]['quantidade']
                                             nova_qtd_estoque = max(0, int(estoque_atual) - qtd_liberada)
                                             supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd_estoque}).eq("item", item_nome).execute()
                                             
-                                            # 4. Adiciona o item ao comprovativo
                                             itens_html_lista += f"<li>{qtd_liberada}x {item_nome}</li>"
                                             
                                     if algum_selecionado:
@@ -9109,7 +9102,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                                     else:
                                         st.error("Selecione pelo menos um item para processar.")
 
-            # --- ABA 4: INVENTÁRIO (Com PDF Oficial) ---
+            # --- ABA 4: INVENTÁRIO (Com PDF) ---
             with tab_estoque:
                 col_list, col_add = st.columns([3, 2])
                 
@@ -9118,49 +9111,39 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                     c_tit.subheader("Posição do Inventário")
                     
                     if not df_estoque.empty:
-                        # -------------------------------------------------------------
-                        # MOTOR DE GERAÇÃO DO PDF CORPORATIVO
-                        # -------------------------------------------------------------
                         def gerar_pdf_inventario(df, usuario):
                             pdf = FPDF()
                             pdf.add_page()
                             pdf.set_left_margin(10)
                             pdf.set_right_margin(10)
 
-                            # Cabeçalho Oficial
                             pdf.set_font("Arial", "B", 14)
                             pdf.cell(0, 8, "CEIEF RAFAEL AFFONSO LEITE", ln=True, align="C")
                             pdf.set_font("Arial", "B", 10)
-                            pdf.cell(0, 6, "ALMOXARIFADO ESCOLAR", ln=True, align="C")
-                            pdf.cell(0, 6, "RELATORIO DE INVENTARIO", ln=True, align="C")
+                            pdf.cell(0, 6, "ALMOXARIFADO ESCOLAR - NAO PEDAGOGICO", ln=True, align="C")
+                            pdf.cell(0, 6, "RELATORIO OFICIAL DE INVENTARIO", ln=True, align="C")
                             pdf.ln(5)
 
-                            # Metadados do Relatório
                             pdf.set_font("Arial", "", 9)
                             pdf.cell(0, 5, f"Data/Hora de Emissao: {datetime.now().strftime('%d/%m/%Y as %H:%M')}", ln=True)
                             
-                            # Tratamento para acentos no nome do utilizador
                             nome_seguro = str(usuario).encode('latin-1', 'replace').decode('latin-1')
                             pdf.cell(0, 5, f"Emitido por: {nome_seguro}", ln=True)
                             pdf.ln(5)
 
-                            # Cabeçalho da Tabela
                             pdf.set_font("Arial", "B", 9)
-                            pdf.set_fill_color(200, 220, 255) # Azul clarinho corporativo
+                            pdf.set_fill_color(200, 220, 255)
                             pdf.cell(100, 8, "Material / Insumo", border=1, fill=True)
                             pdf.cell(50, 8, "Categoria", border=1, fill=True)
                             pdf.cell(40, 8, "Saldo Atual", border=1, ln=True, align="C", fill=True)
 
-                            # Linhas da Tabela
                             pdf.set_font("Arial", "", 9)
                             df_sorted = df.sort_values(by=["categoria", "item"])
                             
-                            # Para alternar a cor da linha (efeito zebra)
                             fill = False 
                             pdf.set_fill_color(245, 245, 245)
 
                             for _, row in df_sorted.iterrows():
-                                # Tratamento para garantir que acentos (ç, ã, etc) não quebrem o PDF
                                 item_nome = str(row['item']).encode('latin-1', 'replace').decode('latin-1')[:55]
                                 categoria = str(row['categoria']).encode('latin-1', 'replace').decode('latin-1')[:25]
                                 qtd = str(row['quantidade'])
@@ -9168,9 +9151,8 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                                 pdf.cell(100, 7, item_nome, border=1, fill=fill)
                                 pdf.cell(50, 7, categoria, border=1, fill=fill)
                                 pdf.cell(40, 7, qtd, border=1, ln=True, align="C", fill=fill)
-                                fill = not fill # Alterna a cor para a próxima linha
+                                fill = not fill 
 
-                            # Rodapé
                             pdf.ln(10)
                             pdf.set_font("Arial", "I", 8)
                             pdf.cell(0, 5, f"Total de itens catalogados: {len(df_sorted)}", ln=True)
@@ -9178,11 +9160,9 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
 
                             return pdf.output(dest="S").encode("latin-1")
 
-                        # Executa a função passando os dados e o nome de quem está logado
                         usuario_logado = st.session_state.get('usuario_nome', 'Gestor(a)')
                         pdf_bytes = gerar_pdf_inventario(df_estoque, usuario_logado)
 
-                        # Botão de Download do PDF
                         c_btn.download_button(
                             label="📄 Emitir Relatório (PDF)", 
                             data=pdf_bytes,
@@ -9191,7 +9171,6 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                             use_container_width=True
                         )
                     
-                    # Exibe a tabela na tela
                     st.dataframe(df_estoque[["item", "quantidade", "categoria"]].sort_values(by="item"), use_container_width=True, hide_index=True)
                     
                 with col_add:
@@ -9225,3 +9204,4 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                                 st.session_state.reset_entrada += 1
                                 time.sleep(1.5)
                                 st.rerun()
+

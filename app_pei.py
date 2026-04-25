@@ -8791,7 +8791,6 @@ elif st.session_state.get("modulo_atuacao") == "📚  Sala de Leitura":
 
 
 
-
 import uuid
 import time
 from datetime import datetime
@@ -8812,25 +8811,26 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
     df_pedidos = safe_read("Almoxarifado_Pedidos", ["id", "data", "professor", "item", "quantidade", "status"])
     
     # ---------------------------------------------------------
-    # 🔒 CONTROLE DE ACESSO
+    # 🔒 CONTROLO DE ACESSO
     # ---------------------------------------------------------
     MATRICULAS_GESTAO = ['8829405', '8011512', '8258411', '7047682', '88286861']
     matricula_usuario_logado = str(st.session_state.get('usuario_matricula', '')).strip() 
     eh_gestao = matricula_usuario_logado in MATRICULAS_GESTAO
 
     # =========================================================
-    # TELA DE IMPRESSÃO DO COMPROVANTE (SOBREPÕE AS ABAS)
+    # ECRÃ DE IMPRESSÃO DO COMPROVATIVO (SOBREPÕE AS ABAS)
     # =========================================================
     if eh_gestao and 'comprovante_almox' in st.session_state and st.session_state.comprovante_almox:
         st.success("✅ Saída processada com sucesso no inventário!")
-        st.markdown("### 🖨️ Comprovante de Entrega")
+        st.markdown("### 🖨️ Comprovativo de Entrega")
         
         cupom_html = f"""
         <div id="cupom_impressao" style="width: 280px; padding: 15px; border: 1px dashed #000; font-family: 'Courier New', Courier, monospace; font-size: 13px; background: #fff; color: #000; margin: 0 auto;">
             <div style="text-align: center; margin-bottom: 10px;">
                 <strong>CEIEF RAFAEL AFFONSO LEITE</strong><br>
                 ALMOXARIFADO ESCOLAR<br>
-                COMPROVANTE DE ENTREGA<br>
+                NÃO PEDAGÓGICO<br>
+                COMPROVATIVO DE ENTREGA<br>
                 --------------------------------
             </div>
             <strong>Data:</strong> {st.session_state.comprovante_almox['data']}<br>
@@ -8853,7 +8853,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
         function imprimirCupom() {{
             var conteudo = document.getElementById('cupom_impressao').outerHTML;
             var tela_impressao = window.open('', '', 'height=600,width=400');
-            tela_impressao.document.write('<html><head><title>Cupom Almoxarifado</title></head>');
+            tela_impressao.document.write('<html><head><title>Comprovativo Almoxarifado</title></head>');
             tela_impressao.document.write('<body style="margin: 0; padding: 10px;">');
             tela_impressao.document.write(conteudo);
             tela_impressao.document.write('</body></html>');
@@ -8868,7 +8868,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
         
         components.html(cupom_html, height=550)
         
-        if st.button("🔄 Fechar Comprovante e Voltar ao Sistema", use_container_width=True):
+        if st.button("🔄 Fechar Comprovativo e Voltar ao Sistema", use_container_width=True):
             st.session_state.comprovante_almox = None
             st.rerun()
 
@@ -8878,7 +8878,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
     else:
         if eh_gestao:
             tab_req, tab_retro, tab_baixa, tab_estoque = st.tabs([
-                "🙋 Nova Solicitação", "📝 Registro Manual", "📦 Expedição", "📈 Inventário"
+                "🙋 Nova Solicitação", "📝 Registo Manual", "📦 Expedição", "📈 Inventário"
             ])
         else:
             tab_req, = st.tabs(["🙋 Nova Solicitação"])
@@ -8930,17 +8930,17 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                             time.sleep(1.5)
                             st.rerun()
             else:
-                st.warning("Não há itens registrados no catálogo atual.")
+                st.warning("Não há itens registados no catálogo atual.")
 
             # --- HISTÓRICO DE SOLICITAÇÕES ---
             st.divider()
-            st.markdown("##### 🕒 Meu Histórico de Solicitações")
+            st.markdown("##### 🕒 O Meu Histórico de Solicitações")
             
             usuario_atual = st.session_state.get('usuario_nome', 'Usuário')
             meus_pedidos = df_pedidos[df_pedidos['professor'] == usuario_atual]
             
             if meus_pedidos.empty:
-                st.info("Ainda não possui solicitações registradas no sistema.")
+                st.info("Ainda não possui solicitações registadas no sistema.")
             else:
                 meus_pedidos_exibicao = meus_pedidos.iloc[::-1][["data", "item", "quantidade", "status"]]
                 st.dataframe(
@@ -8954,19 +8954,34 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
         # =========================================================
         if eh_gestao:
 
-            # --- ABA 2: REGISTRO MANUAL DE SAÍDAS ---
+            # --- ABA 2: REGISTO MANUAL DE SAÍDAS ---
             with tab_retro:
-                st.subheader("Registro de Entregas Físicas")
+                st.subheader("Registo de Entregas Físicas")
                 st.info("Utilize esta aba para abater do inventário os materiais que já foram fornecidos fisicamente.")
 
+                # Busca dinâmica de profissionais no banco para a lista do selectbox
+                df_prof = safe_read("Professores", ["nome"])
+                df_mon = safe_read("Monitores", ["nome"])
+                
+                lista_profs = []
+                if not df_prof.empty: lista_profs.extend(df_prof['nome'].dropna().tolist())
+                if not df_mon.empty:  lista_profs.extend(df_mon['nome'].dropna().tolist())
+                if not df_pedidos.empty: lista_profs.extend(df_pedidos['professor'].dropna().tolist())
+                
+                lista_profs = sorted(list(set(lista_profs)))
+
                 with st.form("form_retroativo", clear_on_submit=True):
-                    col_p, col_d = st.columns(2)
-                    nome_recebedor = col_p.text_input("Profissional requisitante:", placeholder="Ex: Maria Oliveira")
+                    st.markdown("##### 1. Dados do Requisitante")
+                    col_p, col_d = st.columns([2, 1])
+                    nome_selecionado = col_p.selectbox("Selecione o Profissional:", ["-- Escolher da Lista --"] + lista_profs)
+                    nome_manual = col_p.text_input("Ou digite o nome (caso não esteja na lista acima):", placeholder="Ex: Maria Oliveira")
+                    
                     data_entrega = col_d.date_input("Data efetiva da entrega:", datetime.now())
                     
-                    itens_papel = st.multiselect("Selecione os itens fornecidos:", df_estoque['item'].tolist())
-                    
                     st.divider()
+                    st.markdown("##### 2. Materiais Entregues")
+                    itens_papel = st.multiselect("Selecione os itens fornecidos:", df_estoque['item'].tolist(), placeholder="Procure os materiais aqui...")
+                    
                     dict_qtds = {}
                     if itens_papel:
                         cols_retro = st.columns(2)
@@ -8974,16 +8989,23 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                             target_col = cols_retro[i % 2]
                             dict_qtds[item] = target_col.number_input(f"{item}", min_value=1, step=1, key=f"retro_{item}")
 
-                    if st.form_submit_button("🚀 Registrar Saídas e Imprimir Comprovante", type="primary", use_container_width=True):
-                        if not nome_recebedor or not itens_papel:
-                            st.error("Preencha o nome do requisitante e selecione ao menos um item.")
+                    st.divider()
+                    if st.form_submit_button("🚀 Registar Saídas e Imprimir Comprovativo", type="primary", use_container_width=True):
+                        
+                        # Lógica Inteligente: O nome digitado prevalece. Se não digitar, pega do Selectbox.
+                        nome_final = nome_manual.strip() if nome_manual.strip() else nome_selecionado
+                        
+                        if nome_final == "-- Escolher da Lista --" or not nome_final:
+                            st.error("Erro: Selecione um profissional da lista ou digite o nome.")
+                        elif not itens_papel:
+                            st.error("Erro: Selecione ao menos um item.")
                         else:
                             data_formatada = data_entrega.strftime("%d/%m/%Y")
                             itens_html_lista = ""
                             
                             for item_nome, qtd in dict_qtds.items():
                                 novo_p = {
-                                    "id": str(uuid.uuid4()), "data": data_formatada, "professor": nome_recebedor,
+                                    "id": str(uuid.uuid4()), "data": data_formatada, "professor": nome_final,
                                     "item": item_nome, "quantidade": qtd, "status": "Entregue"
                                 }
                                 supabase.table("Almoxarifado_Pedidos").insert(novo_p).execute()
@@ -8996,12 +9018,12 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                             
                             st.session_state.comprovante_almox = {
                                 'data': datetime.now().strftime("%d/%m/%Y %H:%M"),
-                                'professor': nome_recebedor,
+                                'professor': nome_final,
                                 'itens_html': itens_html_lista
                             }
                             st.rerun()
 
-            # --- ABA 3: EXPEDIÇÃO (BAIXA PARCIAL E INTELIGENTE) ---
+            # --- ABA 3: EXPEDIÇÃO (ENTREGA PARCIAL E INTELIGENTE) ---
             with tab_baixa:
                 st.subheader("Requisições Pendentes de Atendimento")
                 pendentes = df_pedidos[df_pedidos['status'] == 'Pendente']
@@ -9042,7 +9064,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                                     }
                                 
                                 st.divider()
-                                if st.form_submit_button("🚀 Processar Selecionados e Imprimir Cupom", type="primary", use_container_width=True):
+                                if st.form_submit_button("🚀 Processar Selecionados e Imprimir Talão", type="primary", use_container_width=True):
                                     itens_html_lista = ""
                                     algum_selecionado = False
                                     
@@ -9056,12 +9078,12 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                                             # 1. Atualiza o pedido atual como Entregue (com a qtde que realmente saiu)
                                             supabase.table("Almoxarifado_Pedidos").update({"status": "Entregue", "quantidade": qtd_liberada}).eq("id", row_id).execute()
                                             
-                                            # 2. SE ENTREGOU MENOS: Cria um novo pedido pendente automático com o que faltou!
+                                            # 2. SE ENTREGOU MENOS: Cria um novo pedido pendente automático com o que faltou
                                             if qtd_liberada < qtd_original:
                                                 qtd_restante = qtd_original - qtd_liberada
                                                 novo_pendente = {
                                                     "id": str(uuid.uuid4()),
-                                                    "data": data_pedido, # Mantém a data original do pedido
+                                                    "data": data_pedido,
                                                     "professor": prof_nome,
                                                     "item": item_nome,
                                                     "quantidade": qtd_restante,
@@ -9074,7 +9096,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                                             nova_qtd_estoque = max(0, int(estoque_atual) - qtd_liberada)
                                             supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd_estoque}).eq("item", item_nome).execute()
                                             
-                                            # 4. Adiciona o item ao comprovante
+                                            # 4. Adiciona o item ao comprovativo
                                             itens_html_lista += f"<li>{qtd_liberada}x {item_nome}</li>"
                                             
                                     if algum_selecionado:
@@ -9107,7 +9129,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                     
                 with col_add:
                     st.subheader("📥 Recebimento de Materiais")
-                    st.info("Registre a entrada de novos insumos no almoxarifado.")
+                    st.info("Registe a entrada de novos insumos no almoxarifado.")
                     
                     if 'reset_entrada' not in st.session_state:
                         st.session_state.reset_entrada = 0
@@ -9136,7 +9158,6 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                                 st.session_state.reset_entrada += 1
                                 time.sleep(1.5)
                                 st.rerun()
-
 
 # ==============================================================================
 # MÓDULO: SALA DE LEITURA (BIBLIOTECA)

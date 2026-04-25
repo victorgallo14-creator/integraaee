@@ -8608,26 +8608,16 @@ import uuid
 import time
 from datetime import datetime
 
-# ==============================================================================
-# MÓDULO: ADMINISTRATIVO (ALMOXARIFADO)
-# ==============================================================================
-if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
-    st.markdown('<div class="header-box"><div class="header-title">📦 Gestão de Almoxarifado</div></div>', unsafe_allow_html=True)
-    
-    if st.button("⬅️ Voltar ao Início", key="voltar_adm"):
-        st.session_state.modulo_atuacao = None
-        st.rerun()
-
-    # Leitura dos dados
-    df_estoque = safe_read("Almoxarifado_Estoque", ["id", "item", "quantidade", "categoria"])
-    df_pedidos = safe_read("Almoxarifado_Pedidos", ["id", "data", "professor", "item", "quantidade", "status"])
-    
-    # ---------------------------------------------------------
+# ---------------------------------------------------------
     # 🔒 CONTROLE DE ACESSO AS ABAS
     # ---------------------------------------------------------
-    # Defina aqui a sua regra de quem é Gestão. 
-    # Pelo seu código anterior, você usava a variável "is_monitor" para diferenciar.
-    eh_gestao = not is_monitor  # Se o seu sistema usa outra variável, altere aqui!
+    MATRICULAS_GESTAO = ['8829405', '8011512', '8258411', '7047682', '88286861']
+    
+    # Pega a matrícula do usuário logado no session_state 
+    # (Se a sua variável de login tiver outro nome, como 'usuario_login' ou 'matricula', troque abaixo)
+    matricula_usuario_logado = st.session_state.get('usuario_matricula', '') 
+    
+    eh_gestao = matricula_usuario_logado in MATRICULAS_GESTAO
 
     if eh_gestao:
         # Gestão vê tudo
@@ -8635,157 +8625,8 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
             "🙋 Minha Requisição", "📝 Lançamento Retroativo", "✅ Dar Baixa", "📈 Estoque"
         ])
     else:
-        # Professor vê apenas a aba dele (a vírgula depois do nome é obrigatória no Python neste caso)
+        # Professor vê apenas a aba dele
         tab_req, = st.tabs(["🙋 Minha Requisição"])
-
-
-    # =========================================================
-    # ÁREA DE ACESSO LIVRE (TODOS VEEM)
-    # =========================================================
-
-    # --- ABA 1: REQUISIÇÃO (Visão do Professor) ---
-    with tab_req:
-        st.subheader("Nova Requisição de Materiais")
-        
-        if not df_estoque.empty:
-            if 'reset_carrinho' not in st.session_state:
-                st.session_state.reset_carrinho = 0
-
-            itens_selecionados = st.multiselect(
-                "1. Selecione um ou mais materiais:", 
-                df_estoque['item'].tolist(),
-                key=f"carrinho_almox_{st.session_state.reset_carrinho}",
-                placeholder="Clique aqui e digite para buscar..."
-            )
-            
-            if itens_selecionados:
-                with st.form("form_requisicao"):
-                    st.markdown("##### 2. Defina as quantidades:")
-                    dict_quantidades = {}
-                    cols = st.columns(2)
-                    for i, item in enumerate(itens_selecionados):
-                        target_col = cols[i % 2]
-                        cat = df_estoque[df_estoque['item'] == item].iloc[0]['categoria']
-                        dict_quantidades[item] = target_col.number_input(f"📦 {item} ({cat})", min_value=1, step=1, key=f"req_{item}")
-                        
-                    if st.form_submit_button("Enviar Pedido Completo", type="primary", use_container_width=True):
-                        agora = datetime.now().strftime("%d/%m/%Y %H:%M")
-                        usuario = st.session_state.get('usuario_nome', 'Usuário')
-                        
-                        for item_nome, qtd in dict_quantidades.items():
-                            novo_pedido = {
-                                "id": str(uuid.uuid4()), "data": agora, "professor": usuario,
-                                "item": item_nome, "quantidade": qtd, "status": "Pendente"
-                            }
-                            supabase.table("Almoxarifado_Pedidos").insert(novo_pedido).execute()
-                            
-                        st.success("✅ Pedido enviado com sucesso!")
-                        st.session_state.reset_carrinho += 1 
-                        time.sleep(1.5)
-                        st.rerun()
-        else:
-            st.warning("Não há itens cadastrados no catálogo.")
-
-
-    # =========================================================
-    # 🔒 ÁREA RESTRITA (SÓ A GESTÃO VÊ)
-    # =========================================================
-    if eh_gestao:
-
-        # --- ABA 2: LANÇAMENTO RETROATIVO EM LOTE ---
-        with tab_retro:
-            st.subheader("Lançar Requisições de Papel")
-            with st.form("form_retroativo", clear_on_submit=True):
-                col_p, col_d = st.columns(2)
-                nome_recebedor = col_p.text_input("Nome de quem recebeu:", placeholder="Ex: Maria Oliveira")
-                data_entrega = col_d.date_input("Data da entrega real:", datetime.now())
-                
-                itens_papel = st.multiselect("Itens entregues:", df_estoque['item'].tolist())
-                
-                st.divider()
-                dict_qtds = {}
-                if itens_papel:
-                    cols_retro = st.columns(2)
-                    for i, item in enumerate(itens_papel):
-                        target_col = cols_retro[i % 2]
-                        dict_qtds[item] = target_col.number_input(f"{item}", min_value=1, step=1, key=f"retro_{item}")
-
-                if st.form_submit_button("🚀 Lançar e Atualizar Estoque", type="primary", use_container_width=True):
-                    if not nome_recebedor or not itens_papel:
-                        st.error("Preencha o nome e selecione ao menos um item.")
-                    else:
-                        data_formatada = data_entrega.strftime("%d/%m/%Y")
-                        for item_nome, qtd in dict_qtds.items():
-                            supabase.table("Almoxarifado_Pedidos").insert({
-                                "id": str(uuid.uuid4()), "data": data_formatada, "professor": nome_recebedor,
-                                "item": item_nome, "quantidade": qtd, "status": "Entregue"
-                            }).execute()
-                            
-                            estoque_atual = df_estoque[df_estoque['item'] == item_nome].iloc[0]['quantidade']
-                            nova_qtd = max(0, int(estoque_atual) - int(qtd))
-                            supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", item_nome).execute()
-                        
-                        st.success("✅ Lançado com sucesso.")
-                        time.sleep(1.5)
-                        st.rerun()
-
-        # --- ABA 3: DAR BAIXA ---
-        with tab_baixa:
-            st.subheader("Pedidos Aguardando Entrega")
-            pendentes = df_pedidos[df_pedidos['status'] == 'Pendente']
-            if pendentes.empty:
-                st.info("🎉 Nenhuma requisição pendente.")
-            else:
-                grupos_pedidos = pendentes.groupby(['data', 'professor'])
-                for (data_pedido, prof_nome), grupo in grupos_pedidos:
-                    with st.expander(f"📦 Pedido de {prof_nome} | 📅 {data_pedido} | ({len(grupo)} itens)"):
-                        for _, row in grupo.iterrows():
-                            c1, c2 = st.columns([3, 2])
-                            estoque_disp = df_estoque[df_estoque['item'] == row['item']].iloc[0]['quantidade']
-                            c1.write(f"🔹 **{row['quantidade']}x** {row['item']} *(Estoque: {estoque_disp})*")
-                            
-                            if c2.button("✅ Entregar Item", key=f"entregar_{row['id']}", use_container_width=True):
-                                supabase.table("Almoxarifado_Pedidos").update({"status": "Entregue"}).eq("id", row['id']).execute()
-                                nova_qtd = max(0, int(estoque_disp) - int(row['quantidade']))
-                                supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", row['item']).execute()
-                                st.success("Baixa realizada!")
-                                time.sleep(1)
-                                st.rerun()
-
-        # --- ABA 4: CONTROLE DE ESTOQUE ---
-        with tab_estoque:
-            col_list, col_add = st.columns([3, 2])
-            with col_list:
-                st.subheader("Inventário Atual")
-                st.dataframe(df_estoque[["item", "quantidade", "categoria"]], use_container_width=True, hide_index=True)
-                
-            with col_add:
-                st.subheader("📥 Entrada de Carga em Lote")
-                if 'reset_entrada' not in st.session_state:
-                    st.session_state.reset_entrada = 0
-
-                itens_entrada = st.multiselect(
-                    "Quais materiais chegaram?", 
-                    df_estoque['item'].tolist() if not df_estoque.empty else [],
-                    key=f"entrada_estoque_{st.session_state.reset_entrada}"
-                )
-                
-                if itens_entrada:
-                    with st.form("form_entrada_lote"):
-                        dict_entradas = {}
-                        for item in itens_entrada:
-                            dict_entradas[item] = st.number_input(f"➕ {item}", min_value=1, step=1, key=f"ent_{item}")
-                        
-                        if st.form_submit_button("Somar Tudo ao Estoque", type="primary", use_container_width=True):
-                            for item_nome, qtd_recebida in dict_entradas.items():
-                                atual = df_estoque[df_estoque['item'] == item_nome].iloc[0]['quantidade']
-                                nova_qtd = int(atual) + int(qtd_recebida)
-                                supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", item_nome).execute()
-                            
-                            st.success("✅ Inventário atualizado!")
-                            st.session_state.reset_entrada += 1
-                            time.sleep(1.5)
-                            st.rerun()
 
 # ==============================================================================
 # MÓDULO: SALA DE LEITURA (BIBLIOTECA)

@@ -8763,7 +8763,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
         if eh_gestao:
             # --- ABA 2: REGISTRO MANUAL (ENTREGA JÁ REALIZADA) ---
             with tab_retro:
-                st.subheader("REGISTRO de Entregas Realizadas")
+                st.subheader("Registro de Entregas Realizadas")
                 df_prof = safe_read("Professores", ["nome"])
                 df_mon = safe_read("Monitores", ["nome"])
                 lista_profs = sorted(list(set([str(n).upper() for n in (df_prof['nome'].tolist() + df_mon['nome'].tolist() + df_pedidos['professor'].tolist()) if pd.notnull(n)])))

@@ -8607,7 +8607,7 @@ elif app_mode_regular == "🖼️ Carômetro Escolar":
 # ==============================================================================
 # MÓDULO: ADMINISTRATIVO (ALMOXARIFADO)
 # ==============================================================================
-elif st.session_state.app_mode == "📂 Administrativo":
+elif st.session_state.get("modulo_atuacao") == "📂 Administrativo":
     st.markdown('<div class="header-box"><div class="header-title">📦 Gestão de Almoxarifado</div></div>', unsafe_allow_html=True)
     
     if st.button("⬅️ Voltar ao Início"):
@@ -8691,7 +8691,7 @@ elif st.session_state.app_mode == "📂 Administrativo":
                     time.sleep(1)
                     st.rerun()
 
-elif st.session_state.app_mode == "📚 Sala de Leitura":
+elif st.session_state.get("modulo_atuacao") == "📚  Sala de Leitura":
     st.markdown('<div class="header-box"><div class="header-title">📚 Gestão da Sala de Leitura</div></div>', unsafe_allow_html=True)
     
     if st.button("⬅️ Voltar"):

@@ -8670,27 +8670,49 @@ elif st.session_state.get("modulo_atuacao") == "📂 Administrativo":
         else:
             st.warning("Não há itens cadastrados no estoque.")
 
-    # --- ABA 2: BAIXA (Visão Administrativa/Secretaria) ---
+# --- ABA 2: BAIXA (Visão Administrativa/Secretaria) ---
     with tab_baixa:
         st.subheader("Pedidos Aguardando Entrega")
         pendentes = df_pedidos[df_pedidos['status'] == 'Pendente']
         
         if pendentes.empty:
-            st.info("Nenhuma requisição pendente.")
+            st.info("🎉 Nenhuma requisição pendente no momento.")
         else:
-            for _, row in pendentes.iterrows():
-                with st.expander(f"📦 {row['item']} - {row['professor']}"):
-                    st.write(f"**Quantidade:** {row['quantidade']} | **Data:** {row['data']}")
-                    if st.button(f"Confirmar Entrega e Dar Baixa", key=f"entregar_{row['id']}"):
-                        # 1. Atualiza status do pedido
-                        supabase.table("Almoxarifado_Pedidos").update({"status": "Entregue"}).eq("id", row['id']).execute()
-                        # 2. Subtrai do estoque
-                        estoque_atual = df_estoque[df_estoque['item'] == row['item']].iloc[0]['quantidade']
-                        nova_qtd = max(0, int(estoque_atual) - int(row['quantidade']))
-                        supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", row['item']).execute()
-                        st.success("Baixa realizada e estoque atualizado!")
-                        time.sleep(1)
-                        st.rerun()
+            # O GRANDE TRUQUE: Agrupa os itens pela Data/Hora e nome do Professor
+            grupos_pedidos = pendentes.groupby(['data', 'professor'])
+            
+            for (data_pedido, prof_nome), grupo in grupos_pedidos:
+                # Cria uma "Caixa" (expander) para cada pedido completo
+                with st.expander(f"📦 Pedido de {prof_nome} | 📅 {data_pedido} | ({len(grupo)} itens)"):
+                    
+                    st.markdown("Verifique os itens abaixo e confirme a entrega individualmente:")
+                    
+                    for _, row in grupo.iterrows():
+                        c1, c2 = st.columns([3, 2])
+                        
+                        # Busca no dataframe de estoque quanto tem desse item hoje
+                        estoque_disp = df_estoque[df_estoque['item'] == row['item']].iloc[0]['quantidade']
+                        
+                        # Mostra o item solicitado e o saldo atual em estoque para facilitar a decisão
+                        c1.write(f"🔹 **{row['quantidade']}x** {row['item']} *(Estoque: {estoque_disp})*")
+                        
+                        # Botão de baixa individual para aquele item
+                        if c2.button("✅ Entregar Item", key=f"entregar_{row['id']}", use_container_width=True):
+                            
+                            # 1. Atualiza o status APENAS desta linha do pedido para "Entregue"
+                            supabase.table("Almoxarifado_Pedidos").update({"status": "Entregue"}).eq("id", row['id']).execute()
+                            
+                            # 2. Faz a conta matemática blindada (nunca fica negativo)
+                            nova_qtd = int(estoque_disp) - int(row['quantidade'])
+                            if nova_qtd < 0:
+                                nova_qtd = 0 # Trava no zero, não apaga a linha do banco de dados!
+                                
+                            # 3. Atualiza a quantidade no banco de dados
+                            supabase.table("Almoxarifado_Estoque").update({"quantidade": nova_qtd}).eq("item", row['item']).execute()
+                            
+                            st.success(f"Baixa de '{row['item']}' realizada com sucesso!")
+                            time.sleep(1)
+                            st.rerun()
 
     # --- ABA 3: ESTOQUE (Entradas e Cadastro) ---
     with tab_estoque:

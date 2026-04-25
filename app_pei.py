@@ -8924,7 +8924,7 @@ from datetime import datetime, timedelta
 # ==============================================================================
 # MÓDULO: BIBLIOTECA ESCOLAR INTELIGENTE (SALA DE LEITURA)
 # ==============================================================================
-elif st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sala de Leitura"]:
+if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sala de Leitura"]:
     st.markdown('<div class="header-box"><div class="header-title">📚 Biblioteca Escolar Inteligente</div></div>', unsafe_allow_html=True)
     
     if st.button("⬅️ Voltar ao Menu Inicial", key="voltar_bib"):

@@ -760,31 +760,31 @@ if st.session_state.authenticated:
                 st.session_state.modulo_atuacao = "🧠 Educação Especial Inclusiva"
                 st.rerun()
 
-        # --- BOTÃO 3: ADM (DIREITA) ---
+        # --- BOTÃO 3: BIBLIOTECA (DIREITA) ---
 
         with col3:
             st.markdown("""
-            <div style='background-color: #fdfbf0; padding: 35px 20px; border-radius: 12px; text-align: center; border: 2px solid #22c55e; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+            <div style='background-color: #fdfbf0; padding: 35px 20px; border-radius: 12px; text-align: center; border: 2px solid #c5b722; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
                 <div style='font-size: 55px; margin-bottom: 15px;'>📚 </div>
-                <div style='color: #15803d; font-size: 24px; font-weight: 700; margin: 0;'>Sala de Leitura</div>
+                <div style='color: #c5b722; font-size: 24px; font-weight: 700; margin: 0;'>Sala de Leitura</div>
             </div>
             """, unsafe_allow_html=True)
             st.write("")
-            if st.button("Acessar Educação Especial", type="primary", use_container_width=True, key="btn_ee"):
+            if st.button("Acessar Sala de Leitura", type="primary", use_container_width=True, key="btn_ee"):
                 st.session_state.modulo_atuacao = "📚  Sala de Leitura"
                 st.rerun()
 
-        # --- BOTÃO 3: ADM (DIREITA) ---
+        # --- BOTÃO 4: ADM (DIREITA) ---
 
         with col4:
             st.markdown("""
-            <div style='background-color: #fdfbf0; padding: 35px 20px; border-radius: 12px; text-align: center; border: 2px solid #22c55e; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+            <div style='background-color: #fdf1f0; padding: 35px 20px; border-radius: 12px; text-align: center; border: 2px solid #c53522; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
                 <div style='font-size: 55px; margin-bottom: 15px;'>📂</div>
-                <div style='color: #15803d; font-size: 24px; font-weight: 700; margin: 0;'>Administrativo</div>
+                <div style='color: #c53522; font-size: 24px; font-weight: 700; margin: 0;'>Administrativo</div>
             </div>
             """, unsafe_allow_html=True)
             st.write("")
-            if st.button("Acessar Educação Especial", type="primary", use_container_width=True, key="btn_ee"):
+            if st.button("Acessar Administrativo", type="primary", use_container_width=True, key="btn_ee"):
                 st.session_state.modulo_atuacao = "📂 Administrativo"
                 st.rerun()
 

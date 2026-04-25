@@ -752,7 +752,7 @@ if st.session_state.authenticated:
             st.markdown("""
             <div style='background-color: #f0fdf4; padding: 35px 20px; border-radius: 12px; text-align: center; border: 2px solid #22c55e; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
                 <div style='font-size: 55px; margin-bottom: 15px;'>🧠</div>
-                <div style='color: #15803d; font-size: 24px; font-weight: 700; margin: 0;'>Educação Especial Inclusiva</div>
+                <div style='color: #15803d; font-size: 24px; font-weight: 700; margin: 0;'>Educação Especial</div>
             </div>
             """, unsafe_allow_html=True)
             st.write("")
@@ -762,11 +762,11 @@ if st.session_state.authenticated:
                 
         # --- BOTÃO 3: ADM (DIREITA) ---
 
-        with col3:
+        with col4:
             st.markdown("""
             <div style='background-color: #f0fdf4; padding: 35px 20px; border-radius: 12px; text-align: center; border: 2px solid #22c55e; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
                 <div style='font-size: 55px; margin-bottom: 15px;'>📂</div>
-                <div style='color: #15803d; font-size: 24px; font-weight: 700; margin: 0;'>Educação Especial Inclusiva</div>
+                <div style='color: #15803d; font-size: 24px; font-weight: 700; margin: 0;'>Administrativo</div>
             </div>
             """, unsafe_allow_html=True)
             st.write("")

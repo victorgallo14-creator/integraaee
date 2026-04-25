@@ -8829,7 +8829,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
         <div id="cupom_impressao" style="width: 280px; padding: 15px; border: 1px dashed #000; font-family: 'Courier New', Courier, monospace; font-size: 13px; background: #fff; color: #000; margin: 0 auto;">
             <div style="text-align: center; margin-bottom: 10px;">
                 <strong>CEIEF RAFAEL AFFONSO LEITE</strong><br>
-                ALMOXARIFADO CENTRAL<br>
+                ALMOXARIFADO ESCOLAR<br>
                 COMPROVANTE DE ENTREGA<br>
                 --------------------------------
             </div>

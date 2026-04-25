@@ -8923,7 +8923,7 @@ from datetime import datetime, timedelta
 from fpdf import FPDF
 
 # ==============================================================================
-# MÓDULO: GESTÃO BIBLIOGRÁFICA (SALA DE LEITURA)
+# MÓDULO: GESTÃO DE ACERVO BIBLIOGRÁFICO (SALA DE LEITURA)
 # ==============================================================================
 if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sala de Leitura"]:
     st.markdown('<div class="header-box"><div class="header-title">📚 Gestão de Acervo e Leitores</div></div>', unsafe_allow_html=True)
@@ -8933,13 +8933,13 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
         st.rerun()
 
     # ---------------------------------------------------------
-    # 🔒 SEGURANÇA E INTEGRAÇÃO DE DADOS (CARÔMETRO)
+    # 🔒 CONTROLO DE ACESSO E INTEGRAÇÃO CARÓMETRO
     # ---------------------------------------------------------
     MATRICULAS_GESTAO = ['8829405', '8011512', '8258411', '7047682', '88286861']
     eh_gestao = str(st.session_state.get('usuario_matricula', '')).strip() in MATRICULAS_GESTAO
-    usuario_nome = st.session_state.get('usuario_nome', 'Visitante').upper()
+    usuario_atual = st.session_state.get('usuario_nome', 'Visitante').upper()
 
-    # Carregamento da base do Carômetro para identificação de leitores
+    # Sincronização com a base de dados de alunos (Carómetro)
     df_carometro = load_carometro_db() 
     if not df_carometro.empty:
         df_carometro['display_leitor'] = df_carometro['nome'].str.upper() + " (" + df_carometro['turma'].str.upper() + ")"
@@ -8947,14 +8947,14 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
     else:
         lista_leitores = []
 
-    # Leitura das bases de dados bibliográficas
+    # Leitura das tabelas bibliográficas no Supabase
     df_acervo = safe_read("Biblioteca_Acervo", ["id", "isbn", "titulo", "autor", "editora", "ano", "genero", "resumo", "capa_url", "cdd"])
     df_exemplares = safe_read("Biblioteca_Exemplares", ["id", "id_acervo", "tombo", "status_conservacao", "disponivel"])
     df_emp = safe_read("Biblioteca_Emprestimos", ["id", "id_exemplar", "leitor", "data_saida", "data_prevista", "status", "renovacoes"])
     df_reservas = safe_read("Biblioteca_Reservas", ["id", "id_acervo", "leitor", "data_reserva", "status"])
 
     # ---------------------------------------------------------
-    # 🎨 IDENTIDADE VISUAL (CSS CORPORATIVO)
+    # 🎨 IDENTIDADE VISUAL E ESTILIZAÇÃO
     # ---------------------------------------------------------
     st.markdown("""
     <style>
@@ -8968,14 +8968,14 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
     """, unsafe_allow_html=True)
 
     # ---------------------------------------------------------
-    # 🗂️ ORGANIZAÇÃO POR ABAS TÉCNICAS
+    # 🗂️ NAVEGAÇÃO TÉCNICA POR ABAS
     # ---------------------------------------------------------
     if eh_gestao:
         tab_vitrine, tab_perfil, tab_circ, tab_cat, tab_dash = st.tabs([
-            "🔍 Consulta de Acervo", "👤 Prontuário do Leitor", "🔄 Módulo de Circulação", "🗃️ Catalogação via ISBN", "📊 Auditoria"
+            "🔍 Consulta de Acervo", "👤 Prontuário do Leitor", "🔄 Circulação de Acervo", "🗃️ Catalogação Técnica", "📊 Auditoria"
         ])
     else:
-        tab_vitrine, tab_perfil = st.tabs(["🔍 Consulta de Acervo", "👤 Meu Prontuário de Leitura"])
+        tab_vitrine, tab_perfil = st.tabs(["🔍 Consulta de Acervo", "👤 Prontuário do Leitor"])
 
     # =========================================================
     # 1. PORTAL DO LEITOR (ABERTO A TODOS)
@@ -9004,21 +9004,18 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
         
         with c_perfil:
             st.subheader("📚 Meus Empréstimos Ativos")
-            # Filtro inteligente que busca o nome do usuário atual na string 'NOME (TURMA)'
-            meus_emp = df_emp[(df_emp['leitor'].str.contains(usuario_nome, na=False)) & (df_emp['status'] == 'Ativo')]
+            meus_emp = df_emp[(df_emp['leitor'].str.contains(usuario_atual, na=False)) & (df_emp['status'] == 'Ativo')]
             if meus_emp.empty:
                 st.info("Não constam pendências de devolução em seu prontuário.")
             else:
                 for _, row in meus_emp.iterrows():
-                    # Recupera título através do exemplar
                     id_ac = df_exemplares[df_exemplares['id'] == row['id_exemplar']].iloc[0]['id_acervo']
                     titulo = df_acervo[df_acervo['id'] == id_ac].iloc[0]['titulo']
                     st.warning(f"📖 **{titulo}** | Devolução prevista: **{row['data_prevista']}**")
 
         with c_gamifica:
             st.subheader("🏆 Minhas Conquistas")
-            # Lógica de contagem para o sistema de insígnias
-            livros_lidos = len(df_emp[(df_emp['leitor'].str.contains(usuario_nome, na=False)) & (df_emp['status'] == 'Devolvido')])
+            livros_lidos = len(df_emp[(df_emp['leitor'].str.contains(usuario_atual, na=False)) & (df_emp['status'] == 'Devolvido')])
             
             nivel = "Leitor Iniciante"
             icone = "🌱"
@@ -9035,23 +9032,23 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
             """, unsafe_allow_html=True)
 
     # =========================================================
-    # 3. MÓDULO DE CIRCULAÇÃO (ADMINISTRATIVO)
+    # 3. MÓDULO DE CIRCULAÇÃO (ADMINISTRATIVO COM CARÔMETRO)
     # =========================================================
     if eh_gestao:
         with tab_circ:
             c_out, c_in = st.columns(2)
             with c_out:
-                st.markdown("### 📤 Saída de Exemplar")
+                st.markdown("### 📤 Processar Saída")
                 with st.form("emp_form"):
-                    leitor_sel = st.selectbox("Requisitante (Base Carômetro):", ["-- Selecione --"] + lista_leitores)
-                    tombo_out = st.text_input("Identificador de Tombo (Código de Barras):")
+                    leitor_sel = st.selectbox("Identificar Aluno (Carômetro):", ["-- Selecione --"] + lista_leitores)
+                    tombo_out = st.text_input("Bipar Tombo do Exemplar:")
                     
                     if leitor_sel != "-- Selecione --":
                         aluno_data = df_carometro[df_carometro['display_leitor'] == leitor_sel].iloc[0]
                         if aluno_data.get('foto_base64'):
-                            st.image(base64.b64decode(aluno_data['foto_base64']), width=150, caption="Confirmação de Identidade")
+                            st.image(base64.b64decode(aluno_data['foto_base64']), width=150, caption="Conferência Visual")
 
-                    if st.form_submit_button("Confirmar Empréstimo", type="primary", use_container_width=True):
+                    if st.form_submit_button("Efetivar Empréstimo", type="primary", use_container_width=True):
                         ex = df_exemplares[df_exemplares['tombo'] == tombo_out]
                         if not ex.empty and ex.iloc[0]['disponivel']:
                             dt_venc = (datetime.now() + timedelta(days=7)).strftime("%d/%m/%Y")
@@ -9065,7 +9062,7 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                         else: st.error("Exemplar indisponível ou inexistente.")
 
             with c_in:
-                st.markdown("### 📥 Retorno de Exemplar")
+                st.markdown("### 📥 Processar Devolução")
                 with st.form("dev_form"):
                     tombo_in = st.text_input("Bipar Tombo para Recebimento:")
                     if st.form_submit_button("Efetivar Devolução", use_container_width=True):
@@ -9075,107 +9072,65 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                             if not emp.empty:
                                 supabase.table("Biblioteca_Emprestimos").update({"status": "Devolvido"}).eq("id", emp.iloc[0]['id']).execute()
                                 supabase.table("Biblioteca_Exemplares").update({"disponivel": True, "status_conservacao": "Íntegro"}).eq("id", ex_in.iloc[0]['id']).execute()
-                                st.success("✅ Devolução registrada no acervo!"); time.sleep(1); st.rerun()
+                                st.success("✅ Item retornado ao acervo!"); time.sleep(1); st.rerun()
 
-# =========================================================
-    # 4. CATALOGAÇÃO TÉCNICA (ADMINISTRATIVO)
+    # =========================================================
+    # 4. CATALOGAÇÃO TÉCNICA (RESILIENTE COM FALLBACK)
     # =========================================================
     if eh_gestao:
         with tab_cat:
-            st.subheader("Procedimento de Catalogação Automatizada")
-            st.info("Insira o código ISBN para recuperação de metadados bibliográficos via API internacional.")
+            st.subheader("Catalogação Automatizada via ISBN")
+            st.info("Insira o ISBN para recuperação de metadados. O sistema utiliza busca redundante em caso de falha na indexação primária.")
             
-            with st.form("isbn_search_form"):
+            with st.form("isbn_search_v2"):
                 c_isbn, c_bt = st.columns([3, 1])
-                isbn_input = c_isbn.text_input("Código ISBN (10 ou 13 dígitos):", placeholder="Ex: 9788535914849")
-                buscar_metadados = c_bt.form_submit_button("🌐 Consultar Base")
+                isbn_raw = c_isbn.text_input("Código ISBN (Apenas Números):")
+                exec_search = c_bt.form_submit_button("🌐 Consultar Base")
 
-            if buscar_metadados and isbn_input:
-                # Tratamento de dados: remove hífens, espaços e caracteres especiais
-                isbn_limpo = "".join(filter(str.isdigit, isbn_input))
-                
-                if not isbn_limpo:
-                    st.error("Erro: O código ISBN deve conter apenas números.")
-                else:
-                    try:
-                        # Tentativa 1: Busca estrita por prefixo ISBN
-                        url = f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn_limpo}"
-                        response = requests.get(url, timeout=10)
-                        data = response.json()
-                        
-                        # Tentativa 2 (Fallback): Busca geral pelo código numérico caso a estrita falhe
-                        if "items" not in data:
-                            url_fallback = f"https://www.googleapis.com/books/v1/volumes?q={isbn_limpo}"
-                            response = requests.get(url_fallback, timeout=10)
-                            data = response.json()
+            if exec_search and isbn_raw:
+                isbn_clean = "".join(filter(str.isdigit, isbn_raw))
+                try:
+                    # Busca Restrita
+                    r = requests.get(f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn_clean}", timeout=10).json()
+                    
+                    # Busca Expandida (Fallback) se a restrita falhar
+                    if "items" not in r:
+                        r = requests.get(f"https://www.googleapis.com/books/v1/volumes?q={isbn_clean}", timeout=10).json()
 
-                        if "items" in data:
-                            meta = data["items"][0]["volumeInfo"]
-                            
-                            # Extração segura de metadados com valores padrão (evita KeyErrors)
-                            st.session_state.temp_book = {
-                                "titulo": meta.get("title", "Título Não Localizado").upper(),
-                                "autor": ", ".join(meta.get("authors", ["Autor Desconhecido"])).upper(),
-                                "editora": meta.get("publisher", "Editora Não Informada").upper(),
-                                "ano": meta.get("publishedDate", "N/D")[:4],
-                                "resumo": meta.get("description", "Sinopse não disponível na base de dados."),
-                                "isbn": isbn_limpo,
-                                "capa": meta.get("imageLinks", {}).get("thumbnail", "").replace("http:", "https:")
-                            }
-                            st.success("Metadados recuperados com sucesso.")
-                        else:
-                            st.error(f"Obra com ISBN {isbn_limpo} não localizada na base mundial.")
-                            
-                    except requests.exceptions.RequestException as e:
-                        st.error(f"Falha de comunicação com o serviço de metadados: {e}")
+                    if "items" in r:
+                        m = r["items"][0]["volumeInfo"]
+                        st.session_state.temp_book = {
+                            "titulo": m.get("title", "").upper(),
+                            "autor": ", ".join(m.get("authors", ["AUTOR DESCONHECIDO"])).upper(),
+                            "resumo": m.get("description", "Sinopse técnica indisponível."),
+                            "isbn": isbn_clean,
+                            "editora": m.get("publisher", "N/A").upper(),
+                            "ano": m.get("publishedDate", "N/A")[:4],
+                            "capa": m.get("imageLinks", {}).get("thumbnail", "").replace("http:", "https:")
+                        }
+                        st.success("Metadados bibliográficos localizados.")
+                    else:
+                        st.error(f"Obra com ISBN {isbn_clean} não localizada nas bases internacionais.")
+                except:
+                    st.error("Erro na comunicação com o serviço de metadados.")
 
-            # Formulário de Confirmação e Registo Patrimonial
-            if 'temp_book' in st.session_state and st.session_state.temp_book:
-                with st.form("confirm_catalog_form"):
+            if 'temp_book' in st.session_state:
+                with st.form("confirm_cat"):
                     t = st.session_state.temp_book
-                    st.markdown("##### Revisão de Dados Bibliográficos")
-                    
-                    col_f1, col_f2 = st.columns([3, 1])
-                    titulo_final = col_f1.text_input("Título Oficial", value=t['titulo'])
-                    isbn_final = col_f2.text_input("ISBN Validado", value=t['isbn'], disabled=True)
-                    
-                    autor_final = st.text_input("Autor(es)", value=t['autor'])
-                    resumo_final = st.text_area("Sinopse Técnica", value=t['resumo'], height=150)
-                    
-                    st.divider()
-                    st.markdown("##### Registro de Patrimônio Físico")
-                    col_q1, col_q2 = st.columns(2)
-                    qtd_cops = col_q1.number_input("Volumes para Incorporação:", min_value=1, step=1)
-                    prefixo = col_q2.text_input("Prefixo de Tombamento:", value="SALA-")
-                    
-                    if st.form_submit_button("💾 Efetivar Catalogação e Gerar Tombos", type="primary", use_container_width=True):
-                        # Lógica de persistência no banco de dados
-                        id_obra = str(uuid.uuid4())
-                        
-                        # Inserção na Tabela de Acervo
+                    st.text_input("Título Oficial", value=t['titulo'], key="t_edit")
+                    st.text_area("Sinopse Técnica", value=t['resumo'], key="s_edit", height=150)
+                    q_cops = st.number_input("Exemplares para Incorporação:", min_value=1, step=1)
+                    if st.form_submit_button("💾 Salvar e Gerar Tombos", type="primary"):
+                        id_ac = str(uuid.uuid4())
                         supabase.table("Biblioteca_Acervo").insert({
-                            "id": id_obra,
-                            "isbn": t['isbn'],
-                            "titulo": titulo_final,
-                            "autor": autor_final,
-                            "editora": t['editora'],
-                            "ano": t['ano'],
-                            "resumo": resumo_final,
-                            "capa_url": t['capa']
+                            "id": id_ac, "isbn": t['isbn'], "titulo": t['titulo'], 
+                            "autor": t['autor'], "resumo": t['resumo'], "capa_url": t['capa'],
+                            "editora": t['editora'], "ano": t['ano']
                         }).execute()
-                        
-                        # Inserção de Exemplares com Identificadores de Tombo Únicos
-                        for i in range(qtd_cops):
-                            tombo_gerado = f"{prefixo}{datetime.now().year}-{t['isbn'][-4:]}-{i+1:03d}"
+                        for i in range(q_cops):
+                            tombo_final = f"RA-{datetime.now().year}-{t['isbn'][-4:]}-{i+1:03d}"
                             supabase.table("Biblioteca_Exemplares").insert({
-                                "id": str(uuid.uuid4()),
-                                "id_acervo": id_obra,
-                                "tombo": tombo_gerado,
-                                "status_conservacao": "Íntegro",
-                                "disponivel": True
+                                "id": str(uuid.uuid4()), "id_acervo": id_ac, 
+                                "tombo": tombo_final, "disponivel": True
                             }).execute()
-                            
-                        st.success(f"Catalogação concluída. {qtd_cops} exemplares incorporados ao património.")
-                        st.session_state.temp_book = None
-                        time.sleep(1.5)
-                        st.rerun()
+                        st.success("Catalogação concluída."); st.session_state.temp_book = None; time.sleep(1); st.rerun()

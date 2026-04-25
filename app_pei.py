@@ -8611,7 +8611,6 @@ from datetime import datetime
 # ---------------------------------------------------------
     # 🔒 CONTROLE DE ACESSO AS ABAS
     # ---------------------------------------------------------
-    MATRICULAS_GESTAO = ['8829405', '8011512', '8258411', '7047682', '88286861']
     
     # Pega a matrícula do usuário logado no session_state 
     # (Se a sua variável de login tiver outro nome, como 'usuario_login' ou 'matricula', troque abaixo)

@@ -762,16 +762,16 @@ if st.session_state.authenticated:
                 
         # --- BOTÃO 3: ADM (DIREITA) ---
 
-        with col4:
-            st.markdown(f"""
-                <div class="card" onclick="window.location.href='#administrativo'">
-                    <div style="font-size: 50px;">📂</div>
-                    <div class="card-title">Administrativo</div>
-                    <p style="font-size: 14px; color: #666;">Almoxarifado e Biblioteca</p>
-                </div>
+        with col3:
+            st.markdown("""
+            <div style='background-color: #f0fdf4; padding: 35px 20px; border-radius: 12px; text-align: center; border: 2px solid #22c55e; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+                <div style='font-size: 55px; margin-bottom: 15px;'>📂</div>
+                <div style='color: #15803d; font-size: 24px; font-weight: 700; margin: 0;'>Educação Especial Inclusiva</div>
+            </div>
             """, unsafe_allow_html=True)
-            if st.button("Acessar Administrativo", key="btn_admin"):
-                st.session_state.app_mode = "📂 Administrativo"
+            st.write("")
+            if st.button("Acessar Educação Especial", type="primary", use_container_width=True, key="btn_ee"):
+                st.session_state.modulo_atuacao = "📂 Administrativo"
                 st.rerun()
 
         

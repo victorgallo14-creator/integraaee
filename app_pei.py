@@ -8230,7 +8230,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
                             supabase.table("Planejamento").insert(novo_reg).execute()
                             salvou_banco = True
                         except Exception as e:
-                            st.error(f"Erro ao inserir registo no Supabase: {e}")
+                            st.error(f"Erro ao inserir REGISTRO no Supabase: {e}")
                             salvou_banco = False
                         
                         # ==========================================================
@@ -8334,7 +8334,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
                         use_container_width=True
                     )
                 except Exception as e:
-                    st.warning(f"Não foi possível gerar o PDF deste registo. Erro interno: {e}")
+                    st.warning(f"Não foi possível gerar o PDF deste REGISTRO. Erro interno: {e}")
                 
                 # --- EDIÇÃO ---
                 with st.expander("✏️ Editar este planejamento"):
@@ -8880,7 +8880,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
         # Definição das Abas conforme o nível de acesso
         if eh_gestao:
             tab_req, tab_retro, tab_baixa, tab_estoque = st.tabs([
-                "🙋 Nova Solicitação", "📝 Registo Manual", "📦 Expedição", "📈 Inventário"
+                "🙋 Nova Solicitação", "📝 Registro Manual", "📦 Expedição", "📈 Inventário"
             ])
         else:
             tab_req, = st.tabs(["🙋 Nova Solicitação"])
@@ -8928,14 +8928,14 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
         # 🔒 FERRAMENTAS EXCLUSIVAS DA GESTÃO
         # =========================================================
         if eh_gestao:
-            # --- ABA 2: REGISTO MANUAL (ENTREGA JÁ REALIZADA) ---
+            # --- ABA 2: REGISTRO MANUAL (ENTREGA JÁ REALIZADA) ---
             with tab_retro:
-                st.subheader("Registo de Entregas Realizadas")
+                st.subheader("REGISTRO de Entregas Realizadas")
                 df_prof = safe_read("Professores", ["nome"])
                 df_mon = safe_read("Monitores", ["nome"])
                 lista_profs = sorted(list(set([str(n).upper() for n in (df_prof['nome'].tolist() + df_mon['nome'].tolist() + df_pedidos['professor'].tolist()) if pd.notnull(n)])))
 
-                with st.form("registo_manual", clear_on_submit=True):
+                with st.form("REGISTRO_manual", clear_on_submit=True):
                     col_n, col_d = st.columns([2, 1])
                     requisitante = col_n.selectbox("Profissional:", ["-- Selecione --"] + lista_profs)
                     nome_extra = col_n.text_input("Ou digite o nome completo (Maiúsculas):")
@@ -8949,7 +8949,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                         for i, it in enumerate(itens_m):
                             dict_manual[it] = c_m[i % 2].number_input(f"{it}", min_value=1, step=1)
 
-                    if st.form_submit_button("🚀 Efetivar Registo e Gerar Talão", type="primary", use_container_width=True):
+                    if st.form_submit_button("🚀 Efetivar REGISTRO e Gerar Talão", type="primary", use_container_width=True):
                         final_nome = nome_extra.strip().upper() if nome_extra.strip() else requisitante
                         if final_nome != "-- Selecione --" and itens_m:
                             html_itens = ""

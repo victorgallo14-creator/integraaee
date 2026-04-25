@@ -8620,20 +8620,20 @@ elif st.session_state.get("modulo_atuacao") == "📂 Administrativo":
     
     tab_req, tab_baixa, tab_estoque = st.tabs(["📝 Requisitar Material", "✅ Dar Baixa (Saída)", "📈 Controle de Estoque"])
 
-    # --- ABA 1: REQUISIÇÃO (Visão do Professor) ---
+  # --- ABA 1: REQUISIÇÃO (Visão do Professor) ---
     with tab_req:
         st.subheader("Nova Requisição de Materiais")
         
         if not df_estoque.empty:
-            # 1. Usamos o session_state para poder limpar a caixa de seleção após o envio
-            if 'carrinho_almoxarifado' not in st.session_state:
-                st.session_state.carrinho_almoxarifado = []
+            # 1. Usamos um contador no session_state para criar uma "chave dinâmica"
+            if 'reset_carrinho' not in st.session_state:
+                st.session_state.reset_carrinho = 0
 
-            # 2. Selecionar vários itens (Fica fora do form para atualizar a tela na hora)
+            # 2. Selecionar vários itens (A chave muda sempre que o pedido é enviado, limpando o campo)
             itens_selecionados = st.multiselect(
                 "1. Selecione um ou mais materiais:", 
                 df_estoque['item'].tolist(),
-                key="carrinho_almoxarifado",
+                key=f"carrinho_almox_{st.session_state.reset_carrinho}",
                 placeholder="Clique aqui e digite para buscar..."
             )
             
@@ -8642,19 +8642,15 @@ elif st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                 with st.form("form_requisicao"):
                     st.markdown("##### 2. Defina as quantidades para cada item:")
                     
-                    # Cria um campo de número para cada item selecionado
                     dict_quantidades = {}
                     for item in itens_selecionados:
-                        # Pega a categoria só pra ficar organizado visualmente
                         cat = df_estoque[df_estoque['item'] == item].iloc[0]['categoria']
                         dict_quantidades[item] = st.number_input(f"📦 {item} ({cat})", min_value=1, step=1, key=f"req_{item}")
                         
-                    # Botão de envio geral
                     if st.form_submit_button("Enviar Pedido Completo", type="primary", use_container_width=True):
                         agora = datetime.now().strftime("%d/%m/%Y %H:%M")
                         usuario = st.session_state.get('usuario_nome', 'Usuário')
                         
-                        # Salva cada item como uma requisição no banco
                         for item_nome, qtd in dict_quantidades.items():
                             novo_pedido = {
                                 "id": str(uuid.uuid4()),
@@ -8667,8 +8663,8 @@ elif st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                             supabase.table("Almoxarifado_Pedidos").insert(novo_pedido).execute()
                             
                         st.success("✅ Pedido enviado com sucesso!")
-                        # Limpa o carrinho
-                        st.session_state.carrinho_almoxarifado = []
+                        # O GRANDE TRUQUE: Somamos +1 no contador. O ID do widget muda e ele nasce limpo no rerun!
+                        st.session_state.reset_carrinho += 1
                         time.sleep(1.5)
                         st.rerun()
         else:

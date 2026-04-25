@@ -8792,7 +8792,6 @@ elif st.session_state.get("modulo_atuacao") == "📚  Sala de Leitura":
 
 
 
-
 import uuid
 import time
 from datetime import datetime
@@ -8836,74 +8835,137 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
     with tab_req:
         st.subheader("Solicitação de Materiais")
         
-        if not df_estoque.empty:
-            if 'reset_carrinho' not in st.session_state:
-                st.session_state.reset_carrinho = 0
-
-            itens_selecionados = st.multiselect(
-                "1. Selecione um ou mais materiais no catálogo:", 
-                df_estoque['item'].tolist(),
-                key=f"carrinho_almox_{st.session_state.reset_carrinho}",
-                placeholder="Clique aqui e digite para procurar..."
-            )
+        # Sistema de Comprovante: Verifica se acabou de fazer um pedido
+        if 'comprovante_almox' in st.session_state and st.session_state.comprovante_almox:
+            st.success("✅ Solicitação registada com sucesso!")
+            st.markdown("### 🖨️ Comprovante de Requisição")
             
-            if itens_selecionados:
-                with st.form("form_requisicao"):
-                    st.markdown("##### 2. Defina as quantidades necessárias:")
-                    
-                    dict_quantidades = {}
-                    cols = st.columns(2)
-                    for i, item in enumerate(itens_selecionados):
-                        target_col = cols[i % 2]
-                        cat = df_estoque[df_estoque['item'] == item].iloc[0]['categoria']
-                        dict_quantidades[item] = target_col.number_input(f"📦 {item} ({cat})", min_value=1, step=1, key=f"req_{item}")
+            # Gera o HTML do Cupom estilo Bobina Não Fiscal
+            cupom_html = f"""
+            <div id="cupom_impressao" style="width: 300px; padding: 15px; border: 1px dashed #000; font-family: 'Courier New', Courier, monospace; font-size: 14px; background: #fff; color: #000; margin: 0 auto;">
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <strong>ALMOXARIFADO CENTRAL</strong><br>
+                    COMPROVANTE DE REQUISIÇÃO<br>
+                    --------------------------------
+                </div>
+                <strong>Data:</strong> {st.session_state.comprovante_almox['data']}<br>
+                <strong>Requisitante:</strong> {st.session_state.comprovante_almox['professor']}<br>
+                --------------------------------<br>
+                <strong>ITENS SOLICITADOS:</strong><br>
+                <ul style="padding-left: 20px; margin-top: 5px; margin-bottom: 5px;">
+                    {st.session_state.comprovante_almox['itens_html']}
+                </ul>
+                --------------------------------<br>
+                <div style="text-align: center; margin-top: 30px;">
+                    ________________________________<br>
+                    <span style="font-size: 12px;">Assinatura do Requisitante</span>
+                </div>
+            </div>
+            
+            <script>
+            function imprimirCupom() {{
+                var conteudo = document.getElementById('cupom_impressao').outerHTML;
+                var tela_impressao = window.open('', '', 'height=600,width=400');
+                tela_impressao.document.write('<html><head><title>Cupom Almoxarifado</title></head>');
+                tela_impressao.document.write('<body style="margin: 0; padding: 10px;">');
+                tela_impressao.document.write(conteudo);
+                tela_impressao.document.write('</body></html>');
+                tela_impressao.document.close();
+                tela_impressao.focus();
+                setTimeout(function() {{ tela_impressao.print(); }}, 500);
+            }}
+            </script>
+            
+            <button onclick="imprimirCupom()" style="display: block; width: 100%; max-width: 330px; margin: 15px auto; padding: 12px; background-color: #2e7d32; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer;">🖨️ Imprimir na Bobina</button>
+            """
+            
+            # Exibe o cupão na tela do Streamlit
+            import streamlit.components.v1 as components
+            components.html(cupom_html, height=450)
+            
+            if st.button("🔄 Fechar e Fazer Nova Solicitação", use_container_width=True):
+                st.session_state.comprovante_almox = None
+                st.rerun()
+
+        else:
+            # Formulário Padrão de Solicitação
+            if not df_estoque.empty:
+                if 'reset_carrinho' not in st.session_state:
+                    st.session_state.reset_carrinho = 0
+
+                itens_selecionados = st.multiselect(
+                    "1. Selecione um ou mais materiais no catálogo:", 
+                    df_estoque['item'].tolist(),
+                    key=f"carrinho_almox_{st.session_state.reset_carrinho}",
+                    placeholder="Clique aqui e digite para procurar..."
+                )
+                
+                if itens_selecionados:
+                    with st.form("form_requisicao"):
+                        st.markdown("##### 2. Defina as quantidades necessárias:")
                         
-                    if st.form_submit_button("Enviar Solicitação", type="primary", use_container_width=True):
-                        agora = datetime.now().strftime("%d/%m/%Y %H:%M")
-                        usuario = st.session_state.get('usuario_nome', 'Usuário')
-                        
-                        for item_nome, qtd in dict_quantidades.items():
-                            novo_pedido = {
-                                "id": str(uuid.uuid4()),
-                                "data": agora,
-                                "professor": usuario,
-                                "item": item_nome,
-                                "quantidade": qtd,
-                                "status": "Pendente"
-                            }
-                            supabase.table("Almoxarifado_Pedidos").insert(novo_pedido).execute()
+                        dict_quantidades = {}
+                        cols = st.columns(2)
+                        for i, item in enumerate(itens_selecionados):
+                            target_col = cols[i % 2]
+                            cat = df_estoque[df_estoque['item'] == item].iloc[0]['categoria']
+                            dict_quantidades[item] = target_col.number_input(f"📦 {item} ({cat})", min_value=1, step=1, key=f"req_{item}")
                             
-                        st.success("✅ Solicitação enviada com sucesso para o setor administrativo!")
-                        st.session_state.reset_carrinho += 1 
-                        time.sleep(1.5)
-                        st.rerun()
-        else:
-            st.warning("Não há itens registados no catálogo atual.")
+                        if st.form_submit_button("Enviar Solicitação", type="primary", use_container_width=True):
+                            agora = datetime.now().strftime("%d/%m/%Y %H:%M")
+                            usuario = st.session_state.get('usuario_nome', 'Usuário')
+                            
+                            itens_html_lista = ""
+                            
+                            for item_nome, qtd in dict_quantidades.items():
+                                novo_pedido = {
+                                    "id": str(uuid.uuid4()),
+                                    "data": agora,
+                                    "professor": usuario,
+                                    "item": item_nome,
+                                    "quantidade": qtd,
+                                    "status": "Pendente"
+                                }
+                                supabase.table("Almoxarifado_Pedidos").insert(novo_pedido).execute()
+                                
+                                # Adiciona o item na lista do comprovante HTML
+                                itens_html_lista += f"<li>{qtd}x {item_nome}</li>"
+                                
+                            # Prepara os dados para o comprovante
+                            st.session_state.comprovante_almox = {
+                                'data': agora,
+                                'professor': usuario,
+                                'itens_html': itens_html_lista
+                            }
+                            
+                            st.session_state.reset_carrinho += 1 
+                            st.rerun()
+            else:
+                st.warning("Não há itens registados no catálogo atual.")
 
-        # --- HISTÓRICO DE SOLICITAÇÕES ---
-        st.divider()
-        st.markdown("##### 🕒 O Meu Histórico de Solicitações")
-        
-        usuario_atual = st.session_state.get('usuario_nome', 'Usuário')
-        meus_pedidos = df_pedidos[df_pedidos['professor'] == usuario_atual]
-        
-        if meus_pedidos.empty:
-            st.info("Ainda não possui solicitações registadas no sistema.")
-        else:
-            # Inverte a ordem para os mais recentes aparecerem no topo
-            meus_pedidos_exibicao = meus_pedidos.iloc[::-1][["data", "item", "quantidade", "status"]]
+            # --- HISTÓRICO DE SOLICITAÇÕES ---
+            st.divider()
+            st.markdown("##### 🕒 O Meu Histórico de Solicitações")
             
-            st.dataframe(
-                meus_pedidos_exibicao, 
-                column_config={
-                    "data": "Data/Hora",
-                    "item": "Material Solicitado",
-                    "quantidade": "Qtd.",
-                    "status": "Situação"
-                },
-                use_container_width=True, 
-                hide_index=True
-            )
+            usuario_atual = st.session_state.get('usuario_nome', 'Usuário')
+            meus_pedidos = df_pedidos[df_pedidos['professor'] == usuario_atual]
+            
+            if meus_pedidos.empty:
+                st.info("Ainda não possui solicitações registadas no sistema.")
+            else:
+                meus_pedidos_exibicao = meus_pedidos.iloc[::-1][["data", "item", "quantidade", "status"]]
+                
+                st.dataframe(
+                    meus_pedidos_exibicao, 
+                    column_config={
+                        "data": "Data/Hora",
+                        "item": "Material Solicitado",
+                        "quantidade": "Qtd.",
+                        "status": "Situação"
+                    },
+                    use_container_width=True, 
+                    hide_index=True
+                )
 
 
     # =========================================================
@@ -8985,12 +9047,25 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                                 time.sleep(1)
                                 st.rerun()
 
-        # --- ABA 4: INVENTÁRIO ---
+        # --- ABA 4: INVENTÁRIO (Com Relatório) ---
         with tab_estoque:
             col_list, col_add = st.columns([3, 2])
             
             with col_list:
-                st.subheader("Posição do Inventário")
+                c_tit, c_btn = st.columns([2, 1])
+                c_tit.subheader("Posição do Inventário")
+                
+                # Botão para emissão de Relatório
+                if not df_estoque.empty:
+                    csv_estoque = df_estoque[["item", "categoria", "quantidade"]].sort_values(by="item").to_csv(index=False).encode('utf-8')
+                    c_btn.download_button(
+                        label="📥 Exportar Relatório",
+                        data=csv_estoque,
+                        file_name=f"relatorio_estoque_{datetime.now().strftime('%d_%m_%Y')}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+                
                 st.dataframe(df_estoque[["item", "quantidade", "categoria"]], use_container_width=True, hide_index=True)
                 
             with col_add:
@@ -9025,3 +9100,8 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
                             time.sleep(1.5)
                             st.rerun()
 
+
+# ==============================================================================
+# MÓDULO: SALA DE LEITURA (BIBLIOTECA)
+# ==============================================================================
+# ... (O módulo da Sala de Leitura permanece inalterado)

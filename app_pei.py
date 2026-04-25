@@ -8622,26 +8622,57 @@ elif st.session_state.get("modulo_atuacao") == "📂 Administrativo":
 
     # --- ABA 1: REQUISIÇÃO (Visão do Professor) ---
     with tab_req:
-        st.subheader("Nova Requisição")
-        with st.form("form_requisicao", clear_on_submit=True):
-            if not df_estoque.empty:
-                item_sel = st.selectbox("Selecione o Material", df_estoque['item'].tolist())
-                qtd_solic = st.number_input("Quantidade Necessária", min_value=1, step=1)
-                if st.form_submit_button("Enviar Pedido", type="primary"):
-                    novo_pedido = {
-                        "id": str(uuid.uuid4()),
-                        "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                        "professor": st.session_state.get('usuario_nome', 'Usuário'),
-                        "item": item_sel,
-                        "quantidade": qtd_solic,
-                        "status": "Pendente"
-                    }
-                    supabase.table("Almoxarifado_Pedidos").insert(novo_pedido).execute()
-                    st.success("Requisição enviada com sucesso!")
-                    time.sleep(1)
-                    st.rerun()
-            else:
-                st.warning("Não há itens cadastrados no estoque.")
+        st.subheader("Nova Requisição de Materiais")
+        
+        if not df_estoque.empty:
+            # 1. Usamos o session_state para poder limpar a caixa de seleção após o envio
+            if 'carrinho_almoxarifado' not in st.session_state:
+                st.session_state.carrinho_almoxarifado = []
+
+            # 2. Selecionar vários itens (Fica fora do form para atualizar a tela na hora)
+            itens_selecionados = st.multiselect(
+                "1. Selecione um ou mais materiais:", 
+                df_estoque['item'].tolist(),
+                key="carrinho_almoxarifado",
+                placeholder="Clique aqui e digite para buscar..."
+            )
+            
+            # 3. Mostrar os campos de quantidade apenas se algum item foi escolhido
+            if itens_selecionados:
+                with st.form("form_requisicao"):
+                    st.markdown("##### 2. Defina as quantidades para cada item:")
+                    
+                    # Cria um campo de número para cada item selecionado
+                    dict_quantidades = {}
+                    for item in itens_selecionados:
+                        # Pega a categoria só pra ficar organizado visualmente
+                        cat = df_estoque[df_estoque['item'] == item].iloc[0]['categoria']
+                        dict_quantidades[item] = st.number_input(f"📦 {item} ({cat})", min_value=1, step=1, key=f"req_{item}")
+                        
+                    # Botão de envio geral
+                    if st.form_submit_button("Enviar Pedido Completo", type="primary", use_container_width=True):
+                        agora = datetime.now().strftime("%d/%m/%Y %H:%M")
+                        usuario = st.session_state.get('usuario_nome', 'Usuário')
+                        
+                        # Salva cada item como uma requisição no banco
+                        for item_nome, qtd in dict_quantidades.items():
+                            novo_pedido = {
+                                "id": str(uuid.uuid4()),
+                                "data": agora,
+                                "professor": usuario,
+                                "item": item_nome,
+                                "quantidade": qtd,
+                                "status": "Pendente"
+                            }
+                            supabase.table("Almoxarifado_Pedidos").insert(novo_pedido).execute()
+                            
+                        st.success("✅ Pedido enviado com sucesso!")
+                        # Limpa o carrinho
+                        st.session_state.carrinho_almoxarifado = []
+                        time.sleep(1.5)
+                        st.rerun()
+        else:
+            st.warning("Não há itens cadastrados no estoque.")
 
     # --- ABA 2: BAIXA (Visão Administrativa/Secretaria) ---
     with tab_baixa:

@@ -8921,7 +8921,7 @@ import base64
 from datetime import datetime, timedelta
 
 # ==============================================================================
-# MÓDULO: GESTÃO BIBLIOGRÁFICA (SALA DE LEITURA)
+# MÓDULO: GESTÃO DE ACERVO E BIBLIOTECONOMIA (SALA DE LEITURA)
 # ==============================================================================
 if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sala de Leitura"]:
     st.markdown('<div class="header-box"><div class="header-title">📚 Gestão de Acervo e Leitores</div></div>', unsafe_allow_html=True)
@@ -8930,10 +8930,10 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
         st.session_state.modulo_atuacao = None
         st.rerun()
 
-    # --- INTEGRAÇÃO CARÔMETRO ---
+    # --- INTEGRAÇÃO CARÔMETRO & SEGURANÇA ---
     MATRICULAS_GESTAO = ['8829405', '8011512', '8258411', '7047682', '88286861']
     eh_gestao = str(st.session_state.get('usuario_matricula', '')).strip() in MATRICULAS_GESTAO
-    usuario_atual = st.session_state.get('usuario_nome', 'Visitante').upper()
+    usuario_nome = st.session_state.get('usuario_nome', 'Visitante').upper()
 
     df_carometro = load_carometro_db() 
     if not df_carometro.empty:
@@ -8942,15 +8942,16 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
     else:
         lista_leitores = []
 
-    # Sincronização com Supabase (safe_read evita quebras se a tabela estiver vazia)
+    # Leitura das Tabelas
     df_acervo = safe_read("Biblioteca_Acervo", ["id", "isbn", "titulo", "autor", "editora", "genero", "serie", "capa_url"])
     df_exemplares = safe_read("Biblioteca_Exemplares", ["id", "id_acervo", "tombo", "disponivel", "localizacao"])
     df_emp = safe_read("Biblioteca_Emprestimos", ["id", "id_exemplar", "leitor", "data_saida", "data_prevista", "status"])
 
-    # --- ESTILIZAÇÃO ---
+    # --- ESTILO VISUAL (CSS) ---
     st.markdown("""
     <style>
-        .book-card { background: white; border-radius: 10px; padding: 12px; border: 1px solid #e2e8f0; text-align: center; height: 100%; }
+        .book-card { background: white; border-radius: 10px; padding: 12px; border: 1px solid #e2e8f0; text-align: center; height: 100%; transition: 0.3s; }
+        .book-card:hover { transform: translateY(-5px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .book-cover { width: 110px; height: 165px; object-fit: cover; border-radius: 4px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
         .book-title { font-weight: bold; font-size: 14px; margin-top: 10px; color: #1e293b; height: 34px; overflow: hidden; }
         .badge-box { background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color: white; padding: 15px; border-radius: 10px; text-align: center; }
@@ -8958,116 +8959,141 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
     </style>
     """, unsafe_allow_html=True)
 
+    # --- NAVEGAÇÃO ---
     if eh_gestao:
-        tab_vitrine, tab_perfil, tab_circ, tab_cat, tab_dash = st.tabs([
-            "🔍 Consulta", "👤 Prontuário", "🔄 Circulação", "🗃️ Incorporação Técnica", "📊 Auditoria"
-        ])
+        tabs = st.tabs(["🔍 Consulta", "👤 Prontuário", "🔄 Circulação", "🗃️ Incorporação (ISBN/Excel)", "📊 Auditoria"])
+        tab_vitrine, tab_perfil, tab_circ, tab_cat, tab_dash = tabs
     else:
-        tab_vitrine, tab_perfil = st.tabs(["🔍 Consulta", "👤 Prontuário"])
+        tab_vitrine, tab_perfil = st.tabs(["🔍 Consulta", "👤 Meu Prontuário"])
 
-    # 1. PORTAL DO LEITOR & CONQUISTAS
+    # --- 1. PORTAL DO LEITOR ---
     with tab_vitrine:
-        busca = st.text_input("Filtrar por Título ou Autor:", placeholder="Pesquisar...")
+        busca = st.text_input("Filtrar acervo por Título ou Autor:", placeholder="Pesquisar...")
         if not df_acervo.empty:
             res = df_acervo[df_acervo['titulo'].str.contains(busca, case=False) | df_acervo['autor'].str.contains(busca, case=False)] if busca else df_acervo.tail(12)
             cols = st.columns(4)
             for i, (_, row) in enumerate(res.iterrows()):
                 with cols[i % 4]:
-                    capa = row['capa_url'] if pd.notnull(row['capa_url']) else "https://via.placeholder.com/110x165?text=SEM+CAPA"
+                    capa = row['capa_url'] if pd.notnull(row['capa_url']) else "https://via.placeholder.com/110x165?text=SALA+LEITURA"
                     st.markdown(f'<div class="book-card"><img src="{capa}" class="book-cover"><div class="book-title">{row["titulo"]}</div></div>', unsafe_allow_html=True)
 
+    # --- 2. CONQUISTAS & PRONTUÁRIO ---
     with tab_perfil:
         c1, c2 = st.columns([2, 1])
         with c1:
             st.subheader("📚 Meus Empréstimos Ativos")
-            meus = df_emp[(df_emp['leitor'].str.contains(usuario_atual, na=False)) & (df_emp['status'] == 'Ativo')]
-            if meus.empty: st.info("Não constam pendências em seu prontuário.")
+            meus = df_emp[(df_emp['leitor'].str.contains(usuario_nome, na=False)) & (df_emp['status'] == 'Ativo')]
+            if meus.empty: st.info("Sem pendências no momento.")
             else:
-                for _, r in meus.iterrows(): st.warning(f"Exemplar Tombo {r['id_exemplar']} | Devolução prevista: **{r['data_prevista']}**")
+                for _, r in meus.iterrows():
+                    st.warning(f"📖 Tombo {r['id_exemplar']} | Devolução em: **{r['data_prevista']}**")
         with c2:
             st.subheader("🏆 Minhas Conquistas")
-            lidos = len(df_emp[(df_emp['leitor'].str.contains(usuario_atual, na=False)) & (df_emp['status'] == 'Devolvido')])
-            nivel = "Leitor Iniciante" if lidos < 5 else "Leitor Prata" if lidos < 15 else "Mestre da Leitura"
+            lidos = len(df_emp[(df_emp['leitor'].str.contains(usuario_nome, na=False)) & (df_emp['status'] == 'Devolvido')])
+            nivel = "Iniciante" if lidos < 5 else "Prata" if lidos < 15 else "Mestre"
             icone = "🌱" if lidos < 5 else "🥈" if lidos < 15 else "💎"
-            st.markdown(f'<div class="badge-box"><div style="font-size:40px">{icone}</div><div class="badge-title">{nivel}</div><div>{lidos} livros lidos</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="badge-box"><div style="font-size:40px">{icone}</div><div class="badge-title">Leitor {nivel}</div><div>{lidos} livros lidos</div></div>', unsafe_allow_html=True)
 
-    # 3. MÓDULO DE CIRCULAÇÃO (BALCÃO)
+    # --- 3. CIRCULAÇÃO (BALCÃO COM FOTO) ---
     if eh_gestao:
         with tab_circ:
             c_out, c_in = st.columns(2)
             with c_out:
-                st.markdown("### 📤 Saída de Exemplar")
-                with st.form("loan_form_vfinal"):
+                st.markdown("### 📤 Empréstimo")
+                with st.form("loan_form_final"):
                     leitor_sel = st.selectbox("Aluno (Carômetro):", ["-- Selecione --"] + lista_leitores)
-                    tombo_out = st.text_input("Bipar/Digitar Tombo:")
+                    tombo_out = st.text_input("Definir Tombo:")
                     if leitor_sel != "-- Selecione --":
                         aluno = df_carometro[df_carometro['display_leitor'] == leitor_sel].iloc[0]
                         if aluno.get('foto_base64'):
-                            st.image(base64.b64decode(aluno['foto_base64']), width=120, caption="Conferência de Identidade")
+                            st.image(base64.b64decode(aluno['foto_base64']), width=120, caption="Conferência Visual")
 
-                    if st.form_submit_button("Efetivar Empréstimo", type="primary", use_container_width=True):
+                    if st.form_submit_button("Efetivar Empréstimo", type="primary"):
                         ex = df_exemplares[df_exemplares['tombo'] == tombo_out]
                         if not ex.empty and ex.iloc[0]['disponivel']:
-                            dt_venc = (datetime.now() + timedelta(days=7)).strftime("%d/%m/%Y")
-                            supabase.table("Biblioteca_Emprestimos").insert({"id": str(uuid.uuid4()), "id_exemplar": ex.iloc[0]['id'], "leitor": leitor_sel, "data_saida": datetime.now().strftime("%d/%m/%Y"), "data_prevista": dt_venc, "status": "Ativo"}).execute()
+                            venc = (datetime.now() + timedelta(days=7)).strftime("%d/%m/%Y")
+                            supabase.table("Biblioteca_Emprestimos").insert({"id": str(uuid.uuid4()), "id_exemplar": ex.iloc[0]['id'], "leitor": leitor_sel, "data_saida": datetime.now().strftime("%d/%m/%Y"), "data_prevista": venc, "status": "Ativo"}).execute()
                             supabase.table("Biblioteca_Exemplares").update({"disponivel": False}).eq("id", ex.iloc[0]['id']).execute()
                             st.success("Operação concluída!"); time.sleep(1); st.rerun()
-                        else: st.error("Erro: Tombo indisponível ou livro não localizado.")
+                        else: st.error("Erro: Tombo indisponível ou não localizado.")
 
-    # 4. INCORPORAÇÃO TÉCNICA (ISBN + EXCEL)
+            with c_in:
+                st.markdown("### 📥 Devolução")
+                with st.form("return_form_final"):
+                    tombo_in = st.text_input("Bipar Tombo:")
+                    if st.form_submit_button("Confirmar Retorno"):
+                        ex_in = df_exemplares[df_exemplares['tombo'] == tombo_in]
+                        if not ex_in.empty:
+                            id_ex = ex_in.iloc[0]['id']
+                            emp = df_emp[(df_emp['id_exemplar'] == id_ex) & (df_emp['status'] == 'Ativo')]
+                            if not emp.empty:
+                                supabase.table("Biblioteca_Emprestimos").update({"status": "Devolvido"}).eq("id", emp.iloc[0]['id']).execute()
+                                supabase.table("Biblioteca_Exemplares").update({"disponivel": True}).eq("id", id_ex).execute()
+                                st.success("✅ Item retornado!"); time.sleep(1); st.rerun()
+
+    # --- 4. INCORPORAÇÃO TÉCNICA (ISBN + EXCEL) ---
     if eh_gestao:
         with tab_cat:
             st.subheader("Incorporação de Patrimônio")
             
-            with st.expander("📂 Importação Massiva (Excel - Colunas Específicas)"):
+            # --- IMPORTADOR EXCEL ---
+            with st.expander("📂 Importação Massiva (Planilha de Acervo Excel)"):
+                st.info("Colunas: TÍTULO, AUTOR, EDITORA, TOMBO, GÊNERO, LOCAL, SÉRIE, EMPREST., DATA")
                 up_excel = st.file_uploader("Suba o arquivo .xlsx", type=["xlsx"])
                 if up_excel:
                     try:
                         df_migra = pd.read_excel(up_excel)
-                        if st.button("🚀 Iniciar Migração Massiva"):
+                        st.dataframe(df_migra.head(3), use_container_width=True)
+                        if st.button("🚀 Iniciar Processamento"):
                             bar = st.progress(0)
                             for i, row in df_migra.iterrows():
-                                tit = str(row['TÍTULO']).upper()
-                                aut = str(row['AUTOR']).upper()
+                                tit = str(row['TÍTULO']).strip().upper()
+                                aut = str(row['AUTOR']).strip().upper()
                                 tombo_v = str(row['TOMBO']).strip()
                                 
                                 # Verifica Obra
                                 res_ac = supabase.table("Biblioteca_Acervo").select("id").eq("titulo", tit).eq("autor", aut).execute()
                                 id_ac = res_ac.data[0]['id'] if res_ac.data else str(uuid.uuid4())
                                 if not res_ac.data:
-                                    supabase.table("Biblioteca_Acervo").insert({"id": id_ac, "titulo": tit, "autor": aut, "editora": str(row.get('EDITORA','')).upper(), "genero": str(row.get('GÊNERO','')).upper(), "serie": str(row.get('SÉRIE','')).upper()}).execute()
+                                    supabase.table("Biblioteca_Acervo").insert({
+                                        "id": id_ac, "titulo": tit, "autor": aut, 
+                                        "editora": str(row.get('EDITORA','')).upper(), 
+                                        "genero": str(row.get('GÊNERO','')).upper(),
+                                        "serie": str(row.get('SÉRIE','')).upper()
+                                    }).execute()
 
                                 # Verifica Exemplar
                                 id_ex = str(uuid.uuid4())
                                 disp = pd.isna(row.get('EMPREST.')) or str(row.get('EMPREST.')).strip() == ""
                                 supabase.table("Biblioteca_Exemplares").insert({"id": id_ex, "id_acervo": id_ac, "tombo": tombo_v, "localizacao": str(row.get('LOCAL','')).upper(), "disponivel": disp}).execute()
 
-                                # Se houver empréstimo ativo na planilha
+                                # Se houver empréstimo ativo
                                 if not disp:
                                     supabase.table("Biblioteca_Emprestimos").insert({"id": str(uuid.uuid4()), "id_exemplar": id_ex, "leitor": str(row['EMPREST.']).upper(), "data_saida": str(row['DATA']), "data_prevista": (datetime.now() + timedelta(days=7)).strftime("%d/%m/%Y"), "status": "Ativo"}).execute()
                                 
                                 bar.progress((i+1)/len(df_migra))
-                            st.success("Processamento finalizado!"); time.sleep(1); st.rerun()
+                            st.success("Migração concluída!"); time.sleep(1.5); st.rerun()
                     except Exception as e: st.error(f"Erro: {e}")
 
-            with st.expander("🌐 Catalogação ISBN (Livros Novos)"):
-                with st.form("isbn_vfinal"):
-                    isbn_in = st.text_input("ISBN:")
-                    if st.form_submit_button("Consultar Metadados"):
+            # --- CATALOGAÇÃO ISBN ---
+            with st.expander("🌐 Catalogação via ISBN"):
+                with st.form("isbn_search_vfinal"):
+                    isbn_in = st.text_input("Código ISBN:")
+                    if st.form_submit_button("🌐 Buscar"):
                         isbn_c = "".join(filter(str.isdigit, isbn_in))
                         r = requests.get(f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn_c}").json()
                         if "items" in r:
                             m = r["items"][0]["volumeInfo"]
-                            st.session_state.tmp_b = {"titulo": m.get("title","").upper(), "autor": ", ".join(m.get("authors",[])).upper(), "isbn": isbn_c, "capa": m.get("imageLinks",{}).get("thumbnail","").replace("http:","https:"), "editora": m.get("publisher","").upper(), "ano": m.get("publishedDate","")[:4]}
-                            st.success("Livro localizado!")
-
+                            st.session_state.tmp_b = {"titulo": m.get("title","").upper(), "autor": ", ".join(m.get("authors",["DESCONHECIDO"])).upper(), "isbn": isbn_c, "capa": m.get("imageLinks",{}).get("thumbnail","").replace("http:","https:"), "editora": m.get("publisher","").upper(), "resumo": m.get("description","")}
+                            st.success("Obra localizada!"); st.rerun()
+                
                 if 'tmp_b' in st.session_state:
-                    with st.form("save_vfinal"):
+                    with st.form("save_isbn_final"):
                         b = st.session_state.tmp_b
-                        st.write(f"**Obra:** {b['titulo']}")
-                        t_manual = st.text_input("Definir Número do Tombo (Manual):")
-                        if st.form_submit_button("Confirmar Incorporação"):
+                        st.write(f"**Título:** {b['titulo']}")
+                        t_manual = st.text_input("Número do Tombo (Manual):")
+                        if st.form_submit_button("💾 Salvar"):
                             id_a = str(uuid.uuid4())
                             supabase.table("Biblioteca_Acervo").insert({"id": id_a, "isbn": b['isbn'], "titulo": b['titulo'], "autor": b['autor'], "capa_url": b['capa'], "editora": b['editora']}).execute()
                             supabase.table("Biblioteca_Exemplares").insert({"id": str(uuid.uuid4()), "id_acervo": id_a, "tombo": t_manual, "disponivel": True}).execute()
-                            st.success("Salvo!"); st.session_state.tmp_b = None; time.sleep(1); st.rerun()
+                            st.success("Catalogado!"); st.session_state.tmp_b = None; time.sleep(1); st.rerun()

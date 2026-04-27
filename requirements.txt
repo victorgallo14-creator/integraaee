@@ -5,3 +5,4 @@ streamlit-autorefresh
 supabase
 python-docx
 st-gsheets-connection
+openpyxl

@@ -9031,69 +9031,144 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                                 supabase.table("Biblioteca_Exemplares").update({"disponivel": True}).eq("id", id_ex).execute()
                                 st.success("✅ Item retornado!"); time.sleep(1); st.rerun()
 
-    # --- 4. INCORPORAÇÃO TÉCNICA (ISBN + EXCEL) ---
+# =========================================================
+    # 4. INCORPORAÇÃO TÉCNICA (EXCEL/CSV + ISBN)
+    # =========================================================
     if eh_gestao:
         with tab_cat:
-            st.subheader("Incorporação de Patrimônio")
+            st.subheader("Procedimentos de Incorporação Patrimonial")
             
-            # --- IMPORTADOR EXCEL ---
-            with st.expander("📂 Importação Massiva (Planilha de Acervo Excel)"):
-                st.info("Colunas: TÍTULO, AUTOR, EDITORA, TOMBO, GÊNERO, LOCAL, SÉRIE, EMPREST., DATA")
-                up_excel = st.file_uploader("Suba o arquivo .xlsx", type=["xlsx"])
-                if up_excel:
+            # --- MOTOR DE IMPORTAÇÃO (ADAPTADO PARA O SEU FICHEIRO) ---
+            with st.expander("📂 Importação Massiva (Planilha de Acervo)"):
+                st.write("Colunas detetadas: `TÍTULO`, `AUTOR`, `EDITORA`, `TOMBO`, `GÊNERO`, `LOCAL`, `SÉRIE`, `EMPREST.`, `DATA`")
+                # Agora aceita tanto CSV quanto XLSX
+                up_file = st.file_uploader("Suba o ficheiro (.csv ou .xlsx)", type=["csv", "xlsx"], key="file_uploader")
+                
+                if up_file:
                     try:
-                        df_migra = pd.read_excel(up_excel)
-                        st.dataframe(df_migra.head(3), use_container_width=True)
-                        if st.button("🚀 Iniciar Processamento"):
+                        # Leitura inteligente baseada na extensão
+                        if up_file.name.endswith('.csv'):
+                            df_migra = pd.read_csv(up_file)
+                        else:
+                            df_migra = pd.read_excel(up_file)
+                            
+                        st.dataframe(df_migra.head(5), use_container_width=True)
+                        
+                        if st.button("🚀 Iniciar Processamento Massivo", type="primary"):
                             bar = st.progress(0)
+                            sucesso_count = 0
+                            erro_count = 0
+                            
                             for i, row in df_migra.iterrows():
-                                tit = str(row['TÍTULO']).strip().upper()
-                                aut = str(row['AUTOR']).strip().upper()
-                                tombo_v = str(row['TOMBO']).strip()
-                                
-                                # Verifica Obra
-                                res_ac = supabase.table("Biblioteca_Acervo").select("id").eq("titulo", tit).eq("autor", aut).execute()
-                                id_ac = res_ac.data[0]['id'] if res_ac.data else str(uuid.uuid4())
-                                if not res_ac.data:
-                                    supabase.table("Biblioteca_Acervo").insert({
-                                        "id": id_ac, "titulo": tit, "autor": aut, 
-                                        "editora": str(row.get('EDITORA','')).upper(), 
-                                        "genero": str(row.get('GÊNERO','')).upper(),
-                                        "serie": str(row.get('SÉRIE','')).upper()
+                                try:
+                                    # Limpeza de dados (evita que células vazias virem a palavra 'nan')
+                                    tit = str(row.get('TÍTULO', '')).strip().upper()
+                                    if not tit or tit == 'NAN': continue # Salta linhas em branco
+                                    
+                                    aut = str(row.get('AUTOR', '')).strip().upper()
+                                    aut = aut if aut != 'NAN' else 'DESCONHECIDO'
+                                    
+                                    edit = str(row.get('EDITORA', '')).strip().upper()
+                                    gen = str(row.get('GÊNERO', '')).strip().upper()
+                                    serie = str(row.get('SÉRIE', '')).strip().upper()
+                                    local = str(row.get('LOCAL', '')).strip().upper()
+                                    tombo_v = str(row.get('TOMBO', '')).strip()
+                                    if tombo_v.endswith('.0'): tombo_v = tombo_v[:-2] # Corrige tombos lidos como decimais
+                                    
+                                    # 1. Gestão da Obra (Acervo)
+                                    res_ac = supabase.table("Biblioteca_Acervo").select("id").eq("titulo", tit).eq("autor", aut).execute()
+                                    
+                                    if res_ac.data:
+                                        id_ac = res_ac.data[0]['id']
+                                    else:
+                                        id_ac = str(uuid.uuid4())
+                                        supabase.table("Biblioteca_Acervo").insert({
+                                            "id": id_ac, 
+                                            "titulo": tit, 
+                                            "autor": aut, 
+                                            "editora": edit if edit != 'NAN' else '', 
+                                            "genero": gen if gen != 'NAN' else '',
+                                            "serie": serie if serie != 'NAN' else ''
+                                        }).execute()
+
+                                    # 2. Gestão do Exemplar (Patrimônio)
+                                    emp_val = str(row.get('EMPREST.', ''))
+                                    is_emprestado = (emp_val != 'NAN' and emp_val.strip() != '')
+                                    
+                                    id_ex = str(uuid.uuid4())
+                                    supabase.table("Biblioteca_Exemplares").insert({
+                                        "id": id_ex, 
+                                        "id_acervo": id_ac, 
+                                        "tombo": tombo_v,
+                                        "localizacao": local if local != 'NAN' else '', 
+                                        "disponivel": not is_emprestado
                                     }).execute()
 
-                                # Verifica Exemplar
-                                id_ex = str(uuid.uuid4())
-                                disp = pd.isna(row.get('EMPREST.')) or str(row.get('EMPREST.')).strip() == ""
-                                supabase.table("Biblioteca_Exemplares").insert({"id": id_ex, "id_acervo": id_ac, "tombo": tombo_v, "localizacao": str(row.get('LOCAL','')).upper(), "disponivel": disp}).execute()
-
-                                # Se houver empréstimo ativo
-                                if not disp:
-                                    supabase.table("Biblioteca_Emprestimos").insert({"id": str(uuid.uuid4()), "id_exemplar": id_ex, "leitor": str(row['EMPREST.']).upper(), "data_saida": str(row['DATA']), "data_prevista": (datetime.now() + timedelta(days=7)).strftime("%d/%m/%Y"), "status": "Ativo"}).execute()
+                                    # 3. Registo de Empréstimo Ativo
+                                    if is_emprestado:
+                                        dt_val = str(row.get('DATA', ''))
+                                        dt_saida = dt_val if dt_val != 'NAN' else datetime.now().strftime("%d/%m/%Y")
+                                        
+                                        supabase.table("Biblioteca_Emprestimos").insert({
+                                            "id": str(uuid.uuid4()), 
+                                            "id_exemplar": id_ex,
+                                            "leitor": emp_val.upper(),
+                                            "data_saida": dt_saida,
+                                            "data_prevista": (datetime.now() + timedelta(days=7)).strftime("%d/%m/%Y"),
+                                            "status": "Ativo"
+                                        }).execute()
+                                    
+                                    sucesso_count += 1
+                                except Exception as e_row:
+                                    erro_count += 1
                                 
                                 bar.progress((i+1)/len(df_migra))
-                            st.success("Migração concluída!"); time.sleep(1.5); st.rerun()
-                    except Exception as e: st.error(f"Erro: {e}")
+                            
+                            st.success(f"Migração Concluída: {sucesso_count} itens processados. {erro_count} falhas.")
+                            time.sleep(2)
+                            st.rerun()
+                    except Exception as e: 
+                        st.error(f"Erro na leitura do ficheiro: {e}")
 
             # --- CATALOGAÇÃO ISBN ---
-            with st.expander("🌐 Catalogação via ISBN"):
-                with st.form("isbn_search_vfinal"):
-                    isbn_in = st.text_input("Código ISBN:")
-                    if st.form_submit_button("🌐 Buscar"):
+            with st.expander("🌐 Catalogação via ISBN (API Internacional)"):
+                with st.form("isbn_form_final"):
+                    isbn_in = st.text_input("Insira o ISBN (apenas números):")
+                    if st.form_submit_button("🌐 Consultar Metadados"):
                         isbn_c = "".join(filter(str.isdigit, isbn_in))
                         r = requests.get(f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn_c}").json()
                         if "items" in r:
                             m = r["items"][0]["volumeInfo"]
-                            st.session_state.tmp_b = {"titulo": m.get("title","").upper(), "autor": ", ".join(m.get("authors",["DESCONHECIDO"])).upper(), "isbn": isbn_c, "capa": m.get("imageLinks",{}).get("thumbnail","").replace("http:","https:"), "editora": m.get("publisher","").upper(), "resumo": m.get("description","")}
-                            st.success("Obra localizada!"); st.rerun()
+                            st.session_state.tmp_b = {
+                                "titulo": m.get("title","").upper(), 
+                                "autor": ", ".join(m.get("authors",["DESCONHECIDO"])).upper(), 
+                                "isbn": isbn_c, 
+                                "capa": m.get("imageLinks",{}).get("thumbnail","").replace("http:","https:"), 
+                                "editora": m.get("publisher","").upper(), 
+                                "resumo": m.get("description","")
+                            }
+                            st.success("Obra localizada!")
+                        else:
+                            st.error("Obra não encontrada. Tente o preenchimento manual.")
                 
                 if 'tmp_b' in st.session_state:
                     with st.form("save_isbn_final"):
                         b = st.session_state.tmp_b
                         st.write(f"**Título:** {b['titulo']}")
-                        t_manual = st.text_input("Número do Tombo (Manual):")
-                        if st.form_submit_button("💾 Salvar"):
-                            id_a = str(uuid.uuid4())
-                            supabase.table("Biblioteca_Acervo").insert({"id": id_a, "isbn": b['isbn'], "titulo": b['titulo'], "autor": b['autor'], "capa_url": b['capa'], "editora": b['editora']}).execute()
-                            supabase.table("Biblioteca_Exemplares").insert({"id": str(uuid.uuid4()), "id_acervo": id_a, "tombo": t_manual, "disponivel": True}).execute()
-                            st.success("Catalogado!"); st.session_state.tmp_b = None; time.sleep(1); st.rerun()
+                        t_manual = st.text_input("Número do Tombo (Obrigatório):")
+                        if st.form_submit_button("💾 Confirmar Incorporação", type="primary"):
+                            if t_manual:
+                                id_a = str(uuid.uuid4())
+                                supabase.table("Biblioteca_Acervo").insert({
+                                    "id": id_a, "isbn": b['isbn'], "titulo": b['titulo'], 
+                                    "autor": b['autor'], "capa_url": b['capa'], "editora": b['editora'], 
+                                    "resumo": b['resumo']
+                                }).execute()
+                                supabase.table("Biblioteca_Exemplares").insert({
+                                    "id": str(uuid.uuid4()), "id_acervo": id_a, 
+                                    "tombo": t_manual, "disponivel": True
+                                }).execute()
+                                st.success("Catalogação concluída!"); st.session_state.tmp_b = None
+                                time.sleep(1); st.rerun()
+                            else:
+                                st.error("O número do tombo é obrigatório.")

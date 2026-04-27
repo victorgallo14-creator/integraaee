@@ -9121,3 +9121,65 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                                     st.error(f"Erro: O Tombo '{tombo_manual}' já existe no acervo.")
                                 else:
                                     st.error(f"Erro no Supabase: {e}")
+
+
+# --- NOVO: IMPORTADOR DE LEGADO (EXCEL) ---
+        with st.expander("📂 Importação Massiva de Acervo (Migração Excel)"):
+            st.markdown("Suba o arquivo Excel com as colunas: `TÍTULO`, `AUTOR`, `EDITORA`, `TOMBO`, `GÊNERO`, `LOCAL`, `SÉRIE`.")
+            arquivo_excel = st.file_uploader("Selecione o arquivo .xlsx", type=["xlsx"])
+            
+            if arquivo_excel:
+                df_migracao = pd.read_excel(arquivo_excel)
+                st.dataframe(df_migracao.head(), use_container_width=True)
+                
+                if st.button("🚀 Iniciar Migração de Dados", type="primary"):
+                    progresso = st.progress(0)
+                    total_linhas = len(df_migracao)
+                    sucessos = 0
+                    erros = 0
+                    
+                    for index, row in df_migracao.iterrows():
+                        try:
+                            titulo_excel = str(row['TÍTULO']).strip().upper()
+                            autor_excel = str(row['AUTOR']).strip().upper()
+                            tombo_excel = str(row['TOMBO']).strip()
+                            
+                            # 1. Verifica se a OBRA já existe para evitar duplicidade no Acervo
+                            obra_existente = supabase.table("Biblioteca_Acervo")\
+                                .select("id")\
+                                .eq("titulo", titulo_excel)\
+                                .eq("autor", autor_excel)\
+                                .execute()
+                            
+                            if obra_existente.data:
+                                id_acervo = obra_existente.data[0]['id']
+                            else:
+                                # Cria nova obra matriz
+                                id_acervo = str(uuid.uuid4())
+                                supabase.table("Biblioteca_Acervo").insert({
+                                    "id": id_acervo,
+                                    "titulo": titulo_excel,
+                                    "autor": autor_excel,
+                                    "editora": str(row['EDITORA']).upper(),
+                                    "genero": str(row['GÊNERO']).upper(),
+                                    "serie": str(row['SÉRIE']).upper()
+                                }).execute()
+                            
+                            # 2. Insere o Exemplar Físico (Tombo Único)
+                            supabase.table("Biblioteca_Exemplares").insert({
+                                "id": str(uuid.uuid4()),
+                                "id_acervo": id_acervo,
+                                "tombo": tombo_out,
+                                "localizacao": str(row['LOCAL']).upper(),
+                                "disponivel": True
+                            }).execute()
+                            
+                            sucessos += 1
+                        except Exception as e:
+                            erros += 1
+                            
+                        progresso.progress((index + 1) / total_linhas)
+                    
+                    st.success(f"Migração Concluída! {sucessos} itens importados. {erros} falhas.")
+                    time.sleep(2)
+                    st.rerun()

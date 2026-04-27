@@ -8994,7 +8994,7 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
             icone = "🌱" if lidos < 5 else "🥈" if lidos < 15 else "💎"
             st.markdown(f'<div class="badge-box"><div style="font-size:40px">{icone}</div><div class="badge-title">Leitor {nivel}</div><div>{lidos} livros lidos</div></div>', unsafe_allow_html=True)
 
-    # --- 3. CIRCULAÇÃO (BALCÃO COM FOTO) ---
+# --- 3. CIRCULAÇÃO (BALCÃO COM FOTO) ---
     if eh_gestao:
         with tab_circ:
             c_out, c_in = st.columns(2)
@@ -9009,27 +9009,47 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                             st.image(base64.b64decode(aluno['foto_base64']), width=120, caption="Conferência Visual")
 
                     if st.form_submit_button("Efetivar Empréstimo", type="primary"):
-                        ex = df_exemplares[df_exemplares['tombo'] == tombo_out]
-                        if not ex.empty and ex.iloc[0]['disponivel']:
+                        # FORÇA A COMPARAÇÃO COMO TEXTO LIMPO
+                        tombo_limpo = str(tombo_out).strip()
+                        
+                        # Filtro Blindado: Converte a coluna do banco para texto e remove espaços antes de comparar
+                        ex = df_exemplares[df_exemplares['tombo'].astype(str).str.strip() == tombo_limpo]
+                        
+                        if not ex.empty and ex.iloc[0]['disponivel'] == True:
                             venc = (datetime.now() + timedelta(days=7)).strftime("%d/%m/%Y")
-                            supabase.table("Biblioteca_Emprestimos").insert({"id": str(uuid.uuid4()), "id_exemplar": ex.iloc[0]['id'], "leitor": leitor_sel, "data_saida": datetime.now().strftime("%d/%m/%Y"), "data_prevista": venc, "status": "Ativo"}).execute()
+                            supabase.table("Biblioteca_Emprestimos").insert({
+                                "id": str(uuid.uuid4()), 
+                                "id_exemplar": ex.iloc[0]['id'], 
+                                "leitor": leitor_sel, 
+                                "data_saida": datetime.now().strftime("%d/%m/%Y"), 
+                                "data_prevista": venc, 
+                                "status": "Ativo"
+                            }).execute()
                             supabase.table("Biblioteca_Exemplares").update({"disponivel": False}).eq("id", ex.iloc[0]['id']).execute()
-                            st.success("Operação concluída!"); time.sleep(1); st.rerun()
-                        else: st.error("Erro: Tombo indisponível ou não localizado.")
+                            st.success("Operação concluída com sucesso!"); time.sleep(1); st.rerun()
+                        else: 
+                            st.error(f"Erro: O Tombo '{tombo_limpo}' está indisponível ou não foi localizado.")
 
             with c_in:
                 st.markdown("### 📥 Devolução")
                 with st.form("return_form_final"):
                     tombo_in = st.text_input("Bipar Tombo:")
                     if st.form_submit_button("Confirmar Retorno"):
-                        ex_in = df_exemplares[df_exemplares['tombo'] == tombo_in]
+                        # Aplica a mesma proteção na devolução
+                        tombo_limpo_in = str(tombo_in).strip()
+                        ex_in = df_exemplares[df_exemplares['tombo'].astype(str).str.strip() == tombo_limpo_in]
+                        
                         if not ex_in.empty:
                             id_ex = ex_in.iloc[0]['id']
                             emp = df_emp[(df_emp['id_exemplar'] == id_ex) & (df_emp['status'] == 'Ativo')]
                             if not emp.empty:
                                 supabase.table("Biblioteca_Emprestimos").update({"status": "Devolvido"}).eq("id", emp.iloc[0]['id']).execute()
                                 supabase.table("Biblioteca_Exemplares").update({"disponivel": True}).eq("id", id_ex).execute()
-                                st.success("✅ Item retornado!"); time.sleep(1); st.rerun()
+                                st.success("✅ Item retornado ao acervo!"); time.sleep(1); st.rerun()
+                            else:
+                                st.warning("Este livro não consta como emprestado.")
+                        else:
+                            st.error(f"Tombo '{tombo_limpo_in}' não encontrado no sistema.")
 
 # =========================================================
     # 4. INCORPORAÇÃO TÉCNICA (EXCEL/CSV + ISBN)

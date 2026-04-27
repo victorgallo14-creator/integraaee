@@ -8998,9 +8998,10 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
     if eh_gestao:
         with tab_circ:
             c_out, c_in = st.columns(2)
+            
             with c_out:
                 st.markdown("### 📤 Empréstimo")
-                with st.form("loan_form_final"):
+                with st.form("loan_form_blindado"):
                     leitor_sel = st.selectbox("Aluno (Carômetro):", ["-- Selecione --"] + lista_leitores)
                     tombo_out = st.text_input("Definir Tombo:")
                     if leitor_sel != "-- Selecione --":
@@ -9009,35 +9010,52 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                             st.image(base64.b64decode(aluno['foto_base64']), width=120, caption="Conferência Visual")
 
                     if st.form_submit_button("Efetivar Empréstimo", type="primary"):
-                        # FORÇA A COMPARAÇÃO COMO TEXTO LIMPO
+                        # 1. Limpeza do que você digitou
                         tombo_limpo = str(tombo_out).strip()
+                        if tombo_limpo.endswith('.0'):
+                            tombo_limpo = tombo_limpo[:-2]
+                            
+                        # 2. Limpeza instantânea dos dados que vêm do banco (ignora o .0)
+                        tombos_db = df_exemplares['tombo'].astype(str).str.strip()
+                        tombos_db = tombos_db.apply(lambda x: x[:-2] if x.endswith('.0') else x)
                         
-                        # Filtro Blindado: Converte a coluna do banco para texto e remove espaços antes de comparar
-                        ex = df_exemplares[df_exemplares['tombo'].astype(str).str.strip() == tombo_limpo]
+                        # 3. Comparação Exata
+                        ex = df_exemplares[tombos_db == tombo_limpo]
                         
-                        if not ex.empty and ex.iloc[0]['disponivel'] == True:
-                            venc = (datetime.now() + timedelta(days=7)).strftime("%d/%m/%Y")
-                            supabase.table("Biblioteca_Emprestimos").insert({
-                                "id": str(uuid.uuid4()), 
-                                "id_exemplar": ex.iloc[0]['id'], 
-                                "leitor": leitor_sel, 
-                                "data_saida": datetime.now().strftime("%d/%m/%Y"), 
-                                "data_prevista": venc, 
-                                "status": "Ativo"
-                            }).execute()
-                            supabase.table("Biblioteca_Exemplares").update({"disponivel": False}).eq("id", ex.iloc[0]['id']).execute()
-                            st.success("Operação concluída com sucesso!"); time.sleep(1); st.rerun()
+                        if not ex.empty:
+                            if ex.iloc[0]['disponivel'] == True:
+                                venc = (datetime.now() + timedelta(days=7)).strftime("%d/%m/%Y")
+                                supabase.table("Biblioteca_Emprestimos").insert({
+                                    "id": str(uuid.uuid4()), 
+                                    "id_exemplar": ex.iloc[0]['id'], 
+                                    "leitor": leitor_sel, 
+                                    "data_saida": datetime.now().strftime("%d/%m/%Y"), 
+                                    "data_prevista": venc, 
+                                    "status": "Ativo"
+                                }).execute()
+                                supabase.table("Biblioteca_Exemplares").update({"disponivel": False}).eq("id", ex.iloc[0]['id']).execute()
+                                st.success("Operação concluída com sucesso!"); time.sleep(1); st.rerun()
+                            else: 
+                                # Agora sabemos se o erro é porque já está com alguém
+                                st.error(f"⚠️ O Tombo '{tombo_limpo}' foi localizado, mas JÁ ESTÁ EMPRESTADO no sistema.")
                         else: 
-                            st.error(f"Erro: O Tombo '{tombo_limpo}' está indisponível ou não foi localizado.")
+                            # Agora sabemos se o erro é porque não está no banco de dados
+                            st.error(f"❌ O Tombo '{tombo_limpo}' NÃO FOI LOCALIZADO no banco de dados.")
 
             with c_in:
                 st.markdown("### 📥 Devolução")
-                with st.form("return_form_final"):
+                with st.form("return_form_blindado"):
                     tombo_in = st.text_input("Bipar Tombo:")
                     if st.form_submit_button("Confirmar Retorno"):
-                        # Aplica a mesma proteção na devolução
-                        tombo_limpo_in = str(tombo_in).strip()
-                        ex_in = df_exemplares[df_exemplares['tombo'].astype(str).str.strip() == tombo_limpo_in]
+                        # Mesma blindagem para a devolução
+                        tombo_in_limpo = str(tombo_in).strip()
+                        if tombo_in_limpo.endswith('.0'):
+                            tombo_in_limpo = tombo_in_limpo[:-2]
+
+                        tombos_db_in = df_exemplares['tombo'].astype(str).str.strip()
+                        tombos_db_in = tombos_db_in.apply(lambda x: x[:-2] if x.endswith('.0') else x)
+                        
+                        ex_in = df_exemplares[tombos_db_in == tombo_in_limpo]
                         
                         if not ex_in.empty:
                             id_ex = ex_in.iloc[0]['id']
@@ -9047,9 +9065,9 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                                 supabase.table("Biblioteca_Exemplares").update({"disponivel": True}).eq("id", id_ex).execute()
                                 st.success("✅ Item retornado ao acervo!"); time.sleep(1); st.rerun()
                             else:
-                                st.warning("Este livro não consta como emprestado.")
+                                st.warning(f"O livro '{tombo_in_limpo}' está no sistema, mas NÃO CONSTA COMO EMPRESTADO.")
                         else:
-                            st.error(f"Tombo '{tombo_limpo_in}' não encontrado no sistema.")
+                            st.error(f"Tombo '{tombo_in_limpo}' NÃO FOI LOCALIZADO no banco de dados.")
 
 # =========================================================
     # 4. INCORPORAÇÃO TÉCNICA (EXCEL/CSV + ISBN)

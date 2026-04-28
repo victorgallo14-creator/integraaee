@@ -6617,8 +6617,8 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                             mat_est = data_ata.get('basico_mat_estudantes', '')
                             mat_ac  = data_ata.get('basico_mat_acoes', '')
 
-                            desenhar_bloco_basico("LÍNGUA PORTUGUESA", lp_est, lp_ac)
-                            desenhar_bloco_basico("MATEMÁTICA", mat_est, mat_ac)
+                            desenhar_bloco_basico("Plano de Ação - Língua Portuguesa", lp_est, lp_ac)
+                            desenhar_bloco_basico("Plano de Ação - Matemática", mat_est, mat_ac)
 
                             # --- 3. OBSERVAÇÕES GERAIS ---
                             pdf.set_x(15)

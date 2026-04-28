@@ -9094,30 +9094,36 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
             icone = "🌱" if lidos < 5 else "🥈" if lidos < 15 else "💎"
             st.markdown(f'<div class="badge-box"><div style="font-size:40px">{icone}</div><div class="badge-title">Leitor {nivel}</div><div>{lidos} livros lidos</div></div>', unsafe_allow_html=True)
 
-# --- 3. ABA DE CIRCULAÇÃO (FORMATO 10CM / FONTE PADRÃO) ---
+# --- 3. ABA DE CIRCULAÇÃO (MODELO COMPLETO LIMEIRA - 10CM) ---
     if eh_gestao:
         with tab_circ:
-            st.subheader("🚀 Balcão de Atendimento")
+            st.subheader("🚀 Balcão de Atendimento - Sala de Leitura")
             c_out, c_in = st.columns(2)
             
+            # Lista de frases de incentivo
+            frases_leitura = [
+                "Ler é ganhar asas para o mundo.",
+                "Um livro é um brinquedo feito com letras. Ler é brincar!",
+                "Quem lê, viaja sem sair do lugar.",
+                "A leitura é uma porta aberta para o conhecimento.",
+                "Livros são amigos que nos ensinam grandes lições.",
+                "No mundo dos livros, você pode ser o que quiser!",
+                "Um livro por vez, uma aventura por dia.",
+                "Ler alimenta a imaginação e fortalece o saber.",
+                "A cada página lida, uma nova descoberta.",
+                "Cultive o hábito da leitura e colha sabedoria."
+            ]
+            import random
+
             # ==========================================
             # COLUNA ESQUERDA: EMPRÉSTIMO
             # ==========================================
             with c_out:
                 st.markdown("### 📤 Saída de Livro")
-                with st.form("form_emprestimo_10cm"):
+                with st.form("form_emprestimo_limeira"):
                     leitor_sel = st.selectbox("Selecionar Aluno:", ["-- Selecione --"] + lista_leitores)
                     tombo_out = st.text_input("Bipar ou Digitar Tombo:")
                     
-                    if leitor_sel != "-- Selecione --":
-                        aluno = df_carometro[df_carometro['display_leitor'] == leitor_sel].iloc[0]
-                        foto_b64 = aluno.get('foto_base64')
-                        if pd.notna(foto_b64) and isinstance(foto_b64, str) and foto_b64.strip() != "":
-                            try: st.image(base64.b64decode(foto_b64), width=100)
-                            except: st.caption("⚠️ Erro na foto.")
-                        else:
-                            st.caption("👤 Aluno sem foto.")
-
                     if st.form_submit_button("Efetivar Empréstimo", type="primary"):
                         t_limpo = str(tombo_out).strip().replace('.0', '')
                         t_db = df_exemplares['tombo'].astype(str).str.strip().str.replace('.0', '', regex=False)
@@ -9128,43 +9134,125 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                             venc = (datetime.now() + timedelta(days=7)).strftime("%d/%m/%Y")
                             hj = datetime.now().strftime("%d/%m/%Y %H:%M")
 
+                            # Registro no Banco
                             supabase.table("Biblioteca_Emprestimos").insert({
                                 "id": str(uuid.uuid4()), "id_exemplar": ex.iloc[0]['id'], 
                                 "leitor": leitor_sel, "data_saida": hj, "data_prevista": venc, "status": "Ativo"
                             }).execute()
                             supabase.table("Biblioteca_Exemplares").update({"disponivel": False}).eq("id", ex.iloc[0]['id']).execute()
                             
+                            # Dados para o Cupom
                             st.session_state.comprovante = {
-                                "escola": "CEIEF RAFAEL AFFONSO LEITE",
                                 "aluno": leitor_sel,
                                 "livro": obra['titulo'],
+                                "autor": obra.get('autor', 'N/I'),
+                                "editora": obra.get('editora', 'N/I'),
+                                "genero": obra.get('genero', 'Geral'),
+                                "serie": obra.get('serie', obra.get('SÉRIE', 'N/I')),
                                 "tombo": t_limpo,
                                 "vencimento": venc,
-                                "data": hj
+                                "data": hj,
+                                "frase": random.choice(frases_leitura)
                             }
                             st.success("Registrado!"); time.sleep(0.5); st.rerun()
-                        else: st.error("Erro: Tombo inválido ou já emprestado.")
+                        else: st.error("Erro no Tombo ou livro já emprestado.")
 
                 if 'comprovante' in st.session_state:
                     cp = st.session_state.comprovante
                     html_emp = f"""
-                    <div id="p" style="width:280px; min-height:380px; padding:15px; font-family:sans-serif; border:1px solid #000; background:#fff; color:#000; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div id="p" style="width:280px; min-height:380px; padding:15px; font-family:sans-serif; font-size:12px; border:1px solid #000; background:#fff; color:#000; display: flex; flex-direction: column; justify-content: space-between;">
                         <div>
-                            <center><b>{cp['escola']}</b><br>BIBLIOTECA</center><hr>
-                            <div style="margin-top:10px;"><b>ALUNO:</b> {cp['aluno']}</div>
+                            <center>
+                                <b style="font-size:10px;">PREFEITURA MUNICIPAL DE LIMEIRA</b><br>
+                                <b style="font-size:13px;">CEIEF RAFAEL AFFONSO LEITE</b><br>
+                                <span style="font-size:11px;">SALA DE LEITURA</span>
+                            </center>
+                            <hr style="border:0; border-top:1px solid #000;">
+                            
+                            <div style="margin-top:8px;"><b>ALUNO:</b> {cp['aluno']}</div>
                             <div style="margin-top:5px;"><b>LIVRO:</b> {cp['livro']}</div>
-                            <div style="margin-top:5px;"><b>TOMBO:</b> {cp['tombo']}</div><hr>
-                            <div style="margin-top:5px;"><b>SAÍDA:</b> {cp['data']}</div>
-                            <div style="font-size: 16px; margin-top: 10px; text-align: center; border: 1px solid #000; padding: 5px;">
-                                <b>DEVOLVER ATÉ:</b><br><span style="font-size:20px;">{cp['vencimento']}</span>
+                            <div style="margin-top:3px;"><b>AUTOR:</b> {cp['autor']}</div>
+                            <div style="margin-top:3px;"><b>EDITORA:</b> {cp['editora']}</div>
+                            <div style="margin-top:3px;"><b>GÊNERO:</b> {cp['genero']} | <b>SÉRIE:</b> {cp['serie']}</div>
+                            <div style="margin-top:3px;"><b>TOMBO:</b> {cp['tombo']}</div>
+                            
+                            <hr style="border:0; border-top:1px dashed #000;">
+                            <div style="margin-top:5px;"><b>DATA EMPRÉSTIMO:</b> {cp['data']}</div>
+                            <div style="font-size: 15px; margin-top: 10px; text-align: center; border: 1px solid #000; padding: 5px;">
+                                <b>DEVOLVER ATÉ:</b><br><span style="font-size:19px;">{cp['vencimento']}</span>
                             </div>
                         </div>
-                        <center style='font-size:10px; margin-top:20px; border-top:1px dashed #ccc; padding-top:10px;'>Cuide bem do nosso acervo!</center>
+                        <div style='text-align:center; margin-top:20px; border-top:1px solid #000; padding-top:10px;'>
+                            <i style="font-size:11px;">"{cp['frase']}"</i>
+                        </div>
                     </div>
                     <script>setTimeout(function(){{ window.print(); }}, 500);</script>
                     """
-                    st.components.v1.html(html_emp, height=450)
-                    if st.button("Limpar Saída"): del st.session_state.comprovante; st.rerun()
+                    st.components.v1.html(html_emp, height=480)
+                    if st.button("Limpar Tela de Saída"): del st.session_state.comprovante; st.rerun()
+
+            # ==========================================
+            # COLUNA DIREITA: DEVOLUÇÃO
+            # ==========================================
+            with c_in:
+                st.markdown("### 📥 Entrada de Livro")
+                with st.form("form_devolucao_limeira"):
+                    tombo_in = st.text_input("Bipar Tombo para Retorno:")
+                    if st.form_submit_button("Confirmar Recebimento", type="primary"):
+                        t_in_limpo = str(tombo_in).strip().replace('.0', '')
+                        t_db_in = df_exemplares['tombo'].astype(str).str.strip().str.replace('.0', '', regex=False)
+                        ex_in = df_exemplares[t_db_in == t_in_limpo]
+                        
+                        if not ex_in.empty:
+                            id_ex = ex_in.iloc[0]['id']
+                            emp_ativo = df_emp[(df_emp['id_exemplar'] == id_ex) & (df_emp['status'] == 'Ativo')]
+                            
+                            if not emp_ativo.empty:
+                                obra_in = df_acervo[df_acervo['id'] == ex_in.iloc[0]['id_acervo']].iloc[0]
+                                hj_in = datetime.now().strftime("%d/%m/%Y %H:%M")
+                                
+                                supabase.table("Biblioteca_Emprestimos").update({"status": "Devolvido"}).eq("id", emp_ativo.iloc[0]['id']).execute()
+                                supabase.table("Biblioteca_Exemplares").update({"disponivel": True}).eq("id", id_ex).execute()
+                                
+                                st.session_state.comprovante_dev = {
+                                    "aluno": emp_ativo.iloc[0]['leitor'],
+                                    "livro": obra_in['titulo'],
+                                    "tombo": t_in_limpo,
+                                    "data": hj_in,
+                                    "frase": random.choice(frases_leitura)
+                                }
+                                st.success("Devolvido!"); time.sleep(0.5); st.rerun()
+                            else: st.warning("Não consta como emprestado.")
+                        else: st.error("Tombo não localizado.")
+
+                if 'comprovante_dev' in st.session_state:
+                    cd = st.session_state.comprovante_dev
+                    html_dev = f"""
+                    <div id="pd" style="width:280px; min-height:380px; padding:15px; font-family:sans-serif; font-size:12px; border:1px dashed #000; background:#fff; color:#000; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <center>
+                                <b style="font-size:10px;">PREFEITURA MUNICIPAL DE LIMEIRA</b><br>
+                                <b style="font-size:13px;">CEIEF RAFAEL AFFONSO LEITE</b><br>
+                                <span style="font-size:11px;">SALA DE LEITURA</span>
+                            </center>
+                            <hr style="border:0; border-top:1px solid #000;">
+                            <center><b>RECIBO DE DEVOLUÇÃO</b></center>
+                            <div style="margin-top:15px;"><b>ALUNO:</b> {cd['aluno']}</div>
+                            <div style="margin-top:5px;"><b>LIVRO:</b> {cd['livro']}</div>
+                            <div style="margin-top:5px;"><b>TOMBO:</b> {cd['tombo']}</div>
+                            <hr style="border:0; border-top:1px dashed #000;">
+                            <div style="margin-top:10px; text-align: center; border: 1px solid #000; padding: 10px;">
+                                <b>DEVOLVIDO COM SUCESSO EM:</b><br>{cd['data']}
+                            </div>
+                        </div>
+                        <div style='text-align:center; margin-top:20px; border-top:1px solid #000; padding-top:10px;'>
+                            <i style="font-size:11px;">"{cd['frase']}"</i>
+                        </div>
+                    </div>
+                    <script>setTimeout(function(){{ window.print(); }}, 500);</script>
+                    """
+                    st.components.v1.html(html_dev, height=480)
+                    if st.button("Limpar Tela de Entrada"): del st.session_state.comprovante_dev; st.rerun()
 
             # ==========================================
             # COLUNA DIREITA: DEVOLUÇÃO

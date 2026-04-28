@@ -7259,7 +7259,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                             pdf.set_x(15)
                             pdf.cell(180, 3, "", "LR", 1) 
                             
-                            pdf.set_font("Arial", "B", 10)
+                            pdf.set_font("Arial", "B", 6.5)
                             pdf.set_x(15)
                             pdf.cell(180, 5, clean_pdf_text("*Propostas para Intervenção/Recuperação de aprendizagem:"), "LR", 1, 'L')
                             pdf.set_font("Arial", "", 10)

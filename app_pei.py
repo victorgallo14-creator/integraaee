@@ -9178,7 +9178,7 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                                     st.error("⚠️ Este livro já consta como emprestado.")
                             else:
                                 st.error(f"❌ Tombo '{t_limpo}' não localizado no sistema.")
-
+                                
             # ==========================================
             # COLUNA DIREITA: DEVOLUÇÃO
             # ==========================================

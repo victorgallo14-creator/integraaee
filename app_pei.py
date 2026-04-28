@@ -9115,81 +9115,69 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
             ]
             import random
 
-            # ==========================================
-            # COLUNA ESQUERDA: EMPRÉSTIMO
+# ==========================================
+            # COLUNA ESQUERDA: EMPRÉSTIMO (VERSÃO TURBO)
             # ==========================================
             with c_out:
                 st.markdown("### 📤 Saída de Livro")
-                with st.form("form_emprestimo_limeira"):
+                with st.form("form_emprestimo_turbo"):
                     leitor_sel = st.selectbox("Selecionar Aluno:", ["-- Selecione --"] + lista_leitores)
                     tombo_out = st.text_input("Bipar ou Digitar Tombo:")
                     
                     if st.form_submit_button("Efetivar Empréstimo", type="primary"):
-                        t_limpo = str(tombo_out).strip().replace('.0', '')
-                        t_db = df_exemplares['tombo'].astype(str).str.strip().str.replace('.0', '', regex=False)
-                        ex = df_exemplares[t_db == t_limpo]
-                        
-                        if not ex.empty and ex.iloc[0]['disponivel']:
-                            obra = df_acervo[df_acervo['id'] == ex.iloc[0]['id_acervo']].iloc[0]
-                            venc = (datetime.now() + timedelta(days=7)).strftime("%d/%m/%Y")
-                            hj = datetime.now().strftime("%d/%m/%Y %H:%M")
+                        if leitor_sel == "-- Selecione --" or not tombo_out:
+                            st.warning("Preencha o aluno e o tombo.")
+                        else:
+                            # 1. LIMPEZA E BUSCA DIRETA NO BANCO (MUITO MAIS RÁPIDO)
+                            t_limpo = str(tombo_out).strip().replace('.0', '')
+                            
+                            # Consultamos apenas o exemplar necessário diretamente no Supabase
+                            res_ex = supabase.table("Biblioteca_Exemplares").select("*").eq("tombo", t_limpo).execute()
+                            
+                            if res_ex.data:
+                                exemplar = res_ex.data[0]
+                                
+                                if exemplar['disponivel']:
+                                    # 2. BUSCA DA OBRA DIRETAMENTE (EVITA O INDEXERROR)
+                                    res_ob = supabase.table("Biblioteca_Acervo").select("*").eq("id", exemplar['id_acervo']).execute()
+                                    
+                                    if res_ob.data:
+                                        obra = res_ob.data[0]
+                                        
+                                        # 3. DADOS DO ALUNO (BUSCA NO DF LOCAL QUE É MENOR)
+                                        info_aluno = df_carometro[df_carometro['display_leitor'] == leitor_sel].iloc[0] if not df_carometro[df_carometro['display_leitor'] == leitor_sel].empty else {}
+                                        
+                                        venc = (datetime.now() + timedelta(days=7)).strftime("%d/%m/%Y")
+                                        hj = datetime.now().strftime("%d/%m/%Y %H:%M")
 
-                            # Registro no Banco
-                            supabase.table("Biblioteca_Emprestimos").insert({
-                                "id": str(uuid.uuid4()), "id_exemplar": ex.iloc[0]['id'], 
-                                "leitor": leitor_sel, "data_saida": hj, "data_prevista": venc, "status": "Ativo"
-                            }).execute()
-                            supabase.table("Biblioteca_Exemplares").update({"disponivel": False}).eq("id", ex.iloc[0]['id']).execute()
-                            
-                            # Dados para o Cupom
-                            st.session_state.comprovante = {
-                                "aluno": leitor_sel,
-                                "livro": obra['titulo'],
-                                "autor": obra.get('autor', 'N/I'),
-                                "editora": obra.get('editora', 'N/I'),
-                                "genero": obra.get('genero', 'Geral'),
-                                "serie": obra.get('serie', obra.get('SÉRIE', 'N/I')),
-                                "tombo": t_limpo,
-                                "vencimento": venc,
-                                "data": hj,
-                                "frase": random.choice(frases_leitura)
-                            }
-                            st.success("Registrado!"); time.sleep(0.5); st.rerun()
-                        else: st.error("Erro no Tombo ou livro já emprestado.")
-
-                if 'comprovante' in st.session_state:
-                    cp = st.session_state.comprovante
-                    html_emp = f"""
-                    <div id="p" style="width:280px; min-height:380px; padding:15px; font-family:sans-serif; font-size:12px; border:1px solid #000; background:#fff; color:#000; display: flex; flex-direction: column; justify-content: space-between;">
-                        <div>
-                            <center>
-                                <b style="font-size:10px;">PREFEITURA MUNICIPAL DE LIMEIRA</b><br>
-                                <b style="font-size:13px;">CEIEF RAFAEL AFFONSO LEITE</b><br>
-                                <span style="font-size:11px;">SALA DE LEITURA</span>
-                            </center>
-                            <hr style="border:0; border-top:1px solid #000;">
-                            
-                            <div style="margin-top:8px;"><b>ALUNO:</b> {cp['aluno']}</div>
-                            <div style="margin-top:5px;"><b>LIVRO:</b> {cp['livro']}</div>
-                            <div style="margin-top:3px;"><b>AUTOR:</b> {cp['autor']}</div>
-                            <div style="margin-top:3px;"><b>EDITORA:</b> {cp['editora']}</div>
-                            <div style="margin-top:3px;"><b>GÊNERO:</b> {cp['genero']} | <b>SÉRIE:</b> {cp['serie']}</div>
-                            <div style="margin-top:3px;"><b>TOMBO:</b> {cp['tombo']}</div>
-                            
-                            <hr style="border:0; border-top:1px dashed #000;">
-                            <div style="margin-top:5px;"><b>DATA EMPRÉSTIMO:</b> {cp['data']}</div>
-                            <div style="font-size: 15px; margin-top: 10px; text-align: center; border: 1px solid #000; padding: 5px;">
-                                <b>DEVOLVER ATÉ:</b><br><span style="font-size:19px;">{cp['vencimento']}</span>
-                            </div>
-                        </div>
-                        <div style='text-align:center; margin-top:20px; border-top:1px solid #000; padding-top:10px;'>
-                            <i style="font-size:11px;">"{cp['frase']}"</i>
-                        </div>
-                    </div>
-                    <script>setTimeout(function(){{ window.print(); }}, 500);</script>
-                    """
-                    st.components.v1.html(html_emp, height=480)
-                    if st.button("Limpar Tela de Saída"): del st.session_state.comprovante; st.rerun()
+                                        # REGISTRO NO BANCO
+                                        supabase.table("Biblioteca_Emprestimos").insert({
+                                            "id": str(uuid.uuid4()), "id_exemplar": exemplar['id'], 
+                                            "leitor": leitor_sel, "data_saida": hj, "data_prevista": venc, "status": "Ativo"
+                                        }).execute()
+                                        
+                                        supabase.table("Biblioteca_Exemplares").update({"disponivel": False}).eq("id", exemplar['id']).execute()
+                                        
+                                        # GERAÇÃO DO COMPROVANTE
+                                        st.session_state.comprovante = {
+                                            "aluno": leitor_sel,
+                                            "livro": obra['titulo'],
+                                            "autor": obra.get('autor', 'N/I'),
+                                            "editora": obra.get('editora', 'N/I'),
+                                            "genero": obra.get('genero', 'Geral'),
+                                            "serie": obra.get('serie', 'N/I'),
+                                            "tombo": t_limpo,
+                                            "vencimento": venc,
+                                            "data": hj,
+                                            "frase": random.choice(frases_leitura)
+                                        }
+                                        st.success("Registrado com sucesso!"); time.sleep(0.5); st.rerun()
+                                    else:
+                                        st.error("❌ Erro Crítico: O Tombo existe, mas a Obra (Título) sumiu do banco.")
+                                else:
+                                    st.error("⚠️ Este livro já consta como emprestado.")
+                            else:
+                                st.error(f"❌ Tombo '{t_limpo}' não localizado no sistema.")
 
             # ==========================================
             # COLUNA DIREITA: DEVOLUÇÃO
@@ -9254,112 +9242,6 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                     st.components.v1.html(html_dev, height=480)
                     if st.button("Limpar Tela de Entrada"): del st.session_state.comprovante_dev; st.rerun()
 
-            # ==========================================
-            # COLUNA DIREITA: DEVOLUÇÃO
-            # ==========================================
-            with c_in:
-                st.markdown("### 📥 Entrada de Livro")
-                with st.form("form_devolucao_10cm"):
-                    tombo_in = st.text_input("Bipar Tombo para Devolver:")
-                    if st.form_submit_button("Confirmar Recebimento", type="primary"):
-                        t_in_limpo = str(tombo_in).strip().replace('.0', '')
-                        t_db_in = df_exemplares['tombo'].astype(str).str.strip().str.replace('.0', '', regex=False)
-                        ex_in = df_exemplares[t_db_in == t_in_limpo]
-                        
-                        if not ex_in.empty:
-                            id_ex = ex_in.iloc[0]['id']
-                            emp_ativo = df_emp[(df_emp['id_exemplar'] == id_ex) & (df_emp['status'] == 'Ativo')]
-                            
-                            if not emp_ativo.empty:
-                                obra_in = df_acervo[df_acervo['id'] == ex_in.iloc[0]['id_acervo']].iloc[0]
-                                hj_in = datetime.now().strftime("%d/%m/%Y %H:%M")
-                                
-                                supabase.table("Biblioteca_Emprestimos").update({"status": "Devolvido"}).eq("id", emp_ativo.iloc[0]['id']).execute()
-                                supabase.table("Biblioteca_Exemplares").update({"disponivel": True}).eq("id", id_ex).execute()
-                                
-                                st.session_state.comprovante_dev = {
-                                    "escola": "CEIEF RAFAEL AFFONSO LEITE",
-                                    "aluno": emp_ativo.iloc[0]['leitor'],
-                                    "livro": obra_in['titulo'],
-                                    "tombo": t_in_limpo,
-                                    "data": hj_in
-                                }
-                                st.success("Devolvido!"); time.sleep(0.5); st.rerun()
-                            else: st.warning("Não consta como emprestado.")
-                        else: st.error("Tombo não encontrado.")
-
-                if 'comprovante_dev' in st.session_state:
-                    cd = st.session_state.comprovante_dev
-                    html_dev = f"""
-                    <div id="pd" style="width:280px; min-height:380px; padding:15px; font-family:sans-serif; border:1px dashed #000; background:#fff; color:#000; display: flex; flex-direction: column; justify-content: space-between;">
-                        <div>
-                            <center><b>{cd['escola']}</b><br>RECIBO DE DEVOLUÇÃO</center><hr>
-                            <div style="margin-top:10px;"><b>ALUNO:</b> {cd['aluno']}</div>
-                            <div style="margin-top:5px;"><b>LIVRO:</b> {cd['livro']}</div>
-                            <div style="margin-top:5px;"><b>TOMBO:</b> {cd['tombo']}</div><hr>
-                            <div style="margin-top:5px; text-align: center;"><b>ENTREGUE EM:</b><br>{cd['data']}</div>
-                            <div style="font-size: 16px; margin-top: 15px; text-align: center;"><b>OBRIGADO!</b></div>
-                        </div>
-                        <center style='font-size:10px; margin-top:20px; border-top:1px dashed #ccc; padding-top:10px;'>Ajudaste a preservar o nosso acervo!</center>
-                    </div>
-                    <script>setTimeout(function(){{ window.print(); }}, 500);</script>
-                    """
-                    st.components.v1.html(html_dev, height=450)
-                    if st.button("Limpar Entrada"): del st.session_state.comprovante_dev; st.rerun()
-
-            # ==========================================
-            # COLUNA DIREITA: DEVOLUÇÃO
-            # ==========================================
-            with c_in:
-                st.markdown("### 📥 Entrada de Livro")
-                with st.form("form_devolucao_completo"):
-                    tombo_in = st.text_input("Bipar Tombo para Devolver:")
-                    if st.form_submit_button("Confirmar Recebimento", type="primary"):
-                        t_in_limpo = str(tombo_in).strip().replace('.0', '')
-                        t_db_in = df_exemplares['tombo'].astype(str).str.strip().str.replace('.0', '', regex=False)
-                        ex_in = df_exemplares[t_db_in == t_in_limpo]
-                        
-                        if not ex_in.empty:
-                            id_ex = ex_in.iloc[0]['id']
-                            emp_ativo = df_emp[(df_emp['id_exemplar'] == id_ex) & (df_emp['status'] == 'Ativo')]
-                            
-                            if not emp_ativo.empty:
-                                obra_in = df_acervo[df_acervo['id'] == ex_in.iloc[0]['id_acervo']].iloc[0]
-                                hj_in = datetime.now().strftime("%d/%m/%Y %H:%M")
-                                
-                                # Atualiza Banco
-                                supabase.table("Biblioteca_Emprestimos").update({"status": "Devolvido"}).eq("id", emp_ativo.iloc[0]['id']).execute()
-                                supabase.table("Biblioteca_Exemplares").update({"disponivel": True}).eq("id", id_ex).execute()
-                                
-                                st.session_state.comprovante_dev = {
-                                    "escola": "CEIEF RAFAEL AFFONSO LEITE",
-                                    "aluno": emp_ativo.iloc[0]['leitor'],
-                                    "livro": obra_in['titulo'],
-                                    "tombo": t_in_limpo,
-                                    "data": hj_in
-                                }
-                                st.success("Devolução Concluída!"); time.sleep(0.5); st.rerun()
-                            else: st.warning("Este livro não consta como emprestado.")
-                        else: st.error("Tombo não encontrado.")
-
-                # Exibição do Comprovante de Devolução
-                if 'comprovante_dev' in st.session_state:
-                    cd = st.session_state.comprovante_dev
-                    html_dev = f"""
-                    <div id="pd" style="width:300px; padding:15px; font-family:sans-serif; border:1px dashed #000; background:#fff; color:#000;">
-                        <center><b>{cd['escola']}</b><br>RECIBO DE DEVOLUÇÃO</center><hr>
-                        <p style='font-size:14px'><b>ALUNO:</b> {cd['aluno']}</p>
-                        <p style='font-size:14px'><b>LIVRO:</b> {cd['livro']}</p>
-                        <p style='font-size:12px'><b>TOMBO:</b> {cd['tombo']}</p>
-                        <div style='border:1px solid #000; text-align:center; padding:10px; margin-top:10px;'>
-                            <b>DEVOLVIDO EM:</b><br>{cd['data']}
-                        </div>
-                        <center style='font-size:10px; margin-top:10px;'>Obrigado por cuidar do nosso acervo!</center>
-                    </div>
-                    <script>setTimeout(function(){{ window.print(); }}, 500);</script>
-                    """
-                    st.components.v1.html(html_dev, height=350)
-                    if st.button("Limpar Recibo Entrada"): del st.session_state.comprovante_dev; st.rerun()
                     
 # =========================================================
     # 4. INCORPORAÇÃO TÉCNICA (CENTRAL DE ACERVO)

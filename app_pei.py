@@ -9255,3 +9255,63 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                                 time.sleep(1); st.rerun()
                             else:
                                 st.error("O número do tombo é obrigatório.")
+                                
+# --- NOVA FUNCIONALIDADE: CATALOGAÇÃO POR TÍTULO (BUSCA DE CAPA) ---
+            with st.expander("🎨 Catalogar por Título (Para ter a Foto da Capa)"):
+                st.info("Use isto para livros sem ISBN ou que falharam na importação. O sistema buscará a capa na internet pelo nome.")
+                with st.form("search_by_title"):
+                    c_tit, c_aut = st.columns(2)
+                    t_manual_busq = c_tit.text_input("Título do Livro:")
+                    a_manual_busq = c_aut.text_input("Autor (opcional):")
+                    
+                    if st.form_submit_button("🔍 Localizar Capa na Internet"):
+                        # Busca no Google Books usando o Título e Autor em vez do ISBN
+                        query = f"intitle:{t_manual_busq}"
+                        if a_manual_busq: query += f"+inauthor:{a_manual_busq}"
+                        
+                        try:
+                            r = requests.get(f"https://www.googleapis.com/books/v1/volumes?q={query}&maxResults=1").json()
+                            if "items" in r:
+                                m = r["items"][0]["volumeInfo"]
+                                st.session_state.tmp_visual = {
+                                    "titulo": m.get("title", t_manual_busq).upper(),
+                                    "autor": ", ".join(m.get("authors", [a_manual_busq])).upper(),
+                                    "capa": m.get("imageLinks", {}).get("thumbnail", "").replace("http:", "https:"),
+                                    "editora": m.get("publisher", "").upper(),
+                                    "resumo": m.get("description", "")
+                                }
+                                st.success("Encontramos uma sugestão de capa e metadados!")
+                            else:
+                                st.error("Não encontramos uma capa automática. Você poderá salvar apenas o texto.")
+                        except:
+                            st.error("Erro na conexão com o serviço de capas.")
+
+                if 'tmp_visual' in st.session_state:
+                    with st.form("confirm_visual_save"):
+                        v = st.session_state.tmp_visual
+                        col_img, col_txt = st.columns([1, 3])
+                        
+                        if v['capa']: col_img.image(v['capa'], width=150)
+                        else: col_img.warning("Sem imagem")
+                        
+                        col_txt.write(f"**Confirmar Título:** {v['titulo']}")
+                        t_final_fix = col_txt.text_input("Número do Tombo (Ex: 6714-B):")
+                        
+                        if st.form_submit_button("💾 Salvar com a Foto da Capa", type="primary"):
+                            if t_final_fix:
+                                id_a = str(uuid.uuid4())
+                                # Salva a Obra com a URL da capa encontrada
+                                supabase.table("Biblioteca_Acervo").insert({
+                                    "id": id_a, "titulo": v['titulo'], "autor": v['autor'], 
+                                    "capa_url": v['capa'], "editora": v['editora'], "resumo": v['resumo']
+                                }).execute()
+                                # Salva o exemplar físico
+                                supabase.table("Biblioteca_Exemplares").insert({
+                                    "id": str(uuid.uuid4()), "id_acervo": id_a, "tombo": t_final_fix, "disponivel": True
+                                }).execute()
+                                
+                                st.success(f"O livro '{v['titulo']}' agora tem capa e está no sistema!")
+                                st.session_state.tmp_visual = None
+                                time.sleep(1); st.rerun()
+                            else:
+                                st.error("O número do Tombo é obrigatório.")

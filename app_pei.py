@@ -6517,7 +6517,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                                 pdf.cell(col_w[i], 6, h, 1, 0, 'C')
                             pdf.ln()
                             
-                            pdf.set_font("Arial", "", 5)
+                            pdf.set_font("Arial", "", 4)
                             lista_abaixo = data_ata.get('abaixo_basico', [])
                                 
                             def truncate_str(texto, max_w):

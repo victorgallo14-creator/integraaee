@@ -6215,17 +6215,43 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                     
                     st.divider()
                     st.subheader("Plano de Ação (Básico)")
+                    st.caption("Cite todos os alunos correspondentes de uma só vez e defina o plano de ação único para cada área.")
                     
-                    for i, row in enumerate(data_ata['basico']):
-                        c1, c2, c3 = st.columns([4, 6, 1])
-                        row['Estudante'] = c1.text_input("Estudante", value=row.get('Estudante', ''), key=f"bas_est_{i}", placeholder="Nome")
-                        row['Ações (LP e Mat)'] = c2.text_area("Ações (LP e Matemática)", value=row.get('Ações (LP e Mat)', ''), key=f"bas_ac_{i}", height=68)
-                        if c3.button("🗑️", key=f"del_bas_{i}"):
-                            data_ata['basico'].pop(i); st.rerun()
-                            
-                    if st.button("➕ Adicionar Estudante no Básico", key="add_bas"):
-                        data_ata['basico'].append({"Estudante": "", "Ações (LP e Mat)": ""})
-                        st.rerun()
+                    c_lp, c_mat = st.columns(2)
+                    
+                    with c_lp:
+                        st.markdown("**📖 Língua Portuguesa**")
+                        data_ata['basico_lp_estudantes'] = st.text_area(
+                            "Alunos", 
+                            value=data_ata.get('basico_lp_estudantes', ''), 
+                            key="basico_lp_est", 
+                            height=80, 
+                            placeholder="Ex: João, Maria, Pedro..."
+                        )
+                        data_ata['basico_lp_acoes'] = st.text_area(
+                            "Plano de Ação", 
+                            value=data_ata.get('basico_lp_acoes', ''), 
+                            key="basico_lp_ac", 
+                            height=120, 
+                            placeholder="Ações que serão desenvolvidas em LP..."
+                        )
+                        
+                    with c_mat:
+                        st.markdown("**🧮 Matemática**")
+                        data_ata['basico_mat_estudantes'] = st.text_area(
+                            "Alunos", 
+                            value=data_ata.get('basico_mat_estudantes', ''), 
+                            key="basico_mat_est", 
+                            height=80, 
+                            placeholder="Ex: Lucas, Ana, Beatriz..."
+                        )
+                        data_ata['basico_mat_acoes'] = st.text_area(
+                            "Plano de Ação", 
+                            value=data_ata.get('basico_mat_acoes', ''), 
+                            key="basico_mat_ac", 
+                            height=120, 
+                            placeholder="Ações que serão desenvolvidas em Matemática..."
+                        )
 
                 with tabs[3]:
                     st.subheader("3. Observações Gerais")

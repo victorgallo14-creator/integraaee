@@ -6564,19 +6564,19 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                             
                             pdf.set_x(15)
                             pdf.cell(180, 2, "", "LR", 1) 
-                            
-                            y = pdf.get_y()
 
                             # --- FUNÇÃO AUXILIAR PARA DESENHAR AS DISCIPLINAS ---
                             def desenhar_bloco_basico(titulo, estudantes, acoes):
-                                nonlocal y
                                 if not estudantes.strip() and not acoes.strip(): return
+                                
+                                # Pega a posição atual diretamente do gerador de PDF
+                                y = pdf.get_y() 
                                 
                                 if y > 250:
                                     pdf.set_x(15); pdf.cell(180, 1, "", "LRB", 1) # Fecha borda
                                     pdf.add_page()
                                     pdf.set_x(15); pdf.cell(180, 2, "", "LTR", 1) # Abre borda
-                                    y = pdf.get_y()
+                                    y = pdf.get_y() # Atualiza Y após a nova página
 
                                 # Título da disciplina
                                 pdf.set_fill_color(240, 240, 240)
@@ -6584,7 +6584,8 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                                 pdf.set_xy(15, y)
                                 pdf.set_font("Arial", "B", 10)
                                 pdf.cell(180, 6, clean_pdf_text(titulo), 0, 1, 'C')
-                                y = pdf.get_y()
+                                
+                                y = pdf.get_y() # Atualiza Y após inserir o título
 
                                 # Calcula a altura necessária baseado no texto longo
                                 linhas_est = calc_lines(estudantes, 58)
@@ -6595,7 +6596,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                                     pdf.set_x(15); pdf.cell(180, 1, "", "LRB", 1)
                                     pdf.add_page()
                                     pdf.set_x(15); pdf.cell(180, 2, "", "LTR", 1)
-                                    y = pdf.get_y()
+                                    y = pdf.get_y() # Atualiza Y após a nova página
 
                                 # Desenha os blocos
                                 pdf.rect(15, y, 60, h_row)
@@ -6609,7 +6610,6 @@ elif modulo_atuacao == "🏫 Ensino Regular":
 
                                 pdf.set_xy(15, y + h_row)
                                 pdf.cell(180, 2, "", "LR", 1) # Espaçamento pós bloco
-                                y = pdf.get_y()
 
                             # --- CHAMADA PARA RENDERIZAR OS BLOCOS ---
                             lp_est = data_ata.get('basico_lp_estudantes', '')

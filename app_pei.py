@@ -9104,18 +9104,27 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                 with st.form("loan_form_blindado"):
                     leitor_sel = st.selectbox("Aluno (Carômetro):", ["-- Selecione --"] + lista_leitores)
                     tombo_out = st.text_input("Definir Tombo:")
+                    
                     if leitor_sel != "-- Selecione --":
                         aluno = df_carometro[df_carometro['display_leitor'] == leitor_sel].iloc[0]
-                        if aluno.get('foto_base64'):
-                            st.image(base64.b64decode(aluno['foto_base64']), width=120, caption="Conferência Visual")
+                        foto_b64 = aluno.get('foto_base64')
+                        
+                        # Validação blindada: verifica se não é NaN (vazio) e se é um texto válido
+                        if pd.notna(foto_b64) and isinstance(foto_b64, str) and foto_b64.strip() != "":
+                            try:
+                                st.image(base64.b64decode(foto_b64), width=120, caption="Conferência Visual")
+                            except Exception:
+                                st.warning("⚠️ Foto do aluno corrompida ou em formato inválido.")
+                        else:
+                            st.info("👤 Aluno sem foto cadastrada.")
 
                     if st.form_submit_button("Efetivar Empréstimo", type="primary"):
-                        # 1. Limpeza do que você digitou
+                        # 1. Limpeza do que foi digitado
                         tombo_limpo = str(tombo_out).strip()
                         if tombo_limpo.endswith('.0'):
                             tombo_limpo = tombo_limpo[:-2]
                             
-                        # 2. Limpeza instantânea dos dados que vêm do banco (ignora o .0)
+                        # 2. Limpeza instantânea dos dados do banco
                         tombos_db = df_exemplares['tombo'].astype(str).str.strip()
                         tombos_db = tombos_db.apply(lambda x: x[:-2] if x.endswith('.0') else x)
                         
@@ -9136,38 +9145,9 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                                 supabase.table("Biblioteca_Exemplares").update({"disponivel": False}).eq("id", ex.iloc[0]['id']).execute()
                                 st.success("Operação concluída com sucesso!"); time.sleep(1); st.rerun()
                             else: 
-                                # Agora sabemos se o erro é porque já está com alguém
                                 st.error(f"⚠️ O Tombo '{tombo_limpo}' foi localizado, mas JÁ ESTÁ EMPRESTADO no sistema.")
                         else: 
-                            # Agora sabemos se o erro é porque não está no banco de dados
                             st.error(f"❌ O Tombo '{tombo_limpo}' NÃO FOI LOCALIZADO no banco de dados.")
-
-            with c_in:
-                st.markdown("### 📥 Devolução")
-                with st.form("return_form_blindado"):
-                    tombo_in = st.text_input("Bipar Tombo:")
-                    if st.form_submit_button("Confirmar Retorno"):
-                        # Mesma blindagem para a devolução
-                        tombo_in_limpo = str(tombo_in).strip()
-                        if tombo_in_limpo.endswith('.0'):
-                            tombo_in_limpo = tombo_in_limpo[:-2]
-
-                        tombos_db_in = df_exemplares['tombo'].astype(str).str.strip()
-                        tombos_db_in = tombos_db_in.apply(lambda x: x[:-2] if x.endswith('.0') else x)
-                        
-                        ex_in = df_exemplares[tombos_db_in == tombo_in_limpo]
-                        
-                        if not ex_in.empty:
-                            id_ex = ex_in.iloc[0]['id']
-                            emp = df_emp[(df_emp['id_exemplar'] == id_ex) & (df_emp['status'] == 'Ativo')]
-                            if not emp.empty:
-                                supabase.table("Biblioteca_Emprestimos").update({"status": "Devolvido"}).eq("id", emp.iloc[0]['id']).execute()
-                                supabase.table("Biblioteca_Exemplares").update({"disponivel": True}).eq("id", id_ex).execute()
-                                st.success("✅ Item retornado ao acervo!"); time.sleep(1); st.rerun()
-                            else:
-                                st.warning(f"O livro '{tombo_in_limpo}' está no sistema, mas NÃO CONSTA COMO EMPRESTADO.")
-                        else:
-                            st.error(f"Tombo '{tombo_in_limpo}' NÃO FOI LOCALIZADO no banco de dados.")
 
 # =========================================================
     # 4. INCORPORAÇÃO TÉCNICA (CENTRAL DE ACERVO)

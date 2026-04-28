@@ -6565,41 +6565,60 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                             pdf.set_x(15)
                             pdf.cell(180, 2, "", "LR", 1) 
                             
-                            pdf.set_font("Arial", "B", 10)
                             y = pdf.get_y()
-                            pdf.rect(15, y, 60, 10)
-                            pdf.set_xy(15, y+2)
-                            pdf.cell(60, 6, "Estudantes", 0, 0, 'C')
-                            
-                            pdf.rect(75, y, 120, 10)
-                            pdf.set_xy(75, y+1)
-                            pdf.multi_cell(120, 4, clean_pdf_text("Ações que serão desenvolvidas nas áreas de Língua Portuguesa e Matemática."), 0, 'C')
-                            pdf.set_xy(15, y+10)
-                            
-                            pdf.set_font("Arial", "", 10)
-                            lista_basico = data_ata.get('basico', [])
 
-                            for row in lista_basico:
-                                estudante = str(row.get('Estudante', '')).strip()
-                                if estudante:
+                            # --- FUNÇÃO AUXILIAR PARA DESENHAR AS DISCIPLINAS ---
+                            def desenhar_bloco_basico(titulo, estudantes, acoes):
+                                nonlocal y
+                                if not estudantes.strip() and not acoes.strip(): return
+                                
+                                if y > 250:
+                                    pdf.set_x(15); pdf.cell(180, 1, "", "LRB", 1) # Fecha borda
+                                    pdf.add_page()
+                                    pdf.set_x(15); pdf.cell(180, 2, "", "LTR", 1) # Abre borda
                                     y = pdf.get_y()
-                                    texto_acao = str(row.get('Ações (LP e Mat)', ''))
-                                    
-                                    linhas_est = calc_lines(estudante, 58)
-                                    linhas_acao = calc_lines(texto_acao, 118)
-                                    h_row = max(6, max(linhas_est, linhas_acao) * 5 + 4)
-                                    
-                                    if y + h_row > 265:
-                                        pdf.add_page()
-                                        y = pdf.get_y()
-                                    
-                                    pdf.rect(15, y, 60, h_row)
-                                    pdf.rect(75, y, 120, h_row)
-                                    pdf.set_xy(15, y+2)
-                                    pdf.multi_cell(60, 5, clean_pdf_text(estudante), 0, 'L')
-                                    pdf.set_xy(75, y+2)
-                                    pdf.multi_cell(120, 5, clean_pdf_text(texto_acao), 0, 'J')
-                                    pdf.set_xy(15, y + h_row)
+
+                                # Título da disciplina
+                                pdf.set_fill_color(240, 240, 240)
+                                pdf.rect(15, y, 180, 6, 'FD')
+                                pdf.set_xy(15, y)
+                                pdf.set_font("Arial", "B", 10)
+                                pdf.cell(180, 6, clean_pdf_text(titulo), 0, 1, 'C')
+                                y = pdf.get_y()
+
+                                # Calcula a altura necessária baseado no texto longo
+                                linhas_est = calc_lines(estudantes, 58)
+                                linhas_acao = calc_lines(acoes, 118)
+                                h_row = max(10, max(linhas_est, linhas_acao) * 5 + 4)
+
+                                if y + h_row > 275:
+                                    pdf.set_x(15); pdf.cell(180, 1, "", "LRB", 1)
+                                    pdf.add_page()
+                                    pdf.set_x(15); pdf.cell(180, 2, "", "LTR", 1)
+                                    y = pdf.get_y()
+
+                                # Desenha os blocos
+                                pdf.rect(15, y, 60, h_row)
+                                pdf.rect(75, y, 120, h_row)
+
+                                pdf.set_font("Arial", "", 10)
+                                pdf.set_xy(15, y + 2)
+                                pdf.multi_cell(60, 5, clean_pdf_text(estudantes), 0, 'L')
+                                pdf.set_xy(75, y + 2)
+                                pdf.multi_cell(120, 5, clean_pdf_text(acoes), 0, 'J')
+
+                                pdf.set_xy(15, y + h_row)
+                                pdf.cell(180, 2, "", "LR", 1) # Espaçamento pós bloco
+                                y = pdf.get_y()
+
+                            # --- CHAMADA PARA RENDERIZAR OS BLOCOS ---
+                            lp_est = data_ata.get('basico_lp_estudantes', '')
+                            lp_ac  = data_ata.get('basico_lp_acoes', '')
+                            mat_est = data_ata.get('basico_mat_estudantes', '')
+                            mat_ac  = data_ata.get('basico_mat_acoes', '')
+
+                            desenhar_bloco_basico("LÍNGUA PORTUGUESA", lp_est, lp_ac)
+                            desenhar_bloco_basico("MATEMÁTICA", mat_est, mat_ac)
 
                             # --- 3. OBSERVAÇÕES GERAIS ---
                             pdf.set_x(15)

@@ -7933,7 +7933,7 @@ if app_mode_regular == "📖 Planejamento Curricular":
 # =========================================================================
     # DEFINIÇÃO DE PERMISSÕES DA EQUIPA GESTORA
     # =========================================================================
-    MATRICULAS_GESTAO = ['8829405', '8011512', '8258411', '7047682', '88286861']
+    MATRICULAS_GESTAO = ['8257601', '8844051', '8084912', '8829405', '8011512', '8258411', '7047682', '88286861']
 
     matricula_atual = st.session_state.get('usuario_matricula', '') 
     is_gestor = matricula_atual in MATRICULAS_GESTAO

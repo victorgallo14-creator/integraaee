@@ -9135,23 +9135,101 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
         else:
             st.info("O acervo está vazio. Vá em 'Incorporação' para adicionar livros.")
 
-    # --- 2. CONQUISTAS & PRONTUÁRIO ---
-    with tab_perfil:
-        c1, c2 = st.columns([2, 1])
-        with c1:
-            st.subheader("📚 Meus Empréstimos Ativos")
-            meus = df_emp[(df_emp['leitor'].str.contains(usuario_nome, na=False)) & (df_emp['status'] == 'Ativo')]
-            if meus.empty: st.info("Sem pendências no momento.")
-            else:
-                for _, r in meus.iterrows():
-                    st.warning(f"📖 Tombo {r['id_exemplar']} | Devolução em: **{r['data_prevista']}**")
-        with c2:
-            st.subheader("🏆 Minhas Conquistas")
-            lidos = len(df_emp[(df_emp['leitor'].str.contains(usuario_nome, na=False)) & (df_emp['status'] == 'Devolvido')])
-            nivel = "Iniciante" if lidos < 5 else "Prata" if lidos < 15 else "Mestre"
-            icone = "🌱" if lidos < 5 else "🥈" if lidos < 15 else "💎"
-            st.markdown(f'<div class="badge-box"><div style="font-size:40px">{icone}</div><div class="badge-title">Leitor {nivel}</div><div>{lidos} livros lidos</div></div>', unsafe_allow_html=True)
+   # --- 2. PRONTUÁRIO DO LEITOR & RANKING DE CONQUISTAS ---
+with tab_perfil:
+    st.subheader("👤 Consulta de Prontuário por Aluno")
+    
+    # 1. Seleção do Aluno
+    leitor_selecionado = st.selectbox(
+        "Selecione o aluno para visualizar o histórico:",
+        ["-- Selecione um Aluno --"] + lista_leitores,
+        key="sel_prontuario"
+    )
 
+    if leitor_selecionado != "-- Selecione um Aluno --":
+        col_p1, col_p2 = st.columns([2, 1])
+        
+        # Filtros de dados para o aluno selecionado
+        emprestimos_aluno = df_emp[df_emp['leitor'] == leitor_selecionado]
+        ativos_aluno = emprestimos_aluno[emprestimos_aluno['status'] == 'Ativo']
+        historico_aluno = emprestimos_aluno[emprestimos_aluno['status'] == 'Devolvido']
+        total_lidos = len(historico_aluno)
+        
+        with col_p1:
+            st.markdown(f"### 📖 Histórico de {leitor_selecionado.split('(')[0]}")
+            
+            # Seção de Livros com o Aluno agora
+            st.markdown("#### 📤 Em posse do aluno:")
+            if ativos_aluno.empty:
+                st.info("O aluno não possui livros pendentes de devolução.")
+            else:
+                for _, r in ativos_aluno.iterrows():
+                    # Cruzamento para pegar o título do livro
+                    ex_info = df_exemplares[df_exemplares['id'] == r['id_exemplar']]
+                    titulo_livro = "Obra não identificada"
+                    if not ex_info.empty:
+                        ac_info = df_acervo[df_acervo['id'] == ex_info.iloc[0]['id_acervo']]
+                        titulo_livro = ac_info.iloc[0]['titulo'] if not ac_info.empty else "Título não localizado"
+                    
+                    st.warning(f"**{titulo_livro}** (Tombo: {r['id_exemplar']})  \n📅 Devolução prevista: **{r['data_prevista']}**")
+
+            # Seção de Histórico Completo
+            st.markdown("---")
+            st.markdown("#### 📚 Obras já lidas:")
+            if historico_aluno.empty:
+                st.write("Este aluno ainda não completou nenhuma leitura no sistema.")
+            else:
+                # Criar uma lista simplificada para o histórico
+                lista_h = []
+                for _, h in historico_aluno.iterrows():
+                    ex_h = df_exemplares[df_exemplares['id'] == h['id_exemplar']]
+                    tit_h = "Obra Desconhecida"
+                    if not ex_h.empty:
+                        ac_h = df_acervo[df_acervo['id'] == ex_h.iloc[0]['id_acervo']]
+                        tit_h = ac_h.iloc[0]['titulo'] if not ac_h.empty else "Título não localizado"
+                    lista_h.append({"Obra": tit_h, "Data da Retirada": h['data_saida']})
+                
+                st.table(pd.DataFrame(lista_h))
+
+        with col_p2:
+            st.markdown("### 🏆 Conquistas")
+            nivel = "Iniciante" if total_lidos < 5 else "Prata" if total_lidos < 15 else "Mestre"
+            icone = "🌱" if total_lidos < 5 else "🥈" if total_lidos < 15 else "💎"
+            
+            st.markdown(f"""
+                <div class="badge-box">
+                    <div style="font-size:50px">{icone}</div>
+                    <div class="badge-title">Leitor {nivel}</div>
+                    <div style="font-size:20px; font-weight:bold;">{total_lidos}</div>
+                    <div>livros lidos</div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            if total_lidos >= 1:
+                st.success("Parabéns pelo engajamento!")
+
+    st.markdown("---")
+    
+    # 2. RANKING GERAL DE LEITURA (Gamificação)
+    st.subheader("🥇 Ranking de Leitores da Escola")
+    if not df_emp.empty:
+        # Contagem de livros devolvidos por leitor
+        ranking = df_emp[df_emp['status'] == 'Devolvido']['leitor'].value_counts().reset_index()
+        ranking.columns = ['Aluno', 'Livros Lidos']
+        
+        # Pega os Top 10
+        top_10 = ranking.head(10)
+        
+        col_r1, col_r2 = st.columns([2, 1])
+        with col_r1:
+            st.write("Confira os alunos que mais leram livros este ano:")
+            st.dataframe(top_10, use_container_width=True, hide_index=True)
+        
+        with col_r2:
+            if not top_10.empty:
+                st.info(f"🌟 O maior leitor é:  \n**{top_10.iloc[0]['Aluno']}**")
+    else:
+        st.info("O ranking será gerado assim que as primeiras devoluções forem registradas.")
 # --- 3. ABA DE CIRCULAÇÃO (MODELO COMPLETO LIMEIRA - 10CM) ---
     if eh_gestao:
         with tab_circ:

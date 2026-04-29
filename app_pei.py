@@ -9228,7 +9228,7 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                 if 'comprovante' in st.session_state:
                     cp = st.session_state.comprovante
                     html_final = f"""
-                    <div id="cupom_doc" style="width:340px; padding:15px; font-family:'Courier New', Courier, monospace; font-size:12px; border:1px solid #000; background:#fff; color:#000;">
+                    <div id="cupom_doc" style="width:88mm; padding:3mm; box-sizing:border-box; font-family:'Courier New', Courier, monospace; font-size:12px; border:1px solid #000; background:#fff; color:#000; margin:0 auto;">
                         <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px;">
                             <b style="font-size:14px;">PREFEITURA MUNICIPAL DE LIMEIRA</b><br>
                             <b style="font-size:15px;">CEIEF RAFAEL AFFONSO LEITE</b><br>
@@ -9257,21 +9257,19 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                             <b style="font-size:24px;">{cp['vencimento']}</b>
                         </div>
 
-                        <div style="margin-top:12px; font-size:10px; text-align:justify; border:1px solid #ccc; padding:8px;">
+                        <div style="margin-top:12px; font-size:10px; text-align:justify; border:1px solid #ccc; padding:6px;">
                             <center><b style="font-size:11px;">TERMO DE COMPROMISSO E ZELO</b></center>
                             O aluno/responsável declara-se ciente da guarda e conservação desta obra. 
                             Proibido: riscar, dobrar páginas ou manusear próximo a líquidos. 
                             Em caso de perda ou dano, deverá repor por exemplar idêntico.
                         </div>
 
-                        <div style="margin-top:12px; border:1px solid #000; padding:8px;">
-                            <b>AVALIAÇÃO:</b> ☆ ☆ ☆ ☆ ☆<br>
-                            
+                        <div style="margin-top:12px; border:1px solid #000; padding:6px;">
                             
 
                         <div style="margin-top:25px; text-align:center;">
-                            ___________________________________<br>Assinatura do Aluno<br><br>
-                            ___________________________________<br>Visto Sala de Leitura
+                            ____________________________<br>Assinatura do Aluno<br><br>
+                            ____________________________<br>Visto Sala de Leitura
                         </div>
 
                         <div style="margin-top:20px; text-align:center; font-size:11px; border-top:1px solid #000; padding-top:8px;">

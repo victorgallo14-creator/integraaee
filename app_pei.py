@@ -9037,7 +9037,7 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
     else:
         tab_vitrine, tab_perfil = st.tabs(["🔍 Consulta", "👤 Meu Prontuário"])
 
-    # --- 1. PORTAL DO LEITOR (VITRINE INTERATIVA) ---
+# --- 1. PORTAL DO LEITOR (VITRINE INTERATIVA) ---
     with tab_vitrine:
         st.subheader("🔍 Consulta ao Acervo")
         
@@ -9047,59 +9047,88 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
         ordem = c_filtro.selectbox("Ordenar por:", ["Mais Recentes", "Título (A-Z)"])
 
         if not df_acervo.empty:
-            # Lógica de Filtro
-            res_vitrine = df_acervo[
-                df_acervo['titulo'].str.contains(termo_busca, case=False) | 
-                df_acervo['autor'].str.contains(termo_busca, case=False) |
-                df_acervo['genero'].astype(str).str.contains(termo_busca, case=False)
-            ] if termo_busca else df_acervo.copy()
+            
+            # Se o usuário digitou algo, faz a busca e mostra os resultados
+            if termo_busca:
+                # Lógica de Filtro
+                res_vitrine = df_acervo[
+                    df_acervo['titulo'].str.contains(termo_busca, case=False) | 
+                    df_acervo['autor'].str.contains(termo_busca, case=False) |
+                    df_acervo['genero'].astype(str).str.contains(termo_busca, case=False)
+                ]
 
-            if ordem == "Título (A-Z)":
-                res_vitrine = res_vitrine.sort_values(by="titulo")
+                if ordem == "Título (A-Z)":
+                    res_vitrine = res_vitrine.sort_values(by="titulo")
+                else:
+                    res_vitrine = res_vitrine.iloc[::-1] # Inverte para mostrar os últimos cadastrados primeiro
+
+                if not res_vitrine.empty:
+                    # Grid de exibição
+                    cols_vitrine = st.columns(4)
+                    for idx, (_, livro) in enumerate(res_vitrine.iterrows()):
+                        with cols_vitrine[idx % 4]:
+                            # Card Visual
+                            capa_path = livro['capa_url'] if pd.notnull(livro['capa_url']) and livro['capa_url'] != "" else "https://via.placeholder.com/150x220?text=SEM+FOTO"
+                            
+                            st.markdown(f"""
+                                <div style="text-align: center; margin-bottom: 10px;">
+                                    <img src="{capa_path}" style="width: 100%; border-radius: 8px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); height: 200px; object-fit: cover;">
+                                    <div style="font-weight: bold; font-size: 14px; margin-top: 5px; height: 40px; overflow: hidden; line-height: 1.2;">{livro['titulo']}</div>
+                                </div>
+                            """, unsafe_allow_html=True)
+                            
+                            # Botão para abrir a ficha (Usa Popover para uma experiência mais moderna)
+                            with st.popover("📖 Ver Detalhes", use_container_width=True):
+                                st.markdown(f"### {livro['titulo']}")
+                                c_capa, c_info = st.columns([1, 2])
+                                
+                                with c_capa:
+                                    st.image(capa_path, use_container_width=True)
+                                
+                                with c_info:
+                                    st.markdown(f"**✍️ Autor:** {livro['autor']}")
+                                    st.markdown(f"**🏢 Editora:** {livro['editora']}")
+                                    st.markdown(f"**🏷️ Gênero:** {livro['genero']}")
+                                    st.markdown(f"**📚 Série:** {livro['serie']}")
+                                
+                                st.markdown("---")
+                                st.markdown("#### 📍 Situação dos Exemplares")
+                                
+                                # Busca todos os tombos físicos desse livro
+                                meus_exemplares = df_exemplares[df_exemplares['id_acervo'] == livro['id']]
+                                
+                                if not meus_exemplares.empty:
+                                    for _, ex in meus_exemplares.iterrows():
+                                        status_cor = "🟢 Disponível" if ex['disponivel'] else "🔴 Emprestado"
+                                        loc = ex['localizacao'] if ex['localizacao'] else "Não definida"
+                                        st.info(f"**Tombo:** {ex['tombo']} | **Local:** {loc} | **Status:** {status_cor}")
+                                else:
+                                    st.warning("Nenhum exemplar físico localizado para esta obra.")
+                else:
+                    st.warning("Nenhum livro encontrado com o termo pesquisado.")
+            
+            # Se não houver busca, mostra o Painel Inicial / Métricas
             else:
-                res_vitrine = res_vitrine.iloc[::-1] # Inverte para mostrar os últimos cadastrados primeiro
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("### 📚 Bem-vindo ao Portal do Leitor!")
+                st.write("Utilize a barra de pesquisa acima para encontrar obras por título, autor ou gênero.")
+                st.markdown("---")
+                
+                st.subheader("📊 Resumo da Biblioteca")
+                
+                # Cálculos rápidos para o dashboard
+                total_titulos = len(df_acervo)
+                total_exemplares = len(df_exemplares) if not df_exemplares.empty else 0
+                exemplares_disponiveis = len(df_exemplares[df_exemplares['disponivel'] == True]) if not df_exemplares.empty else 0
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric(label="Títulos Cadastrados", value=total_titulos)
+                with col2:
+                    st.metric(label="Total de Exemplares Físicos", value=total_exemplares)
+                with col3:
+                    st.metric(label="Exemplares Disponíveis Agora", value=exemplares_disponiveis)
 
-            # Grid de exibição
-            cols_vitrine = st.columns(4)
-            for idx, (_, livro) in enumerate(res_vitrine.iterrows()):
-                with cols_vitrine[idx % 4]:
-                    # Card Visual
-                    capa_path = livro['capa_url'] if pd.notnull(livro['capa_url']) and livro['capa_url'] != "" else "https://via.placeholder.com/150x220?text=SEM+FOTO"
-                    
-                    st.markdown(f"""
-                        <div style="text-align: center; margin-bottom: 10px;">
-                            <img src="{capa_path}" style="width: 100%; border-radius: 8px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); height: 200px; object-fit: cover;">
-                            <div style="font-weight: bold; font-size: 14px; margin-top: 5px; height: 40px; overflow: hidden; line-height: 1.2;">{livro['titulo']}</div>
-                        </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Botão para abrir a ficha (Usa Popover para uma experiência mais moderna)
-                    with st.popover("📖 Ver Detalhes", use_container_width=True):
-                        st.markdown(f"### {livro['titulo']}")
-                        c_capa, c_info = st.columns([1, 2])
-                        
-                        with c_capa:
-                            st.image(capa_path, use_container_width=True)
-                        
-                        with c_info:
-                            st.markdown(f"**✍️ Autor:** {livro['autor']}")
-                            st.markdown(f"**🏢 Editora:** {livro['editora']}")
-                            st.markdown(f"**🏷️ Gênero:** {livro['genero']}")
-                            st.markdown(f"**📚 Série:** {livro['serie']}")
-                        
-                        st.markdown("---")
-                        st.markdown("#### 📍 Situação dos Exemplares")
-                        
-                        # Busca todos os tombos físicos desse livro
-                        meus_exemplares = df_exemplares[df_exemplares['id_acervo'] == livro['id']]
-                        
-                        if not meus_exemplares.empty:
-                            for _, ex in meus_exemplares.iterrows():
-                                status_cor = "🟢 Disponível" if ex['disponivel'] else "🔴 Emprestado"
-                                loc = ex['localizacao'] if ex['localizacao'] else "Não definida"
-                                st.info(f"**Tombo:** {ex['tombo']} | **Local:** {loc} | **Status:** {status_cor}")
-                        else:
-                            st.warning("Nenhum exemplar físico localizado para esta obra.")
         else:
             st.info("O acervo está vazio. Vá em 'Incorporação' para adicionar livros.")
 

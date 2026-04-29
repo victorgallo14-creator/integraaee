@@ -5914,6 +5914,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
     
     # Matriz de Professores Padrão (Semente)
     MATRIZ_SEED = [
+        {"Ciclo": "Bilíngue", "Turma": "2 e 3", "Disciplina": "Polivalente", "Professor": "Flaviany Miranda Montovani"},
         {"Ciclo": "Ciclo I (1º ao 3º ano)", "Turma": "1º Ano 1", "Disciplina": "Polivalente", "Professor": "Juliana Aparecida da Silva"},
         {"Ciclo": "Ciclo I (1º ao 3º ano)", "Turma": "1º Ano 1", "Disciplina": "Artes", "Professor": "Jordana Lima Alvez"},
         {"Ciclo": "Ciclo I (1º ao 3º ano)", "Turma": "1º Ano 1", "Disciplina": "Educação Física", "Professor": "Michel Luciano de Lima"},
@@ -5983,6 +5984,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
         {"Ciclo": "Ciclo II (4º e 5º ano)", "Turma": "5º Ano 3", "Disciplina": "Linguagens e Tecnologias", "Professor": "Bruna Thais Bernini Guedes"},
         
         # --- EDUCAÇÃO INFANTIL ---
+        {"Ciclo": "Bilíngue", "Turma": "1", "Disciplina": "Polivalente", "Professor": "Luciana Martinati Tetzner"},
         {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 1", "Disciplina": "Professor de Ed. Infantil", "Professor": "Luciana Lopes Faber"},
         {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 1", "Disciplina": "Artes", "Professor": "Karen Cristina Fernandes Donatti"},
         {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 1", "Disciplina": "Educação Física", "Professor": "Michel Luciano de Lima"},
@@ -6090,7 +6092,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                 """, unsafe_allow_html=True)
                 
                 c_c, c_t, c_tri = st.columns([2, 2, 1])
-                ciclo_sel = c_c.selectbox("1. Selecione o Ciclo:", ["Ciclo I (1º ao 3º ano)", "Ciclo II (4º e 5º ano)"])
+                ciclo_sel = c_c.selectbox("1. Selecione o Ciclo:", ["Bilíngue","Ciclo I (1º ao 3º ano)", "Ciclo II (4º e 5º ano)"])
                 
                 turmas_bd = df_matriz[df_matriz['Ciclo'] == ciclo_sel]['Turma'].unique().tolist()
                 turmas_disp = turmas_bd + ["Outra Turma..."]
@@ -6849,7 +6851,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                 """, unsafe_allow_html=True)
                 
                 c_c, c_t, c_tri = st.columns([2, 2, 1])
-                ciclo_sel = c_c.selectbox("1. Selecione a Fase/Etapa:", ["Maternal I", "Maternal II", "1ª Etapa", "2ª Etapa", "Educação Infantil"])
+                ciclo_sel = c_c.selectbox("1. Selecione a Fase/Etapa:", ["Bilíngue", "Maternal I", "Maternal II", "1ª Etapa", "2ª Etapa", "Educação Infantil"])
                 
                 if ciclo_sel == "Educação Infantil":
                     turmas_bd = df_matriz[df_matriz['Ciclo'].str.contains("Infantil|Etapa|Maternal", na=False)]['Turma'].unique().tolist()

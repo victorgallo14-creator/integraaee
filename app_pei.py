@@ -176,16 +176,17 @@ def safe_update(worksheet_name, data):
         elif worksheet_name == "Atas_Conselho":
             supabase.table(worksheet_name).delete().neq("id_ata", "FORCAR_LIMPEZA_TOTAL").execute()
             
-        elif worksheet_name in ["Recados", "Agenda"]:
+        elif worksheet_name in ["Recados", "Agenda", "Agendamentos"]:
+            # Removemos a coluna 'id' para evitar o erro "1.0" (float -> int) gerado pelo Pandas
+            if 'id' in df_to_save.columns:
+                df_to_save = df_to_save.drop(columns=['id'])
+                
             supabase.table(worksheet_name).delete().neq("Data", "FORCAR_LIMPEZA_TOTAL").execute()
             
         elif worksheet_name == "Config_Ata":
-            # Removemos a coluna 'id' para evitar o erro "4.0" (float -> int) 
-            # O Supabase irá recriar os IDs automaticamente como inteiros perfeitos
             if 'id' in df_to_save.columns:
                 df_to_save = df_to_save.drop(columns=['id'])
             
-            # Limpamos a tabela para não duplicar dados
             supabase.table(worksheet_name).delete().neq("chave", "FORCAR_LIMPEZA_TOTAL").execute()
             
         else:

@@ -6064,6 +6064,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                     'obs_especiais': [{"Estudante": "", "Desempenho/Observação": ""}],
                     'encaminhamentos': [{"Estudante": "", "Motivo": ""}],
                     'mat_tardia': [{"Estudante": "", "Data Matrícula": "", "Total Frequência": ""}],
+                    'obs_apc': "",
                     'obs_outras': "",
                     'assinaturas': [{"Nome": "", "Cargo/Atuação": ""}]
                 }
@@ -6120,6 +6121,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                                 'obs_especiais': [{"Estudante": "", "Desempenho/Observação": ""}],
                                 'encaminhamentos': [{"Estudante": "", "Motivo": ""}],
                                 'mat_tardia': [{"Estudante": "", "Data Matrícula": "", "Total Frequência": ""}],
+                                'obs_apc': "", # <--- NOVO CAMPO AQUI
                                 'obs_outras': "",
                                 'assinaturas': [{"Nome": "", "Cargo/Atuação": ""}],
                                 'ciclo': ciclo_sel,
@@ -6291,9 +6293,17 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                     if st.button("➕ Adicionar Matrícula Tardia", key="add_mat"):
                         data_ata['mat_tardia'].append({"Estudante": "", "Data Matrícula": "", "Total Frequência": ""})
                         st.rerun()
-                        
+
                     st.divider()
-                    st.markdown("**d) Outras Observações**")
+                    
+                    # ================= NOVO BLOCO APC =================
+                    st.markdown("**d) Alunos matriculados na Ação Pedagógica Complementar (APC)**")
+                    data_ata['obs_apc'] = st.text_area("Resumo/Observações sobre os estudantes da APC:", value=data_ata.get('obs_apc', ''), height=100)
+                    st.divider()
+                    # ==================================================
+                    
+                    st.divider()
+                    st.markdown("**e) Outras Observações**")
                     data_ata['obs_outras'] = st.text_area("Campo livre para quaisquer outras observações da turma:", value=data_ata.get('obs_outras', ''), height=120)
 
                 with tabs[4]:
@@ -6697,6 +6707,22 @@ elif modulo_atuacao == "🏫 Ensino Regular":
 
                             pdf.set_x(15)
                             pdf.cell(180, 2, "", "LR", 1)
+
+                            # ================= NOVO BLOCO APC NO PDF =================
+                            obs_apc = data_ata.get('obs_apc', '').strip()
+                            if obs_apc:
+                                pdf.set_font("Arial", "B", 10)
+                                pdf.set_x(15)
+                                pdf.cell(180, 5, clean_pdf_text(f"{chr(prefix_code)}) Alunos matriculados na Ação Pedagógica Complementar (APC):"), "LR", 1, 'L')
+                                prefix_code += 1
+                                
+                                pdf.set_font("Arial", "", 10)
+                                pdf.set_x(15)
+                                pdf.multi_cell(180, 5, clean_pdf_text(f"  {obs_apc}"), "LR", 'J')
+                                
+                                pdf.set_x(15)
+                                pdf.cell(180, 2, "", "LR", 1)
+                            # =========================================================
                             
                             obs_outras = data_ata.get('obs_outras', '').strip()
                             if obs_outras:

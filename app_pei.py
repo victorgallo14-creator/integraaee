@@ -9266,10 +9266,8 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
 
                         <div style="margin-top:12px; border:1px solid #000; padding:8px;">
                             <b>AVALIAÇÃO:</b> ☆ ☆ ☆ ☆ ☆<br>
-                            <b>DESAFIO:</b> Palavra nova que aprendi:<br>
-                            ___________________________________<br>
-                            <span style="font-size:9px;">[ ]Guardei em lugar seco [ ]Usei marcador</span>
-                        </div>
+                            
+                            
 
                         <div style="margin-top:25px; text-align:center;">
                             ___________________________________<br>Assinatura do Aluno<br><br>

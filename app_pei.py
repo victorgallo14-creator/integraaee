@@ -8738,7 +8738,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
     # 🔒 CONTROLO DE ACESSO E SEGURANÇA
     # ---------------------------------------------------------
     # Lista oficial de gestores autorizados
-    MATRICULAS_GESTAO = ['8829405', '8011512', '8258411', '7047682', '88286861']
+    MATRICULAS_GESTAO = ['8257601', '8844051', '8084912', '8829405', '8011512', '8258411', '7047682', '88286861']
     
     # Normalização da matrícula para evitar erros de tipo (int/str)
     matricula_atual = str(st.session_state.get('usuario_matricula', '')).strip() 
@@ -9021,7 +9021,7 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
         st.rerun()
 
     # --- INTEGRAÇÃO CARÔMETRO & SEGURANÇA ---
-    MATRICULAS_GESTAO = ['8829405', '8011512', '8258411', '7047682', '88286861']
+    MATRICULAS_GESTAO = ['8257601', '8844051', '8084912', '8829405', '8011512', '8258411', '7047682', '88286861']
     eh_gestao = str(st.session_state.get('usuario_matricula', '')).strip() in MATRICULAS_GESTAO
     usuario_nome = st.session_state.get('usuario_nome', 'Visitante').upper()
 

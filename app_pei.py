@@ -9391,7 +9391,82 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                             st.success("Cadastro manual realizado!"); time.sleep(1); st.rerun()
                         else: st.error("Preencha ao menos Título e Tombo.")
 
-            # --- MÉTODO 4: IMPORTAÇÃO PLANILHA (O QUE JÁ ESTAVA FUNCIONANDO) ---
+            # --- MÉTODO 4: IMPORTAÇÃO PLANILHA (O MAIS FÁCIL) ---
             elif metodo == "Importar Planilha":
-                # ... (Mantém o código de importação do Excel/CSV que construímos antes)
-                st.write("Use este método para subir arquivos com centenas de livros de uma vez.")
+                st.info("Envie sua planilha (.csv ou .xlsx). O sistema dividirá os dados automaticamente entre Acervo e Exemplares.")
+                
+                arquivo_upload = st.file_uploader("Selecione o arquivo:", type=["csv", "xlsx"])
+
+                if arquivo_upload:
+                    if st.button("🚀 Iniciar Importação em Lote", type="primary"):
+                        with st.spinner("Lendo arquivo e preparando lotes... Isso pode levar alguns segundos."):
+                            try:
+                                # 1. Lê o arquivo (CSV ou Excel)
+                                if arquivo_upload.name.endswith('.csv'):
+                                    df = pd.read_csv(arquivo_upload)
+                                else:
+                                    df = pd.read_excel(arquivo_upload)
+                                
+                                # 2. Limpa os dados nulos
+                                df = df.where(pd.notnull(df), None)
+
+                                registros_acervo = []
+                                registros_exemplares = []
+
+                                # 3. Varre a planilha e separa os dados
+                                for index, row in df.iterrows():
+                                    # Se não tem tombo ou título, pula a linha para evitar erros no banco
+                                    if row.get("tombo") is None or row.get("titulo") is None:
+                                        continue
+                                    
+                                    id_acervo_gerado = str(uuid.uuid4())
+                                    id_exemplar_gerado = str(uuid.uuid4())
+
+                                    # Prepara o Acervo (A Obra)
+                                    registros_acervo.append({
+                                        "id": id_acervo_gerado,
+                                        "titulo": str(row.get("titulo", "")).strip().upper(),
+                                        "autor": str(row.get("autor", "")).strip().upper() if row.get("autor") else "",
+                                        "editora": str(row.get("editora", "")).strip().upper() if row.get("editora") else "",
+                                        "genero": str(row.get("genero", "")).strip().upper() if row.get("genero") else "",
+                                        "serie": str(row.get("serie", "")).strip().upper() if row.get("serie") else "",
+                                        "capa_url": "" # Deixa em branco na importação em massa
+                                    })
+
+                                    # Prepara o Exemplar (O Livro Físico, amarrado ao ID do Acervo acima)
+                                    registros_exemplares.append({
+                                        "id": id_exemplar_gerado,
+                                        "id_acervo": id_acervo_gerado,
+                                        "tombo": str(int(row["tombo"])) if isinstance(row["tombo"], float) else str(row["tombo"]),
+                                        "localizacao": str(row.get("local", "")).strip().upper() if row.get("local") else "",
+                                        "disponivel": True # Assume que está na prateleira ao importar
+                                    })
+
+                                # 4. Inserção no Supabase em Lotes (Chunks)
+                                # Como o Supabase pode recusar enviar 7000 linhas de uma vez, enviamos de 500 em 500
+                                tamanho_lote = 500
+                                total_lotes = math.ceil(len(registros_acervo) / tamanho_lote)
+                                
+                                barra_progresso = st.progress(0)
+                                st.write(f"Preparando para inserir {len(registros_acervo)} livros...")
+
+                                for i in range(total_lotes):
+                                    inicio = i * tamanho_lote
+                                    fim = inicio + tamanho_lote
+                                    
+                                    # Envia um lote para o Acervo
+                                    if registros_acervo[inicio:fim]:
+                                        supabase.table("Biblioteca_Acervo").insert(registros_acervo[inicio:fim]).execute()
+                                    
+                                    # Envia um lote para os Exemplares
+                                    if registros_exemplares[inicio:fim]:
+                                        supabase.table("Biblioteca_Exemplares").insert(registros_exemplares[inicio:fim]).execute()
+                                    
+                                    # Atualiza a barrinha visual
+                                    barra_progresso.progress((i + 1) / total_lotes)
+
+                                st.success(f"✅ Sucesso! {len(registros_acervo)} livros foram importados preservando os tombos e a separação correta do sistema.")
+                                st.balloons()
+
+                            except Exception as e:
+                                st.error(f"❌ Erro ao processar a importação: {e}")

@@ -9021,13 +9021,139 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
     df_exemplares = safe_read("Biblioteca_Exemplares", ["id", "id_acervo", "tombo", "disponivel", "localizacao"])
     df_emp = safe_read("Biblioteca_Emprestimos", ["id", "id_exemplar", "leitor", "data_saida", "data_prevista", "status"])
 
+    # =========================================================
+    # FUNÇÕES AUXILIARES VISUAIS - SALA DE LEITURA
+    # =========================================================
+    def gerar_capa_dinamica(id_livro, titulo, autor):
+        """
+        Gera o HTML de uma capa de livro colorida com base no ID da obra.
+        Cada livro terá uma cor consistente baseada no seu ID UUID.
+        """
+        import zlib
+        import pandas as pd
+        
+        # Paleta de degradês modernos e vibrantes
+        bg_palettes = [
+            "linear-gradient(135deg, #0d9488 0%, #064e3b 100%)", # Teal-Green
+            "linear-gradient(135deg, #2563eb 0%, #172554 100%)", # Blue
+            "linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)", # Purple
+            "linear-gradient(135deg, #ea580c 0%, #7c2d12 100%)", # Orange
+            "linear-gradient(135deg, #db2777 0%, #831843 100%)", # Pink
+            "linear-gradient(135deg, #ca8a04 0%, #713f12 100%)", # Yellow/Brown
+            "linear-gradient(135deg, #16a34a 0%, #14532d 100%)", # Green
+            "linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%)", # Red
+        ]
+        
+        # Usa o ID do livro (UUID) para gerar um hash estável
+        hash_val = zlib.adler32(str(id_livro).encode('utf-8'))
+        bg_style = bg_palettes[hash_val % len(bg_palettes)]
+        
+        # Normalização dos textos (Título maior, autor menor)
+        tit_norm = str(titulo).strip().upper()
+        if len(tit_norm) > 45:
+            tit_norm = tit_norm[:42] + "..."
+            
+        aut_norm = str(autor).strip().upper() if pd.notnull(autor) else "AUTOR NÃO INFORMADO"
+        if len(aut_norm) > 30:
+            aut_norm = aut_norm[:27] + "..."
+            
+        return f"""
+        <div class="dynamic-cover" style="background: {bg_style};">
+            <div class="dynamic-cover-title">{tit_norm}</div>
+            <div class="dynamic-cover-divider"></div>
+            <div class="dynamic-cover-author">{aut_norm}</div>
+            <div class="dynamic-cover-branding">INTEGRA BIBLIO</div>
+        </div>
+        """
+
     # --- ESTILO VISUAL (CSS) ---
     st.markdown("""
     <style>
-        .book-card { background: white; border-radius: 10px; padding: 12px; border: 1px solid #e2e8f0; text-align: center; height: 100%; transition: 0.3s; }
-        .book-card:hover { transform: translateY(-5px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .book-cover { width: 110px; height: 165px; object-fit: cover; border-radius: 4px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
-        .book-title { font-weight: bold; font-size: 14px; margin-top: 10px; color: #1e293b; height: 34px; overflow: hidden; }
+        /* Container Principal do Card */
+        .book-card { 
+            background: #f8fafc; 
+            border-radius: 12px; 
+            padding: 15px; 
+            border: 1px solid #e2e8f0; 
+            text-align: center; 
+            height: 100%; 
+            transition: all 0.3s ease; 
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .book-card:hover { 
+            transform: translateY(-8px); 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1); 
+            border-color: #cbd5e1;
+        }
+        
+        /* Capa Gerada Dinamicamente (HTML) */
+        .dynamic-cover {
+            height: 200px;
+            border-radius: 8px;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+            padding: 15px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .dynamic-cover-title {
+            font-weight: 800;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            line-height: 1.1;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            text-align: center;
+            font-family: 'Open Sans', sans-serif;
+            max-height: 65px;
+            overflow: hidden;
+        }
+        
+        .dynamic-cover-divider {
+            border-top: 2px solid rgba(255,255,255,0.4);
+            width: 80%;
+            margin: 10px 0;
+        }
+        
+        .dynamic-cover-author {
+            font-size: 10px;
+            font-weight: 400;
+            font-style: italic;
+            opacity: 0.9;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        
+        .dynamic-cover-branding {
+            position: absolute;
+            bottom: 5px;
+            right: 8px;
+            font-size: 8px;
+            font-weight: 900;
+            opacity: 0.3;
+            letter-spacing: 1px;
+        }
+        
+        /* Título Externo (para quando tem imagem real) */
+        .external-book-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 10px;
+            color: #1e293b;
+            height: 40px;
+            overflow: hidden;
+            line-height: 1.2;
+        }
+        
+        /* Badges de Conquistas */
         .badge-box { background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color: white; padding: 15px; border-radius: 10px; text-align: center; }
         .badge-title { font-weight: 800; font-size: 18px; }
     </style>
@@ -9040,7 +9166,7 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
     else:
         tab_vitrine, tab_perfil = st.tabs(["🔍 Consulta", "👤 Meu Prontuário"])
 
-# --- 1. PORTAL DO LEITOR (VITRINE INTERATIVA) ---
+    # --- 1. PORTAL DO LEITOR (VITRINE INTERATIVA) ---
     with tab_vitrine:
         st.subheader("🔍 Consulta ao Acervo")
         
@@ -9063,22 +9189,34 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                 if ordem == "Título (A-Z)":
                     res_vitrine = res_vitrine.sort_values(by="titulo")
                 else:
-                    res_vitrine = res_vitrine.iloc[::-1] # Inverte para mostrar os últimos cadastrados primeiro
+                    res_vitrine = res_vitrine.iloc[::-1]
 
                 if not res_vitrine.empty:
                     # Grid de exibição
                     cols_vitrine = st.columns(4)
                     for idx, (_, livro) in enumerate(res_vitrine.iterrows()):
                         with cols_vitrine[idx % 4]:
-                            # Card Visual
-                            capa_path = livro['capa_url'] if pd.notnull(livro['capa_url']) and livro['capa_url'] != "" else "https://via.placeholder.com/150x220?text=SEM+FOTO"
+                            # --- LÓGICA DE CAPA INTELIGENTE ---
+                            tem_capa_real = pd.notnull(livro['capa_url']) and livro['capa_url'] != "" and str(livro['capa_url']).startswith('http')
                             
-                            st.markdown(f"""
+                            if tem_capa_real:
+                                capa_path = livro['capa_url']
+                                markdown_capa = f"""
                                 <div style="text-align: center; margin-bottom: 10px;">
                                     <img src="{capa_path}" style="width: 100%; border-radius: 8px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); height: 200px; object-fit: cover;">
-                                    <div style="font-weight: bold; font-size: 14px; margin-top: 5px; height: 40px; overflow: hidden; line-height: 1.2;">{livro['titulo']}</div>
+                                    <div class="external-book-title">{livro['titulo']}</div>
                                 </div>
-                            """, unsafe_allow_html=True)
+                                """
+                            else:
+                                capa_dinamica_html = gerar_capa_dinamica(livro['id'], livro['titulo'], livro['autor'])
+                                markdown_capa = f"""
+                                <div style="text-align: center; margin-bottom: 10px;">
+                                    {capa_dinamica_html}
+                                </div>
+                                """
+                            
+                            # Exibe o visual gerado
+                            st.markdown(markdown_capa, unsafe_allow_html=True)
                             
                             # Botão para abrir a ficha (Usa Popover para uma experiência mais moderna)
                             with st.popover("📖 Ver Detalhes", use_container_width=True):
@@ -9086,7 +9224,11 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                                 c_capa, c_info = st.columns([1, 2])
                                 
                                 with c_capa:
-                                    st.image(capa_path, use_container_width=True)
+                                    if tem_capa_real:
+                                        st.image(livro['capa_url'], use_container_width=True)
+                                    else:
+                                        capa_pop_html = gerar_capa_dinamica(livro['id'], livro['titulo'], livro['autor'])
+                                        st.markdown(capa_pop_html, unsafe_allow_html=True)
                                 
                                 with c_info:
                                     st.markdown(f"**✍️ Autor:** {livro['autor']}")
@@ -9097,7 +9239,6 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                                 st.markdown("---")
                                 st.markdown("#### 📍 Situação dos Exemplares")
                                 
-                                # Busca todos os tombos físicos desse livro
                                 meus_exemplares = df_exemplares[df_exemplares['id_acervo'] == livro['id']]
                                 
                                 if not meus_exemplares.empty:
@@ -9119,7 +9260,6 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                 
                 st.subheader("📊 Resumo da Biblioteca")
                 
-                # Cálculos rápidos para o dashboard
                 total_titulos = len(df_acervo)
                 total_exemplares = len(df_exemplares) if not df_exemplares.empty else 0
                 exemplares_disponiveis = len(df_exemplares[df_exemplares['disponivel'] == True]) if not df_exemplares.empty else 0
@@ -9136,7 +9276,6 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
             st.info("O acervo está vazio. Vá em 'Incorporação' para adicionar livros.")
 
     # --- 2. PRONTUÁRIO DO LEITOR & RANKING DE CONQUISTAS ---
-    # REPÁRE AQUI: O 'with' agora tem 4 espaços antes dele!
     with tab_perfil:
         st.subheader("👤 Consulta de Prontuário por Aluno")
         
@@ -9231,11 +9370,8 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                     st.info(f"🌟 O maior leitor é:  \n**{top_10.iloc[0]['Aluno']}**")
         else:
             st.info("O ranking será gerado assim que as primeiras devoluções forem registradas.")
-            
-    # --- 3. ABA DE CIRCULAÇÃO (MODELO COMPLETO LIMEIRA - 10CM) ---
 
-   
-# --- 3. ABA DE CIRCULAÇÃO (MODELO COMPLETO LIMEIRA - 10CM) ---
+    # --- 3. ABA DE CIRCULAÇÃO (MODELO COMPLETO LIMEIRA - 10CM) ---
     if eh_gestao:
         with tab_circ:
             st.subheader("🚀 Balcão de Atendimento - Sala de Leitura")
@@ -9256,7 +9392,7 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
             ]
             import random
 
-# ==========================================
+            # ==========================================
             # COLUNA ESQUERDA: EMPRÉSTIMO (MODELO INSTITUCIONAL COMPLETO)
             # ==========================================
             with c_out:
@@ -9347,9 +9483,6 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                             Em caso de perda ou dano, deverá repor por exemplar idêntico.
                         </div>
 
-                        <div style="margin-top:12px; border:1px solid #000; padding:6px;">
-                            
-
                         <div style="margin-top:25px; text-align:center;">
                             ____________________________<br>Assinatura do Aluno<br><br>
                             ____________________________<br>Visto Sala de Leitura
@@ -9366,14 +9499,12 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                     if st.button("Finalizar Atendimento"):
                         del st.session_state.comprovante; st.rerun()
 
-
             # ==========================================
             # COLUNA DIREITA: DEVOLUÇÃO (RECEBIMENTO)
             # ==========================================
             with c_in:
                 st.markdown("### 📥 Devolução de Livro")
                 
-                # Removido o st.form para ter uma resposta mais imediata
                 tombo_in = st.text_input("Bipar ou Digitar Tombo para Devolução:", key="input_dev")
                 
                 if st.button("Confirmar Devolução", type="primary", key="btn_dev"):
@@ -9394,12 +9525,11 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                                     id_emp = res_emp.data[0]['id']
                                     
                                     # 3. Atualiza o empréstimo para 'Devolvido' e o exemplar para 'Disponível'
-                                    # (Removi a 'data_devolucao' caso a coluna não exista no seu Supabase)
                                     supabase.table("Biblioteca_Emprestimos").update({"status": "Devolvido"}).eq("id", id_emp).execute()
                                     supabase.table("Biblioteca_Exemplares").update({"disponivel": True}).eq("id", id_ex).execute()
                                     
                                     st.success(f"✅ O livro do Tombo {t_limpo} foi devolvido com sucesso!")
-                                    time.sleep(2) # Aumentei o tempo para a mensagem verde ficar mais visível
+                                    time.sleep(2) 
                                     st.rerun()
                                 else:
                                     st.warning(f"O Tombo {t_limpo} já consta como disponível ou não possui empréstimo ativo.")
@@ -9407,7 +9537,6 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                                 st.error("Tombo não encontrado no sistema.")
                         
                         except Exception as e:
-                            # Se faltar alguma coluna no banco ou der erro de conexão, ele vai avisar aqui!
                             st.error(f"❌ Erro de comunicação com o banco: {e}")
                     else:
                         st.error("Por favor, digite ou bipe um número de tombo.")
@@ -9415,10 +9544,9 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                 st.markdown("---")
                 st.info("💡 Dica: Ao confirmar a devolução, o livro volta a aparecer imediatamente como 'Disponível' na consulta do acervo.")
                     
-# =========================================================
-    # 4. INCORPORAÇÃO TÉCNICA (CENTRAL DE ACERVO)
-    # =========================================================
-    if eh_gestao:
+        # =========================================================
+        # 4. INCORPORAÇÃO TÉCNICA (CENTRAL DE ACERVO)
+        # =========================================================
         with tab_cat:
             st.subheader("Adicionar Novos Livros ao Sistema")
             
@@ -9452,7 +9580,7 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                             else: st.error("Não encontramos capas automáticas para este título.")
                         except: st.error("Erro na busca online.")
 
-                if 'temp_add' in st.session_state:
+                if 'temp_add' in st.session_state and st.session_state.temp_add is not None:
                     with st.form("confirm_add_titulo"):
                         v = st.session_state.temp_add
                         c_img, c_form = st.columns([1, 3])
@@ -9486,7 +9614,6 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
 
             # --- MÉTODO 2: ISBN (O MAIS RÁPIDO PARA LIVROS NOVOS) ---
             elif metodo == "Pelo ISBN (Automático)":
-                # ... (Código do ISBN que já tínhamos, mapeando para as novas colunas)
                 st.info("Bipe o código de barras do livro aqui.")
 
             # --- MÉTODO 3: CADASTRO MANUAL (TOTAL LIBERDADE) ---
@@ -9521,7 +9648,7 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                             st.success("Cadastro manual realizado!"); time.sleep(1); st.rerun()
                         else: st.error("Preencha ao menos Título e Tombo.")
 
-# --- MÉTODO 4: IMPORTAÇÃO PLANILHA (O MAIS FÁCIL E CORRIGIDO) ---
+            # --- MÉTODO 4: IMPORTAÇÃO PLANILHA ---
             elif metodo == "Importar Planilha":
                 st.info("Envie sua planilha (.csv ou .xlsx). O sistema dividirá os dados automaticamente entre Acervo e Exemplares.")
                 
@@ -9531,24 +9658,18 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                     if st.button("🚀 Iniciar Importação em Lote", type="primary"):
                         with st.spinner("Lendo arquivo e preparando lotes... Isso pode levar alguns segundos."):
                             try:
-                                # 1. Lê o arquivo com a codificação e separador corretos para o Brasil
                                 if arquivo_upload.name.endswith('.csv'):
                                     df = pd.read_csv(arquivo_upload, sep=';', encoding='latin1')
                                 else:
                                     df = pd.read_excel(arquivo_upload)
                                 
-                                # 2. Limpa os nomes das colunas para evitar erros de espaço (ex: "titulo " vira "titulo")
                                 df.columns = df.columns.str.strip().str.lower()
-                                
-                                # 3. Substitui dados nulos por None
                                 df = df.where(pd.notnull(df), None)
 
                                 registros_acervo = []
                                 registros_exemplares = []
 
-                                # 4. Varre a planilha e separa os dados
                                 for index, row in df.iterrows():
-                                    # Se não tem tombo ou título, pula a linha
                                     if row.get("tombo") is None or row.get("titulo") is None:
                                         continue
                                     
@@ -9573,7 +9694,6 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                                         "disponivel": True 
                                     })
 
-                                # 5. Inserção no Supabase em Lotes (Chunks de 500)
                                 tamanho_lote = 500
                                 total_lotes = math.ceil(len(registros_acervo) / tamanho_lote)
                                 
@@ -9598,191 +9718,177 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                             except Exception as e:
                                 st.error(f"❌ Erro ao processar a importação: {e}")
 
-            # =========================================================
-            # 5. ABA DE AUDITORIA E RELATÓRIOS (DASHBOARD)
-            # =========================================================
-            with tab_dash:
-                st.subheader("📊 Painel de Auditoria e Relatórios")
+        # =========================================================
+        # 5. ABA DE AUDITORIA E RELATÓRIOS (DASHBOARD)
+        # =========================================================
+        with tab_dash:
+            st.subheader("📊 Painel de Auditoria e Relatórios")
+            
+            # 1. Métricas Globais (Cards Superiores)
+            c1, c2, c3, c4 = st.columns(4)
+            
+            total_acervo = len(df_acervo) if not df_acervo.empty else 0
+            total_exemplares = len(df_exemplares) if not df_exemplares.empty else 0
+            emp_ativos = len(df_emp[df_emp['status'] == 'Ativo']) if not df_emp.empty else 0
+            disponiveis = len(df_exemplares[df_exemplares['disponivel'] == True]) if not df_exemplares.empty else 0
+            
+            c1.metric("Obras Cadastradas", total_acervo)
+            c2.metric("Total Físico (Exemplares)", total_exemplares)
+            c3.metric("Empréstimos Ativos", emp_ativos, delta="-ocupados", delta_color="inverse")
+            c4.metric("Disponíveis na Estante", disponiveis, delta="+livres")
+            
+            st.markdown("---")
+            
+            # 2. Relatório de Empréstimos Ativos (Com cruzamento de dados)
+            st.markdown("#### 🚨 Acompanhamento de Empréstimos e Atrasos")
+            
+            if not df_emp.empty:
+                ativos = df_emp[df_emp['status'] == 'Ativo'].copy()
                 
-                # 1. Métricas Globais (Cards Superiores)
-                c1, c2, c3, c4 = st.columns(4)
-                
-                total_acervo = len(df_acervo) if not df_acervo.empty else 0
-                total_exemplares = len(df_exemplares) if not df_exemplares.empty else 0
-                emp_ativos = len(df_emp[df_emp['status'] == 'Ativo']) if not df_emp.empty else 0
-                disponiveis = len(df_exemplares[df_exemplares['disponivel'] == True]) if not df_exemplares.empty else 0
-                
-                c1.metric("Obras Cadastradas", total_acervo)
-                c2.metric("Total Físico (Exemplares)", total_exemplares)
-                c3.metric("Empréstimos Ativos", emp_ativos, delta="-ocupados", delta_color="inverse")
-                c4.metric("Disponíveis na Estante", disponiveis, delta="+livres")
-                
-                st.markdown("---")
-                
-                # 2. Relatório de Empréstimos Ativos (Com cruzamento de dados)
-                st.markdown("#### 🚨 Acompanhamento de Empréstimos e Atrasos")
-                
-                if not df_emp.empty:
-                    ativos = df_emp[df_emp['status'] == 'Ativo'].copy()
+                if not ativos.empty:
+                    dados_relatorio = []
+                    hoje = datetime.now()
                     
-                    if not ativos.empty:
-                        dados_relatorio = []
-                        hoje = datetime.now()
+                    for _, emp in ativos.iterrows():
+                        ex_info = df_exemplares[df_exemplares['id'] == emp['id_exemplar']]
+                        if not ex_info.empty:
+                            tombo_val = ex_info.iloc[0]['tombo']
+                            id_ac = ex_info.iloc[0]['id_acervo']
+                            
+                            ac_info = df_acervo[df_acervo['id'] == id_ac]
+                            titulo_val = ac_info.iloc[0]['titulo'] if not ac_info.empty else "Título não localizado"
+                            
+                            data_prev_str = emp['data_prevista']
+                            dias_atraso = 0
+                            is_atrasado = False
+                            status_texto = "✅ No Prazo"
+                            
+                            try:
+                                data_prev = datetime.strptime(data_prev_str, "%d/%m/%Y")
+                                diferenca = (hoje.date() - data_prev.date()).days
+                                
+                                if diferenca > 0:
+                                    is_atrasado = True
+                                    dias_atraso = diferenca
+                                    status_texto = f"🚨 Atrasado ({dias_atraso} dias)"
+                            except Exception:
+                                status_texto = "❓ Erro na Data"
+
+                            dados_relatorio.append({
+                                "Leitor / Aluno": emp['leitor'],
+                                "Título da Obra": titulo_val,
+                                "Tombo": tombo_val,
+                                "Data de Retirada": emp['data_saida'],
+                                "Devolução Prevista": data_prev_str,
+                                "Status": status_texto,
+                                "_is_atrasado": is_atrasado,
+                                "_dias_atraso": dias_atraso
+                            })
+                            
+                    if dados_relatorio:
+                        df_relatorio = pd.DataFrame(dados_relatorio)
+                        df_relatorio = df_relatorio.sort_values(by=['_is_atrasado', '_dias_atraso'], ascending=[False, False])
                         
-                        for _, emp in ativos.iterrows():
-                            # Procura qual é o Tombo deste empréstimo
-                            ex_info = df_exemplares[df_exemplares['id'] == emp['id_exemplar']]
-                            if not ex_info.empty:
-                                tombo_val = ex_info.iloc[0]['tombo']
-                                id_ac = ex_info.iloc[0]['id_acervo']
-                                
-                                # Procura o Título da obra
-                                ac_info = df_acervo[df_acervo['id'] == id_ac]
-                                titulo_val = ac_info.iloc[0]['titulo'] if not ac_info.empty else "Título não localizado"
-                                
-                                # --- CÁLCULO DE ATRASO ---
-                                data_prev_str = emp['data_prevista']
-                                dias_atraso = 0
-                                is_atrasado = False
-                                status_texto = "✅ No Prazo"
-                                
-                                try:
-                                    # Converte a string da data para objeto datetime
-                                    data_prev = datetime.strptime(data_prev_str, "%d/%m/%Y")
-                                    # Calcula a diferença em dias
-                                    diferenca = (hoje.date() - data_prev.date()).days
-                                    
-                                    if diferenca > 0:
-                                        is_atrasado = True
-                                        dias_atraso = diferenca
-                                        status_texto = f"🚨 Atrasado ({dias_atraso} dias)"
-                                except Exception:
-                                    status_texto = "❓ Erro na Data"
-
-                                dados_relatorio.append({
-                                    "Leitor / Aluno": emp['leitor'],
-                                    "Título da Obra": titulo_val,
-                                    "Tombo": tombo_val,
-                                    "Data de Retirada": emp['data_saida'],
-                                    "Devolução Prevista": data_prev_str,
-                                    "Status": status_texto,
-                                    "_is_atrasado": is_atrasado,
-                                    "_dias_atraso": dias_atraso
-                                })
-                                
-                        if dados_relatorio:
-                            df_relatorio = pd.DataFrame(dados_relatorio)
+                        df_exibicao = df_relatorio.drop(columns=['_is_atrasado', '_dias_atraso'])
+                        
+                        pesquisa_aluno = st.text_input("🔍 Buscar Aluno:", placeholder="Digite o nome ou turma...")
+                        if pesquisa_aluno:
+                            df_exibicao = df_exibicao[df_exibicao['Leitor / Aluno'].str.contains(pesquisa_aluno, case=False, na=False)]
                             
-                            # Ordena para mostrar os atrasados primeiro, e depois pelo número de dias de atraso
-                            df_relatorio = df_relatorio.sort_values(by=['_is_atrasado', '_dias_atraso'], ascending=[False, False])
+                        st.dataframe(df_exibicao, use_container_width=True, hide_index=True)
+                        
+                        st.markdown("---")
+                        
+                        # 3. IMPRESSÃO DE AVISOS DE COBRANÇA
+                        st.markdown("#### 🖨️ Emissão de Avisos de Cobrança (Atrasados)")
+                        
+                        df_atrasados = df_relatorio[df_relatorio['_is_atrasado'] == True]
+                        
+                        if not df_atrasados.empty:
+                            st.warning(f"Existem **{len(df_atrasados)}** empréstimos atrasados.")
                             
-                            # Separa os dados de exibição (esconde colunas de controle interno)
-                            df_exibicao = df_relatorio.drop(columns=['_is_atrasado', '_dias_atraso'])
+                            opcoes_cobranca = [
+                                f"{row['Leitor / Aluno']} | Livro: {row['Título da Obra']} | Tombo: {row['Tombo']}"
+                                for _, row in df_atrasados.iterrows()
+                            ]
                             
-                            # Adiciona uma caixa de pesquisa
-                            pesquisa_aluno = st.text_input("🔍 Buscar Aluno:", placeholder="Digite o nome ou turma...")
-                            if pesquisa_aluno:
-                                df_exibicao = df_exibicao[df_exibicao['Leitor / Aluno'].str.contains(pesquisa_aluno, case=False, na=False)]
+                            idx_selecionado = st.selectbox("Selecione o empréstimo para gerar o bilhete:", range(len(opcoes_cobranca)), format_func=lambda x: opcoes_cobranca[x])
+                            
+                            if st.button("🖨️ Imprimir Aviso de Cobrança", type="primary"):
+                                aluno_cobrar = df_atrasados.iloc[idx_selecionado]
                                 
-                            # Exibe a tabela
-                            st.dataframe(df_exibicao, use_container_width=True, hide_index=True)
-                            
-                            st.markdown("---")
-                            
-                            # ==========================================
-                            # 3. IMPRESSÃO DE AVISOS DE COBRANÇA
-                            # ==========================================
-                            st.markdown("#### 🖨️ Emissão de Avisos de Cobrança (Atrasados)")
-                            
-                            # Filtra apenas os alunos que estão com is_atrasado = True
-                            df_atrasados = df_relatorio[df_relatorio['_is_atrasado'] == True]
-                            
-                            if not df_atrasados.empty:
-                                st.warning(f"Existem **{len(df_atrasados)}** empréstimos atrasados.")
-                                
-                                # Cria uma lista formatada para o selectbox
-                                opcoes_cobranca = [
-                                    f"{row['Leitor / Aluno']} | Livro: {row['Título da Obra']} | Tombo: {row['Tombo']}"
-                                    for _, row in df_atrasados.iterrows()
-                                ]
-                                
-                                idx_selecionado = st.selectbox("Selecione o empréstimo para gerar o bilhete:", range(len(opcoes_cobranca)), format_func=lambda x: opcoes_cobranca[x])
-                                
-                                if st.button("🖨️ Imprimir Aviso de Cobrança", type="primary"):
-                                    aluno_cobrar = df_atrasados.iloc[idx_selecionado]
-                                    
-                                    html_cobranca = f"""
-                                    <div id="cobranca_doc" style="width:88mm; padding:3mm; box-sizing:border-box; font-family:'Courier New', Courier, monospace; font-size:12px; border:1px solid #000; background:#fff; color:#000; margin:0 auto;">
-                                        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px;">
-                                            <b style="font-size:14px;">PREFEITURA MUNICIPAL DE LIMEIRA</b><br>
-                                            <b style="font-size:15px;">CEIEF RAFAEL AFFONSO LEITE</b><br>
-                                            <span style="font-size:12px; font-weight:bold;">SALA DE LEITURA</span><br>
-                                        </div>
-
-                                        <div style="margin-top:15px; text-align:center; border:2px dashed #000; padding:5px;">
-                                            <b style="font-size:16px;">⚠️ AVISO DE ATRASO ⚠️</b>
-                                        </div>
-
-                                        <div style="margin-top:15px;">
-                                            <b>ALUNO:</b> {aluno_cobrar['Leitor / Aluno']}<br>
-                                            <b>TOMBO:</b> {aluno_cobrar['Tombo']}<br>
-                                            <b>OBRA:</b> {aluno_cobrar['Título da Obra']}
-                                        </div>
-
-                                        <div style="margin-top:15px; background:#000; color:#fff; text-align:center; padding:10px;">
-                                            <span style="font-size:12px;">VENCIDO DESDE:</span><br>
-                                            <b style="font-size:22px;">{aluno_cobrar['Devolução Prevista']}</b><br>
-                                            <span style="font-size:14px; color:#ffcccc;">({aluno_cobrar['_dias_atraso']} dias de atraso)</span>
-                                        </div>
-
-                                        <div style="margin-top:15px; font-size:11px; text-align:justify; border:1px solid #ccc; padding:8px;">
-                                            <b>Sr(a) Responsável,</b><br><br>
-                                            Consta em nossos registros que o livro acima não foi devolvido no prazo estipulado. Solicitamos a devolução <b>imediata</b> para que outros alunos também possam realizar a leitura.<br><br>
-                                            Em caso de perda ou dano, favor procurar a Direção da escola.
-                                        </div>
-
-                                        <div style="margin-top:35px; text-align:center;">
-                                            ________________________________<br>Ciência do Responsável<br><br>
-                                            ________________________________<br>Data
-                                        </div>
+                                html_cobranca = f"""
+                                <div id="cobranca_doc" style="width:88mm; padding:3mm; box-sizing:border-box; font-family:'Courier New', Courier, monospace; font-size:12px; border:1px solid #000; background:#fff; color:#000; margin:0 auto;">
+                                    <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px;">
+                                        <b style="font-size:14px;">PREFEITURA MUNICIPAL DE LIMEIRA</b><br>
+                                        <b style="font-size:15px;">CEIEF RAFAEL AFFONSO LEITE</b><br>
+                                        <span style="font-size:12px; font-weight:bold;">SALA DE LEITURA</span><br>
                                     </div>
-                                    <script>setTimeout(function(){{ window.print(); }}, 1000);</script>
-                                    """
-                                    st.components.v1.html(html_cobranca, height=750)
-                            else:
-                                st.success("Excelente! Não há nenhum livro atrasado no momento.")
 
+                                    <div style="margin-top:15px; text-align:center; border:2px dashed #000; padding:5px;">
+                                        <b style="font-size:16px;">⚠️ AVISO DE ATRASO ⚠️</b>
+                                    </div>
+
+                                    <div style="margin-top:15px;">
+                                        <b>ALUNO:</b> {aluno_cobrar['Leitor / Aluno']}<br>
+                                        <b>TOMBO:</b> {aluno_cobrar['Tombo']}<br>
+                                        <b>OBRA:</b> {aluno_cobrar['Título da Obra']}
+                                    </div>
+
+                                    <div style="margin-top:15px; background:#000; color:#fff; text-align:center; padding:10px;">
+                                        <span style="font-size:12px;">VENCIDO DESDE:</span><br>
+                                        <b style="font-size:22px;">{aluno_cobrar['Devolução Prevista']}</b><br>
+                                        <span style="font-size:14px; color:#ffcccc;">({aluno_cobrar['_dias_atraso']} dias de atraso)</span>
+                                    </div>
+
+                                    <div style="margin-top:15px; font-size:11px; text-align:justify; border:1px solid #ccc; padding:8px;">
+                                        <b>Sr(a) Responsável,</b><br><br>
+                                        Consta em nossos registros que o livro acima não foi devolvido no prazo estipulado. Solicitamos a devolução <b>imediata</b> para que outros alunos também possam realizar a leitura.<br><br>
+                                        Em caso de perda ou dano, favor procurar a Direção da escola.
+                                    </div>
+
+                                    <div style="margin-top:35px; text-align:center;">
+                                        ________________________________<br>Ciência do Responsável<br><br>
+                                        ________________________________<br>Data
+                                    </div>
+                                </div>
+                                <script>setTimeout(function(){{ window.print(); }}, 1000);</script>
+                                """
+                                st.components.v1.html(html_cobranca, height=750)
                         else:
-                            st.warning("Não foi possível cruzar os dados dos exemplares.")
+                            st.success("Excelente! Não há nenhum livro atrasado no momento.")
+
                     else:
-                        st.success("🎉 Todos os livros da escola estão devolvidos no momento!")
+                        st.warning("Não foi possível cruzar os dados dos exemplares.")
                 else:
-                    st.info("Nenhum histórico de circulação encontrado.")
-                    
-                st.markdown("---")
+                    st.success("🎉 Todos os livros da escola estão devolvidos no momento!")
+            else:
+                st.info("Nenhum histórico de circulação encontrado.")
                 
-                # 4. Ferramentas de Exportação
-                st.markdown("#### 🗃️ Exportação de Dados")
-                col_down1, col_down2 = st.columns(2)
-                
-                with col_down1:
-                    if not df_acervo.empty:
-                        csv_acervo = df_acervo.to_csv(index=False, sep=';').encode('latin1', errors='replace')
-                        st.download_button(
-                            label="📥 Descarregar Acervo Completo",
-                            data=csv_acervo,
-                            file_name=f"acervo_escola_{datetime.now().strftime('%Y%m%d')}.csv",
-                            mime="text/csv",
-                            use_container_width=True
-                        )
-                
-                with col_down2:
-                    if not df_emp.empty:
-                        csv_emp = df_emp.to_csv(index=False, sep=';').encode('latin1', errors='replace')
-                        st.download_button(
-                            label="📥 Descarregar Histórico de Circulação",
-                            data=csv_emp,
-                            file_name=f"circulacao_escola_{datetime.now().strftime('%Y%m%d')}.csv",
-                            mime="text/csv",
-                            use_container_width=True
-                        )
+            st.markdown("---")
+            
+            # 4. Ferramentas de Exportação
+            st.markdown("#### 🗃️ Exportação de Dados")
+            col_down1, col_down2 = st.columns(2)
+            
+            with col_down1:
+                if not df_acervo.empty:
+                    csv_acervo = df_acervo.to_csv(index=False, sep=';').encode('latin1', errors='replace')
+                    st.download_button(
+                        label="📥 Descarregar Acervo Completo",
+                        data=csv_acervo,
+                        file_name=f"acervo_escola_{datetime.now().strftime('%Y%m%d')}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+            
+            with col_down2:
+                if not df_emp.empty:
+                    csv_emp = df_emp.to_csv(index=False, sep=';').encode('latin1', errors='replace')
+                    st.download_button(
+                        label="📥 Descarregar Histórico de Circulação",
+                        data=csv_emp,
+                        file_name=f"circulacao_escola_{datetime.now().strftime('%Y%m%d')}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )

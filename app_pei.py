@@ -9233,7 +9233,7 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                             <b style="font-size:14px;">PREFEITURA MUNICIPAL DE LIMEIRA</b><br>
                             <b style="font-size:15px;">CEIEF RAFAEL AFFONSO LEITE</b><br>
                             <span style="font-size:12px; font-weight:bold;">SALA DE LEITURA</span><br>
-                            <span style="font-size:10px;">Rua Antonio Alves de Oliveira, 250 - Jd. Pres. Dutra</span><br>
+                            <span style="font-size:10px;">Rua Antonio Alves de Oliveira, 250 - Jd. Pres. Dutra - Limeira - São Paulo</span><br>
                             <span style="font-size:10px;">Contato: (19) 3495-5390</span>
                         </div>
 

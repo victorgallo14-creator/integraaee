@@ -9228,23 +9228,23 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                 if 'comprovante' in st.session_state:
                     cp = st.session_state.comprovante
                     html_final = f"""
-                    <div id="cupom_doc" style="width:300px; padding:10px; font-family:'Courier New', Courier, monospace; font-size:10px; border:1px solid #000; background:#fff; color:#000;">
-                        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 5px;">
-                            <b style="font-size:11px;">PREFEITURA MUNICIPAL DE LIMEIRA</b><br>
-                            <b style="font-size:12px;">CEIEF RAFAEL AFFONSO LEITE</b><br>
-                            <small>SALA DE LEITURA</small><br>
-                            <span style="font-size:8px;">Rua Antonio Alves de Oliveira, 250 - Jd. Pres. Dutra</span><br>
-                            <span style="font-size:8px;">Contato: (19) 3495-5390</span>
+                    <div id="cupom_doc" style="width:340px; padding:15px; font-family:'Courier New', Courier, monospace; font-size:12px; border:1px solid #000; background:#fff; color:#000;">
+                        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px;">
+                            <b style="font-size:14px;">PREFEITURA MUNICIPAL DE LIMEIRA</b><br>
+                            <b style="font-size:15px;">CEIEF RAFAEL AFFONSO LEITE</b><br>
+                            <span style="font-size:12px; font-weight:bold;">SALA DE LEITURA</span><br>
+                            <span style="font-size:10px;">Rua Antonio Alves de Oliveira, 250 - Jd. Pres. Dutra</span><br>
+                            <span style="font-size:10px;">Contato: (19) 3495-5390</span>
                         </div>
 
-                        <div style="margin-top:10px;">
+                        <div style="margin-top:12px;">
                             <b>ALUNO:</b> {cp['aluno']}<br>
                             <b>TURMA:</b> {cp['turma']} | <b>STATUS:</b> Ativo<br>
                             <b>ATENDENTE:</b> {cp['atendente']}
                         </div>
                         <hr style="border:0; border-top:1px dashed #000;">
 
-                        <div style="font-size:9px;">
+                        <div style="font-size:11px; margin-top:10px;">
                             <b>OBRA:</b> {cp['livro']}<br>
                             <b>AUTOR:</b> {cp['autor']}<br>
                             <b>EDITORA:</b> {cp['editora']}<br>
@@ -9252,41 +9252,88 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                             <b>TOMBO:</b> {cp['tombo']} | <b>ESTADO:</b> [ ]Ótimo [ ]Bom
                         </div>
 
-                        <div style="margin-top:10px; background:#000; color:#fff; text-align:center; padding:5px;">
-                            <span style="font-size:9px;">DATA DE DEVOLUÇÃO:</span><br>
-                            <b style="font-size:20px;">{cp['vencimento']}</b>
+                        <div style="margin-top:12px; background:#000; color:#fff; text-align:center; padding:8px;">
+                            <span style="font-size:11px;">DATA DE DEVOLUÇÃO:</span><br>
+                            <b style="font-size:24px;">{cp['vencimento']}</b>
                         </div>
 
-                        <div style="margin-top:10px; font-size:8px; text-align:justify; border:1px solid #ccc; padding:5px;">
-                            <center><b>TERMO DE COMPROMISSO E ZELO</b></center>
+                        <div style="margin-top:12px; font-size:10px; text-align:justify; border:1px solid #ccc; padding:8px;">
+                            <center><b style="font-size:11px;">TERMO DE COMPROMISSO E ZELO</b></center>
                             O aluno/responsável declara-se ciente da guarda e conservação desta obra. 
                             Proibido: riscar, dobrar páginas ou manusear próximo a líquidos. 
                             Em caso de perda ou dano, deverá repor por exemplar idêntico.
                         </div>
 
-                        <div style="margin-top:10px; border:1px solid #000; padding:5px;">
+                        <div style="margin-top:12px; border:1px solid #000; padding:8px;">
                             <b>AVALIAÇÃO:</b> ☆ ☆ ☆ ☆ ☆<br>
                             <b>DESAFIO:</b> Palavra nova que aprendi:<br>
                             ___________________________________<br>
-                            <small>[ ]Guardei em lugar seco [ ]Usei marcador</small>
+                            <span style="font-size:9px;">[ ]Guardei em lugar seco [ ]Usei marcador</span>
                         </div>
 
-                        <div style="margin-top:20px; text-align:center;">
+                        <div style="margin-top:25px; text-align:center;">
                             ___________________________________<br>Assinatura do Aluno<br><br>
                             ___________________________________<br>Visto Sala de Leitura
                         </div>
 
-                        <div style="margin-top:15px; text-align:center; font-size:9px; border-top:1px solid #000; padding-top:5px;">
+                        <div style="margin-top:20px; text-align:center; font-size:11px; border-top:1px solid #000; padding-top:8px;">
                             <i>"{cp['frase']}"</i><br>
-                            <small>Sistema Integra - {cp['data']}</small>
+                            <span style="font-size:9px;">Sistema Integra - {cp['data']}</span>
                         </div>
                     </div>
                     <script>setTimeout(function(){{ window.print(); }}, 1000);</script>
                     """
-                    st.components.v1.html(html_final, height=850) # Altura maior para o componente aparecer
+                    st.components.v1.html(html_final, height=900) 
                     if st.button("Finalizar Atendimento"):
                         del st.session_state.comprovante; st.rerun()
+
+
+                    # ==========================================
+            # COLUNA DIREITA: DEVOLUÇÃO (RECEBIMENTO)
+            # ==========================================
+            with c_in:
+                st.markdown("### 📥 Devolução de Livro")
+                with st.form("form_devolucao"):
+                    tombo_in = st.text_input("Bipar ou Digitar Tombo para Devolução:")
+                    
+                    if st.form_submit_button("Confirmar Devolução", type="primary"):
+                        if tombo_in:
+                            t_limpo = str(tombo_in).strip().replace('.0', '')
+                            
+                            # 1. Busca o exemplar
+                            res_ex = supabase.table("Biblioteca_Exemplares").select("id").eq("tombo", t_limpo).execute()
+                            
+                            if res_ex.data:
+                                id_ex = res_ex.data[0]['id']
                                 
+                                # 2. Busca se existe um empréstimo ATIVO para esse exemplar
+                                res_emp = supabase.table("Biblioteca_Emprestimos").select("*").eq("id_exemplar", id_ex).eq("status", "Ativo").execute()
+                                
+                                if res_emp.data:
+                                    id_emp = res_emp.data[0]['id']
+                                    hj = datetime.now().strftime("%d/%m/%Y %H:%M")
+                                    
+                                    # 3. Atualiza o empréstimo para 'Devolvido' e o exemplar para 'Disponível'
+                                    supabase.table("Biblioteca_Emprestimos").update({
+                                        "status": "Devolvido", 
+                                        "data_devolucao": hj # Adiciona a data real da entrega
+                                    }).eq("id", id_emp).execute()
+                                    
+                                    supabase.table("Biblioteca_Exemplares").update({"disponivel": True}).eq("id", id_ex).execute()
+                                    
+                                    st.success(f"✅ Tombo {t_limpo} devolvido com sucesso!")
+                                    time.sleep(1)
+                                    st.rerun()
+                                else:
+                                    st.warning("Este livro já consta como disponível no sistema ou não possui empréstimo ativo.")
+                            else:
+                                st.error("Tombo não encontrado no sistema.")
+                        else:
+                            st.error("Por favor, digite ou bipe um número de tombo.")
+
+                # Dica visual para o bibliotecário
+                st.markdown("---")
+                st.info("💡 Dica: Ao confirmar a devolução, o livro volta a aparecer imediatamente como 'Disponível' na consulta do acervo.")
                     
 # =========================================================
     # 4. INCORPORAÇÃO TÉCNICA (CENTRAL DE ACERVO)

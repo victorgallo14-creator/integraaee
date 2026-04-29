@@ -6695,7 +6695,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                                     pdf.set_font("Arial", "B", 10)
                                     pdf.set_x(15)
                                     pdf.cell(180, 5, clean_pdf_text(f"  {chr(149)}  {est}:"), "LR", 1, 'L')
-                                    texto_tardio = f"Matriculado(a) nesta sala em {mat}. Portanto, obteve um total de frequência de {freq} dias letivos."
+                                    texto_tardio = f"Matriculado(a) nesta sala em {mat}. Portanto, o período correspondente à sua matrícula compreende um total de {freq} dias letivos."
                                     pdf.set_font("Arial", "", 10)
                                     pdf.set_x(15)
                                     pdf.multi_cell(180, 5, clean_pdf_text(f"  {texto_tardio}"), "LR", 'J')
@@ -7360,7 +7360,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                                     pdf.set_font("Arial", "B", 10)
                                     pdf.set_x(15)
                                     pdf.cell(180, 5, clean_pdf_text(f"  {chr(149)}  {est}:"), "LR", 1, 'L')
-                                    texto_tardio = f"Matriculado(a) nesta sala em {mat}. Portanto, obteve um total de frequência de {freq} dias letivos."
+                                    texto_tardio = f"Matriculado(a) nesta sala em {mat}. Portanto, o período correspondente à sua matrícula compreende um total de {freq} dias letivos."
                                     pdf.set_font("Arial", "", 10)
                                     pdf.set_x(15)
                                     pdf.multi_cell(180, 5, clean_pdf_text(f"  {texto_tardio}"), "LR", 'J')

@@ -8984,6 +8984,7 @@ if st.session_state.get("modulo_atuacao") == "📂 Administrativo":
 
 import uuid
 import time
+import math  # <--- ADICIONE ESTA LINHA AQUI
 import requests
 import pandas as pd
 import streamlit as st

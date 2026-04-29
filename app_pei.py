@@ -9288,16 +9288,18 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                         del st.session_state.comprovante; st.rerun()
 
 
-                    # ==========================================
+            # ==========================================
             # COLUNA DIREITA: DEVOLUÇÃO (RECEBIMENTO)
             # ==========================================
             with c_in:
                 st.markdown("### 📥 Devolução de Livro")
-                with st.form("form_devolucao"):
-                    tombo_in = st.text_input("Bipar ou Digitar Tombo para Devolução:")
-                    
-                    if st.form_submit_button("Confirmar Devolução", type="primary"):
-                        if tombo_in:
+                
+                # Removido o st.form para ter uma resposta mais imediata
+                tombo_in = st.text_input("Bipar ou Digitar Tombo para Devolução:", key="input_dev")
+                
+                if st.button("Confirmar Devolução", type="primary", key="btn_dev"):
+                    if tombo_in:
+                        try:
                             t_limpo = str(tombo_in).strip().replace('.0', '')
                             
                             # 1. Busca o exemplar
@@ -9311,27 +9313,26 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                                 
                                 if res_emp.data:
                                     id_emp = res_emp.data[0]['id']
-                                    hj = datetime.now().strftime("%d/%m/%Y %H:%M")
                                     
                                     # 3. Atualiza o empréstimo para 'Devolvido' e o exemplar para 'Disponível'
-                                    supabase.table("Biblioteca_Emprestimos").update({
-                                        "status": "Devolvido", 
-                                        "data_devolucao": hj # Adiciona a data real da entrega
-                                    }).eq("id", id_emp).execute()
-                                    
+                                    # (Removi a 'data_devolucao' caso a coluna não exista no seu Supabase)
+                                    supabase.table("Biblioteca_Emprestimos").update({"status": "Devolvido"}).eq("id", id_emp).execute()
                                     supabase.table("Biblioteca_Exemplares").update({"disponivel": True}).eq("id", id_ex).execute()
                                     
-                                    st.success(f"✅ Tombo {t_limpo} devolvido com sucesso!")
-                                    time.sleep(1)
+                                    st.success(f"✅ O livro do Tombo {t_limpo} foi devolvido com sucesso!")
+                                    time.sleep(2) # Aumentei o tempo para a mensagem verde ficar mais visível
                                     st.rerun()
                                 else:
-                                    st.warning("Este livro já consta como disponível no sistema ou não possui empréstimo ativo.")
+                                    st.warning(f"O Tombo {t_limpo} já consta como disponível ou não possui empréstimo ativo.")
                             else:
                                 st.error("Tombo não encontrado no sistema.")
-                        else:
-                            st.error("Por favor, digite ou bipe um número de tombo.")
+                        
+                        except Exception as e:
+                            # Se faltar alguma coluna no banco ou der erro de conexão, ele vai avisar aqui!
+                            st.error(f"❌ Erro de comunicação com o banco: {e}")
+                    else:
+                        st.error("Por favor, digite ou bipe um número de tombo.")
 
-                # Dica visual para o bibliotecário
                 st.markdown("---")
                 st.info("💡 Dica: Ao confirmar a devolução, o livro volta a aparecer imediatamente como 'Disponível' na consulta do acervo.")
                     

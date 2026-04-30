@@ -6,3 +6,6 @@ supabase
 python-docx
 st-gsheets-connection
 openpyxl
+gspread
+gspread-dataframe
+google-auth

@@ -7118,16 +7118,19 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                             
                             novo_json = json.dumps(dados_para_salvar, ensure_ascii=False)
                             id_ata = f"{data_inf.get('turma', 'SemTurma')} - {data_inf.get('trimestre', 'SemTri')} (Infantil)"
-                            df_atas = safe_read("Atas_Conselho", ["id_ata", "modalidade", "turma", "dados_json"])
                             
-                            if not df_atas.empty and "id_ata" in df_atas.columns and id_ata in df_atas["id_ata"].values:
-                                df_atas.loc[df_atas["id_ata"] == id_ata, "dados_json"] = novo_json
-                            else:
-                                novo_registro = {"id_ata": id_ata, "modalidade": "Educação Infantil", "turma": data_inf.get('turma', ''), "dados_json": novo_json}
-                                df_atas = pd.concat([df_atas, pd.DataFrame([novo_registro])], ignore_index=True)
+                            # Cria apenas o registro desta ata específica
+                            novo_registro = {
+                                "id_ata": id_ata, 
+                                "modalidade": "Educação Infantil", 
+                                "turma": data_inf.get('turma', ''), 
+                                "dados_json": novo_json
+                            }
                             
-                            safe_update("Atas_Conselho", df_atas)
-                            st.success(f"✅ Ata do Infantil salva com sucesso!")
+                            # Faz a atualização direta na linha do Supabase, sem mexer no resto da tabela
+                            supabase.table("Atas_Conselho").upsert(novo_registro).execute()
+                            
+                            st.success(f"✅ Ata do Infantil salva com sucesso e segurança!")
                         except Exception as e:
                             st.error(f"Erro ao salvar: {e}")
 

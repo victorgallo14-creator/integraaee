@@ -1213,13 +1213,6 @@ with st.sidebar:
         st.markdown('<div style="flex-grow: 1;"></div>', unsafe_allow_html=True)
 
 
-    # --- ÁREA EXCLUSIVA DO DIRETOR ---
-    if st.session_state.get('usuario_nome') == "José Victor Souza Gallo":
-        with st.sidebar.expander("⚙️ Ferramentas de Admin"):
-            if st.button("🚀 Migrar Fotos p/ Bucket"):
-                migrar_base64_para_bucket()
-    st.divider()
-
     # 4. RODAPÉ FIXO (já existe no seu código)
 
     # 4. RODAPÉ FIXO

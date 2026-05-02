@@ -1144,6 +1144,16 @@ with st.sidebar:
         
         st.markdown('<div style="flex-grow: 1;"></div>', unsafe_allow_html=True)
 
+
+    # --- ÁREA EXCLUSIVA DO DIRETOR ---
+    if st.session_state.get('usuario_nome') == "José Victor Souza Gallo":
+        with st.sidebar.expander("⚙️ Ferramentas de Admin"):
+            if st.button("🚀 Migrar Fotos p/ Bucket"):
+                migrar_base64_para_bucket()
+    st.divider()
+
+    # 4. RODAPÉ FIXO (já existe no seu código)
+
     # 4. RODAPÉ FIXO
     if st.sidebar.button("🚪 Sair", use_container_width=True):
         for key in list(st.session_state.keys()): del st.session_state[key]
@@ -9909,3 +9919,81 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
                         mime="text/csv",
                         use_container_width=True
                     )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import streamlit as st
+import json
+import base64
+import uuid
+
+def migrar_base64_para_bucket():
+    st.info("Iniciando a migração das fotos... Por favor, aguarde.")
+    
+    # 1. Puxa todos os alunos do banco
+    res = supabase.table("Alunos").select("id, nome, dados_json").execute()
+    sucessos = 0
+    erros = 0
+    
+    for row in res.data:
+        try:
+            dados = json.loads(row["dados_json"])
+            
+            # 2. Verifica se o aluno tem uma foto em Base64 salva
+            if "foto_base64" in dados and dados["foto_base64"]:
+                b64_string = dados.pop("foto_base64") # Remove o Base64 do JSON
+                
+                # 3. Transforma o texto Base64 de volta em bytes de imagem
+                # (Se a string tiver o cabeçalho 'data:image...', a gente tira)
+                if "," in b64_string:
+                    b64_string = b64_string.split(",")[1]
+                    
+                image_bytes = base64.b64decode(b64_string)
+                
+                # 4. Cria um nome de arquivo único para não sobrescrever fotos
+                nome_arquivo = f"{uuid.uuid4()}.jpg"
+                
+                # 5. Faz o Upload para o Bucket do Supabase
+                # O content-type avisa que é uma imagem
+                supabase.storage.from_("fotos_alunos").upload(
+                    file=image_bytes,
+                    path=nome_arquivo,
+                    file_options={"content-type": "image/jpeg"}
+                )
+                
+                # 6. Pega o Link Público da foto que acabou de ser enviada
+                url_publica = supabase.storage.from_("fotos_alunos").get_public_url(nome_arquivo)
+                
+                # 7. Salva o link no JSON novo no lugar do Base64
+                dados["foto_url"] = url_publica
+                novo_json_limpo = json.dumps(dados, ensure_ascii=False)
+                
+                # 8. Atualiza o banco de dados do aluno
+                supabase.table("Alunos").update({"dados_json": novo_json_limpo}).eq("id", row["id"]).execute()
+                
+                sucessos += 1
+                
+        except Exception as e:
+            st.error(f"Erro ao migrar a foto de {row.get('nome')}: {e}")
+            erros += 1
+            
+    st.success(f"✅ Migração finalizada! {sucessos} fotos convertidas com sucesso. ({erros} erros)")
+
+# Botão para você disparar a função
+if st.button("🚀 Iniciar Migração de Fotos para o Bucket"):
+    migrar_base64_para_bucket()

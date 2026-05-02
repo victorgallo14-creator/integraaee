@@ -299,6 +299,52 @@ def delete_carometro_entry(id_reg):
         return False
 # --- FIM DAS FUNÇÕES DE BANCO DE DADOS ---
 
+import uuid
+import base64
+import json
+
+def migrar_base64_para_bucket():
+    st.info("Iniciando a migração da foto da Alana... Por favor, aguarde.")
+    
+    # Puxa APENAS a Alana para o teste
+    res = supabase.table("Alunos").select("id, nome, dados_json").eq("nome", "ALANA HOLANDA DA SILVA").execute()
+    sucessos = 0
+    erros = 0
+    
+    for row in res.data:
+        try:
+            dados = json.loads(row["dados_json"])
+            
+            if "foto_base64" in dados and dados["foto_base64"]:
+                b64_string = dados.pop("foto_base64") 
+                
+                if "," in b64_string:
+                    b64_string = b64_string.split(",")[1]
+                    
+                image_bytes = base64.b64decode(b64_string)
+                nome_arquivo = f"{uuid.uuid4()}.jpg"
+                
+                # Certifique-se de que "fotos_alunos" é o nome exato do seu bucket
+                supabase.storage.from_("fotos_alunos").upload(
+                    file=image_bytes,
+                    path=nome_arquivo,
+                    file_options={"content-type": "image/jpeg"}
+                )
+                
+                url_publica = supabase.storage.from_("fotos_alunos").get_public_url(nome_arquivo)
+                
+                dados["foto_url"] = url_publica
+                novo_json_limpo = json.dumps(dados, ensure_ascii=False)
+                
+                supabase.table("Alunos").update({"dados_json": novo_json_limpo}).eq("id", row["id"]).execute()
+                
+                sucessos += 1
+                
+        except Exception as e:
+            st.error(f"Erro ao migrar a foto de {row.get('nome')}: {e}")
+            erros += 1
+            
+    st.success(f"✅ Migração finalizada! {sucessos} fotos convertidas com sucesso. ({erros} erros)")
 
 
 

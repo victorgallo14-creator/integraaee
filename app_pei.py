@@ -7910,17 +7910,20 @@ elif app_mode and "Carômetro" in app_mode:
         """, unsafe_allow_html=True)
 
         for nome_aluno in nomes_unicos:
-            # Busca registros desse aluno específico
+            # Busca registros desse aluno específico no DataFrame carregado
             registros_aluno = df_temp[df_temp['nome'] == nome_aluno]
-            foto_encontrada = None
+            
+            foto_url = None
+            foto_b64 = None
             prof_encontrado = "Não informado"
             
             for _, r in registros_aluno.iterrows():
                 try:
                     if r["dados_json"]:
                         d = json.loads(r["dados_json"])
-                        if not foto_encontrada:
-                            foto_encontrada = d.get("foto_url")
+                        if not foto_url: foto_url = d.get("foto_url")
+                        if not foto_b64: foto_b64 = d.get("foto_base64")
+                        
                         if prof_encontrado == "Não informado":
                             prof_encontrado = d.get("prof_aee") or d.get("resp_ee") or d.get("prof_poli") or "Não informado"
                 except Exception:
@@ -7930,56 +7933,61 @@ elif app_mode and "Carômetro" in app_mode:
                 with st.container(border=True):
                     st.markdown(f'<div class="caro-nome">{nome_aluno}</div>', unsafe_allow_html=True)
                     
-                    if foto_encontrada:
-                        img_html = f"<img src='data:image/jpeg;base64,{foto_encontrada}' style='width: 100%; height: 100%; object-fit: cover;'>"
+                    # --- LÓGICA DE EXIBIÇÃO CORRIGIDA ---
+                    if foto_url and str(foto_url).startswith("http"):
+                        # Se for link da nuvem, carrega a URL pura
+                        img_html = f"<img src='{foto_url}' style='width: 100%; height: 100%; object-fit: cover;'>"
+                    elif foto_b64:
+                        # Limpa qualquer prefixo residual que possa ter ficado no base64
+                        clean_b64 = foto_b64.replace("data:image/jpeg;base64,", "").replace("data:image/png;base64,", "")
+                        # Monta a string base64 corretamente
+                        img_html = f"<img src='data:image/jpeg;base64,{clean_b64}' style='width: 100%; height: 100%; object-fit: cover;'>"
                     else:
                         img_html = "<div style='font-size: 40px; opacity: 0.2;'>👤</div>"
                     
                     st.markdown(f'<div class="caro-foto-frame">{img_html}</div>', unsafe_allow_html=True)
                     st.markdown(f'<div class="caro-prof"><b>Prof(a) AEE:</b><br>{prof_encontrado}</div>', unsafe_allow_html=True)
 
+                    # --- UPLOAD DE FOTOS (ATUALIZADO PARA BUCKETS) ---
                     key_up = f"caro_up_{nome_aluno.replace(' ', '_')}"
                     new_file = st.file_uploader("Trocar", type=["jpg", "png", "jpeg"], key=key_up, label_visibility="collapsed")
                     
                     if new_file:
                         try:
-                            from PIL import Image
-                            import io, base64, time
+                            import uuid
                             
-                            img = Image.open(new_file)
-                            if img.mode != 'RGB': img = img.convert('RGB')
-                            img.thumbnail((400, 500))
-                            buf = io.BytesIO()
-                            img.save(buf, format="JPEG", quality=85)
-                            nova_foto_b64 = base64.b64encode(buf.getvalue()).decode()
+                            # 1. Faz Upload da nova foto para o Supabase Storage
+                            nome_arquivo = f"{uuid.uuid4()}.jpg"
+                            supabase.storage.from_("fotos_alunos").upload(
+                                file=new_file.getvalue(),
+                                path=nome_arquivo,
+                                file_options={"content-type": new_file.type}
+                            )
+                            # 2. Pega o Link Público
+                            nova_url = supabase.storage.from_("fotos_alunos").get_public_url(nome_arquivo)
                             
-                            df_sync = load_db(strict=True)
-                            if df_sync is not None and not df_sync.empty:
-                                df_sync['nome'] = df_sync['nome'].str.strip()
-                                foi_atualizado = False
+                            # 3. Atualização Cirúrgica no Banco (Sem usar safe_update)
+                            # Puxamos apenas as linhas desse aluno
+                            res_aluno = supabase.table("Alunos").select("id, dados_json").eq("nome", nome_aluno).execute()
+                            registros_aluno_db = res_aluno.data if hasattr(res_aluno, 'data') else res_aluno
+                            
+                            for row_db in registros_aluno_db:
+                                d_s = json.loads(row_db['dados_json'])
+                                d_s['foto_url'] = nova_url
                                 
-                                for i_s, r_s in df_sync.iterrows():
-                                    if r_s['nome'] == nome_aluno:
-                                        try:
-                                            d_s = json.loads(r_s['dados_json'])
-                                            d_s['foto_base64'] = nova_foto_b64
-                                            df_sync.at[i_s, 'dados_json'] = json.dumps(d_s, ensure_ascii=False)
-                                            foi_atualizado = True
-                                        except Exception:
-                                            pass
+                                # Limpa o base64 antigo se existir, para manter o banco leve
+                                if 'foto_base64' in d_s:
+                                    del d_s['foto_base64']
                                 
-                                if foi_atualizado:
-                                    if len(df_sync) >= len(df_full):
-                                        if safe_update("Alunos", df_sync):
-                                            st.success("✅ Sincronizado!")
-                                            time.sleep(1)
-                                            st.rerun()
-                                        else:
-                                            st.error("Erro no banco.")
-                                    else:
-                                        st.error("🛑 Erro: Perda de dados detectada.")
+                                # Atualiza APENAS esta linha no Supabase
+                                supabase.table("Alunos").update({"dados_json": json.dumps(d_s, ensure_ascii=False)}).eq("id", row_db["id"]).execute()
+                            
+                            st.success("✅ Foto atualizada!")
+                            time.sleep(1)
+                            st.rerun()
+                            
                         except Exception as e_up:
-                            st.error(f"Erro na imagem: {e_up}")
+                            st.error(f"Erro ao salvar imagem: {e_up}")
 
             idx_col = (idx_col + 1) % 5
 

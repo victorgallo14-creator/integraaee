@@ -9946,7 +9946,7 @@ def migrar_base64_para_bucket():
     st.info("Iniciando a migração das fotos... Por favor, aguarde.")
     
     # 1. Puxa todos os alunos do banco
-    res = supabase.table("Alunos").select("id, nome, dados_json").execute()
+    res = supabase.table("Alunos").select("id, nome, dados_json").eq("nome", "ALANA HOLANDA DA SILVA").execute()
     sucessos = 0
     erros = 0
     

@@ -303,19 +303,32 @@ def delete_carometro_entry(id_reg):
 import uuid
 import base64
 import json
+import urllib.request # Importante para baixar as fotos depois
 
 def migrar_base64_para_bucket():
-    st.info("Iniciando a migração da foto da Alana... Por favor, aguarde.")
+    st.info("Iniciando a migração das fotos de toda a escola... Isso pode levar alguns minutos.")
     
-    # Puxa APENAS a Alana para o teste
-    res = supabase.table("Alunos").select("id, nome, dados_json")
+    # 1. Puxa TODOS os alunos do banco
+    res = supabase.table("Alunos").select("id, nome, dados_json").execute()
+    
+    # Tratamento de erro vital: dependendo da versão, os dados podem estar em res.data ou no próprio res
+    registros = res.data if hasattr(res, 'data') else res
+    
     sucessos = 0
     erros = 0
+    ignorados = 0
     
-    for row in res.data:
+    # Cria uma barra de progresso visual para você acompanhar
+    barra_progresso = st.progress(0)
+    total_alunos = len(registros)
+    texto_status = st.empty()
+    
+    for i, row in enumerate(registros):
         try:
+            texto_status.text(f"Analisando: {row.get('nome', 'Desconhecido')} ({i+1}/{total_alunos})")
             dados = json.loads(row["dados_json"])
             
+            # Verifica se o aluno tem uma foto em Base64 salva
             if "foto_base64" in dados and dados["foto_base64"]:
                 b64_string = dados.pop("foto_base64") 
                 
@@ -325,27 +338,36 @@ def migrar_base64_para_bucket():
                 image_bytes = base64.b64decode(b64_string)
                 nome_arquivo = f"{uuid.uuid4()}.jpg"
                 
-                # Certifique-se de que "fotos_alunos" é o nome exato do seu bucket
+                # Faz o Upload para o Bucket
                 supabase.storage.from_("fotos_alunos").upload(
                     file=image_bytes,
                     path=nome_arquivo,
                     file_options={"content-type": "image/jpeg"}
                 )
                 
+                # Pega a URL
                 url_publica = supabase.storage.from_("fotos_alunos").get_public_url(nome_arquivo)
                 
+                # Salva o link no JSON novo no lugar do Base64
                 dados["foto_url"] = url_publica
                 novo_json_limpo = json.dumps(dados, ensure_ascii=False)
                 
+                # Atualiza o banco de dados
                 supabase.table("Alunos").update({"dados_json": novo_json_limpo}).eq("id", row["id"]).execute()
                 
                 sucessos += 1
+            else:
+                ignorados += 1 # Aluno não tem foto em base64 (ou não tem foto, ou já foi migrado)
                 
         except Exception as e:
             st.error(f"Erro ao migrar a foto de {row.get('nome')}: {e}")
             erros += 1
             
-    st.success(f"✅ Migração finalizada! {sucessos} fotos convertidas com sucesso. ({erros} erros)")
+        # Atualiza a barrinha
+        barra_progresso.progress((i + 1) / total_alunos)
+            
+    texto_status.empty() # Limpa o texto "Analisando..."
+    st.success(f"✅ Migração finalizada!\n- Convertidas: {sucessos}\n- Já eram links ou sem foto: {ignorados}\n- Erros: {erros}")
 
 
 

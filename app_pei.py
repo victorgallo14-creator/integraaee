@@ -10031,25 +10031,41 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
 elif app_mode_adm == "🖨️ Emissão de Boletins":
     import hashlib
     import uuid
+    import io
+    import zipfile
+    from datetime import datetime
+    import pandas as pd
+    from fpdf import FPDF
+    
     st.markdown('<div class="header-box"><div class="header-title">🖨️ Emissão de Boletins Oficiais</div></div>', unsafe_allow_html=True)
     
     if st.button("⬅️ Voltar ao Menu Inicial", key="voltar_boletins"):
         st.session_state.modulo_atuacao = None
         st.rerun()
 
-    # --- CONFIGURAÇÕES DA EQUIPE GESTORA ---
+    # --- CONFIGURAÇÕES DA EQUIPE GESTORA E DOCENTE ---
     with st.expander("⚙️ Configurações de Assinatura e Emissão", expanded=True):
+        st.markdown("**Equipe Gestora (Assinaturas)**")
         col1, col2 = st.columns(2)
         with col1:
             diretor_resp = st.selectbox(
-                "Diretor(a) / Vice-Diretor(a) responsável:", 
+                "Diretor(a) / Vice-Diretor(a):", 
                 ["José Victor Souza Gallo", "Luciana", "Noreh", "Marília"]
             )
         with col2:
             coord_resp = st.selectbox(
-                "Professor(a) Coordenador(a) responsável:", 
+                "Professor(a) Coordenador(a):", 
                 ["Oelen Fernando Pedro", "Fernando", "Luciana"]
             )
+            
+        st.markdown("**Corpo Docente da Turma**")
+        col_prof1, col_prof2 = st.columns(2)
+        with col_prof1:
+            prof_polivalente = st.text_input("Prof. Polivalente (Port/Mat/Cie/Hist/Geo):", "Juliana Aparecida da Silva")
+            prof_arte = st.text_input("Prof. de Arte:", "Jordana Lima Alvez")
+        with col_prof2:
+            prof_edfisica = st.text_input("Prof. de Educação Física:", "Michel Luciano de Lima")
+            prof_tec = st.text_input("Prof. de Linguagens e Tecnologias:", "Fernando Indig Bongiovanni")
 
     # --- CLASSE CUSTOMIZADA DO PDF ---
     class BoletimPDF(FPDF):
@@ -10078,11 +10094,10 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
             self.cell(0, 10, f"Documento emitido pelo Sistema Integra em {data_emissao} - Página {self.page_no()}", align="C")
 
     # --- FUNÇÃO DE GERAÇÃO DO BOLETIM INDIVIDUAL ---
-    def gerar_boletim_pdf(dados_aluno, diretor, coordenador):
+    def gerar_boletim_pdf(dados_aluno, diretor, coordenador, p_poli, p_arte, p_edf, p_tec):
         pdf = BoletimPDF()
         pdf.add_page()
         
-        # Dados do Aluno
         pdf.set_fill_color(240, 240, 240)
         pdf.set_font("helvetica", "B", 11)
         pdf.cell(140, 8, f" ALUNO(A): {dados_aluno['Nome']}", border=1, fill=True)
@@ -10091,9 +10106,8 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
         pdf.cell(95, 8, f" PERÍODO: {dados_aluno['Periodo']}", border=1, new_x="LMARGIN", new_y="NEXT")
         pdf.ln(8)
         
-        # Tabela de Notas
         pdf.set_fill_color(200, 220, 255) 
-        pdf.set_font("helvetica", "B", 9)
+        pdf.set_font("helvetica", "B", 8) # Fonte levemente menor para caber nomes grandes
         pdf.cell(45, 10, "Disciplina", border=1, align="C", fill=True)
         pdf.cell(50, 10, "Professor(a)", border=1, align="C", fill=True)
         pdf.cell(20, 10, "1º Tri", border=1, align="C", fill=True)
@@ -10102,22 +10116,23 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
         pdf.cell(20, 10, "Final", border=1, align="C", fill=True)
         pdf.cell(15, 10, "Faltas", border=1, new_x="LMARGIN", new_y="NEXT", align="C", fill=True)
         
-        pdf.set_font("helvetica", "", 9)
+        pdf.set_font("helvetica", "", 8)
         
+        # Mapeamento com os professores dinâmicos e nome correto da disciplina
         disciplinas = [
-            ("Língua Portuguesa", "Fernando I. Bongiovanni", dados_aluno['Língua Portuguesa'], "-", "-", "-", "0"),
-            ("Matemática", "Juliana A. da Silva", dados_aluno['Matemática'], "-", "-", "-", "0"),
-            ("Ciências", "Juliana A. da Silva", dados_aluno['Ciências'], "-", "-", "-", "0"),
-            ("História", "Juliana A. da Silva", dados_aluno['História'], "-", "-", "-", "0"),
-            ("Geografia", "Juliana A. da Silva", dados_aluno['Geografia'], "-", "-", "-", "0"),
-            ("Arte", "Jordana Lima Alvez", dados_aluno['Arte'], "-", "-", "-", "0"),
-            ("Educação Física", "Michel Luciano de Lima", dados_aluno['Ed. Física'], "-", "-", "-", "0"),
-            ("Tecnologia", "Fernando I. Bongiovanni", dados_aluno['Tecnologia'], "-", "-", "-", "0")
+            ("Língua Portuguesa", p_poli, dados_aluno['Língua Portuguesa'], "-", "-", "-", "0"),
+            ("Matemática", p_poli, dados_aluno['Matemática'], "-", "-", "-", "0"),
+            ("Ciências", p_poli, dados_aluno['Ciências'], "-", "-", "-", "0"),
+            ("História", p_poli, dados_aluno['História'], "-", "-", "-", "0"),
+            ("Geografia", p_poli, dados_aluno['Geografia'], "-", "-", "-", "0"),
+            ("Arte", p_arte, dados_aluno['Arte'], "-", "-", "-", "0"),
+            ("Educação Física", p_edf, dados_aluno['Ed. Física'], "-", "-", "-", "0"),
+            ("Linguagens e Tecnologias", p_tec, dados_aluno['Tecnologia'], "-", "-", "-", "0")
         ]
         
         for disc, prof, tri1, tri2, tri3, final, faltas in disciplinas:
             pdf.cell(45, 8, f" {disc}", border=1)
-            pdf.cell(50, 8, f" {prof[:25]}", border=1)
+            pdf.cell(50, 8, f" {prof[:30]}", border=1) # Limita a 30 caracteres para não estourar a tabela
             pdf.cell(20, 8, tri1, border=1, align="C")
             pdf.cell(20, 8, tri2, border=1, align="C")
             pdf.cell(20, 8, tri3, border=1, align="C")
@@ -10126,24 +10141,16 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
             
         pdf.ln(10)
         
-        # Legenda
         pdf.set_font("helvetica", "I", 7)
         pdf.multi_cell(0, 4, "LEGENDA:\nAD - Adequado (Domínio esperado)\nAV - Avançado (Além do requerido)\nB - Básico (Processo intermediário, necessita intervenção)\nAB - Abaixo do Básico (Domínio insatisfatório)\nNA - Não Avaliado")
         pdf.ln(10)
 
-        # ==========================================
-        # GERADOR DE ASSINATURA DIGITAL (HASH E CÓDIGO)
-        # ==========================================
+        # Autenticação
         data_atual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         string_autenticacao = f"{dados_aluno['Nome']}-{diretor}-{data_atual}".encode('utf-8')
-        
-        # Cria um hash SHA-256 do documento (chave longa)
         hash_documento = hashlib.sha256(string_autenticacao).hexdigest()
-        
-        # Cria um código curto amigável para digitação
         codigo_curto = str(uuid.uuid4()).split('-')[0].upper() + "-" + str(uuid.uuid4()).split('-')[1].upper()
 
-        # Desenha a caixa de Autenticação
         pdf.set_fill_color(245, 245, 245)
         pdf.set_font("helvetica", "B", 8)
         pdf.cell(0, 6, " AUTENTICAÇÃO E ASSINATURA ELETRÔNICA", border="LTR", new_x="LMARGIN", new_y="NEXT", fill=True)
@@ -10164,7 +10171,6 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
         return pdf.output(dest="S")
 
     # --- UPLOAD E PROCESSAMENTO ---
-    # --- UPLOAD E PROCESSAMENTO ---
     st.divider()
     arquivo_pdf = st.file_uploader("📄 Selecione a Ata de Notas (PDF do sistema)", type=["pdf"])
 
@@ -10175,25 +10181,20 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
             alunos_extraidos = []
             
             try:
-                # Usa o pdfplumber para abrir e ler as tabelas do documento original
                 with pdfplumber.open(arquivo_pdf) as pdf:
                     for pagina in pdf.pages:
                         tabelas = pagina.extract_tables()
                         for tabela in tabelas:
                             for linha in tabela:
-                                # A lógica busca linhas onde a primeira coluna seja o Nº da chamada (ex: "01", "02")
                                 if linha and linha[0] and str(linha[0]).strip().isdigit() and len(linha) >= 15:
                                     situacao = str(linha[2]).strip().replace('\n', '')
                                     
-                                    # Pula os alunos transferidos
                                     if "ATIVO" in situacao:
                                         nome = str(linha[1]).strip().replace('\n', ' ')
                                         
-                                        # Função para evitar erros caso a nota venha vazia
                                         def limpa_nota(valor):
                                             return str(valor).strip().replace('\n', '') if valor else "NA"
 
-                                        # Puxa as notas de acordo com as colunas da sua Ata
                                         alunos_extraidos.append({
                                             "Nome": nome,
                                             "Situação": situacao,
@@ -10215,7 +10216,6 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
                 st.error(f"Erro ao processar a leitura do PDF: {e}")
                 df_alunos = pd.DataFrame()
 
-            # Se encontrou alunos, exibe a tabela completa e o botão de emitir
             if not df_alunos.empty:
                 st.success(f"✅ Leitura concluída! {len(df_alunos)} alunos ativos encontrados na Ata.")
                 st.dataframe(df_alunos, hide_index=True)
@@ -10227,11 +10227,14 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
                         barra_progresso = st.progress(0)
                         
                         for index, row in df_alunos.iterrows():
-                            # Atualiza a barra de progresso em tempo real
                             progresso = (index + 1) / len(df_alunos)
                             barra_progresso.progress(progresso, text=f"Assinando documento: {row['Nome']}")
                             
-                            pdf_bytes = gerar_boletim_pdf(row, diretor_resp, coord_resp)
+                            # Passa as variáveis dos professores da interface para a função geradora
+                            pdf_bytes = gerar_boletim_pdf(
+                                row, diretor_resp, coord_resp, 
+                                prof_polivalente, prof_arte, prof_edfisica, prof_tec
+                            )
                             nome_arquivo = f"Boletim_{row['Nome'].replace(' ', '_')}.pdf"
                             zip_file.writestr(nome_arquivo, pdf_bytes)
                     

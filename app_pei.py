@@ -10029,6 +10029,8 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
 
 
 elif app_mode_adm == "🖨️ Emissão de Boletins":
+    import hashlib
+    import uuid
     st.markdown('<div class="header-box"><div class="header-title">🖨️ Emissão de Boletins Oficiais</div></div>', unsafe_allow_html=True)
     
     if st.button("⬅️ Voltar ao Menu Inicial", key="voltar_boletins"):

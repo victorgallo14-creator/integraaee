@@ -10196,7 +10196,7 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
             f"PROFESSOR(A) COORDENADOR(A): {coord}\n\n"
             f"Código de Autenticação: {cod}  |  Hash SHA-256: {h}\n"
             f"Data/Hora de Emissão: {data_at}\n"
-            "A validade deste documento pode ser consultada no Sistema Municipal através do código acima."
+            "A validade deste documento pode ser consultada no site https://integra.streamlit.app/."
         )
         pdf.multi_cell(0, 4.5, texto_assinatura, border="LBR", fill=True)
         

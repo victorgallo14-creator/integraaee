@@ -10043,7 +10043,7 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
         st.session_state.modulo_atuacao = None
         st.rerun()
 
-    # --- CLASSE CUSTOMIZADA DO PDF ---
+    # --- CLASSE DO PDF (PADRÃO PREFEITURA LIMEIRA) ---
     class BoletimPDF(FPDF):
         def header(self):
             try:
@@ -10069,190 +10069,168 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
             data_emissao = datetime.now().strftime("%d/%m/%Y às %H:%M")
             self.cell(0, 10, f"Documento emitido pelo Sistema Integra em {data_emissao} - Página {self.page_no()}", align="C")
 
-    # --- FUNÇÃO DE GERAÇÃO DO BOLETIM INDIVIDUAL ---
-    def gerar_boletim_pdf(dados_aluno, diretor, coordenador, p_poli, p_arte, p_edf, p_tec):
+    # --- FUNÇÃO DE GERAÇÃO DO BOLETIM ---
+    def gerar_boletim_pdf(aluno, diretor, coordenador, p_poli, p_arte, p_edf, p_tec, dias_letivos):
         pdf = BoletimPDF()
         pdf.add_page()
         
+        # Cabeçalho de Dados
         pdf.set_fill_color(240, 240, 240)
         pdf.set_font("helvetica", "B", 11)
-        pdf.cell(140, 8, f" ALUNO(A): {dados_aluno['Nome']}", border=1, fill=True)
-        pdf.cell(50, 8, f" SITUAÇÃO: {dados_aluno['Situação']}", border=1, new_x="LMARGIN", new_y="NEXT", fill=True)
-        pdf.cell(95, 8, f" SÉRIE/TURMA: {dados_aluno['Turma']}", border=1)
-        pdf.cell(95, 8, f" PERÍODO: {dados_aluno['Periodo']}", border=1, new_x="LMARGIN", new_y="NEXT")
-        pdf.ln(8)
+        pdf.cell(140, 8, f" ALUNO(A): {aluno['Nome']}", border=1, fill=True)
+        pdf.cell(50, 8, f" SITUAÇÃO: {aluno['Situação']}", border=1, new_x="LMARGIN", new_y="NEXT", fill=True)
         
+        pdf.set_font("helvetica", "", 10)
+        pdf.cell(65, 8, f" SÉRIE/TURMA: {aluno['Turma']}", border=1)
+        pdf.cell(65, 8, f" PERÍODO: {aluno['Periodo']}", border=1)
+        pdf.cell(60, 8, f" DIAS LETIVOS: {dias_letivos}", border=1, new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(5)
+        
+        # Tabela de Notas
         pdf.set_fill_color(200, 220, 255) 
-        pdf.set_font("helvetica", "B", 8) 
-        pdf.cell(45, 10, "Disciplina", border=1, align="C", fill=True)
+        pdf.set_font("helvetica", "B", 9)
+        pdf.cell(60, 10, "Disciplina", border=1, align="C", fill=True)
         pdf.cell(50, 10, "Professor(a)", border=1, align="C", fill=True)
         pdf.cell(20, 10, "1º Tri", border=1, align="C", fill=True)
         pdf.cell(20, 10, "2º Tri", border=1, align="C", fill=True)
         pdf.cell(20, 10, "3º Tri", border=1, align="C", fill=True)
-        pdf.cell(20, 10, "Final", border=1, align="C", fill=True)
-        pdf.cell(15, 10, "Faltas", border=1, new_x="LMARGIN", new_y="NEXT", align="C", fill=True)
+        pdf.cell(20, 10, "Final", border=1, new_x="LMARGIN", new_y="NEXT", align="C", fill=True)
         
-        pdf.set_font("helvetica", "", 8)
+        pdf.set_font("helvetica", "", 9)
         
         disciplinas = [
-            ("Língua Portuguesa", p_poli, dados_aluno['Língua Portuguesa'], "-", "-", "-", "0"),
-            ("Matemática", p_poli, dados_aluno['Matemática'], "-", "-", "-", "0"),
-            ("Ciências", p_poli, dados_aluno['Ciências'], "-", "-", "-", "0"),
-            ("História", p_poli, dados_aluno['História'], "-", "-", "-", "0"),
-            ("Geografia", p_poli, dados_aluno['Geografia'], "-", "-", "-", "0"),
-            ("Arte", p_arte, dados_aluno['Arte'], "-", "-", "-", "0"),
-            ("Educação Física", p_edf, dados_aluno['Ed. Física'], "-", "-", "-", "0"),
-            ("Linguagens e Tecnologias", p_tec, dados_aluno['Tecnologia'], "-", "-", "-", "0")
+            ("Língua Portuguesa", p_poli, aluno['LP']),
+            ("Matemática", p_poli, aluno['MAT']),
+            ("Ciências", p_poli, aluno['CIE']),
+            ("História", p_poli, aluno['HIST']),
+            ("Geografia", p_poli, aluno['GEOG']),
+            ("Arte", p_arte, aluno['ART']),
+            ("Educação Física", p_edf, aluno['EF']),
+            ("Linguagens e Tecnologias", p_tec, aluno['TEC'])
         ]
         
-        for disc, prof, tri1, tri2, tri3, final, faltas in disciplinas:
-            pdf.cell(45, 8, f" {disc}", border=1)
-            pdf.cell(50, 8, f" {prof[:30]}", border=1) 
-            pdf.cell(20, 8, tri1, border=1, align="C")
-            pdf.cell(20, 8, tri2, border=1, align="C")
-            pdf.cell(20, 8, tri3, border=1, align="C")
-            pdf.cell(20, 8, final, border=1, align="C")
-            pdf.cell(15, 8, faltas, border=1, new_x="LMARGIN", new_y="NEXT", align="C")
+        for disc, prof, nota in disciplinas:
+            pdf.cell(60, 8, f" {disc}", border=1)
+            pdf.cell(50, 8, f" {prof[:28]}", border=1)
+            pdf.cell(20, 8, nota, border=1, align="C")
+            pdf.cell(20, 8, "-", border=1, align="C")
+            pdf.cell(20, 8, "-", border=1, align="C")
+            pdf.cell(20, 8, "-", border=1, new_x="LMARGIN", new_y="NEXT", align="C")
             
+        pdf.ln(5)
+
+        # Quadro de Frequência Geral (Conforme solicitado: para o dia e não por disciplina)
+        pdf.set_fill_color(245, 245, 245)
+        pdf.set_font("helvetica", "B", 9)
+        pdf.cell(190, 8, " RESUMO DE FREQUÊNCIA NO TRIMESTRE", border=1, new_x="LMARGIN", new_y="NEXT", fill=True, align="C")
+        pdf.set_font("helvetica", "", 10)
+        pdf.cell(95, 10, f" Total de Ausências: {aluno['Faltas_Total']}", border=1, align="C")
+        pdf.cell(95, 10, f" Percentual de Frequência: {aluno['Freq_Perc']}%", border=1, new_x="LMARGIN", new_y="NEXT", align="C")
+        
         pdf.ln(10)
         
-        pdf.set_font("helvetica", "I", 7)
-        pdf.multi_cell(0, 4, "LEGENDA:\nAD - Adequado (Domínio esperado)\nAV - Avançado (Além do requerido)\nB - Básico (Processo intermediário, necessita intervenção)\nAB - Abaixo do Básico (Domínio insatisfatório)\nNA - Não Avaliado")
-        pdf.ln(10)
-
-        # Autenticação
+        # Autenticação Digital
         data_atual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        string_autenticacao = f"{dados_aluno['Nome']}-{diretor}-{data_atual}".encode('utf-8')
-        hash_documento = hashlib.sha256(string_autenticacao).hexdigest()
-        codigo_curto = str(uuid.uuid4()).split('-')[0].upper() + "-" + str(uuid.uuid4()).split('-')[1].upper()
+        string_autenticacao = f"{aluno['Nome']}-{diretor}-{data_atual}".encode('utf-8')
+        hash_doc = hashlib.sha256(string_autenticacao).hexdigest()
+        cod = str(uuid.uuid4()).split('-')[0].upper() + "-" + str(uuid.uuid4()).split('-')[1].upper()
 
-        pdf.set_fill_color(245, 245, 245)
+        pdf.set_fill_color(250, 250, 250)
         pdf.set_font("helvetica", "B", 8)
         pdf.cell(0, 6, " AUTENTICAÇÃO E ASSINATURA ELETRÔNICA", border="LTR", new_x="LMARGIN", new_y="NEXT", fill=True)
-        
-        texto_assinatura = (
-            f"As notas contidas neste boletim foram inseridas no sistema pelos respectivos professores titulares. "
-            f"O documento foi assinado digitalmente e emitido sob a responsabilidade da equipe gestora "
-            f"({coordenador} e {diretor}).\n\n"
-            f"Código de Autenticação: {codigo_curto}\n"
-            f"Hash SHA-256: {hash_documento}\n"
-            f"Data/Hora de Emissão: {data_atual}\n\n"
-            f"A validade deste documento pode ser consultada no Sistema Municipal através do código acima."
+        texto_ass = (
+            f"Documento assinado digitalmente sob responsabilidade da equipe gestora ({coordenador} e {diretor}). "
+            f"As avaliações foram registradas pelos professores titulares.\n"
+            f"Código: {cod} | Hash: {hash_doc} | Emissão: {data_atual}"
         )
-        
         pdf.set_font("helvetica", "", 7)
-        pdf.multi_cell(0, 4, texto_assinatura, border="LBR", fill=True)
+        pdf.multi_cell(0, 4, texto_ass, border="LBR", fill=True)
         
         return pdf.output(dest="S")
 
-    # --- UPLOAD E PROCESSAMENTO ---
+    # --- PROCESSAMENTO DO PDF ---
     st.divider()
-    arquivo_pdf = st.file_uploader("📄 Selecione a Ata de Notas (PDF do sistema)", type=["pdf"])
+    arquivo_pdf = st.file_uploader("📄 Selecione a Ata de Notas (PDF)", type=["pdf"])
 
     if arquivo_pdf is not None:
-        with st.spinner("Lendo documento da prefeitura... Extraindo nomes e notas."):
+        with st.spinner("Processando Ata Escolar..."):
             import pdfplumber
             
             alunos_extraidos = []
             texto_completo = ""
+            dias_letivos = "57" # Valor padrão caso não encontre
             
             try:
                 with pdfplumber.open(arquivo_pdf) as pdf:
-                    # Lê o texto de todas as páginas para achar a assinatura dos professores
                     for pagina in pdf.pages:
-                        texto_extraido = pagina.extract_text()
-                        if texto_extraido:
-                            texto_completo += texto_extraido + "\n"
-                            
-                        # Extrai a tabela de notas
+                        texto_p = pagina.extract_text()
+                        if texto_p: texto_completo += texto_p + "\n"
+                        
                         tabelas = pagina.extract_tables()
                         for tabela in tabelas:
                             for linha in tabela:
-                                if linha and linha[0] and str(linha[0]).strip().isdigit() and len(linha) >= 15:
-                                    situacao = str(linha[2]).strip().replace('\n', '')
+                                # Filtro para identificar linhas de alunos (Nº na primeira coluna)
+                                if linha and str(linha[0]).strip().isdigit() and len(linha) >= 14:
+                                    situacao = str(linha[2]).upper()
                                     if "ATIVO" in situacao:
-                                        nome = str(linha[1]).strip().replace('\n', ' ')
-                                        def limpa_nota(valor):
-                                            return str(valor).strip().replace('\n', '') if valor else "NA"
-
+                                        # Ajuste de Índices: 3=Ausências, 6=Freq%, 7=Port, 8=Mat...
                                         alunos_extraidos.append({
-                                            "Nome": nome,
+                                            "Nome": str(linha[1]).strip().replace('\n', ' '),
                                             "Situação": situacao,
-                                            "Turma": "1º Ano 01", 
+                                            "Turma": "1º Ano 01",
                                             "Periodo": "Manhã",
-                                            "Língua Portuguesa": limpa_nota(linha[7]),
-                                            "Matemática": limpa_nota(linha[8]),
-                                            "Ciências": limpa_nota(linha[9]),
-                                            "História": limpa_nota(linha[10]),
-                                            "Geografia": limpa_nota(linha[11]),
-                                            "Arte": limpa_nota(linha[12]),
-                                            "Ed. Física": limpa_nota(linha[13]),
-                                            "Tecnologia": limpa_nota(linha[14])
+                                            "Faltas_Total": str(linha[3]).split()[0] if linha[3] else "0",
+                                            "Freq_Perc": str(linha[6]).strip(),
+                                            "LP": str(linha[7]).strip() if linha[7] else "NA",
+                                            "MAT": str(linha[8]).strip() if linha[8] else "NA",
+                                            "CIE": str(linha[9]).strip() if linha[9] else "NA",
+                                            "HIST": str(linha[10]).strip() if linha[10] else "NA",
+                                            "GEOG": str(linha[11]).strip() if linha[11] else "NA",
+                                            "ART": str(linha[12]).strip() if linha[12] else "NA",
+                                            "EF": str(linha[13]).strip() if linha[13] else "NA",
+                                            "TEC": str(linha[14]).strip() if len(linha) > 14 else "NA"
                                         })
-                                        
+                
+                # Identificação Dinâmica da Equipe
+                linhas = [l.strip() for l in texto_completo.split('\n')]
+                prof_poli, prof_arte, prof_edf, prof_tec = "Docente", "Docente", "Docente", "Docente"
+                diretor, coord = "Direção", "Coordenação"
+                
+                for i, l in enumerate(linhas):
+                    if "N DE DIAS LETIVOS:" in l: dias_letivos = l.split(':')[-1].strip()
+                    # O Polivalente é quem tem apenas "Professor(a)" na descrição
+                    if l == "Professor(a)": prof_poli = linhas[i-1].split('-')[-1].strip()
+                    if "Professor(a) de Arte" in l: prof_arte = linhas[i-1].split('-')[-1].strip()
+                    if "Professor(a) de Educação Física" in l: prof_edf = linhas[i-1].split('-')[-1].strip()
+                    if "Professor(a) de Linguagens e Tecnologias" in l: prof_tec = linhas[i-1].split('-')[-1].strip()
+                    if "Professor(a) Coordenador" in l: coord = linhas[i-1].split('-')[-1].strip()
+                    if "Diretor(a)/Vice-Diretor(a)" in l: diretor = linhas[i-1].split('-')[-1].strip()
+
                 df_alunos = pd.DataFrame(alunos_extraidos)
                 
-                # --- LEITOR INTELIGENTE DE PROFESSORES ---
-                linhas_texto = texto_completo.split('\n')
-                prof_polivalente, prof_arte, prof_edfisica, prof_tec = "Não identificado", "Não identificado", "Não identificado", "Não identificado"
-                diretor_ext, coordenador_ext = "Equipe Gestora", "Equipe Gestora"
-                
-                for i, linha in enumerate(linhas_texto):
-                    linha_limpa = linha.strip()
-                    # Acha o título e pega o nome na linha de cima (removendo código da matrícula via .split('-')[-1])
-                    if linha_limpa == "Professor(a)":
-                        prof_polivalente = linhas_texto[i-1].split('-')[-1].strip()
-                    elif "Professor(a) de Arte" in linha_limpa:
-                        prof_arte = linhas_texto[i-1].split('-')[-1].strip()
-                    elif "Professor(a) de Educação Física" in linha_limpa:
-                        prof_edfisica = linhas_texto[i-1].split('-')[-1].strip()
-                    elif "Professor(a) de Linguagens e Tecnologias" in linha_limpa:
-                        prof_tec = linhas_texto[i-1].split('-')[-1].strip()
-                    elif "Professor(a) Coordenador" in linha_limpa:
-                        coordenador_ext = linhas_texto[i-1].split('-')[-1].strip()
-                    elif "Diretor(a)/Vice-Diretor(a)" in linha_limpa:
-                        diretor_ext = linhas_texto[i-1].split('-')[-1].strip()
-                        
-            except Exception as e:
-                st.error(f"Erro ao processar a leitura do PDF: {e}")
-                df_alunos = pd.DataFrame()
+                if not df_alunos.empty:
+                    st.success(f"✅ {len(df_alunos)} alunos processados.")
+                    with st.expander("🔍 Verificar Equipe Identificada"):
+                        st.write(f"**Polivalente:** {prof_poli}")
+                        st.write(f"**Arte:** {prof_arte} | **Ed. Física:** {prof_edf}")
+                        st.write(f"**Tecnologias:** {prof_tec}")
+                        st.write(f"**Dias Letivos:** {dias_letivos}")
 
-            if not df_alunos.empty:
-                st.success(f"✅ Leitura concluída! {len(df_alunos)} alunos ativos encontrados na Ata.")
-                
-                # Mostra ao usuário quais nomes o sistema conseguiu ler
-                with st.expander("👨‍🏫 Equipe Identificada no Documento", expanded=False):
-                    st.write(f"**Gestão:** {diretor_ext} | **Coordenação:** {coordenador_ext}")
-                    st.write(f"**Polivalente:** {prof_polivalente} | **Arte:** {prof_arte}")
-                    st.write(f"**Ed. Física:** {prof_edfisica} | **Tecnologia:** {prof_tec}")
-                
-                st.dataframe(df_alunos, hide_index=True)
-                
-                if st.button("🚀 Emitir Boletins com Assinatura Digital (ZIP)", type="primary"):
-                    zip_buffer = io.BytesIO()
-                    
-                    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
-                        barra_progresso = st.progress(0)
+                    if st.button("🚀 Gerar e Assinar Boletins (ZIP)", type="primary"):
+                        zip_io = io.BytesIO()
+                        with zipfile.ZipFile(zip_io, "a", zipfile.ZIP_DEFLATED) as zf:
+                            for _, row in df_alunos.iterrows():
+                                pdf_data = gerar_boletim_pdf(row, diretor, coord, prof_poli, prof_arte, prof_edf, prof_tec, dias_letivos)
+                                zf.writestr(f"Boletim_{row['Nome'].replace(' ','_')}.pdf", pdf_data)
                         
-                        for index, row in df_alunos.iterrows():
-                            progresso = (index + 1) / len(df_alunos)
-                            barra_progresso.progress(progresso, text=f"Assinando documento: {row['Nome']}")
-                            
-                            # Gera o boletim passando exatamente os nomes que o sistema identificou sozihho
-                            pdf_bytes = gerar_boletim_pdf(
-                                row, diretor_ext, coordenador_ext, 
-                                prof_polivalente, prof_arte, prof_edfisica, prof_tec
-                            )
-                            nome_arquivo = f"Boletim_{row['Nome'].replace(' ', '_')}.pdf"
-                            zip_file.writestr(nome_arquivo, pdf_bytes)
-                    
-                    st.divider()
-                    st.download_button(
-                        label=f"📦 Baixar Lote Assinado ({len(df_alunos)} alunos)",
-                        data=zip_buffer.getvalue(),
-                        file_name="Boletins_Assinados_1Tri.zip",
-                        mime="application/zip",
-                        type="primary"
-                    )
+                        st.download_button(
+                            label="📥 Baixar Arquivo ZIP",
+                            data=zip_io.getvalue(),
+                            file_name="Boletins_Assinados_1Tri.zip",
+                            mime="application/zip"
+                        )
             else:
-                st.warning("Nenhum aluno encontrado. Verifique se o documento é o PDF correto.")
+                st.warning("Nenhum dado de aluno encontrado no PDF.")
+            
+            except Exception as e:
+                st.error(f"Erro no processamento: {e}")

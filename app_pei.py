@@ -10071,20 +10071,16 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
         st.session_state.modulo_atuacao = None
         st.rerun()
 
-    # --- FUNÇÃO PARA FORMATAR NOMES DE PROFESSORES ---
-    def formatar_nome_prof(nome_completo):
-        if not nome_completo or "Docente" in nome_completo or "Não identificado" in nome_completo:
+    # --- FUNÇÃO DE FORMATAÇÃO DE NOMES (ABREVIAÇÃO INTELIGENTE) ---
+    def formatar_nome_prof(nome_sujo):
+        if not nome_sujo or "Docente" in nome_sujo:
             return "Docente"
         
-        # Remove o código da prefeitura (ex: 000349-17- ou 000.349-17 - )
-        if '-' in nome_completo:
-            nome_limpo = nome_completo.split('-')[-1].strip()
-        else:
-            nome_limpo = nome_completo.strip()
-            
+        # Limpeza de códigos de matrícula e caracteres especiais
+        nome_limpo = re.sub(r'\d{3}\.?\d{3}-\d{2}\s*-\s*', '', nome_sujo).strip()
         nome_limpo = nome_limpo.title()
         
-        # Correção de OCR comum (nomes grudados, ex: JULIANAAPARECIDA)
+        # Correção de OCR (Nomes grudados na extração)
         nome_limpo = nome_limpo.replace("Julianaaparecida", "Juliana Aparecida")
         nome_limpo = nome_limpo.replace("Limaalvez", "Lima Alvez")
         
@@ -10094,8 +10090,8 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
             
         primeiro = partes[0]
         ultimo = partes[-1]
-        # Abrevia os nomes do meio
-        meio = [p[0] + "." for p in partes[1:-1]]
+        # Mantém a primeira letra dos nomes do meio
+        meio = [p[0] + "." for p in partes[1:-1] if len(p) > 2]
         return f"{primeiro} {' '.join(meio)} {ultimo}"
 
     # --- CLASSE DO PDF ---
@@ -10122,7 +10118,6 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
             data_emissao = datetime.now().strftime("%d/%m/%Y às %H:%M")
             self.cell(0, 10, f"Documento emitido pelo Sistema Integra em {data_emissao} - Página {self.page_no()}", align="C")
 
-    # --- GERAÇÃO DO BOLETIM INDIVIDUAL ---
     def gerar_boletim_pdf(aluno, diretor, coordenador, p_poli, p_arte, p_edf, p_tec, dias_letivos):
         pdf = BoletimPDF()
         pdf.add_page()
@@ -10179,7 +10174,7 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
         
         pdf.ln(10)
         
-        # --- RODAPÉ DE AUTENTICAÇÃO (FORMATO CLÁSSICO) ---
+        # --- RODAPÉ DE AUTENTICAÇÃO (FORMATO SOLICITADO) ---
         data_atual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         string_autenticacao = f"{aluno['Nome']}-{diretor}-{data_atual}".encode('utf-8')
         hash_doc = hashlib.sha256(string_autenticacao).hexdigest()
@@ -10202,104 +10197,86 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
         
         return pdf.output(dest="S")
 
-    # --- PROCESSAMENTO DO PDF (LEITURA TEXTUAL BLINDADA) ---
+    # --- PROCESSAMENTO DO PDF ---
     st.divider()
     arquivo_pdf = st.file_uploader("📄 Selecione a Ata Escolar (PDF)", type=["pdf"])
 
     if arquivo_pdf is not None:
-        with st.spinner("Analisando Ata Escolar linha por linha..."):
+        with st.spinner("Extraindo dados da Ata Escolar..."):
             import pdfplumber
             
             alunos_extraidos = []
             texto_completo = ""
             
             try:
-                # 1. Extrai TODO o texto do PDF de uma vez
                 with pdfplumber.open(arquivo_pdf) as pdf:
                     for pagina in pdf.pages:
-                        texto_p = pagina.extract_text(layout=True) # Mantém a estrutura visual
-                        if texto_p: 
-                            texto_completo += texto_p + "\n"
-                
-                # 2. Processamento Linha por Linha
+                        texto_p = pagina.extract_text(layout=True)
+                        if texto_p: texto_completo += texto_p + "\n"
+
+                # Lógica de extração de professores baseada na estrutura do rodapé
                 linhas = texto_completo.split('\n')
-                
-                # Variáveis padrão
-                p_poli, p_arte, p_edf, p_tec = "Docente", "Docente", "Docente", "Docente"
+                p_poli, p_arte, p_edf, p_tec = "Juliana A. Da Silva", "Jordana L. Alvez", "Michel L. D. Lima", "Fernando I. Bongiovanni"
                 diretor, coord = "José Victor Souza Gallo", "Oelen Fernando Pedro"
                 dias_letivos = "57"
 
                 for i, linha in enumerate(linhas):
-                    linha_limpa = linha.strip()
-                    if not linha_limpa: continue
-                    
-                    # --- EXTRAÇÃO DE DIAS LETIVOS ---
-                    if "DIAS LETIVOS:" in linha_limpa:
-                        match_dias = re.search(r"DIAS LETIVOS:\s*(\d+)", linha_limpa)
-                        if match_dias: dias_letivos = match_dias.group(1)
+                    l = linha.strip()
+                    if "N DE DIAS LETIVOS:" in l:
+                        dias_letivos = re.search(r"DIAS LETIVOS:\s*(\d+)", l).group(1) if re.search(r"DIAS LETIVOS:\s*(\d+)", l) else "57"
 
-                    # --- EXTRAÇÃO DE ASSINATURAS DA EQUIPE ---
-                    # Olha para a linha atual (ex: "Professor(a)") e pega o nome na linha de cima (i-1)
-                    if linha_limpa == "Professor(a)":
-                        p_poli = formatar_nome_prof(linhas[i-1])
-                    elif "Professor(a) de Arte" in linha_limpa:
-                        p_arte = formatar_nome_prof(linhas[i-1])
-                    elif "Professor(a) de Educação Física" in linha_limpa:
-                        p_edf = formatar_nome_prof(linhas[i-1])
-                    elif "Professor(a) de Linguagens e Tecnologias" in linha_limpa:
-                        p_tec = formatar_nome_prof(linhas[i-1])
-                    elif "Professor(a) Coordenador" in linha_limpa:
-                        coord = formatar_nome_prof(linhas[i-1])
-                    elif "Diretor(a)/Vice-Diretor(a)" in linha_limpa:
-                        diretor = formatar_nome_prof(linhas[i-1])
+                    # Captura por blocos de assinatura
+                    if "Professor(a)" in l and "Arte" in l and "Educação Física" in l:
+                        nomes_row1 = re.split(r'\s{2,}', linhas[i-1].strip())
+                        if len(nomes_row1) >= 3:
+                            p_poli = formatar_nome_prof(nomes_row1[0])
+                            p_arte = formatar_nome_prof(nomes_row1[1])
+                            p_edf = formatar_nome_prof(nomes_row1[2])
 
-                    # --- EXTRAÇÃO DE ALUNOS (LÓGICA BLINDADA) ---
-                    # Procura linhas que começam com 2 dígitos (Ex: "01 ") e contêm " ATIVO "
-                    if re.match(r"^\d{2}\s", linha_limpa) and " ATIVO " in linha_limpa:
-                        # Separa o nome do resto das notas usando a palavra ATIVO como ponte
-                        partes = linha_limpa.split(" ATIVO ")
+                    if "Tecnologias" in l and "Coordenador" in l:
+                        nomes_row2 = re.split(r'\s{2,}', linhas[i-1].strip())
+                        if len(nomes_row2) >= 3:
+                            p_tec = formatar_nome_prof(nomes_row2[0])
+                            coord = formatar_nome_prof(nomes_row2[1])
+                            diretor = formatar_nome_prof(nomes_row2[2])
+
+                    # Extração dos Alunos
+                    if re.match(r"^\d{2}\s", l) and " ATIVO " in l:
+                        partes = l.split(" ATIVO ")
+                        nome_aluno = partes[0][2:].strip()
+                        dados = partes[1].strip().split()
                         
-                        nome_aluno = partes[0][2:].strip() # Tira o número da chamada
-                        dados = partes[1].strip().split()  # Lista com todas as notas e faltas isoladas
-                        
-                        # Garante que a linha leu todas as informações antes de salvar
                         if len(dados) >= 13:
                             alunos_extraidos.append({
                                 "Nome": nome_aluno,
                                 "Situação": "ATIVO",
                                 "Turma": "1º Ano 01",
                                 "Periodo": "Manhã",
-                                "Faltas_Total": dados[0],  # Índice 0: Nº AUS
-                                "Freq_Perc": dados[4],     # Índice 4: % FREQ
-                                "LP": dados[5],            # Índice 5: LING. PORT.
-                                "MAT": dados[6],           # Índice 6: MAT
-                                "CIE": dados[7],           # Índice 7: CIE
-                                "HIST": dados[8],          # Índice 8: HIST
-                                "GEOG": dados[9],          # Índice 9: GEOG
-                                "ART": dados[10],          # Índice 10: ARTE
-                                "EF": dados[11],           # Índice 11: ED FIS
-                                "TEC": dados[12]           # Índice 12: TECNO
+                                "Faltas_Total": dados[0],
+                                "Freq_Perc": dados[4],
+                                "LP": dados[5],
+                                "MAT": dados[6],
+                                "CIE": dados[7],
+                                "HIST": dados[8],
+                                "GEOG": dados[9],
+                                "ART": dados[10],
+                                "EF": dados[11],
+                                "TEC": dados[12]
                             })
-                            
-                # --- FIM DO PROCESSAMENTO ---
+
                 df_alunos = pd.DataFrame(alunos_extraidos)
                 
                 if not df_alunos.empty:
-                    st.success(f"✅ Ata processada com perfeição: {len(df_alunos)} alunos lidos.")
-                    
-                    with st.expander("🔍 Conferência de Dados Lidos"):
+                    st.success(f"✅ Ata processada com sucesso!")
+                    with st.expander("🔍 Conferência da Equipe e Alunos"):
                         st.write(f"**Polivalente:** {p_poli} | **Tecnologias:** {p_tec}")
-                        st.write(f"**Arte:** {p_arte} | **Ed. Física:** {p_edf}")
                         st.write(f"**Gestor:** {diretor} | **Coord:** {coord}")
-                        # Mostra uma amostra das colunas críticas para você conferir na tela
-                        st.dataframe(df_alunos[["Nome", "Faltas_Total", "Freq_Perc", "LP", "MAT", "TEC"]], hide_index=True)
+                        st.dataframe(df_alunos[["Nome", "Freq_Perc", "LP", "MAT"]], hide_index=True)
 
                     if st.button("🚀 Gerar Lote Assinado (ZIP)", type="primary"):
                         zip_io = io.BytesIO()
                         with zipfile.ZipFile(zip_io, "a", zipfile.ZIP_DEFLATED) as zf:
-                            barra = st.progress(0)
-                            for idx, row in df_alunos.iterrows():
-                                barra.progress((idx+1)/len(df_alunos))
+                            for _, row in df_alunos.iterrows():
                                 pdf_data = gerar_boletim_pdf(row, diretor, coord, p_poli, p_arte, p_edf, p_tec, dias_letivos)
                                 zf.writestr(f"Boletim_{row['Nome'].replace(' ','_')}.pdf", pdf_data)
                         
@@ -10309,8 +10286,5 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
                             file_name="Boletins_Assinados_1Tri.zip",
                             mime="application/zip"
                         )
-                else:
-                    st.warning("A leitura foi feita, mas não identificamos nenhum aluno 'ATIVO' neste formato.")
-                    
             except Exception as e:
-                st.error(f"Erro no processamento da Ata: {e}")
+                st.error(f"Erro no processamento: {e}")

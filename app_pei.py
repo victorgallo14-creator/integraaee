@@ -10119,7 +10119,7 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
             
         pdf.ln(5)
 
-        # Quadro de Frequência Geral (Conforme solicitado: para o dia e não por disciplina)
+        # Quadro de Frequência Geral
         pdf.set_fill_color(245, 245, 245)
         pdf.set_font("helvetica", "B", 9)
         pdf.cell(190, 8, " RESUMO DE FREQUÊNCIA NO TRIMESTRE", border=1, new_x="LMARGIN", new_y="NEXT", fill=True, align="C")
@@ -10158,7 +10158,7 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
             
             alunos_extraidos = []
             texto_completo = ""
-            dias_letivos = "57" # Valor padrão caso não encontre
+            dias_letivos = "57"
             
             try:
                 with pdfplumber.open(arquivo_pdf) as pdf:
@@ -10169,11 +10169,9 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
                         tabelas = pagina.extract_tables()
                         for tabela in tabelas:
                             for linha in tabela:
-                                # Filtro para identificar linhas de alunos (Nº na primeira coluna)
                                 if linha and str(linha[0]).strip().isdigit() and len(linha) >= 14:
                                     situacao = str(linha[2]).upper()
                                     if "ATIVO" in situacao:
-                                        # Ajuste de Índices: 3=Ausências, 6=Freq%, 7=Port, 8=Mat...
                                         alunos_extraidos.append({
                                             "Nome": str(linha[1]).strip().replace('\n', ' '),
                                             "Situação": situacao,
@@ -10198,7 +10196,6 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
                 
                 for i, l in enumerate(linhas):
                     if "N DE DIAS LETIVOS:" in l: dias_letivos = l.split(':')[-1].strip()
-                    # O Polivalente é quem tem apenas "Professor(a)" na descrição
                     if l == "Professor(a)": prof_poli = linhas[i-1].split('-')[-1].strip()
                     if "Professor(a) de Arte" in l: prof_arte = linhas[i-1].split('-')[-1].strip()
                     if "Professor(a) de Educação Física" in l: prof_edf = linhas[i-1].split('-')[-1].strip()
@@ -10229,8 +10226,8 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
                             file_name="Boletins_Assinados_1Tri.zip",
                             mime="application/zip"
                         )
-            else:
-                st.warning("Nenhum dado de aluno encontrado no PDF.")
-            
+                else:
+                    st.warning("Nenhum dado de aluno encontrado no PDF.")
+                    
             except Exception as e:
                 st.error(f"Erro no processamento: {e}")

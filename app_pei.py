@@ -10164,57 +10164,84 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
         return pdf.output(dest="S")
 
     # --- UPLOAD E PROCESSAMENTO ---
+    # --- UPLOAD E PROCESSAMENTO ---
     st.divider()
     arquivo_pdf = st.file_uploader("📄 Selecione a Ata de Notas (PDF do sistema)", type=["pdf"])
 
     if arquivo_pdf is not None:
-        with st.spinner("Estruturando dados..."):
+        with st.spinner("Lendo todos os alunos do PDF... Isso pode levar alguns segundos."):
+            import pdfplumber
             
-            # MOCKUP DE DADOS PARA TESTE DE LAYOUT
-            dados_simulados = {
-                "Nome": ["ARIELLA DIAS DE MELO", "ARTHUR BERNINI GUEDES", "HEITOR ALVES NAPONOCENA DA SILVA"],
-                "Situação": ["ATIVO", "ATIVO", "ATIVO"],
-                "Turma": ["1º Ano 01", "1º Ano 01", "1º Ano 01"],
-                "Periodo": ["Manhã", "Manhã", "Manhã"],
-                "Língua Portuguesa": ["AB", "AD", "AB"],
-                "Matemática": ["AB", "AD", "AB"],
-                "Ciências": ["B", "AD", "AB"],
-                "História": ["B", "AD", "AB"],
-                "Geografia": ["B", "AD", "AB"],
-                "Arte": ["B", "AD", "NA"],
-                "Ed. Física": ["AD", "AD", "NA"],
-                "Tecnologia": ["AD", "AD", "AB"]
-            }
-            df_alunos = pd.DataFrame(dados_simulados)
+            alunos_extraidos = []
             
-            st.success("Tabela interpretada com sucesso!")
-            st.dataframe(df_alunos, hide_index=True)
-            
-            if st.button("🚀 Emitir Boletins com Assinatura Digital (ZIP)", type="primary"):
-                zip_buffer = io.BytesIO()
+            try:
+                # Usa o pdfplumber para abrir e ler as tabelas do documento original
+                with pdfplumber.open(arquivo_pdf) as pdf:
+                    for pagina in pdf.pages:
+                        tabelas = pagina.extract_tables()
+                        for tabela in tabelas:
+                            for linha in tabela:
+                                # A lógica busca linhas onde a primeira coluna seja o Nº da chamada (ex: "01", "02")
+                                if linha and linha[0] and str(linha[0]).strip().isdigit() and len(linha) >= 15:
+                                    situacao = str(linha[2]).strip().replace('\n', '')
+                                    
+                                    # Pula os alunos transferidos
+                                    if "ATIVO" in situacao:
+                                        nome = str(linha[1]).strip().replace('\n', ' ')
+                                        
+                                        # Função para evitar erros caso a nota venha vazia
+                                        def limpa_nota(valor):
+                                            return str(valor).strip().replace('\n', '') if valor else "NA"
+
+                                        # Puxa as notas de acordo com as colunas da sua Ata
+                                        alunos_extraidos.append({
+                                            "Nome": nome,
+                                            "Situação": situacao,
+                                            "Turma": "1º Ano 01", 
+                                            "Periodo": "Manhã",
+                                            "Língua Portuguesa": limpa_nota(linha[7]),
+                                            "Matemática": limpa_nota(linha[8]),
+                                            "Ciências": limpa_nota(linha[9]),
+                                            "História": limpa_nota(linha[10]),
+                                            "Geografia": limpa_nota(linha[11]),
+                                            "Arte": limpa_nota(linha[12]),
+                                            "Ed. Física": limpa_nota(linha[13]),
+                                            "Tecnologia": limpa_nota(linha[14])
+                                        })
+                                        
+                df_alunos = pd.DataFrame(alunos_extraidos)
                 
-                with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
-                    barra_progresso = st.progress(0)
+            except Exception as e:
+                st.error(f"Erro ao processar a leitura do PDF: {e}")
+                df_alunos = pd.DataFrame()
+
+            # Se encontrou alunos, exibe a tabela completa e o botão de emitir
+            if not df_alunos.empty:
+                st.success(f"✅ Leitura concluída! {len(df_alunos)} alunos ativos encontrados na Ata.")
+                st.dataframe(df_alunos, hide_index=True)
+                
+                if st.button("🚀 Emitir Boletins com Assinatura Digital (ZIP)", type="primary"):
+                    zip_buffer = io.BytesIO()
                     
-                    for index, row in df_alunos.iterrows():
-                        progresso = (index + 1) / len(df_alunos)
-                        barra_progresso.progress(progresso, text=f"Assinando documento: {row['Nome']}")
+                    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+                        barra_progresso = st.progress(0)
                         
-                        pdf_bytes = gerar_boletim_pdf(row, diretor_resp, coord_resp)
-                        nome_arquivo = f"Boletim_{row['Nome'].replace(' ', '_')}.pdf"
-                        zip_file.writestr(nome_arquivo, pdf_bytes)
-                
-                st.divider()
-                st.download_button(
-                    label="📦 Baixar Lote Assinado (ZIP)",
-                    data=zip_buffer.getvalue(),
-                    file_name="Boletins_Assinados_1Tri.zip",
-                    mime="application/zip",
-                    type="primary"
-                )
-
-
-
-
-
-
+                        for index, row in df_alunos.iterrows():
+                            # Atualiza a barra de progresso em tempo real
+                            progresso = (index + 1) / len(df_alunos)
+                            barra_progresso.progress(progresso, text=f"Assinando documento: {row['Nome']}")
+                            
+                            pdf_bytes = gerar_boletim_pdf(row, diretor_resp, coord_resp)
+                            nome_arquivo = f"Boletim_{row['Nome'].replace(' ', '_')}.pdf"
+                            zip_file.writestr(nome_arquivo, pdf_bytes)
+                    
+                    st.divider()
+                    st.download_button(
+                        label=f"📦 Baixar Lote Assinado ({len(df_alunos)} alunos)",
+                        data=zip_buffer.getvalue(),
+                        file_name="Boletins_Assinados_1Tri.zip",
+                        mime="application/zip",
+                        type="primary"
+                    )
+            else:
+                st.warning("Nenhum aluno encontrado. Verifique se o documento é o PDF correto.")

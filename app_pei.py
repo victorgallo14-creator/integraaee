@@ -10043,30 +10043,6 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
         st.session_state.modulo_atuacao = None
         st.rerun()
 
-    # --- CONFIGURAÇÕES DA EQUIPE GESTORA E DOCENTE ---
-    with st.expander("⚙️ Configurações de Assinatura e Emissão", expanded=True):
-        st.markdown("**Equipe Gestora (Assinaturas)**")
-        col1, col2 = st.columns(2)
-        with col1:
-            diretor_resp = st.selectbox(
-                "Diretor(a) / Vice-Diretor(a):", 
-                ["José Victor Souza Gallo", "Luciana", "Noreh", "Marília"]
-            )
-        with col2:
-            coord_resp = st.selectbox(
-                "Professor(a) Coordenador(a):", 
-                ["Oelen Fernando Pedro", "Fernando", "Luciana"]
-            )
-            
-        st.markdown("**Corpo Docente da Turma**")
-        col_prof1, col_prof2 = st.columns(2)
-        with col_prof1:
-            prof_polivalente = st.text_input("Prof. Polivalente (Port/Mat/Cie/Hist/Geo):", "Juliana Aparecida da Silva")
-            prof_arte = st.text_input("Prof. de Arte:", "Jordana Lima Alvez")
-        with col_prof2:
-            prof_edfisica = st.text_input("Prof. de Educação Física:", "Michel Luciano de Lima")
-            prof_tec = st.text_input("Prof. de Linguagens e Tecnologias:", "Fernando Indig Bongiovanni")
-
     # --- CLASSE CUSTOMIZADA DO PDF ---
     class BoletimPDF(FPDF):
         def header(self):
@@ -10107,7 +10083,7 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
         pdf.ln(8)
         
         pdf.set_fill_color(200, 220, 255) 
-        pdf.set_font("helvetica", "B", 8) # Fonte levemente menor para caber nomes grandes
+        pdf.set_font("helvetica", "B", 8) 
         pdf.cell(45, 10, "Disciplina", border=1, align="C", fill=True)
         pdf.cell(50, 10, "Professor(a)", border=1, align="C", fill=True)
         pdf.cell(20, 10, "1º Tri", border=1, align="C", fill=True)
@@ -10118,7 +10094,6 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
         
         pdf.set_font("helvetica", "", 8)
         
-        # Mapeamento com os professores dinâmicos e nome correto da disciplina
         disciplinas = [
             ("Língua Portuguesa", p_poli, dados_aluno['Língua Portuguesa'], "-", "-", "-", "0"),
             ("Matemática", p_poli, dados_aluno['Matemática'], "-", "-", "-", "0"),
@@ -10132,7 +10107,7 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
         
         for disc, prof, tri1, tri2, tri3, final, faltas in disciplinas:
             pdf.cell(45, 8, f" {disc}", border=1)
-            pdf.cell(50, 8, f" {prof[:30]}", border=1) # Limita a 30 caracteres para não estourar a tabela
+            pdf.cell(50, 8, f" {prof[:30]}", border=1) 
             pdf.cell(20, 8, tri1, border=1, align="C")
             pdf.cell(20, 8, tri2, border=1, align="C")
             pdf.cell(20, 8, tri3, border=1, align="C")
@@ -10175,23 +10150,28 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
     arquivo_pdf = st.file_uploader("📄 Selecione a Ata de Notas (PDF do sistema)", type=["pdf"])
 
     if arquivo_pdf is not None:
-        with st.spinner("Lendo todos os alunos do PDF... Isso pode levar alguns segundos."):
+        with st.spinner("Lendo documento da prefeitura... Extraindo nomes e notas."):
             import pdfplumber
             
             alunos_extraidos = []
+            texto_completo = ""
             
             try:
                 with pdfplumber.open(arquivo_pdf) as pdf:
+                    # Lê o texto de todas as páginas para achar a assinatura dos professores
                     for pagina in pdf.pages:
+                        texto_extraido = pagina.extract_text()
+                        if texto_extraido:
+                            texto_completo += texto_extraido + "\n"
+                            
+                        # Extrai a tabela de notas
                         tabelas = pagina.extract_tables()
                         for tabela in tabelas:
                             for linha in tabela:
                                 if linha and linha[0] and str(linha[0]).strip().isdigit() and len(linha) >= 15:
                                     situacao = str(linha[2]).strip().replace('\n', '')
-                                    
                                     if "ATIVO" in situacao:
                                         nome = str(linha[1]).strip().replace('\n', ' ')
-                                        
                                         def limpa_nota(valor):
                                             return str(valor).strip().replace('\n', '') if valor else "NA"
 
@@ -10212,12 +10192,40 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
                                         
                 df_alunos = pd.DataFrame(alunos_extraidos)
                 
+                # --- LEITOR INTELIGENTE DE PROFESSORES ---
+                linhas_texto = texto_completo.split('\n')
+                prof_polivalente, prof_arte, prof_edfisica, prof_tec = "Não identificado", "Não identificado", "Não identificado", "Não identificado"
+                diretor_ext, coordenador_ext = "Equipe Gestora", "Equipe Gestora"
+                
+                for i, linha in enumerate(linhas_texto):
+                    linha_limpa = linha.strip()
+                    # Acha o título e pega o nome na linha de cima (removendo código da matrícula via .split('-')[-1])
+                    if linha_limpa == "Professor(a)":
+                        prof_polivalente = linhas_texto[i-1].split('-')[-1].strip()
+                    elif "Professor(a) de Arte" in linha_limpa:
+                        prof_arte = linhas_texto[i-1].split('-')[-1].strip()
+                    elif "Professor(a) de Educação Física" in linha_limpa:
+                        prof_edfisica = linhas_texto[i-1].split('-')[-1].strip()
+                    elif "Professor(a) de Linguagens e Tecnologias" in linha_limpa:
+                        prof_tec = linhas_texto[i-1].split('-')[-1].strip()
+                    elif "Professor(a) Coordenador" in linha_limpa:
+                        coordenador_ext = linhas_texto[i-1].split('-')[-1].strip()
+                    elif "Diretor(a)/Vice-Diretor(a)" in linha_limpa:
+                        diretor_ext = linhas_texto[i-1].split('-')[-1].strip()
+                        
             except Exception as e:
                 st.error(f"Erro ao processar a leitura do PDF: {e}")
                 df_alunos = pd.DataFrame()
 
             if not df_alunos.empty:
                 st.success(f"✅ Leitura concluída! {len(df_alunos)} alunos ativos encontrados na Ata.")
+                
+                # Mostra ao usuário quais nomes o sistema conseguiu ler
+                with st.expander("👨‍🏫 Equipe Identificada no Documento", expanded=False):
+                    st.write(f"**Gestão:** {diretor_ext} | **Coordenação:** {coordenador_ext}")
+                    st.write(f"**Polivalente:** {prof_polivalente} | **Arte:** {prof_arte}")
+                    st.write(f"**Ed. Física:** {prof_edfisica} | **Tecnologia:** {prof_tec}")
+                
                 st.dataframe(df_alunos, hide_index=True)
                 
                 if st.button("🚀 Emitir Boletins com Assinatura Digital (ZIP)", type="primary"):
@@ -10230,9 +10238,9 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
                             progresso = (index + 1) / len(df_alunos)
                             barra_progresso.progress(progresso, text=f"Assinando documento: {row['Nome']}")
                             
-                            # Passa as variáveis dos professores da interface para a função geradora
+                            # Gera o boletim passando exatamente os nomes que o sistema identificou sozihho
                             pdf_bytes = gerar_boletim_pdf(
-                                row, diretor_resp, coord_resp, 
+                                row, diretor_ext, coordenador_ext, 
                                 prof_polivalente, prof_arte, prof_edfisica, prof_tec
                             )
                             nome_arquivo = f"Boletim_{row['Nome'].replace(' ', '_')}.pdf"

@@ -5997,6 +5997,15 @@ elif modulo_atuacao == "🏫 Ensino Regular":
     propostas_padrao_inf = "1. \n2. \n3. \n4. \n5. \n6. "
     propostas_ata_inf = get_config("propostas_ata_inf", propostas_padrao_inf)
 
+    def clean_pdf_text(texto):
+        if not isinstance(texto, str):
+            return str(texto)
+        texto = texto.replace('“', '"').replace('”', '"')
+        texto = texto.replace('‘', "'").replace('’', "'")
+        texto = texto.replace('–', '-').replace('—', '-')
+        texto = texto.replace('\u200b', '').replace('\xa0', ' ')
+        return texto
+    
     def get_criterios_infantil(etapa):
         # Define os padrões para a 1ª Etapa (como Semente)
         padrao_lv = "Oralidade: (Pronúncia correta das palavras; Participação atenta nas exposições orais escutando com atenção, respondendo e elaborando questões); Leitura: (Compreensão do significado das palavras; Socialização de critérios de escolha e de apreciação estética de leituras; Leitura de sílabas canônica e não canônicas; Localização de Informações explícitas); Análise Linguística: (Escrita de palavras utilizando a direção convencional; Reconhecimento e utilização das letras do alfabeto para a produção escrita; Traçado de modo convencional as letras com o auxílio do(a) professor(a)); Produção: (Produção oral de textos com destino escrito considerando gênero trabalhado (silhueta), (interlocutor) (sentido a partir de uma situação dada))."
@@ -6530,6 +6539,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                             st.success(f"✅ Ata salva com segurança!")
                         except Exception as e:
                             st.error(f"Erro ao salvar: {e}")
+
 
                     if st.button("👁️ GERAR ATA COMPLETA (PDF)", type="primary", use_container_width=True):
                         try:

@@ -6550,13 +6550,16 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                             pdf.add_page()
                             
                             def calc_lines(txt, w):
+                                # A MÁGICA VEM AQUI: Limpa o texto antes da biblioteca tentar medir!
+                                txt = clean_pdf_text(txt)
+                                
                                 if not txt: return 1
                                 lines = 0
                                 for par in txt.split('\n'):
                                     words = par.split(' ')
                                     curr_w = 0
                                     for word in words:
-                                        word_w = pdf.get_string_width(word + ' ')
+                                        word_w = pdf.get_string_width(word + ' ') # O erro acontecia nesta linha!
                                         if curr_w + word_w > w:
                                             lines += 1; curr_w = word_w
                                         else:
@@ -6671,7 +6674,11 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                             lista_abaixo = data_ata.get('abaixo_basico', [])
                                 
                             def truncate_str(texto, max_w):
-                                while pdf.get_string_width(texto) > max_w - 2: texto = texto[:-1]
+                                # Limpa antes de usar no laço while
+                                texto = clean_pdf_text(texto)
+                                
+                                while pdf.get_string_width(texto) > max_w - 2: 
+                                    texto = texto[:-1]
                                 return texto
 
                             for row in lista_abaixo:
@@ -6913,8 +6920,8 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                                     
                                     pdf.line(x + 4, y + 10, x + cell_w - 4, y + 10)
                                     
-                                    nome = str(sig.get('Nome', '')).strip()
-                                    cargo_full = str(sig.get('Cargo/Atuação', '')).strip()
+                                    nome = clean_pdf_text(str(sig.get('Nome', '')).strip())
+                                    cargo_full = clean_pdf_text(str(sig.get('Cargo/Atuação', '')).strip())
                                     
                                     cargo = cargo_full
                                     atuacao = ""
@@ -7261,13 +7268,16 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                             pdf.add_page()
                             
                             def calc_lines(txt, w):
+                                # A MÁGICA VEM AQUI: Limpa o texto antes da biblioteca tentar medir!
+                                txt = clean_pdf_text(txt)
+                                
                                 if not txt: return 1
                                 lines = 0
                                 for par in txt.split('\n'):
                                     words = par.split(' ')
                                     curr_w = 0
                                     for word in words:
-                                        word_w = pdf.get_string_width(word + ' ')
+                                        word_w = pdf.get_string_width(word + ' ') # O erro acontecia nesta linha!
                                         if curr_w + word_w > w:
                                             lines += 1; curr_w = word_w
                                         else:
@@ -7408,7 +7418,11 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                             lista_abaixo = data_inf.get('abaixo_basico', [])
                                 
                             def truncate_str(texto, max_w):
-                                while pdf.get_string_width(texto) > max_w - 2: texto = texto[:-1]
+                                # Limpa antes de usar no laço while
+                                texto = clean_pdf_text(texto)
+                                
+                                while pdf.get_string_width(texto) > max_w - 2: 
+                                    texto = texto[:-1]
                                 return texto
 
                             for row in lista_abaixo:
@@ -7565,8 +7579,8 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                                     
                                     pdf.line(x + 4, y + 10, x + cell_w - 4, y + 10)
                                     
-                                    nome = str(sig.get('Nome', '')).strip()
-                                    cargo_full = str(sig.get('Cargo/Atuação', '')).strip()
+                                    nome = clean_pdf_text(str(sig.get('Nome', '')).strip())
+                                    cargo_full = clean_pdf_text(str(sig.get('Cargo/Atuação', '')).strip())    
                                     
                                     cargo = cargo_full
                                     atuacao = ""

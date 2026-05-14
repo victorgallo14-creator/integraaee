@@ -6608,7 +6608,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                             pdf.set_x(15)
                             pdf.cell(180, 5, clean_pdf_text("1- Síntese avaliativa da classe:"), "LR", 1, 'L')
                             
-                            texto_sint = "a partir dos diferentes instrumentos avaliativos e da análise dos resultados, o desempenho alcançado pela classe em cada componente curricular no trimestre atual se apresenta da seguinte forma:"
+                            texto_sint = "A partir dos diferentes instrumentos avaliativos e da análise dos resultados, o desempenho alcançado pela classe em cada componente curricular no trimestre atual se apresenta da seguinte forma:"
                             pdf.set_font("Arial", "", 10)
                             pdf.set_x(15)
                             pdf.multi_cell(180, 5, clean_pdf_text(texto_sint), "LR", 'J')

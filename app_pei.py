@@ -764,6 +764,7 @@ def login():
                                             st.session_state.usuario_nome = aluno_nome
                                             st.session_state.user_role = 'estudante'
                                             st.session_state.usuario_ra = user_id_limpo # Fundamental para o Álbum!
+                                            st.session_state.modulo_atuacao = "🏫 Ensino Regular"  # <--- ADICIONE ESTA LINHA!
                                             authenticated = True
                                             
                                             st.toast(f"Acesso de Estudante autorizado! Bora colecionar, {aluno_nome}!", icon="🎒")
@@ -1178,9 +1179,10 @@ with st.sidebar:
     
     # Exibe em qual módulo estamos e cria um botão para voltar ao Portal
     st.markdown(f'<p class="section-label" style="color:#2563eb; font-weight:bold; text-align:center;">{modulo_atuacao}</p>', unsafe_allow_html=True)
-    if st.button("🔄 Trocar Ambiente", use_container_width=True):
-        st.session_state.modulo_atuacao = None
-        st.rerun()
+    if st.session_state.get('user_role') != 'estudante':
+        if st.button("🔄 Trocar Ambiente", use_container_width=True):
+            st.session_state.modulo_atuacao = None
+            st.rerun()
 
     st.divider()
 
@@ -1206,6 +1208,9 @@ with st.sidebar:
         
     elif modulo_atuacao == "🏫 Ensino Regular":
         st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
+        # --- TRAVA DE SEGURANÇA: MODO ESTUDANTE ---
+        if st.session_state.get('user_role') == 'estudante':
+            opcoes_regular = ["🏆 Álbum de Figurinhas"]
         
         opcoes_regular = ["🖼️ Carômetro Escolar", "💻 Agendamento Informática", "📝 Nova Ata de Conselho", "📂 Histórico de Atas", "📖 Planejamento Curricular"]
         

@@ -37,6 +37,275 @@ from email import encoders
 
 
 
+MIN_DATA = date(1900, 1, 1)
+MAX_DATA = date(2100, 12, 31)
+
+# --- CONFIGURAÇÃO INICIAL ---
+# --- CONFIGURAÇÃO INICIAL ---
+st.set_page_config(
+    page_title="Integra | CEIEF Rafael Affonso Leite",
+    layout="wide",
+    page_icon="🧠",
+    initial_sidebar_state="auto"
+)
+
+# --- OCULTAR TOOLBAR E MENU E RESPONSIVIDADE ---
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            .stAppDeployButton {display:none;}
+            
+            /* --- COMPORTAMENTO DESKTOP (Largura > 992px) --- */
+            @media (min-width: 992px) {
+                /* Esconde completamente o header */
+                header {display: none !important;}
+                [data-testid="stSidebarCollapseButton"] {display: none !important;}
+                
+                /* FORÇA A BARRA LATERAL A IR PARA O TOPO ABSOLUTO */
+                section[data-testid="stSidebar"] {
+                    top: 0px !important;
+                    height: 100vh !important;
+                }
+            }
+            
+            /* --- COMPORTAMENTO MOBILE/TABLET (Largura <= 991px) --- */
+            @media (max-width: 991px) {
+                /* Header visível para acessar o menu hambúrguer */
+                header {visibility: visible;}
+                
+                /* Ajustes para evitar que o conteúdo suba demais */
+                .header-box {
+                    margin-top: 0px !important;
+                }
+            }
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
+# --- FUNÇÕES AUXILIARES DE DESENHO (GLOBAIS) ---
+def calc_lines(pdf, text, w):
+    if not text: return 1
+    lines = 0
+    for p in str(text).split('\n'):
+        words = p.split(' ')
+        line_w = 0
+        for word in words:
+            word_w = pdf.get_string_width(word + ' ')
+            if line_w + word_w > w - 2:
+                lines += 1
+                line_w = word_w
+            else:
+                line_w += word_w
+        lines += 1
+    return max(1, lines)
+
+def draw_flex_row(pdf, col_data, line_h=6, font_size=9, fill_color=(240, 240, 240)):
+    max_lines = 1
+    x_start_measure = pdf.get_x()
+    for w, text, weight, align, fill in col_data:
+        pdf.set_font("Arial", weight, font_size)
+        real_w = w if w > 0 else (210 - 15 - x_start_measure)
+        lines = calc_lines(pdf, text, real_w)
+        if lines > max_lines: max_lines = lines
+        x_start_measure += real_w
+        
+    row_h = max_lines * line_h
+    if pdf.get_y() + row_h > 275:
+        pdf.add_page()
+        
+    x_start = pdf.get_x()
+    y_start = pdf.get_y()
+    for w, text, weight, align, fill in col_data:
+        real_w = w if w > 0 else (210 - 15 - x_start)
+        pdf.set_font("Arial", weight, font_size)
+        if fill: pdf.set_fill_color(*fill_color)
+        else: pdf.set_fill_color(255, 255, 255)
+        
+        pdf.set_xy(x_start, y_start)
+        pdf.cell(real_w, row_h, "", border=1, fill=fill)
+        
+        y_text = y_start + 1
+        if max_lines > 1 and calc_lines(pdf, text, real_w) == 1:
+            y_text = y_start + (row_h - line_h) / 2
+            
+        pdf.set_xy(x_start + 1, y_text)
+        pdf.multi_cell(real_w - 2, line_h, str(text), border=0, align=align)
+        x_start += real_w
+        
+    pdf.set_xy(15, y_start + row_h)
+
+# --- CONEXÃO COM SUPABASE ---
+@st.cache_resource
+def init_supabase():
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+    return create_client(url, key)
+
+supabase = init_supabase()
+
+def load_db(strict=False):
+    try:
+        res = supabase.table("Alunos").select("*").execute()
+        df = pd.DataFrame(res.data)
+        if df.empty: return pd.DataFrame(columns=["nome", "tipo_doc", "dados_json", "id", "ultima_atualizacao"])
+        return df
+    except Exception as e:
+        if strict: raise Exception(f"Erro Supabase: {e}")
+        return pd.DataFrame(columns=["nome", "tipo_doc", "dados_json", "id", "ultima_atualizacao"])
+
+def safe_read(worksheet_name, columns):
+    try:
+        res = supabase.table(worksheet_name).select("*").execute()
+        df = pd.DataFrame(res.data)
+        if df.empty: return pd.DataFrame(columns=columns)
+        return df
+    except:
+        return pd.DataFrame(columns=columns)
+
+def safe_update(worksheet_name, data):
+    """
+    Sincroniza do Pandas para o Supabase de forma segura e adaptável para qualquer tabela.
+    """
+    try:
+        # 1. Limpeza contra erros de JSON
+        df_to_save = data.copy()
+        df_to_save = df_to_save.fillna("") 
+        
+        # 2. SEPARAÇÃO INTELIGENTE POR TABELA
+        if worksheet_name == "Alunos":
+            df_to_save['id'] = df_to_save['nome'].astype(str).str.strip() + " (" + df_to_save['tipo_doc'].astype(str).str.strip() + ")"
+            supabase.table(worksheet_name).delete().neq("nome", "FORCAR_LIMPEZA_TOTAL").execute()
+            
+        elif worksheet_name == "Atas_Conselho":
+            supabase.table(worksheet_name).delete().neq("id_ata", "FORCAR_LIMPEZA_TOTAL").execute()
+            
+        elif worksheet_name in ["Recados", "Agenda", "Agendamentos"]:
+            # Removemos a coluna 'id' para evitar o erro "1.0" (float -> int) gerado pelo Pandas
+            if 'id' in df_to_save.columns:
+                df_to_save = df_to_save.drop(columns=['id'])
+                
+            supabase.table(worksheet_name).delete().neq("Data", "FORCAR_LIMPEZA_TOTAL").execute()
+            
+        elif worksheet_name == "Config_Ata":
+            if 'id' in df_to_save.columns:
+                df_to_save = df_to_save.drop(columns=['id'])
+            
+            supabase.table(worksheet_name).delete().neq("chave", "FORCAR_LIMPEZA_TOTAL").execute()
+            
+        else:
+            pass
+
+        # 3. Gravação no Banco de Dados
+        data_dict = df_to_save.to_dict(orient="records")
+        if len(data_dict) > 0:
+            supabase.table(worksheet_name).insert(data_dict).execute()
+        
+        return True
+    except Exception as e:
+        st.error(f"Erro crítico ao atualizar {worksheet_name}: {e}")
+        return False
+def create_backup(df_atual):
+    pass # Backups agora são gerenciados nativamente pela infraestrutura do Supabase
+
+def log_action(student_name, action, details):
+    try:
+        novo_log = {
+            "Data_Hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "Aluno": student_name,
+            "Usuario": st.session_state.get('usuario_nome', 'Desconhecido'),
+            "Acao": action,
+            "Detalhes": details
+        }
+        supabase.table("Historico").insert(novo_log).execute()
+    except: pass
+
+def save_student(doc_type, name, data, section="Geral"):
+    is_monitor = st.session_state.get('user_role') == 'monitor'
+    if is_monitor and doc_type != "DIARIO" and section != "Assinatura":
+        st.error("Acesso negado: Monitores não podem editar este documento.")
+        return
+
+    try:
+        id_registro = f"{name} ({doc_type})"
+        if 'doc_uuid' not in data or not data['doc_uuid']: data['doc_uuid'] = str(uuid.uuid4()).upper()
+
+        def serializar_datas(obj):
+            if isinstance(obj, (date, datetime)): return obj.strftime("%Y-%m-%d")
+            if isinstance(obj, dict): return {k: serializar_datas(v) for k, v in obj.items()}
+            if isinstance(obj, list): return [serializar_datas(i) for i in obj]
+            return obj
+            
+        data_limpa = serializar_datas(data)
+        novo_json = json.dumps(data_limpa, ensure_ascii=False)
+        fuso_br = timezone(timedelta(hours=-3))
+        data_hora_agora = datetime.now(fuso_br).strftime("%d/%m/%Y %H:%M:%S")
+
+        novo_registro = {
+            "id": id_registro,
+            "nome": name,
+            "tipo_doc": doc_type,
+            "dados_json": novo_json,
+            "ultima_atualizacao": data_hora_agora
+        }
+        
+        # O poderoso UPSERT substitui toda a sua lógica manual de lock e cópia de DFs
+        supabase.table("Alunos").upsert(novo_registro).execute()
+        st.toast(f"✅ Alterações em {name} salvas com segurança!", icon="💾")
+    except Exception as e:
+        st.error(f"❌ Falha ao salvar no banco Supabase. Erro: {e}")
+
+def delete_student(student_name):
+    is_monitor = st.session_state.get('user_role') == 'monitor'
+    if is_monitor: return False
+    try:
+        supabase.table("Alunos").delete().eq("nome", student_name).execute()
+        st.toast(f"🗑️ Registro de {student_name} excluído!", icon="🔥")
+        return True
+    except Exception as e:
+        st.error(f"Erro ao excluir: {e}")
+        return False
+
+
+def load_carometro_db():
+    """Carrega todos os registros da nova tabela Carometro"""
+    try:
+        response = supabase.table("Carometro").select("*").execute()
+        return pd.DataFrame(response.data)
+    except Exception as e:
+        st.error(f"Erro ao carregar Carômetro: {e}")
+        return pd.DataFrame()
+
+def save_carometro_entry(nome, turma, foto_b64):
+    """Salva ou atualiza um aluno na tabela Carometro"""
+    try:
+        # Tenta encontrar se o aluno já existe nessa turma para atualizar
+        existente = supabase.table("Carometro").select("id").eq("nome", nome).eq("turma", turma).execute()
+        
+        dados = {"nome": nome, "turma": turma, "foto_base64": foto_b64}
+        
+        if existente.data:
+            id_reg = existente.data[0]['id']
+            supabase.table("Carometro").update(dados).eq("id", id_reg).execute()
+        else:
+            supabase.table("Carometro").insert(dados).execute()
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar no Carômetro: {e}")
+        return False
+
+def delete_carometro_entry(id_reg):
+    """Remove um registro da tabela Carometro"""
+    try:
+        supabase.table("Carometro").delete().eq("id", id_reg).execute()
+        return True
+    except Exception:
+        return False
+# --- FIM DAS FUNÇÕES DE BANCO DE DADOS ---
+
+
+
+
 
 # =====================================================================
 # COLE ISTO NO TOPO DO SEU ARQUIVO (LOGO APÓS OS IMPORTS PRINCIPAIS)
@@ -550,274 +819,6 @@ def render_modulo_album():
 
 
 
-
-
-
-MIN_DATA = date(1900, 1, 1)
-MAX_DATA = date(2100, 12, 31)
-
-# --- CONFIGURAÇÃO INICIAL ---
-# --- CONFIGURAÇÃO INICIAL ---
-st.set_page_config(
-    page_title="Integra | CEIEF Rafael Affonso Leite",
-    layout="wide",
-    page_icon="🧠",
-    initial_sidebar_state="auto"
-)
-
-# --- OCULTAR TOOLBAR E MENU E RESPONSIVIDADE ---
-hide_st_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            .stAppDeployButton {display:none;}
-            
-            /* --- COMPORTAMENTO DESKTOP (Largura > 992px) --- */
-            @media (min-width: 992px) {
-                /* Esconde completamente o header */
-                header {display: none !important;}
-                [data-testid="stSidebarCollapseButton"] {display: none !important;}
-                
-                /* FORÇA A BARRA LATERAL A IR PARA O TOPO ABSOLUTO */
-                section[data-testid="stSidebar"] {
-                    top: 0px !important;
-                    height: 100vh !important;
-                }
-            }
-            
-            /* --- COMPORTAMENTO MOBILE/TABLET (Largura <= 991px) --- */
-            @media (max-width: 991px) {
-                /* Header visível para acessar o menu hambúrguer */
-                header {visibility: visible;}
-                
-                /* Ajustes para evitar que o conteúdo suba demais */
-                .header-box {
-                    margin-top: 0px !important;
-                }
-            }
-            </style>
-            """
-st.markdown(hide_st_style, unsafe_allow_html=True)
-
-# --- FUNÇÕES AUXILIARES DE DESENHO (GLOBAIS) ---
-def calc_lines(pdf, text, w):
-    if not text: return 1
-    lines = 0
-    for p in str(text).split('\n'):
-        words = p.split(' ')
-        line_w = 0
-        for word in words:
-            word_w = pdf.get_string_width(word + ' ')
-            if line_w + word_w > w - 2:
-                lines += 1
-                line_w = word_w
-            else:
-                line_w += word_w
-        lines += 1
-    return max(1, lines)
-
-def draw_flex_row(pdf, col_data, line_h=6, font_size=9, fill_color=(240, 240, 240)):
-    max_lines = 1
-    x_start_measure = pdf.get_x()
-    for w, text, weight, align, fill in col_data:
-        pdf.set_font("Arial", weight, font_size)
-        real_w = w if w > 0 else (210 - 15 - x_start_measure)
-        lines = calc_lines(pdf, text, real_w)
-        if lines > max_lines: max_lines = lines
-        x_start_measure += real_w
-        
-    row_h = max_lines * line_h
-    if pdf.get_y() + row_h > 275:
-        pdf.add_page()
-        
-    x_start = pdf.get_x()
-    y_start = pdf.get_y()
-    for w, text, weight, align, fill in col_data:
-        real_w = w if w > 0 else (210 - 15 - x_start)
-        pdf.set_font("Arial", weight, font_size)
-        if fill: pdf.set_fill_color(*fill_color)
-        else: pdf.set_fill_color(255, 255, 255)
-        
-        pdf.set_xy(x_start, y_start)
-        pdf.cell(real_w, row_h, "", border=1, fill=fill)
-        
-        y_text = y_start + 1
-        if max_lines > 1 and calc_lines(pdf, text, real_w) == 1:
-            y_text = y_start + (row_h - line_h) / 2
-            
-        pdf.set_xy(x_start + 1, y_text)
-        pdf.multi_cell(real_w - 2, line_h, str(text), border=0, align=align)
-        x_start += real_w
-        
-    pdf.set_xy(15, y_start + row_h)
-
-# --- CONEXÃO COM SUPABASE ---
-@st.cache_resource
-def init_supabase():
-    url = st.secrets["SUPABASE_URL"]
-    key = st.secrets["SUPABASE_KEY"]
-    return create_client(url, key)
-
-supabase = init_supabase()
-
-def load_db(strict=False):
-    try:
-        res = supabase.table("Alunos").select("*").execute()
-        df = pd.DataFrame(res.data)
-        if df.empty: return pd.DataFrame(columns=["nome", "tipo_doc", "dados_json", "id", "ultima_atualizacao"])
-        return df
-    except Exception as e:
-        if strict: raise Exception(f"Erro Supabase: {e}")
-        return pd.DataFrame(columns=["nome", "tipo_doc", "dados_json", "id", "ultima_atualizacao"])
-
-def safe_read(worksheet_name, columns):
-    try:
-        res = supabase.table(worksheet_name).select("*").execute()
-        df = pd.DataFrame(res.data)
-        if df.empty: return pd.DataFrame(columns=columns)
-        return df
-    except:
-        return pd.DataFrame(columns=columns)
-
-def safe_update(worksheet_name, data):
-    """
-    Sincroniza do Pandas para o Supabase de forma segura e adaptável para qualquer tabela.
-    """
-    try:
-        # 1. Limpeza contra erros de JSON
-        df_to_save = data.copy()
-        df_to_save = df_to_save.fillna("") 
-        
-        # 2. SEPARAÇÃO INTELIGENTE POR TABELA
-        if worksheet_name == "Alunos":
-            df_to_save['id'] = df_to_save['nome'].astype(str).str.strip() + " (" + df_to_save['tipo_doc'].astype(str).str.strip() + ")"
-            supabase.table(worksheet_name).delete().neq("nome", "FORCAR_LIMPEZA_TOTAL").execute()
-            
-        elif worksheet_name == "Atas_Conselho":
-            supabase.table(worksheet_name).delete().neq("id_ata", "FORCAR_LIMPEZA_TOTAL").execute()
-            
-        elif worksheet_name in ["Recados", "Agenda", "Agendamentos"]:
-            # Removemos a coluna 'id' para evitar o erro "1.0" (float -> int) gerado pelo Pandas
-            if 'id' in df_to_save.columns:
-                df_to_save = df_to_save.drop(columns=['id'])
-                
-            supabase.table(worksheet_name).delete().neq("Data", "FORCAR_LIMPEZA_TOTAL").execute()
-            
-        elif worksheet_name == "Config_Ata":
-            if 'id' in df_to_save.columns:
-                df_to_save = df_to_save.drop(columns=['id'])
-            
-            supabase.table(worksheet_name).delete().neq("chave", "FORCAR_LIMPEZA_TOTAL").execute()
-            
-        else:
-            pass
-
-        # 3. Gravação no Banco de Dados
-        data_dict = df_to_save.to_dict(orient="records")
-        if len(data_dict) > 0:
-            supabase.table(worksheet_name).insert(data_dict).execute()
-        
-        return True
-    except Exception as e:
-        st.error(f"Erro crítico ao atualizar {worksheet_name}: {e}")
-        return False
-def create_backup(df_atual):
-    pass # Backups agora são gerenciados nativamente pela infraestrutura do Supabase
-
-def log_action(student_name, action, details):
-    try:
-        novo_log = {
-            "Data_Hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-            "Aluno": student_name,
-            "Usuario": st.session_state.get('usuario_nome', 'Desconhecido'),
-            "Acao": action,
-            "Detalhes": details
-        }
-        supabase.table("Historico").insert(novo_log).execute()
-    except: pass
-
-def save_student(doc_type, name, data, section="Geral"):
-    is_monitor = st.session_state.get('user_role') == 'monitor'
-    if is_monitor and doc_type != "DIARIO" and section != "Assinatura":
-        st.error("Acesso negado: Monitores não podem editar este documento.")
-        return
-
-    try:
-        id_registro = f"{name} ({doc_type})"
-        if 'doc_uuid' not in data or not data['doc_uuid']: data['doc_uuid'] = str(uuid.uuid4()).upper()
-
-        def serializar_datas(obj):
-            if isinstance(obj, (date, datetime)): return obj.strftime("%Y-%m-%d")
-            if isinstance(obj, dict): return {k: serializar_datas(v) for k, v in obj.items()}
-            if isinstance(obj, list): return [serializar_datas(i) for i in obj]
-            return obj
-            
-        data_limpa = serializar_datas(data)
-        novo_json = json.dumps(data_limpa, ensure_ascii=False)
-        fuso_br = timezone(timedelta(hours=-3))
-        data_hora_agora = datetime.now(fuso_br).strftime("%d/%m/%Y %H:%M:%S")
-
-        novo_registro = {
-            "id": id_registro,
-            "nome": name,
-            "tipo_doc": doc_type,
-            "dados_json": novo_json,
-            "ultima_atualizacao": data_hora_agora
-        }
-        
-        # O poderoso UPSERT substitui toda a sua lógica manual de lock e cópia de DFs
-        supabase.table("Alunos").upsert(novo_registro).execute()
-        st.toast(f"✅ Alterações em {name} salvas com segurança!", icon="💾")
-    except Exception as e:
-        st.error(f"❌ Falha ao salvar no banco Supabase. Erro: {e}")
-
-def delete_student(student_name):
-    is_monitor = st.session_state.get('user_role') == 'monitor'
-    if is_monitor: return False
-    try:
-        supabase.table("Alunos").delete().eq("nome", student_name).execute()
-        st.toast(f"🗑️ Registro de {student_name} excluído!", icon="🔥")
-        return True
-    except Exception as e:
-        st.error(f"Erro ao excluir: {e}")
-        return False
-
-
-def load_carometro_db():
-    """Carrega todos os registros da nova tabela Carometro"""
-    try:
-        response = supabase.table("Carometro").select("*").execute()
-        return pd.DataFrame(response.data)
-    except Exception as e:
-        st.error(f"Erro ao carregar Carômetro: {e}")
-        return pd.DataFrame()
-
-def save_carometro_entry(nome, turma, foto_b64):
-    """Salva ou atualiza um aluno na tabela Carometro"""
-    try:
-        # Tenta encontrar se o aluno já existe nessa turma para atualizar
-        existente = supabase.table("Carometro").select("id").eq("nome", nome).eq("turma", turma).execute()
-        
-        dados = {"nome": nome, "turma": turma, "foto_base64": foto_b64}
-        
-        if existente.data:
-            id_reg = existente.data[0]['id']
-            supabase.table("Carometro").update(dados).eq("id", id_reg).execute()
-        else:
-            supabase.table("Carometro").insert(dados).execute()
-        return True
-    except Exception as e:
-        st.error(f"Erro ao salvar no Carômetro: {e}")
-        return False
-
-def delete_carometro_entry(id_reg):
-    """Remove um registro da tabela Carometro"""
-    try:
-        supabase.table("Carometro").delete().eq("id", id_reg).execute()
-        return True
-    except Exception:
-        return False
-# --- FIM DAS FUNÇÕES DE BANCO DE DADOS ---
 
 import uuid
 import base64

@@ -10411,12 +10411,13 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 # =====================================================================
-# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM E ARENA DE JOGOS
+# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM E ARENA DE JOGOS VISUAL
 # Tabelas: estudantes, figurinhas, inventario_album, banca_trocas
 # =====================================================================
 import random
 import time
 import streamlit as st
+import streamlit.components.v1 as components
 
 def injetar_css_album_premium():
     st.markdown("""
@@ -10490,7 +10491,6 @@ def injetar_css_album_premium():
 
 
 def puxar_dados_album_estudante(ra):
-    """Puxa os dados do inventário e a lista filtrada de figurinhas da TURMA do aluno."""
     res_est = supabase.table("estudantes").select("nome, turma, pacotes_disponiveis").eq("ra", ra).execute()
     
     if not res_est.data:
@@ -10530,7 +10530,6 @@ def puxar_dados_album_estudante(ra):
 
 
 def processar_abertura_pacote_supa(ra, catalogo_ids_permitidos):
-    """Garante que os sorteios sejam apenas dos IDs da turma do aluno"""
     if not catalogo_ids_permitidos: return None
     
     res_est = supabase.table("estudantes").select("pacotes_disponiveis").eq("ra", ra).execute()
@@ -10570,7 +10569,7 @@ def render_modulo_album():
     st.markdown('<div class="album-premium-container">', unsafe_allow_html=True)
     st.markdown('<div class="header-premium"><h1>🏆 ÁLBUM DA COPA CEIEF 🏆</h1><p>Módulo de Integração de Alunos</p></div>', unsafe_allow_html=True)
     
-    # 4 ABAS INCLUINDO A ARENA DE JOGOS
+    # 4 ABAS COM A NOVA ARENA DE JOGOS
     aba_album, aba_pacotes, aba_trocas, aba_jogos = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas", "🎮 Arena de Jogos"])
 
     # ==========================================
@@ -10585,7 +10584,6 @@ def render_modulo_album():
             return
             
         if 'pag_album' not in st.session_state: st.session_state['pag_album'] = 0
-        
         total_paginas = (total_figuras // figurinhas_por_pagina) + (1 if total_figuras % figurinhas_por_pagina > 0 else 0)
         
         c_prev, c_page, c_next = st.columns([1, 2, 1])
@@ -10607,8 +10605,7 @@ def render_modulo_album():
             1: "⚽ CURIOSIDADE DA COPA: Sabia que o Brasil é a única seleção do planeta que participou de absolutamente todas as edições da Copa do Mundo?",
             2: "🏆 MOMENTO HISTÓRICO: Pelé, o eterno Rei do Futebol, é o único jogador da história a vencer três Copas do Mundo (1958, 1962 e 1970).",
             3: "🌍 VOCÊ SABIA? A Copa do Mundo de 2002 foi a primeira da história a ser sediada em dois países simultaneamente: Coreia do Sul e Japão.",
-            4: "🏟️ RECORDE: O gol mais rápido da história das Copas foi marcado aos incríveis 11 segundos por Hakan Şükür, da Turquia, em 2002.",
-            5: "✨ LENDÁRIAS: Fique atento às figurinhas douradas da Equipe Escolar! Elas são super raras e equivalem aos maiores craques do nosso time!"
+            4: "🏟️ RECORDE: O gol mais rápido da história das Copas foi marcado aos incríveis 11 segundos por Hakan Şükür, da Turquia, em 2002."
         }
         texto_atual = textos_paginas.get(st.session_state['pag_album'], "Continue a abrir pacotinhos e a negociar com os colegas para completar sua coleção!")
         
@@ -10683,7 +10680,7 @@ def render_modulo_album():
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
         else:
-            st.error("Os seus pacotinhos acabaram. Aguarde que os professores libertem mais cargas, ou vá jogar uma partida na Arena de Jogos!")
+            st.error("Os seus pacotinhos acabaram. Vá jogar uma partida na Arena de Jogos para treinar!")
 
         if 'ultimo_sorteio' in st.session_state and st.session_state['ultimo_sorteio']:
             st.write("---")
@@ -10729,7 +10726,6 @@ def render_modulo_album():
     # ==========================================
     with aba_trocas:
         st.markdown("### 🤝 Mercado de Transferências da Turma")
-        
         res_cat = supabase.table("figurinhas").select("id, nome, tipo").in_("id", dados_db['catalogo_ids']).execute()
         catalogo_map = {f['id']: f for f in res_cat.data}
         
@@ -10757,10 +10753,7 @@ def render_modulo_album():
                     fig_desejada = st.selectbox("Qual quer receber?", faltantes, key="supa_des")
                     if st.button("Registrar Proposta no Mural", type="primary", use_container_width=True):
                         supabase.table("banca_trocas").insert({
-                            "estudante_ra": estudante_ra, 
-                            "id_oferecida": fig_oferecida, 
-                            "id_desejada": fig_desejada, 
-                            "status": "ativo"
+                            "estudante_ra": estudante_ra, "id_oferecida": fig_oferecida, "id_desejada": fig_desejada, "status": "ativo"
                         }).execute()
                         st.success("Proposta gravada com sucesso no mural de trocas!")
                         time.sleep(1)
@@ -10772,7 +10765,6 @@ def render_modulo_album():
 
         st.write("---")
         st.markdown("#### 📢 Mural de Anúncios Ativos na Escola")
-        
         res_mural = supabase.table("banca_trocas").select("*").eq("status", "ativo").order("data_criacao", desc=True).execute()
         anuncios = res_mural.data
         
@@ -10791,7 +10783,6 @@ def render_modulo_album():
                     info_of = catalogo_map.get(id_of, {})
                     nome_of = info_of.get('nome', f'Figurinha {id_of}')
                     tipo_of = info_of.get('tipo', 'comum')
-                    
                     info_des = catalogo_map.get(id_des, {})
                     nome_des = info_des.get('nome', f'Figurinha {id_des}')
                     
@@ -10809,29 +10800,23 @@ def render_modulo_album():
                     if dono_ra != estudante_ra:
                         if st.button(f"Aceitar Troca com {dono_nome} (Figurinha Nº {id_of})##{item_id}", use_container_width=True):
                             res_check = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", estudante_ra).eq("figurinha_id", id_des).execute()
-                            
                             if res_check.data and res_check.data[0]['quantidade'] > 1:
                                 supabase.table("banca_trocas").update({"status": "concluido"}).eq("id", item_id).execute()
-                                
                                 q_atual = res_check.data[0]['quantidade']
                                 supabase.table("inventario_album").update({"quantidade": q_atual - 1}).eq("estudante_ra", estudante_ra).eq("figurinha_id", id_des).execute()
-                                
                                 res_q2 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", estudante_ra).eq("figurinha_id", id_of).execute()
                                 if res_q2.data:
                                     supabase.table("inventario_album").update({"quantidade": res_q2.data[0]['quantidade'] + 1}).eq("estudante_ra", estudante_ra).eq("figurinha_id", id_of).execute()
                                 else:
                                     supabase.table("inventario_album").insert({"estudante_ra": estudante_ra, "figurinha_id": id_of, "quantidade": 1}).execute()
-                                
                                 res_d1 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", dono_ra).eq("figurinha_id", id_of).execute()
                                 if res_d1.data:
                                     supabase.table("inventario_album").update({"quantidade": res_d1.data[0]['quantidade'] - 1}).eq("estudante_ra", dono_ra).eq("figurinha_id", id_of).execute()
-                                
                                 res_d2 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", dono_ra).eq("figurinha_id", id_des).execute()
                                 if res_d2.data:
                                     supabase.table("inventario_album").update({"quantidade": res_d2.data[0]['quantidade'] + 1}).eq("estudante_ra", dono_ra).eq("figurinha_id", id_des).execute()
                                 else:
                                     supabase.table("inventario_album").insert({"estudante_ra": dono_ra, "figurinha_id": id_des, "quantidade": 1}).execute()
-                                
                                 st.success("Troca realizada com sucesso! Verifique sua página do álbum.")
                                 time.sleep(1)
                                 st.rerun()
@@ -10839,71 +10824,178 @@ def render_modulo_album():
                                 st.error(f"Você não possui a figurinha Nº {id_des} sobrando no inventário para fechar essa troca.")
         else:
             st.info("Nenhum anúncio de troca em aberto.")
-            
+
     # ==========================================
-    # ABA 4: ARENA DE JOGOS (DIVERSÃO EXTRA)
+    # ABA 4: ARENA DE JOGOS VISUAL (NOVA!)
     # ==========================================
     with aba_jogos:
-        st.markdown("### 🎮 Diversão no Vestiário")
-        st.write("Acabaram os pacotinhos? Sem problemas! Treine suas habilidades enquanto espera a próxima remessa.")
-        
+        st.markdown("### 🏟️ Arena de Jogos e Desafios")
+        st.write("Acabaram os pacotinhos? Bem-vindo à zona de treino interativa! Escolha o seu desafio e divirta-se.")
         st.write("---")
-        # JOGO 1: Cobrança de Pênaltis
-        st.markdown("#### 🥅 Cobrança de Pênaltis")
-        st.write("Escolha o canto e tente marcar um gol contra o Goleiro Robô do CEIEF!")
         
-        c_esq, c_meio, c_dir = st.columns(3)
-        chute = None
+        jogo1, jogo2, jogo3 = st.tabs(["⚔️ Batalha de Craques", "🥅 Pênalti Animado", "🧠 Memória 3D"])
         
-        if c_esq.button("⬅️ Chutar na Esquerda", use_container_width=True): chute = "Esquerda"
-        if c_meio.button("⏺️ Chutar no Meio", use_container_width=True): chute = "Meio"
-        if c_dir.button("➡️ Chutar na Direita", use_container_width=True): chute = "Direita"
-        
-        if chute:
-            goleiro = random.choice(["Esquerda", "Meio", "Direita"])
-            st.info(f"🤖 O goleiro pulou para a **{goleiro}**...")
-            time.sleep(1.5)
+        # ---------------------------------------------------------
+        # JOGO 1: BATALHA DE CARTAS (SUPER TRUNFO COM AS FOTOS DELES)
+        # ---------------------------------------------------------
+        with jogo1:
+            st.markdown("#### ⚔️ Batalha de Craques (Super Trunfo)")
+            st.write("Enfrente o Robô da Escola utilizando as figurinhas que você já possui coladas no álbum!")
             
-            if chute == goleiro:
-                st.error("❌ ESPALMOU! O goleiro adivinhou o canto e fez uma defesa incrível!")
+            if not dados_db['coladas']:
+                st.warning("Tem de ter pelo menos 1 figurinha colada no álbum para poder batalhar!")
             else:
-                st.success("⚽ GOOOOOOOOOOL! Um chutaço indefensável na rede!")
-                st.balloons()
+                if st.button("🔥 Puxar Carta e Batalhar!", use_container_width=True):
+                    minha_id = random.choice(dados_db['coladas'])
+                    robo_id = random.choice(dados_db['catalogo_ids'])
+                    
+                    res_bat = supabase.table("figurinhas").select("*").in_("id", [minha_id, robo_id]).execute()
+                    map_bat = {f['id']: f for f in res_bat.data}
+                    
+                    item_minha = map_bat.get(minha_id, {})
+                    item_robo = map_bat.get(robo_id, {})
+                    
+                    # Lógica do vencedor: Lendária (2) vence Comum (1). Se empatar, maior número ganha.
+                    peso_minha = 2 if item_minha.get('tipo') == 'lendaria' else 1
+                    peso_robo = 2 if item_robo.get('tipo') == 'lendaria' else 1
+                    
+                    if peso_minha > peso_robo: vencedor = "VOCÊ VENCEU!"
+                    elif peso_robo > peso_minha: vencedor = "O ROBÔ VENCEU!"
+                    else:
+                        if minha_id > robo_id: vencedor = "VOCÊ VENCEU!"
+                        elif robo_id > minha_id: vencedor = "O ROBÔ VENCEU!"
+                        else: vencedor = "EMPATE TÉCNICO!"
+
+                    def criar_html_carta(f_id, item):
+                        f_nome = item.get('nome', '')
+                        f_cargo = item.get('cargo', '')
+                        f_tipo = item.get('tipo', 'comum')
+                        f_foto = item.get('foto_path', '')
+                        classe = "lendaria" if f_tipo == "lendaria" else ""
+                        foto = f'<img src="{f_foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">' if f_foto and str(f_foto).startswith('http') else '<span style="font-size: 2rem;">📸</span>'
+                        
+                        return f"""
+                            <div class="slot-preenchido {classe}" style="aspect-ratio: 3/4; transform: scale(1.0); box-shadow: 0px 8px 20px rgba(0,0,0,0.3); pointer-events: none;">
+                                <div class="foto-area" style="padding:0; overflow:hidden;">{foto}</div>
+                                <div class="foto-rodape">
+                                    <span class="rodape-num">Nº {f_id} - {f_cargo}</span>
+                                    <span class="rodape-nome" style="font-size:0.7rem;">{f_nome}</span>
+                                </div>
+                            </div>
+                        """
+
+                    st.markdown(f"<h3 style='text-align:center; color:#004d23; font-family:Oswald;'>{vencedor}</h3>", unsafe_allow_html=True)
+                    if vencedor == "VOCÊ VENCEU!": st.balloons()
+                    
+                    c1, c_vs, c2 = st.columns([2, 1, 2])
+                    with c1:
+                        st.markdown("<h5 style='text-align:center; color:#009c3b;'>Sua Carta</h5>", unsafe_allow_html=True)
+                        st.markdown(criar_html_carta(minha_id, item_minha), unsafe_allow_html=True)
+                    with c_vs:
+                        st.markdown("<h1 style='text-align:center; margin-top: 100px; text-shadow: 2px 2px #ddd;'>VS</h1>", unsafe_allow_html=True)
+                    with c2:
+                        st.markdown("<h5 style='text-align:center; color:#8b0000;'>Robô</h5>", unsafe_allow_html=True)
+                        st.markdown(criar_html_carta(robo_id, item_robo), unsafe_allow_html=True)
+
+        # ---------------------------------------------------------
+        # JOGO 2: PÊNALTI ANIMADO E VISUAL
+        # ---------------------------------------------------------
+        with jogo2:
+            st.markdown("#### 🥅 Pênalti Perfeito")
+            st.write("A pressão é grande! Escolha o canto com sabedoria para fazer o golo.")
+            
+            # Desenha o campo e o Goleiro em CSS puro
+            st.markdown("""
+                <div style="background-color: #2e7d32; background-image: repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(255,255,255,0.1) 20px, rgba(255,255,255,0.1) 40px); border: 4px solid white; height: 180px; border-radius: 8px; position: relative; display: flex; flex-direction: column; align-items: center; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);">
+                    <div style="border: 4px solid white; border-top: none; width: 60%; height: 60px; position: absolute; top: 0;"></div>
+                    <div style="background: white; width: 12px; height: 12px; border-radius: 50%; position: absolute; bottom: 25px;"></div>
+                    <span style="font-size: 4.5rem; margin-top: 15px; z-index: 10; text-shadow: 0px 5px 10px rgba(0,0,0,0.5);">🤖🧤</span>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            c_esq, c_meio, c_dir = st.columns(3)
+            chute = None
+            
+            if c_esq.button("⬅️ Chutar na Esquerda", use_container_width=True): chute = "Esquerda"
+            if c_meio.button("⏺️ Chutar no Meio", use_container_width=True): chute = "Meio"
+            if c_dir.button("➡️ Chutar na Direita", use_container_width=True): chute = "Direita"
+            
+            if chute:
+                goleiro = random.choice(["Esquerda", "Meio", "Direita"])
+                st.info(f"⚡ O árbitro apita... o Goleiro saltou para a **{goleiro}**!")
+                time.sleep(1)
+                if chute == goleiro:
+                    st.error("❌ INCRÍVEL ESPALMADA! O Robô adivinhou o seu canto e defendeu o pênalti!")
+                else:
+                    st.success("⚽ GOOOOOOOOOOL!!! Chute indefensável, direto na rede e para a história!")
+
+        # ---------------------------------------------------------
+        # JOGO 3: MEMÓRIA 3D (ANIMAÇÃO HTML/JS EMBUTIDA)
+        # ---------------------------------------------------------
+        with jogo3:
+            st.markdown("#### 🧠 Memória 3D dos Campeões")
+            st.write("Vire as cartas, encontre os pares e treine a sua concentração neste mini-jogo super fluido.")
+            
+            # Jogo em HTML puro com Animações 3D de Flip (Cartas virando)
+            codigo_html_memoria = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');
+                body { font-family: 'Oswald', sans-serif; display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; align-items: center; padding: 20px; background: transparent; margin: 0; }
+                .card { width: 75px; height: 95px; perspective: 1000px; cursor: pointer; }
+                .card-inner { width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.2); border-radius: 8px;}
+                .card.open .card-inner { transform: rotateY(180deg); }
+                .card.match .card-inner { transform: rotateY(180deg) scale(1.05); box-shadow: 0 0 15px #d4af37; }
+                .card-front, .card-back { width: 100%; height: 100%; position: absolute; backface-visibility: hidden; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
+                .card-front { background: linear-gradient(135deg, #004d23, #009c3b); color: white; border: 2px solid #ffdf00; font-size: 1.8rem; }
+                .card-back { background: white; transform: rotateY(180deg); border: 2px solid #009c3b; }
+                #msg { width: 100%; text-align: center; color: #004d23; font-size: 1.8rem; display: none; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); margin-bottom: 10px;}
+            </style>
+            </head>
+            <body>
+            <div id="msg">🏆 ESPETACULAR! VOCÊ ENCONTROU TODOS OS PARES! 🏆</div>
+            <script>
+                const emojis = ['⚽','🏆','🏟️','🧤','👟','🇧🇷','🥅','⏱️'];
+                let cards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
+                let openCards = [];
+                let matched = 0;
                 
-        st.write("---")
-        
-        # JOGO 2: Quiz da Copa
-        st.markdown("#### 🧠 Quiz dos Campeões")
-        st.write("Teste os seus conhecimentos históricos sobre futebol.")
-        
-        if "pergunta_atual" not in st.session_state:
-            perguntas = [
-                {"q": "Qual país venceu a primeira Copa do Mundo de Futebol em 1930?", "op": ["Uruguai", "Brasil", "Alemanha", "Argentina"], "r": "Uruguai"},
-                {"q": "Quem é o maior artilheiro da história das Copas do Mundo?", "op": ["Pelé", "Miroslav Klose", "Ronaldo Fenômeno", "Messi"], "r": "Miroslav Klose"},
-                {"q": "Qual animal foi a mascote oficial da Copa de 2014 no Brasil?", "op": ["Arara", "Leão", "Cachorro", "Tatu-bola"], "r": "Tatu-bola"},
-                {"q": "Em que ano o Brasil conquistou o tão sonhado Penta?", "op": ["1994", "1998", "2002", "2006"], "r": "2002"},
-                {"q": "Qual jogador marcou o famoso gol da 'Mão de Deus' em 1986?", "op": ["Pelé", "Maradona", "Zidane", "Romário"], "r": "Maradona"}
-            ]
-            st.session_state["pergunta_atual"] = random.choice(perguntas)
-            st.session_state["quiz_respondido"] = False
-            
-        q = st.session_state["pergunta_atual"]
-        st.write(f"**Pergunta:** {q['q']}")
-        
-        resposta = st.radio("Escolha a alternativa correta:", q['op'], index=None, key="radio_quiz")
-        
-        if st.button("Confirmar Resposta") and resposta:
-            if resposta == q['r']:
-                st.success("✅ Resposta Correta! Você é um verdadeiro craque do esporte!")
-            else:
-                st.error(f"❌ Resposta Incorreta. O certo era: **{q['r']}**.")
-            st.session_state["quiz_respondido"] = True
-            
-        if st.session_state.get("quiz_respondido"):
-            if st.button("🔄 Sortear Outra Pergunta"):
-                del st.session_state["pergunta_atual"]
-                del st.session_state["quiz_respondido"]
-                st.rerun()
+                cards.forEach((e) => {
+                    let card = document.createElement('div'); card.className = 'card';
+                    let inner = document.createElement('div'); inner.className = 'card-inner';
+                    let front = document.createElement('div'); front.className = 'card-front'; front.innerText = '⚽';
+                    let back = document.createElement('div'); back.className = 'card-back'; back.innerText = e;
+                    
+                    inner.appendChild(front); inner.appendChild(back); card.appendChild(inner);
+                    card.onclick = function() {
+                        if(openCards.length < 2 && !this.classList.contains('open') && !this.classList.contains('match')){
+                            this.classList.add('open');
+                            openCards.push({el: this, emoji: e});
+                            
+                            if(openCards.length === 2){
+                                setTimeout(() => {
+                                    if(openCards[0].emoji === openCards[1].emoji){
+                                        openCards[0].el.classList.add('match'); openCards[1].el.classList.add('match');
+                                        matched += 2;
+                                        if(matched === cards.length) document.getElementById('msg').style.display = 'block';
+                                    } else {
+                                        openCards[0].el.classList.remove('open'); openCards[1].el.classList.remove('open');
+                                    }
+                                    openCards = [];
+                                }, 800);
+                            }
+                        }
+                    };
+                    document.body.appendChild(card);
+                });
+            </script>
+            </body>
+            </html>
+            """
+            # Carrega o mini-jogo construído acima na tela perfeitamente adaptado!
+            components.html(codigo_html_memoria, height=480)
 
     st.markdown('</div>', unsafe_allow_html=True)
 

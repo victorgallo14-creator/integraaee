@@ -10408,10 +10408,8 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 
-
-
 # =====================================================================
-# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM E ARENA DE JOGOS VISUAL
+# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM E ARENA DE JOGOS
 # Tabelas: estudantes, figurinhas, inventario_album, banca_trocas
 # =====================================================================
 import random
@@ -10560,7 +10558,6 @@ def processar_abertura_pacote_supa(ra, catalogo_ids_permitidos):
 
 
 def render_modulo_album():
-    """Função principal que desenha a interface do álbum."""
     injetar_css_album_premium()
     
     estudante_ra = st.session_state.get('usuario_ra', 'RA-TESTE-GALLO')
@@ -10569,8 +10566,7 @@ def render_modulo_album():
     st.markdown('<div class="album-premium-container">', unsafe_allow_html=True)
     st.markdown('<div class="header-premium"><h1>🏆 ÁLBUM DA COPA CEIEF 🏆</h1><p>Módulo de Integração de Alunos</p></div>', unsafe_allow_html=True)
     
-    # 4 ABAS COM A NOVA ARENA DE JOGOS
-    aba_album, aba_pacotes, aba_trocas, aba_jogos = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas", "🎮 Arena de Jogos"])
+    aba_album, aba_pacotes, aba_trocas, aba_jogos = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas", "🏟️ Arena de Jogos"])
 
     # ==========================================
     # ABA 1: MEU ÁLBUM
@@ -10604,8 +10600,7 @@ def render_modulo_album():
             0: f"Bem-vindos ao Álbum da Copa CEIEF da Turma {dados_db['turma']}! O apito inicial foi dado, comece sua coleção rumo ao título!",
             1: "⚽ CURIOSIDADE DA COPA: Sabia que o Brasil é a única seleção do planeta que participou de absolutamente todas as edições da Copa do Mundo?",
             2: "🏆 MOMENTO HISTÓRICO: Pelé, o eterno Rei do Futebol, é o único jogador da história a vencer três Copas do Mundo (1958, 1962 e 1970).",
-            3: "🌍 VOCÊ SABIA? A Copa do Mundo de 2002 foi a primeira da história a ser sediada em dois países simultaneamente: Coreia do Sul e Japão.",
-            4: "🏟️ RECORDE: O gol mais rápido da história das Copas foi marcado aos incríveis 11 segundos por Hakan Şükür, da Turquia, em 2002."
+            3: "🌍 VOCÊ SABIA? A Copa do Mundo de 2002 foi a primeira da história a ser sediada em dois países simultaneamente: Coreia do Sul e Japão."
         }
         texto_atual = textos_paginas.get(st.session_state['pag_album'], "Continue a abrir pacotinhos e a negociar com os colegas para completar sua coleção!")
         
@@ -10826,19 +10821,129 @@ def render_modulo_album():
             st.info("Nenhum anúncio de troca em aberto.")
 
     # ==========================================
-    # ABA 4: ARENA DE JOGOS VISUAL (NOVA!)
+    # ABA 4: ARENA DE JOGOS (Batalha, Pênalti, Memória, Quiz)
     # ==========================================
     with aba_jogos:
         st.markdown("### 🏟️ Arena de Jogos e Desafios")
-        st.write("Acabaram os pacotinhos? Bem-vindo à zona de treino interativa! Escolha o seu desafio e divirta-se.")
+        st.write("Acabaram os pacotinhos? Treine as suas habilidades na nossa Arena!")
         st.write("---")
         
-        jogo1, jogo2, jogo3 = st.tabs(["⚔️ Batalha de Craques", "🥅 Pênalti Animado", "🧠 Memória 3D"])
+        jogo1, jogo2, jogo3, jogo4 = st.tabs(["📚 Quiz Escolar", "⚔️ Batalha de Cartas", "🥅 Pênalti Animado", "🧠 Memória 3D"])
         
         # ---------------------------------------------------------
-        # JOGO 1: BATALHA DE CARTAS (SUPER TRUNFO COM AS FOTOS DELES)
+        # JOGO 1: QUIZ DOS CAMPEÕES (COM TEXTOS E DIFICULDADES)
         # ---------------------------------------------------------
         with jogo1:
+            st.markdown("#### 📚 Quiz de Interpretação e Sabedoria")
+            st.write("Leia os textos com atenção e mostre que você é um craque em conhecimentos gerais e interpretação!")
+            
+            # Banco de Perguntas (Fáceis a Difíceis) adequadas para 6 a 12 anos
+            banco_perguntas = [
+                {
+                    "dif": "Fácil", "texto": "", "q": "Qual é a cor da camisa principal da Seleção Brasileira de Futebol?",
+                    "op": ["Azul", "Branca", "Amarela", "Verde"], "r": "Amarela"
+                },
+                {
+                    "dif": "Fácil", "texto": "", "q": "Qual país é conhecido como o 'País do Futebol' e é o único a ser pentacampeão (ganhou 5 vezes) do mundo?",
+                    "op": ["Argentina", "Alemanha", "Brasil", "França"], "r": "Brasil"
+                },
+                {
+                    "dif": "Fácil", "texto": "", "q": "No futebol, qual é o único jogador que pode usar as mãos para tocar na bola durante a partida (dentro da sua área)?",
+                    "op": ["O atacante", "O juiz", "O capitão do time", "O goleiro"], "r": "O goleiro"
+                },
+                {
+                    "dif": "Média", 
+                    "texto": "Em 1930, aconteceu a primeiríssima Copa do Mundo de Futebol da história! O torneio não teve eliminatórias, e apenas 13 países foram convidados de barco para jogar. A grande final foi entre Uruguai e Argentina.", 
+                    "q": "Onde foi realizada a primeira Copa do Mundo de todas?",
+                    "op": ["Brasil", "Inglaterra", "Uruguai", "Espanha"], "r": "Uruguai"
+                },
+                {
+                    "dif": "Média", 
+                    "texto": "Toda Copa do Mundo tem uma mascote oficial, um personagem divertido que representa a cultura do país sede. Na Copa do Mundo de 2014, realizada aqui no Brasil, escolheram um animalzinho que se enrola todo para se proteger.", 
+                    "q": "Qual animal foi a mascote da Copa no Brasil em 2014?",
+                    "op": ["Arara-Azul", "Onça-Pintada", "Tatu-bola", "Mico-Leão-Dourado"], "r": "Tatu-bola"
+                },
+                {
+                    "dif": "Média", 
+                    "texto": "Durante uma partida oficial de futebol, cada time pode ter apenas 11 jogadores ao mesmo tempo dentro do campo. Se um time perder muitos jogadores por cartão vermelho e ficar com menos de 7, o jogo precisa ser encerrado.", 
+                    "q": "Quantos jogadores no TOTAL (juntando os dois times) começam uma partida de futebol?",
+                    "op": ["11 jogadores", "22 jogadores", "15 jogadores", "20 jogadores"], "r": "22 jogadores"
+                },
+                {
+                    "dif": "Média", 
+                    "texto": "O futebol feminino também tem o seu grande Mundial! A Copa do Mundo de Futebol Feminino atrai milhões de fãs. A seleção dos Estados Unidos é a equipe mais forte da história, tendo ganho o troféu quatro vezes.", 
+                    "q": "Qual país é o maior campeão da Copa do Mundo de Futebol Feminino?",
+                    "op": ["Brasil", "Alemanha", "Estados Unidos", "Japão"], "r": "Estados Unidos"
+                },
+                {
+                    "dif": "Difícil", "texto": "", "q": "A Copa do Mundo de Futebol, que reúne as melhores seleções do planeta, acontece de quanto em quanto tempo?",
+                    "op": ["A cada 2 anos", "A cada 4 anos", "Todos os anos", "A cada 5 anos"], "r": "A cada 4 anos"
+                },
+                {
+                    "dif": "Difícil", 
+                    "texto": "Marta Vieira da Silva é uma atleta brasileira considerada por muitos como a maior jogadora de futebol de todos os tempos. Pelo seu incrível talento, ela ganhou o prêmio de 'Melhor Jogadora do Mundo' da FIFA por incríveis 6 vezes!", 
+                    "q": "Quantas vezes a brasileira Marta foi eleita a melhor do mundo?",
+                    "op": ["3 vezes", "5 vezes", "6 vezes", "8 vezes"], "r": "6 vezes"
+                },
+                {
+                    "dif": "Difícil", 
+                    "texto": "O Brasil encantou o mundo em 1958, na Suécia. Foi lá que um jovem de apenas 17 anos chamado Pelé brilhou, ajudando a Seleção Brasileira a ganhar o seu primeiro título mundial da história.", 
+                    "q": "Em que ano o Brasil ganhou a Copa do Mundo pela primeira vez?",
+                    "op": ["1930", "1958", "1970", "1994"], "r": "1958"
+                },
+                {
+                    "dif": "Difícil", 
+                    "texto": "A taça da Copa do Mundo, aquele troféu brilhante que todos os capitães erguem, é muito pesada! Ela tem cerca de 6 quilos e é feita de ouro maciço 18 quilates. O desenho mostra duas figuras humanas segurando o planeta Terra.", 
+                    "q": "Do que é feito o troféu oficial da Copa do Mundo?",
+                    "op": ["Bronze e Prata", "Ouro maciço", "Cristal", "Plástico dourado"], "r": "Ouro maciço"
+                },
+                {
+                    "dif": "Difícil", "texto": "", "q": "O Rei Pelé tem um recorde mundial que até hoje ninguém conseguiu bater. Ele é o único jogador da história do futebol a conquistar...",
+                    "op": ["3 Copas do Mundo", "Mais de 2.000 gols", "O prêmio de melhor goleiro", "A Copa jogando sozinho"], "r": "3 Copas do Mundo"
+                }
+            ]
+            
+            if "quiz_pergunta_atual" not in st.session_state:
+                st.session_state["quiz_pergunta_atual"] = random.choice(banco_perguntas)
+                st.session_state["quiz_respondido"] = False
+                
+            q = st.session_state["quiz_pergunta_atual"]
+            
+            # Badge de Dificuldade Colorida
+            cor_dif = "#009c3b" if q['dif'] == "Fácil" else ("#d4af37" if q['dif'] == "Média" else "#8b0000")
+            st.markdown(f"<div style='margin-bottom: 15px;'><b>Nível do Desafio:</b> <span style='background-color:{cor_dif}; color:white; padding: 3px 10px; border-radius: 15px; font-size: 0.8rem;'>{q['dif']}</span></div>", unsafe_allow_html=True)
+            
+            # Exibe o texto se a pergunta tiver um
+            if q.get('texto') != "":
+                st.info(f"📖 **LEIA COM ATENÇÃO:**\n\n{q['texto']}")
+                
+            st.markdown(f"#### ❓ {q['q']}")
+            
+            # Opções de Resposta
+            resposta_quiz = st.radio("Selecione a sua resposta:", q['op'], index=None, key="radio_quiz_escolha")
+            
+            if st.button("✅ Confirmar Resposta", use_container_width=True):
+                if resposta_quiz:
+                    if resposta_quiz == q['r']:
+                        st.success("🎉 Golaço! Você acertou em cheio! Interpretação nota 10!")
+                        st.balloons()
+                    else:
+                        st.error(f"❌ Na trave! A resposta correta era: **{q['r']}**.")
+                    st.session_state["quiz_respondido"] = True
+                else:
+                    st.warning("Tem de escolher uma opção antes de confirmar!")
+                
+            if st.session_state.get("quiz_respondido"):
+                st.write("---")
+                if st.button("🔄 Puxar Outra Pergunta", use_container_width=True, type="primary"):
+                    st.session_state["quiz_pergunta_atual"] = random.choice(banco_perguntas)
+                    st.session_state["quiz_respondido"] = False
+                    st.rerun()
+
+        # ---------------------------------------------------------
+        # JOGO 2: BATALHA DE CARTAS (SUPER TRUNFO COM AS FOTOS DELES)
+        # ---------------------------------------------------------
+        with jogo2:
             st.markdown("#### ⚔️ Batalha de Craques (Super Trunfo)")
             st.write("Enfrente o Robô da Escola utilizando as figurinhas que você já possui coladas no álbum!")
             
@@ -10855,7 +10960,6 @@ def render_modulo_album():
                     item_minha = map_bat.get(minha_id, {})
                     item_robo = map_bat.get(robo_id, {})
                     
-                    # Lógica do vencedor: Lendária (2) vence Comum (1). Se empatar, maior número ganha.
                     peso_minha = 2 if item_minha.get('tipo') == 'lendaria' else 1
                     peso_robo = 2 if item_robo.get('tipo') == 'lendaria' else 1
                     
@@ -10898,13 +11002,12 @@ def render_modulo_album():
                         st.markdown(criar_html_carta(robo_id, item_robo), unsafe_allow_html=True)
 
         # ---------------------------------------------------------
-        # JOGO 2: PÊNALTI ANIMADO E VISUAL
+        # JOGO 3: PÊNALTI ANIMADO
         # ---------------------------------------------------------
-        with jogo2:
+        with jogo3:
             st.markdown("#### 🥅 Pênalti Perfeito")
             st.write("A pressão é grande! Escolha o canto com sabedoria para fazer o golo.")
             
-            # Desenha o campo e o Goleiro em CSS puro
             st.markdown("""
                 <div style="background-color: #2e7d32; background-image: repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(255,255,255,0.1) 20px, rgba(255,255,255,0.1) 40px); border: 4px solid white; height: 180px; border-radius: 8px; position: relative; display: flex; flex-direction: column; align-items: center; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);">
                     <div style="border: 4px solid white; border-top: none; width: 60%; height: 60px; position: absolute; top: 0;"></div>
@@ -10930,13 +11033,12 @@ def render_modulo_album():
                     st.success("⚽ GOOOOOOOOOOL!!! Chute indefensável, direto na rede e para a história!")
 
         # ---------------------------------------------------------
-        # JOGO 3: MEMÓRIA 3D (ANIMAÇÃO HTML/JS EMBUTIDA)
+        # JOGO 4: MEMÓRIA 3D (ANIMAÇÃO)
         # ---------------------------------------------------------
-        with jogo3:
+        with jogo4:
             st.markdown("#### 🧠 Memória 3D dos Campeões")
             st.write("Vire as cartas, encontre os pares e treine a sua concentração neste mini-jogo super fluido.")
             
-            # Jogo em HTML puro com Animações 3D de Flip (Cartas virando)
             codigo_html_memoria = """
             <!DOCTYPE html>
             <html>
@@ -10994,11 +11096,9 @@ def render_modulo_album():
             </body>
             </html>
             """
-            # Carrega o mini-jogo construído acima na tela perfeitamente adaptado!
             components.html(codigo_html_memoria, height=480)
 
     st.markdown('</div>', unsafe_allow_html=True)
-
 
     # ==============================================================================
 # GATILHO DO ÁLBUM DE FIGURINHAS (MENU REGULAR)

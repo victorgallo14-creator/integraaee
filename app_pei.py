@@ -10413,8 +10413,8 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 # =====================================================================
-# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM (VERSÃO EXCLUSIVA POR TURMA)
-# Tabelas utilizadas: estudantes, figurinhas, inventario_album, banca_trocas
+# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM (TURMAS + FOTOGRAFIAS URL)
+# Tabelas: estudantes, figurinhas, inventario_album, banca_trocas
 # =====================================================================
 import random
 import time
@@ -10463,6 +10463,7 @@ def injetar_css_album_premium():
         .foto-area {
             background: linear-gradient(to bottom, #ece9e6, #ffffff); flex-grow: 1; border-radius: 4px;
             border: 2px solid #002776; display: flex; align-items: center; justify-content: center; color: #002776;
+            padding: 0; overflow: hidden; /* Importante para a foto não vazar da borda */
         }
         
         .foto-rodape {
@@ -10495,23 +10496,17 @@ def puxar_dados_album_estudante(ra):
     res_est = supabase.table("estudantes").select("nome, turma, pacotes_disponiveis").eq("ra", ra).execute()
     
     if not res_est.data:
-        # Se não encontrar o aluno, usa valores base
         pacotes = 5
         turma_aluno = "Sem Turma"
     else:
         pacotes = res_est.data[0]['pacotes_disponiveis']
         turma_aluno = res_est.data[0]['turma']
         
-    # === AQUI ACONTECE O FILTRO ===
-    # Busca apenas figurinhas que são da mesma turma do aluno
     res_turma = supabase.table("figurinhas").select("id").eq("turma", turma_aluno).execute()
-    # Busca as figurinhas lendárias (direção, funcionários) que são para todos
     res_lendarias = supabase.table("figurinhas").select("id").eq("tipo", "lendaria").execute()
     
-    # Cria uma lista apenas com os IDs permitidos (Turma + Lendárias)
     catalogo_ids = sorted(list(set([f['id'] for f in res_turma.data] + [f['id'] for f in res_lendarias.data])))
     
-    # Puxa o inventário (as cartas que ele já colou ou tem repetida)
     res_inv = supabase.table("inventario_album").select("figurinha_id, quantidade").eq("estudante_ra", ra).execute()
     
     coladas = []
@@ -10519,7 +10514,6 @@ def puxar_dados_album_estudante(ra):
     for item in res_inv.data:
         f_id = item['figurinha_id']
         qtd = item['quantidade']
-        # Adiciona à mochila apenas se fizer parte da lista permitida da turma dele
         if f_id in catalogo_ids:
             if qtd >= 1: coladas.append(f_id)
             if qtd > 1:
@@ -10550,7 +10544,6 @@ def processar_abertura_pacote_supa(ra, catalogo_ids_permitidos):
     st.balloons()
     supabase.table("estudantes").update({"pacotes_disponiveis": disponiveis - 1}).eq("ra", ra).execute()
     
-    # Sorteia APENAS dentro dos IDs da turma do aluno
     sorteio = random.choices(catalogo_ids_permitidos, k=5)
     
     res_inv = supabase.table("inventario_album").select("figurinha_id, quantidade").eq("estudante_ra", ra).in_("figurinha_id", sorteio).execute()
@@ -10570,6 +10563,7 @@ def processar_abertura_pacote_supa(ra, catalogo_ids_permitidos):
 
 
 def render_modulo_album():
+    """Função principal que desenha a interface do álbum."""
     injetar_css_album_premium()
     
     estudante_ra = st.session_state.get('usuario_ra', 'RA-TESTE-GALLO')
@@ -10581,19 +10575,18 @@ def render_modulo_album():
     aba_album, aba_pacotes, aba_trocas = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas"])
 
     # ==========================================
-    # ABA 1: MEU ÁLBUM (FILTRADO POR TURMA)
+    # ABA 1: MEU ÁLBUM (FILTRADO E COM FOTOS)
     # ==========================================
     with aba_album:
         figurinhas_por_pagina = 10
         total_figuras = dados_db['total']
         
         if total_figuras == 0:
-            st.warning(f"Nenhuma figurinha cadastrada para a turma '{dados_db['turma']}'. Peça ao professor para atualizar o sistema!")
+            st.warning(f"Nenhuma figurinha cadastrada para a turma '{dados_db['turma']}'.")
             return
             
         if 'pag_album' not in st.session_state: st.session_state['pag_album'] = 0
         
-        # Paginação baseada no total de figurinhas DA TURMA
         total_paginas = (total_figuras // figurinhas_por_pagina) + (1 if total_figuras % figurinhas_por_pagina > 0 else 0)
         
         c_prev, c_page, c_next = st.columns([1, 2, 1])
@@ -10624,13 +10617,11 @@ def render_modulo_album():
             </div>
         """, unsafe_allow_html=True)
         
-        # Isola APENAS os IDs que devem ser renderizados nesta página
         inicio_idx = st.session_state['pag_album'] * figurinhas_por_pagina
         fim_idx = inicio_idx + figurinhas_por_pagina
         ids_da_pagina = dados_db['catalogo_ids'][inicio_idx:fim_idx]
         
         if ids_da_pagina:
-            # Puxa informações apenas dos IDs desta página específica
             res_figs = supabase.table("figurinhas").select("*").in_("id", ids_da_pagina).execute()
             map_figs = {f['id']: f for f in res_figs.data}
 
@@ -10639,19 +10630,27 @@ def render_modulo_album():
                 for i, col in enumerate(cols):
                     if linha + i < len(ids_da_pagina):
                         f_id = ids_da_pagina[linha + i]
-                        item = map_figs.get(f_id, {'nome': '???', 'cargo': '?', 'tipo': 'comum'})
+                        item = map_figs.get(f_id, {'nome': '???', 'cargo': '?', 'tipo': 'comum', 'foto_path': ''})
+                        
                         f_nome = item.get('nome', '')
                         f_cargo = item.get('cargo', '')
                         f_tipo = item.get('tipo', 'comum')
+                        f_foto = item.get('foto_path', '')
                         
                         classe_lendaria = "lendaria" if f_tipo == "lendaria" else ""
+                        
+                        # Verifica se existe um link válido para a imagem
+                        if f_foto and str(f_foto).startswith('http'):
+                            foto_html = f'<img src="{f_foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">'
+                        else:
+                            foto_html = '<span style="font-size: 2rem;">📸</span>'
                         
                         with col:
                             if f_id in dados_db['coladas']:
                                 st.markdown(f"""
                                     <div class="fig-wrapper">
                                         <div class="slot-preenchido {classe_lendaria}">
-                                            <div class="foto-area">📸</div>
+                                            <div class="foto-area">{foto_html}</div>
                                             <div class="foto-rodape">
                                                 <span class="rodape-num">Nº {f_id} - {f_cargo}</span>
                                                 <span class="rodape-nome">{f_nome}</span>
@@ -10670,7 +10669,7 @@ def render_modulo_album():
                                 """, unsafe_allow_html=True)
 
     # ==========================================
-    # ABA 2: ABRIR PACOTINHOS
+    # ABA 2: ABRIR PACOTINHOS (COM FOTOS)
     # ==========================================
     with aba_pacotes:
         st.markdown(f"<h3 style='font-family: Poppins; color: #004d23;'>🎒 Possui <b>{dados_db['pacotes']}</b> pacotinhos fechados!</h3>", unsafe_allow_html=True)
@@ -10678,14 +10677,13 @@ def render_modulo_album():
         if dados_db['pacotes'] > 0:
             st.markdown('<div class="pacotinho-btn">', unsafe_allow_html=True)
             if st.button("💥 RASGAR PACOTINHO DA TURMA! 💥", use_container_width=True):
-                # O pacotinho agora recebe os ids estritos da turma
                 sorteio = processar_abertura_pacote_supa(estudante_ra, dados_db['catalogo_ids'])
                 if sorteio:
                     st.session_state['ultimo_sorteio'] = sorteio
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
         else:
-            st.error("Os seus pacotinhos acabaram. Aguarde que os professores libertem mais cargas semanais!")
+            st.error("Os seus pacotinhos acabaram. Aguarde que os professores libertem mais cargas!")
 
         if 'ultimo_sorteio' in st.session_state and st.session_state['ultimo_sorteio']:
             st.write("---")
@@ -10699,14 +10697,22 @@ def render_modulo_album():
                 fig_info = map_sorteadas.get(f_id, {})
                 f_nome = fig_info.get('nome', 'N/D')
                 f_tipo = fig_info.get('tipo', 'comum')
+                f_foto = fig_info.get('foto_path', '')
+                
                 classe_lendaria = "lendaria" if f_tipo == "lendaria" else ""
                 delay = i * 0.15
+                
+                # Exibição da foto no sorteio do pacotinho
+                if f_foto and str(f_foto).startswith('http'):
+                    foto_html = f'<img src="{f_foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">'
+                else:
+                    foto_html = '<span style="font-size: 1.5rem;">📸</span>'
                 
                 with cols_novas[i]:
                     st.markdown(f"""
                         <div class="fig-wrapper anim-reveal" style="animation-delay: {delay}s; opacity: 0; margin-top: 15px;">
                             <div class="slot-preenchido {classe_lendaria}">
-                                <div class="foto-area" style="font-size: 1.2rem;">📸</div>
+                                <div class="foto-area">{foto_html}</div>
                                 <div class="foto-rodape">
                                     <span class="rodape-num">Nº {f_id}</span>
                                     <span class="rodape-nome">{f_nome}</span>
@@ -10725,7 +10731,6 @@ def render_modulo_album():
     with aba_trocas:
         st.markdown("### 🤝 Mercado de Transferências da Turma")
         
-        # Puxa informações apenas do catálogo desta turma
         res_cat = supabase.table("figurinhas").select("id, nome, tipo").in_("id", dados_db['catalogo_ids']).execute()
         catalogo_map = {f['id']: f for f in res_cat.data}
         
@@ -10783,7 +10788,6 @@ def render_modulo_album():
                 id_of = anuncio['id_oferecida']
                 id_des = anuncio['id_desejada']
                 
-                # Exibe a oferta se pelo menos uma das figurinhas for do catálogo desta turma
                 if id_of in dados_db['catalogo_ids'] or id_des in dados_db['catalogo_ids']:
                     info_of = catalogo_map.get(id_of, {})
                     nome_of = info_of.get('nome', f'Figurinha {id_of}')
@@ -10838,10 +10842,3 @@ def render_modulo_album():
             st.info("Nenhum anúncio de troca em aberto.")
             
     st.markdown('</div>', unsafe_allow_html=True)
-
-
-# ==============================================================================
-# GATILHO DO MENU 
-# ==============================================================================
-if 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
-    render_modulo_album()

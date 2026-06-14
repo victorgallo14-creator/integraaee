@@ -10370,162 +10370,193 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 
-
 # =====================================================================
-# MÓDULO: ÁLBUM DE FIGURINHAS TEMÁTICO (TESTE)
+# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM (ULTRA EDITION)
 # =====================================================================
 import random
+import time
 
-def injetar_css_album():
+def injetar_css_album_premium():
     st.markdown("""
         <style>
-        /* Tipografia e Fundo Geral do Módulo */
-        .album-container {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        /* Importando Fonte Esportiva Premium */
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Poppins:wght@400;600&display=swap');
+
+        /* Fundo do Álbum e Tipografia Base */
+        .album-premium-container {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f7f6;
+            background-image: radial-gradient(#d5dfd9 1px, transparent 1px);
+            background-size: 20px 20px;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: inset 0px 0px 20px rgba(0,0,0,0.05);
+        }
+
+        /* Cabeçalho de Luxo (Ouro e Verde Escuro) */
+        .header-premium {
+            background: linear-gradient(135deg, #004d23 0%, #009c3b 50%, #004d23 100%);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            border: 4px solid #d4af37;
+            box-shadow: 0px 10px 30px rgba(0, 156, 59, 0.4), inset 0px 0px 15px rgba(255, 223, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 30px;
         }
         
-        /* Cabeçalho Premium */
-        .album-header {
-            background: linear-gradient(135deg, #009c3b 0%, #007a2e 100%);
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            color: #ffffff;
-            text-transform: uppercase;
-            box-shadow: 0px 5px 10px rgba(0,0,0,0.2);
-            margin-bottom: 20px;
-            border: 3px solid #ffdf00;
+        /* Brilho passando no cabeçalho */
+        .header-premium::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+            transform: rotate(30deg);
+            animation: brilho-header 6s infinite linear;
         }
-        .album-header h1 { 
+        @keyframes brilho-header { 0% { transform: translateX(-100%) rotate(30deg); } 100% { transform: translateX(100%) rotate(30deg); } }
+
+        .header-premium h1 { 
+            font-family: 'Oswald', sans-serif;
             margin: 0; 
             color: #ffdf00; 
-            font-weight: 900;
-            font-size: 2rem;
-            text-shadow: 2px 2px 0px #002776, 3px 3px 0px rgba(0,0,0,0.3); 
+            font-weight: 700;
+            font-size: 3.5rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 3px 3px 0px #002776, 6px 6px 15px rgba(0,0,0,0.6); 
         }
-        .album-header p {
-            margin-top: 5px;
-            font-size: 1rem;
-            font-weight: bold;
-        }
+        .header-premium p { color: #ffffff; font-size: 1.2rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
 
-        /* Estrutura 3x4 das Figurinhas - Menores e mais compactas */
-        .figurinha-wrapper {
+        /* Estrutura da Figurinha (Container 3x4) */
+        .fig-wrapper {
             width: 100%;
-            aspect-ratio: 3 / 4; /* Proporção exata 3x4 */
-            margin-bottom: 15px;
-            perspective: 1000px;
+            aspect-ratio: 3 / 4;
+            margin-bottom: 20px;
+            perspective: 1000px; /* Para o efeito 3D */
+            position: relative;
         }
 
-        /* Slot Vazio (Faltante) */
+        /* Slot Vazio - Estilo "Marca D'água" */
         .slot-vazio {
-            width: 100%;
-            height: 100%;
-            border: 2px dashed rgba(0, 156, 59, 0.4);
-            background-color: rgba(240, 253, 244, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            color: #009c3b;
-            font-weight: 900;
-            font-size: 2rem; /* Fonte reduzida */
+            width: 100%; height: 100%;
+            border: 2px dashed rgba(0, 156, 59, 0.3);
+            background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(240, 253, 244, 0.8) 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border-radius: 8px;
+            color: rgba(0, 156, 59, 0.4);
             transition: all 0.3s ease;
+            box-shadow: inset 0px 4px 10px rgba(0,0,0,0.05);
         }
-        .slot-vazio:hover {
-            background-color: rgba(0, 156, 59, 0.1);
-            border-color: #009c3b;
-        }
+        .slot-vazio:hover { background: rgba(0, 156, 59, 0.1); border-color: #009c3b; color: #009c3b; transform: scale(1.02); cursor: pointer; }
+        .slot-vazio .numero { font-family: 'Oswald', sans-serif; font-size: 3rem; font-weight: 700; }
+        .slot-vazio .texto { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
 
-        /* Figurinha Colada (Estilo Foto/Polaroid) */
+        /* Figurinha Real Colada - Estilo Premium */
         .slot-preenchido {
-            width: 100%;
-            height: 100%;
+            width: 100%; height: 100%;
             background-color: #ffffff;
-            padding: 5%;
-            border-radius: 4px;
-            box-shadow: 1px 3px 6px rgba(0,0,0,0.2);
-            display: flex;
-            flex-direction: column;
-            border: 1px solid #ddd;
+            padding: 4%;
+            border-radius: 8px;
+            box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
+            display: flex; flex-direction: column;
+            border: 1px solid #e0e0e0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Animação elástica */
+            position: relative;
+            z-index: 1;
+        }
+        .slot-preenchido:hover {
+            transform: scale(1.1) translateY(-10px);
+            box-shadow: 0px 15px 30px rgba(0,0,0,0.3);
+            z-index: 10;
         }
         
         .foto-area {
-            background: linear-gradient(to bottom, #009c3b, #002776);
+            background: linear-gradient(to bottom, #ece9e6, #ffffff);
             flex-grow: 1;
-            border-radius: 2px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5rem; /* Fonte reduzida */
-            font-weight: bold;
+            border-radius: 4px;
+            border: 2px solid #002776;
+            display: flex; align-items: center; justify-content: center;
+            color: #002776; font-size: 2rem; font-weight: bold; overflow: hidden;
+            position: relative;
+        }
+        
+        /* Base com o Nome/Número */
+        .foto-rodape {
+            height: 22%;
+            background: #009c3b;
+            margin-top: 5px;
+            border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            color: #ffffff; font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 1rem;
+            text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: inset 0px -3px 0px rgba(0,0,0,0.2);
+        }
+
+        /* ========================================================
+           EFEITO "LENDÁRIO" (HOLOGRÁFICO PARA AS MÚLTIPLAS DE 10)
+           ======================================================== */
+        .lendaria {
+            background: linear-gradient(135deg, #ffd700, #ffb300);
+            padding: 5%;
+            border: none;
+            box-shadow: 0px 5px 20px rgba(255, 215, 0, 0.5);
             overflow: hidden;
         }
+        /* O reflexo do metal holográfico */
+        .lendaria::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-25deg);
+            animation: holo-shine 4s infinite;
+            z-index: 5; pointer-events: none;
+        }
+        @keyframes holo-shine { 0% { left: -100%; } 20% { left: 200%; } 100% { left: 200%; } }
         
-        .foto-rodape {
-            height: 15%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #333;
-            font-weight: 900;
-            font-size: 0.8rem; /* Fonte reduzida */
-            margin-top: 3px;
+        .lendaria .foto-area { border: 3px solid #b8860b; background: linear-gradient(to bottom, #fff8dc, #fff); }
+        .lendaria .foto-rodape { 
+            background: linear-gradient(to bottom, #d4af37, #b8860b);
+            color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); border: 1px solid #ffdf00;
         }
 
-        /* Efeito Figurinha Brilhante/Rara */
-        .brilhante {
-            background: linear-gradient(135deg, #ffdf00 0%, #ffed4a 50%, #ffdf00 100%);
-            background-size: 200% 200%;
-            animation: brilho-animado 3s ease infinite;
-            border: 2px solid #b8860b;
+        /* Animação de Aparecimento (Ao abrir o pacote) */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(50px) scale(0.5); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .brilhante .foto-rodape { color: #8b6508; }
-        
-        @keyframes brilho-animado { 
-            0% { background-position: 0% 50%; } 
-            50% { background-position: 100% 50%; } 
-            100% { background-position: 0% 50%; } 
-        }
+        .anim-reveal { animation: fadeInUp 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
-        /* Botão do Pacotinho Pulsante */
+        /* Botão Mágico do Pacotinho */
         .pacotinho-btn > button { 
             background: linear-gradient(180deg, #ffdf00 0%, #d4af37 100%) !important;
-            color: #002776 !important; 
-            font-size: 1.3rem !important; 
-            font-weight: 900 !important; 
-            border: 3px solid #002776 !important; 
-            border-radius: 10px !important; 
-            width: 100%; 
-            height: 60px; 
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
+            color: #002776 !important; font-family: 'Oswald', sans-serif !important;
+            font-size: 1.8rem !important; font-weight: 700 !important; letter-spacing: 2px !important;
+            border: 4px solid #002776 !important; border-radius: 15px !important; 
+            width: 100%; height: 80px; 
+            box-shadow: 0px 8px 20px rgba(0,0,0,0.3); transition: all 0.2s ease;
         }
         .pacotinho-btn > button:hover { 
             background: linear-gradient(180deg, #d4af37 0%, #ffdf00 100%) !important;
-            transform: scale(1.05);
+            transform: translateY(-5px); box-shadow: 0px 12px 25px rgba(255,223,0,0.4);
         }
+        .pacotinho-btn > button:active { transform: translateY(2px); box-shadow: 0px 2px 5px rgba(0,0,0,0.3); }
         </style>
     """, unsafe_allow_html=True)
 
-def inicializar_dados_album():
+def inicializar_dados_album_premium():
     TOTAL_FIGURINHAS = 30 
     if 'album_dados' not in st.session_state:
         st.session_state['album_dados'] = {
-            'pacotes_disponiveis': 3,
+            'pacotes_disponiveis': 5,
             'coladas': [],
             'repetidas': [],
             'total_figurinhas': TOTAL_FIGURINHAS,
-            'pagina_atual': 0
+            'pagina_atual': 0,
+            'ultimas_tiradas': [] # Guarda o último pacote aberto para exibir a animação
         }
 
-def abrir_pacotinho():
+def abrir_pacotinho_premium():
     dados = st.session_state['album_dados']
     if dados['pacotes_disponiveis'] > 0:
         st.balloons() 
@@ -10533,51 +10564,53 @@ def abrir_pacotinho():
         
         sorteio = random.choices(range(1, dados['total_figurinhas'] + 1), k=5)
         for fig in sorteio:
-            if fig not in dados['coladas']: 
-                dados['coladas'].append(fig)
-            else: 
-                dados['repetidas'].append(fig)
+            if fig not in dados['coladas']: dados['coladas'].append(fig)
+            else: dados['repetidas'].append(fig)
                 
         dados['coladas'].sort()
         dados['repetidas'].sort()
-        return sorteio
-    return None
+        dados['ultimas_tiradas'] = sorteio
+        return True
+    return False
 
 def render_modulo_album():
-    injetar_css_album()
-    inicializar_dados_album()
+    injetar_css_album_premium()
+    inicializar_dados_album_premium()
     dados = st.session_state['album_dados']
 
-    st.markdown('<div class="album-container">', unsafe_allow_html=True)
+    st.markdown('<div class="album-premium-container">', unsafe_allow_html=True)
     
     st.markdown("""
-        <div class="album-header">
-            <h1>🏆 Álbum do CEIEF 🏆</h1>
-            <p>Rafael Affonso Leite - Edição Especial</p>
+        <div class="header-premium">
+            <h1>🌟 Álbum Oficial CEIEF 🌟</h1>
+            <p>Rafael Affonso Leite — Coleção Ouro 2026</p>
         </div>
     """, unsafe_allow_html=True)
 
-    aba_album, aba_pacotes, aba_trocas = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas"])
+    aba_album, aba_pacotes, aba_trocas = st.tabs(["📖 O Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas"])
 
     # ==========================================
-    # ABA 1: MEU ÁLBUM (AGORA COM 5 COLUNAS)
+    # ABA 1: MEU ÁLBUM (5 COLUNAS PREMIUM)
     # ==========================================
     with aba_album:
-        figurinhas_por_pagina = 10 # Aumentado para 10 por página (2 linhas de 5)
+        figurinhas_por_pagina = 10 
         total_paginas = (dados['total_figurinhas'] // figurinhas_por_pagina) + (1 if dados['total_figurinhas'] % figurinhas_por_pagina > 0 else 0)
         
+        # Paginação Estilizada
         col_prev, col_page, col_next = st.columns([1, 2, 1])
         with col_prev:
-            if st.button("⬅️ Página Anterior", use_container_width=True) and dados['pagina_atual'] > 0:
+            if st.button("⬅️ VOLTAR PÁGINA", use_container_width=True) and dados['pagina_atual'] > 0:
                 dados['pagina_atual'] -= 1
+                dados['ultimas_tiradas'] = [] # Limpa a tela de revelação
                 st.rerun()
         with col_page:
             progresso = len(dados['coladas']) / dados['total_figurinhas']
-            st.markdown(f"<div style='text-align: center; color: #009c3b; font-weight: 900; font-size: 16px;'>Página {dados['pagina_atual'] + 1} de {total_paginas}</div>", unsafe_allow_html=True)
-            st.progress(progresso, text=f"Completado: {len(dados['coladas'])} de {dados['total_figurinhas']}")
+            st.markdown(f"<div style='text-align: center; color: #004d23; font-family: Oswald; font-size: 22px; text-transform: uppercase;'>Página {dados['pagina_atual'] + 1} de {total_paginas}</div>", unsafe_allow_html=True)
+            st.progress(progresso, text=f"Completado: {len(dados['coladas'])} de {dados['total_figurinhas']} figurinhas")
         with col_next:
-            if st.button("Próxima Página ➡️", use_container_width=True) and dados['pagina_atual'] < (total_paginas - 1):
+            if st.button("AVANÇAR PÁGINA ➡️", use_container_width=True) and dados['pagina_atual'] < (total_paginas - 1):
                 dados['pagina_atual'] += 1
+                dados['ultimas_tiradas'] = []
                 st.rerun()
 
         st.write("---")
@@ -10586,87 +10619,109 @@ def render_modulo_album():
         fim_idx = inicio_idx + figurinhas_por_pagina
         figurinhas_da_pagina = list(range(1, dados['total_figurinhas'] + 1))[inicio_idx:fim_idx]
 
-        # Matriz: Agora roda de 5 em 5 para criar as colunas menores
         for linha in range(0, len(figurinhas_da_pagina), 5):
-            cols = st.columns(5) # Mudança principal: 5 colunas
+            cols = st.columns(5)
             for i, col in enumerate(cols):
                 if linha + i < len(figurinhas_da_pagina):
                     id_fig = figurinhas_da_pagina[linha + i]
-                    classe_extra = "brilhante" if id_fig % 10 == 0 else ""
+                    classe_lendaria = "lendaria" if id_fig % 10 == 0 else ""
+                    selo = "✨ LENDÁRIA" if id_fig % 10 == 0 else f"Nº {id_fig}"
                     
                     with col:
                         if id_fig in dados['coladas']:
                             st.markdown(f"""
-                                <div class="figurinha-wrapper">
-                                    <div class="slot-preenchido {classe_extra}">
-                                        <div class="foto-area">📸</div>
-                                        <div class="foto-rodape">Nº {id_fig}</div>
+                                <div class="fig-wrapper">
+                                    <div class="slot-preenchido {classe_lendaria}">
+                                        <div class="foto-area">
+                                            📸
+                                        </div>
+                                        <div class="foto-rodape">{selo}</div>
                                     </div>
                                 </div>
                             """, unsafe_allow_html=True)
                         else:
                             st.markdown(f"""
-                                <div class="figurinha-wrapper">
-                                    <div class="slot-vazio">{id_fig}</div>
+                                <div class="fig-wrapper">
+                                    <div class="slot-vazio">
+                                        <div class="numero">{id_fig}</div>
+                                        <div class="texto">Cole Aqui</div>
+                                    </div>
                                 </div>
                             """, unsafe_allow_html=True)
 
     # ==========================================
-    # ABA 2: ABRIR PACOTINHOS
+    # ABA 2: ABRIR PACOTINHOS (COM ANIMAÇÃO DE REVELAÇÃO)
     # ==========================================
     with aba_pacotes:
-        st.markdown(f"### 🎒 Você tem **{dados['pacotes_disponiveis']}** pacotinhos na mochila!")
+        st.markdown(f"<h3 style='font-family: Poppins; color: #004d23;'>🎒 Você tem <b>{dados['pacotes_disponiveis']}</b> pacotinhos fechados!</h3>", unsafe_allow_html=True)
+        
         if dados['pacotes_disponiveis'] > 0:
             st.markdown('<div class="pacotinho-btn">', unsafe_allow_html=True)
-            if st.button("✨ RASGAR 1 PACOTINHO ✨", use_container_width=True):
-                novas_figs = abrir_pacotinho()
-                st.success("Aí sim! Olha o que veio no pacote:")
-                
-                cols_novas = st.columns(5)
-                for i, fig in enumerate(novas_figs):
-                    classe_extra = "brilhante" if fig % 10 == 0 else ""
-                    with cols_novas[i]:
-                        st.markdown(f"""
-                            <div class="figurinha-wrapper" style="margin-top: 10px;">
-                                <div class="slot-preenchido {classe_extra}">
-                                    <div class="foto-area" style="font-size: 1.2rem;">Nº {fig}</div>
-                                </div>
-                            </div>
-                        """, unsafe_allow_html=True)
+            if st.button("💥 RASGAR PACOTINHO AGORA! 💥", use_container_width=True):
+                if abrir_pacotinho_premium():
+                    st.rerun() # Rerun para disparar a animação
             st.markdown('</div>', unsafe_allow_html=True)
         else:
-            st.warning("Poxa, seus pacotinhos acabaram. Fale com o professor para ganhar mais na próxima semana!")
+            st.error("Poxa, seus pacotinhos acabaram. Fale com o professor para recarregar sua mochila na próxima semana!")
+
+        # Área de Revelação Dinâmica (Só aparece logo após abrir um pacote)
+        if dados.get('ultimas_tiradas'):
+            st.write("---")
+            st.markdown("<h2 style='text-align:center; font-family: Oswald; color: #009c3b; text-transform: uppercase;'>✨ VOCÊ TIROU: ✨</h2>", unsafe_allow_html=True)
+            
+            # Animação de entrada cascata (delay no CSS inline)
+            cols_novas = st.columns(5)
+            for i, fig in enumerate(dados['ultimas_tiradas']):
+                classe_lendaria = "lendaria" if fig % 10 == 0 else ""
+                selo = "👑 LENDÁRIA" if fig % 10 == 0 else f"Nº {fig}"
+                delay = i * 0.15 # Cria um efeito de aparecer uma por uma
+                
+                with cols_novas[i]:
+                    st.markdown(f"""
+                        <div class="fig-wrapper anim-reveal" style="animation-delay: {delay}s; opacity: 0; margin-top: 20px;">
+                            <div class="slot-preenchido {classe_lendaria}">
+                                <div class="foto-area" style="font-size: 1.5rem;">📸</div>
+                                <div class="foto-rodape">{selo}</div>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+            
+            # Botão para fechar a visualização do pacote e limpar
+            if st.button("Guardar figurinhas no Álbum", use_container_width=True):
+                dados['ultimas_tiradas'] = []
+                st.rerun()
 
     # ==========================================
     # ABA 3: BANCA DE TROCAS
     # ==========================================
     with aba_trocas:
-        st.write("Bem-vindo ao mercado de transferências da turma!")
+        st.markdown("<h3 style='font-family: Poppins; color: #004d23;'>Mercado Oficial de Transferências</h3>", unsafe_allow_html=True)
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("#### 📥 Seu Bolo de Repetidas")
+            st.markdown("#### 📥 Suas Repetidas")
             if dados['repetidas']:
                 contagem_repetidas = {x: dados['repetidas'].count(x) for x in set(dados['repetidas'])}
                 for fig, qtd in contagem_repetidas.items(): 
-                    st.info(f"🟢 **Figurinha Nº {fig}** — Você tem {qtd} para trocar")
+                    tag = "✨ (Lendária!)" if fig % 10 == 0 else ""
+                    st.info(f"🟢 **Nº {fig}** {tag} — Você tem {qtd} para trocar")
             else: 
-                st.write("Você ainda não tem figurinhas repetidas.")
+                st.write("Você não tem figurinhas repetidas.")
 
         with col2:
             st.markdown("#### 🤝 Fazer uma Proposta")
             if dados['repetidas']:
-                fig_oferecida = st.selectbox("Qual você quer passar para frente?", list(set(dados['repetidas'])))
+                fig_oferecida = st.selectbox("Sua Figurinha (Oferta):", list(set(dados['repetidas'])))
                 faltantes = [x for x in range(1, dados['total_figurinhas'] + 1) if x not in dados['coladas']]
                 
                 if faltantes:
                     fig_desejada = st.selectbox("Qual você quer em troca?", faltantes)
-                    if st.button("Anunciar Troca na Banca", type="primary", use_container_width=True):
+                    if st.button("Anunciar na Banca", type="primary", use_container_width=True):
                         st.success(f"Anúncio no ar! Oferecendo a **Nº {fig_oferecida}** por uma **Nº {fig_desejada}**.")
                 else: 
                     st.success("Seu álbum já está completo, mestre das figurinhas!")
             else: 
-                st.warning("Abra mais pacotinhos para conseguir repetidas antes de negociar.")
+                st.warning("Abra pacotinhos para conseguir repetidas antes de negociar.")
 
     st.markdown('</div>', unsafe_allow_html=True)
 

@@ -10842,3 +10842,10 @@ def render_modulo_album():
             st.info("Nenhum anúncio de troca em aberto.")
             
     st.markdown('</div>', unsafe_allow_html=True)
+
+
+    # ==============================================================================
+# GATILHO DO MENU 
+# ==============================================================================
+if 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
+    render_modulo_album()

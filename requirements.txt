@@ -10,3 +10,4 @@ gspread
 gspread-dataframe
 google-auth
 pdfplumber
+psycopg2-binary==2.9.9

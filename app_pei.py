@@ -10387,35 +10387,33 @@ def injetar_css_album():
         /* Cabeçalho Premium */
         .album-header {
             background: linear-gradient(135deg, #009c3b 0%, #007a2e 100%);
-            padding: 25px;
-            border-radius: 15px;
+            padding: 20px;
+            border-radius: 10px;
             text-align: center;
             color: #ffffff;
             text-transform: uppercase;
-            box-shadow: 0px 8px 15px rgba(0,0,0,0.2);
-            margin-bottom: 25px;
-            border: 4px solid #ffdf00;
-            position: relative;
-            overflow: hidden;
+            box-shadow: 0px 5px 10px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            border: 3px solid #ffdf00;
         }
         .album-header h1 { 
             margin: 0; 
             color: #ffdf00; 
             font-weight: 900;
-            font-size: 2.5rem;
-            text-shadow: 2px 2px 0px #002776, 4px 4px 0px rgba(0,0,0,0.3); 
+            font-size: 2rem;
+            text-shadow: 2px 2px 0px #002776, 3px 3px 0px rgba(0,0,0,0.3); 
         }
         .album-header p {
             margin-top: 5px;
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: bold;
         }
 
-        /* Estrutura 3x4 das Figurinhas */
+        /* Estrutura 3x4 das Figurinhas - Menores e mais compactas */
         .figurinha-wrapper {
             width: 100%;
             aspect-ratio: 3 / 4; /* Proporção exata 3x4 */
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             perspective: 1000px;
         }
 
@@ -10423,15 +10421,15 @@ def injetar_css_album():
         .slot-vazio {
             width: 100%;
             height: 100%;
-            border: 3px dashed rgba(0, 156, 59, 0.4);
+            border: 2px dashed rgba(0, 156, 59, 0.4);
             background-color: rgba(240, 253, 244, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 8px;
+            border-radius: 6px;
             color: #009c3b;
             font-weight: 900;
-            font-size: 3rem;
+            font-size: 2rem; /* Fonte reduzida */
             transition: all 0.3s ease;
         }
         .slot-vazio:hover {
@@ -10443,10 +10441,10 @@ def injetar_css_album():
         .slot-preenchido {
             width: 100%;
             height: 100%;
-            background-color: #ffffff; /* Borda branca da foto */
-            padding: 5%; /* Margem interna da polaroid */
+            background-color: #ffffff;
+            padding: 5%;
             border-radius: 4px;
-            box-shadow: 2px 4px 10px rgba(0,0,0,0.3);
+            box-shadow: 1px 3px 6px rgba(0,0,0,0.2);
             display: flex;
             flex-direction: column;
             border: 1px solid #ddd;
@@ -10460,7 +10458,7 @@ def injetar_css_album():
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 2rem;
+            font-size: 1.5rem; /* Fonte reduzida */
             font-weight: bold;
             overflow: hidden;
         }
@@ -10472,8 +10470,8 @@ def injetar_css_album():
             justify-content: center;
             color: #333;
             font-weight: 900;
-            font-size: 1rem;
-            margin-top: 5px;
+            font-size: 0.8rem; /* Fonte reduzida */
+            margin-top: 3px;
         }
 
         /* Efeito Figurinha Brilhante/Rara */
@@ -10495,13 +10493,13 @@ def injetar_css_album():
         .pacotinho-btn > button { 
             background: linear-gradient(180deg, #ffdf00 0%, #d4af37 100%) !important;
             color: #002776 !important; 
-            font-size: 1.5rem !important; 
+            font-size: 1.3rem !important; 
             font-weight: 900 !important; 
             border: 3px solid #002776 !important; 
-            border-radius: 15px !important; 
+            border-radius: 10px !important; 
             width: 100%; 
-            height: 80px; 
-            box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
+            height: 60px; 
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
             animation: pulse 2s infinite;
         }
         @keyframes pulse {
@@ -10517,7 +10515,6 @@ def injetar_css_album():
     """, unsafe_allow_html=True)
 
 def inicializar_dados_album():
-    # Simulando o banco de dados - O ideal é ter 1 figurinha por aluno/membro da equipe
     TOTAL_FIGURINHAS = 30 
     if 'album_dados' not in st.session_state:
         st.session_state['album_dados'] = {
@@ -10531,10 +10528,9 @@ def inicializar_dados_album():
 def abrir_pacotinho():
     dados = st.session_state['album_dados']
     if dados['pacotes_disponiveis'] > 0:
-        st.balloons() # Animação nativa do Streamlit
+        st.balloons() 
         dados['pacotes_disponiveis'] -= 1
         
-        # Sorteia 5 figurinhas
         sorteio = random.choices(range(1, dados['total_figurinhas'] + 1), k=5)
         for fig in sorteio:
             if fig not in dados['coladas']: 
@@ -10554,7 +10550,6 @@ def render_modulo_album():
 
     st.markdown('<div class="album-container">', unsafe_allow_html=True)
     
-    # Cabeçalho Temático
     st.markdown("""
         <div class="album-header">
             <h1>🏆 Álbum do CEIEF 🏆</h1>
@@ -10562,17 +10557,15 @@ def render_modulo_album():
         </div>
     """, unsafe_allow_html=True)
 
-    # Abas principais
     aba_album, aba_pacotes, aba_trocas = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas"])
 
     # ==========================================
-    # ABA 1: MEU ÁLBUM
+    # ABA 1: MEU ÁLBUM (AGORA COM 5 COLUNAS)
     # ==========================================
     with aba_album:
-        figurinhas_por_pagina = 6
+        figurinhas_por_pagina = 10 # Aumentado para 10 por página (2 linhas de 5)
         total_paginas = (dados['total_figurinhas'] // figurinhas_por_pagina) + (1 if dados['total_figurinhas'] % figurinhas_por_pagina > 0 else 0)
         
-        # Barra de progresso e Paginação
         col_prev, col_page, col_next = st.columns([1, 2, 1])
         with col_prev:
             if st.button("⬅️ Página Anterior", use_container_width=True) and dados['pagina_atual'] > 0:
@@ -10580,8 +10573,8 @@ def render_modulo_album():
                 st.rerun()
         with col_page:
             progresso = len(dados['coladas']) / dados['total_figurinhas']
-            st.markdown(f"<div style='text-align: center; color: #009c3b; font-weight: 900; font-size: 18px;'>Página {dados['pagina_atual'] + 1} de {total_paginas}</div>", unsafe_allow_html=True)
-            st.progress(progresso, text=f"Progresso do Álbum: {len(dados['coladas'])} de {dados['total_figurinhas']} figurinhas")
+            st.markdown(f"<div style='text-align: center; color: #009c3b; font-weight: 900; font-size: 16px;'>Página {dados['pagina_atual'] + 1} de {total_paginas}</div>", unsafe_allow_html=True)
+            st.progress(progresso, text=f"Completado: {len(dados['coladas'])} de {dados['total_figurinhas']}")
         with col_next:
             if st.button("Próxima Página ➡️", use_container_width=True) and dados['pagina_atual'] < (total_paginas - 1):
                 dados['pagina_atual'] += 1
@@ -10589,36 +10582,29 @@ def render_modulo_album():
 
         st.write("---")
         
-        # Renderizando a grade 3x4
         inicio_idx = dados['pagina_atual'] * figurinhas_por_pagina
         fim_idx = inicio_idx + figurinhas_por_pagina
         figurinhas_da_pagina = list(range(1, dados['total_figurinhas'] + 1))[inicio_idx:fim_idx]
 
-        # Matriz 2 linhas x 3 colunas
-        for linha in range(0, len(figurinhas_da_pagina), 3):
-            cols = st.columns(3)
+        # Matriz: Agora roda de 5 em 5 para criar as colunas menores
+        for linha in range(0, len(figurinhas_da_pagina), 5):
+            cols = st.columns(5) # Mudança principal: 5 colunas
             for i, col in enumerate(cols):
                 if linha + i < len(figurinhas_da_pagina):
                     id_fig = figurinhas_da_pagina[linha + i]
-                    
-                    # Lógica para figurinhas "Raras/Brilhantes" (ex: múltiplas de 10)
                     classe_extra = "brilhante" if id_fig % 10 == 0 else ""
                     
                     with col:
                         if id_fig in dados['coladas']:
-                            # Renderiza Figurinha 3x4 Colada
                             st.markdown(f"""
                                 <div class="figurinha-wrapper">
                                     <div class="slot-preenchido {classe_extra}">
-                                        <div class="foto-area">
-                                            📸
-                                        </div>
+                                        <div class="foto-area">📸</div>
                                         <div class="foto-rodape">Nº {id_fig}</div>
                                     </div>
                                 </div>
                             """, unsafe_allow_html=True)
                         else:
-                            # Renderiza Slot 3x4 Vazio
                             st.markdown(f"""
                                 <div class="figurinha-wrapper">
                                     <div class="slot-vazio">{id_fig}</div>
@@ -10641,9 +10627,9 @@ def render_modulo_album():
                     classe_extra = "brilhante" if fig % 10 == 0 else ""
                     with cols_novas[i]:
                         st.markdown(f"""
-                            <div class="figurinha-wrapper" style="margin-top: 15px;">
+                            <div class="figurinha-wrapper" style="margin-top: 10px;">
                                 <div class="slot-preenchido {classe_extra}">
-                                    <div class="foto-area" style="font-size: 1rem;">Nº {fig}</div>
+                                    <div class="foto-area" style="font-size: 1.2rem;">Nº {fig}</div>
                                 </div>
                             </div>
                         """, unsafe_allow_html=True)

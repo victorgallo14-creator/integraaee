@@ -10410,10 +10410,8 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 
-
-
 # =====================================================================
-# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM (TURMAS + FOTOGRAFIAS URL)
+# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM E ARENA DE JOGOS
 # Tabelas: estudantes, figurinhas, inventario_album, banca_trocas
 # =====================================================================
 import random
@@ -10463,7 +10461,7 @@ def injetar_css_album_premium():
         .foto-area {
             background: linear-gradient(to bottom, #ece9e6, #ffffff); flex-grow: 1; border-radius: 4px;
             border: 2px solid #002776; display: flex; align-items: center; justify-content: center; color: #002776;
-            padding: 0; overflow: hidden; /* Importante para a foto não vazar da borda */
+            padding: 0; overflow: hidden;
         }
         
         .foto-rodape {
@@ -10572,10 +10570,11 @@ def render_modulo_album():
     st.markdown('<div class="album-premium-container">', unsafe_allow_html=True)
     st.markdown('<div class="header-premium"><h1>🏆 ÁLBUM DA COPA CEIEF 🏆</h1><p>Módulo de Integração de Alunos</p></div>', unsafe_allow_html=True)
     
-    aba_album, aba_pacotes, aba_trocas = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas"])
+    # 4 ABAS INCLUINDO A ARENA DE JOGOS
+    aba_album, aba_pacotes, aba_trocas, aba_jogos = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas", "🎮 Arena de Jogos"])
 
     # ==========================================
-    # ABA 1: MEU ÁLBUM (FILTRADO E COM FOTOS)
+    # ABA 1: MEU ÁLBUM
     # ==========================================
     with aba_album:
         figurinhas_por_pagina = 10
@@ -10604,10 +10603,12 @@ def render_modulo_album():
                 st.rerun()
 
         textos_paginas = {
-            0: f"Bem-vindos à edição histórica da Turma {dados_db['turma']}! Comece a sua coleção!",
-            1: "⭐ CURIOSIDADE: Sabia que a nossa escola está a ganhar uma fachada totalmente nova e colorida?",
-            2: "🎭 MOMENTOS INESQUECÍVEIS: Quem se lembra das incríveis apresentações teatrais no evento Escola Aberta?",
-            3: "Fique atento às figurinhas Lendárias da Equipe Escolar! Elas são brilhantes e muito raras!"
+            0: f"Bem-vindos ao Álbum da Copa CEIEF da Turma {dados_db['turma']}! O apito inicial foi dado, comece sua coleção rumo ao título!",
+            1: "⚽ CURIOSIDADE DA COPA: Sabia que o Brasil é a única seleção do planeta que participou de absolutamente todas as edições da Copa do Mundo?",
+            2: "🏆 MOMENTO HISTÓRICO: Pelé, o eterno Rei do Futebol, é o único jogador da história a vencer três Copas do Mundo (1958, 1962 e 1970).",
+            3: "🌍 VOCÊ SABIA? A Copa do Mundo de 2002 foi a primeira da história a ser sediada em dois países simultaneamente: Coreia do Sul e Japão.",
+            4: "🏟️ RECORDE: O gol mais rápido da história das Copas foi marcado aos incríveis 11 segundos por Hakan Şükür, da Turquia, em 2002.",
+            5: "✨ LENDÁRIAS: Fique atento às figurinhas douradas da Equipe Escolar! Elas são super raras e equivalem aos maiores craques do nosso time!"
         }
         texto_atual = textos_paginas.get(st.session_state['pag_album'], "Continue a abrir pacotinhos e a negociar com os colegas para completar sua coleção!")
         
@@ -10639,7 +10640,6 @@ def render_modulo_album():
                         
                         classe_lendaria = "lendaria" if f_tipo == "lendaria" else ""
                         
-                        # Verifica se existe um link válido para a imagem
                         if f_foto and str(f_foto).startswith('http'):
                             foto_html = f'<img src="{f_foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">'
                         else:
@@ -10669,7 +10669,7 @@ def render_modulo_album():
                                 """, unsafe_allow_html=True)
 
     # ==========================================
-    # ABA 2: ABRIR PACOTINHOS (COM FOTOS)
+    # ABA 2: ABRIR PACOTINHOS
     # ==========================================
     with aba_pacotes:
         st.markdown(f"<h3 style='font-family: Poppins; color: #004d23;'>🎒 Possui <b>{dados_db['pacotes']}</b> pacotinhos fechados!</h3>", unsafe_allow_html=True)
@@ -10683,7 +10683,7 @@ def render_modulo_album():
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
         else:
-            st.error("Os seus pacotinhos acabaram. Aguarde que os professores libertem mais cargas!")
+            st.error("Os seus pacotinhos acabaram. Aguarde que os professores libertem mais cargas, ou vá jogar uma partida na Arena de Jogos!")
 
         if 'ultimo_sorteio' in st.session_state and st.session_state['ultimo_sorteio']:
             st.write("---")
@@ -10702,7 +10702,6 @@ def render_modulo_album():
                 classe_lendaria = "lendaria" if f_tipo == "lendaria" else ""
                 delay = i * 0.15
                 
-                # Exibição da foto no sorteio do pacotinho
                 if f_foto and str(f_foto).startswith('http'):
                     foto_html = f'<img src="{f_foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">'
                 else:
@@ -10841,11 +10840,76 @@ def render_modulo_album():
         else:
             st.info("Nenhum anúncio de troca em aberto.")
             
+    # ==========================================
+    # ABA 4: ARENA DE JOGOS (DIVERSÃO EXTRA)
+    # ==========================================
+    with aba_jogos:
+        st.markdown("### 🎮 Diversão no Vestiário")
+        st.write("Acabaram os pacotinhos? Sem problemas! Treine suas habilidades enquanto espera a próxima remessa.")
+        
+        st.write("---")
+        # JOGO 1: Cobrança de Pênaltis
+        st.markdown("#### 🥅 Cobrança de Pênaltis")
+        st.write("Escolha o canto e tente marcar um gol contra o Goleiro Robô do CEIEF!")
+        
+        c_esq, c_meio, c_dir = st.columns(3)
+        chute = None
+        
+        if c_esq.button("⬅️ Chutar na Esquerda", use_container_width=True): chute = "Esquerda"
+        if c_meio.button("⏺️ Chutar no Meio", use_container_width=True): chute = "Meio"
+        if c_dir.button("➡️ Chutar na Direita", use_container_width=True): chute = "Direita"
+        
+        if chute:
+            goleiro = random.choice(["Esquerda", "Meio", "Direita"])
+            st.info(f"🤖 O goleiro pulou para a **{goleiro}**...")
+            time.sleep(1.5)
+            
+            if chute == goleiro:
+                st.error("❌ ESPALMOU! O goleiro adivinhou o canto e fez uma defesa incrível!")
+            else:
+                st.success("⚽ GOOOOOOOOOOL! Um chutaço indefensável na rede!")
+                st.balloons()
+                
+        st.write("---")
+        
+        # JOGO 2: Quiz da Copa
+        st.markdown("#### 🧠 Quiz dos Campeões")
+        st.write("Teste os seus conhecimentos históricos sobre futebol.")
+        
+        if "pergunta_atual" not in st.session_state:
+            perguntas = [
+                {"q": "Qual país venceu a primeira Copa do Mundo de Futebol em 1930?", "op": ["Uruguai", "Brasil", "Alemanha", "Argentina"], "r": "Uruguai"},
+                {"q": "Quem é o maior artilheiro da história das Copas do Mundo?", "op": ["Pelé", "Miroslav Klose", "Ronaldo Fenômeno", "Messi"], "r": "Miroslav Klose"},
+                {"q": "Qual animal foi a mascote oficial da Copa de 2014 no Brasil?", "op": ["Arara", "Leão", "Cachorro", "Tatu-bola"], "r": "Tatu-bola"},
+                {"q": "Em que ano o Brasil conquistou o tão sonhado Penta?", "op": ["1994", "1998", "2002", "2006"], "r": "2002"},
+                {"q": "Qual jogador marcou o famoso gol da 'Mão de Deus' em 1986?", "op": ["Pelé", "Maradona", "Zidane", "Romário"], "r": "Maradona"}
+            ]
+            st.session_state["pergunta_atual"] = random.choice(perguntas)
+            st.session_state["quiz_respondido"] = False
+            
+        q = st.session_state["pergunta_atual"]
+        st.write(f"**Pergunta:** {q['q']}")
+        
+        resposta = st.radio("Escolha a alternativa correta:", q['op'], index=None, key="radio_quiz")
+        
+        if st.button("Confirmar Resposta") and resposta:
+            if resposta == q['r']:
+                st.success("✅ Resposta Correta! Você é um verdadeiro craque do esporte!")
+            else:
+                st.error(f"❌ Resposta Incorreta. O certo era: **{q['r']}**.")
+            st.session_state["quiz_respondido"] = True
+            
+        if st.session_state.get("quiz_respondido"):
+            if st.button("🔄 Sortear Outra Pergunta"):
+                del st.session_state["pergunta_atual"]
+                del st.session_state["quiz_respondido"]
+                st.rerun()
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 
     # ==============================================================================
-# GATILHO DO MENU 
+# GATILHO DO ÁLBUM DE FIGURINHAS (MENU REGULAR)
 # ==============================================================================
 if 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
     render_modulo_album()

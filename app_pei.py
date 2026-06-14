@@ -1210,27 +1210,17 @@ with st.sidebar:
         st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
         # --- TRAVA DE SEGURANÇA: MODO ESTUDANTE ---
         # Adicione este bloco no início da sua área logada, antes de desenhar os menus laterais
+        # --- TRAVA DE SEGURANÇA: MODO ESTUDANTE ---
         if st.session_state.get('user_role') == 'estudante':
-            # Barra lateral limpa e exclusiva para a criança
-            st.sidebar.markdown("### 🎒 Área do Estudante")
-            st.sidebar.write(f"👤 **{st.session_state.get('usuario_nome')}**")
-            st.sidebar.write(f"📌 R.A.: {st.session_state.get('usuario_ra')}")
-            
-            if st.sidebar.button("🚪 Sair / Trocar Aluno", type="primary", use_container_width=True):
-                st.session_state.authenticated = False
-                st.session_state.user_role = None
-                st.session_state.usuario_ra = None
-                st.session_state.usuario_nome = None
-                st.rerun()
-                
-            # Chama diretamente a função do álbum em ecrã inteiro
-            # (Verifique o nome exato da sua função de renderização do álbum, p.ex., render_modulo_album() ou similar)
-            render_modulo_album()
-            
-            # Para a execução do restante do menu para que o aluno não veja mais nada
-            st.stop()
-        
-        opcoes_regular = ["🖼️ Carômetro Escolar", "💻 Agendamento Informática", "📝 Nova Ata de Conselho", "📂 Histórico de Atas", "📖 Planejamento Curricular"]
+            opcoes_regular = ["🏆 Álbum de Figurinhas"]
+        else:
+            opcoes_regular = [
+                "🖼️ Carômetro Escolar", 
+                "💻 Agendamento Informática", 
+                "📝 Nova Ata de Conselho", 
+                "📂 Histórico de Atas", 
+                "📖 Planejamento Curricular"
+            ]
         
         if st.session_state.get('usuario_nome') == "José Victor Souza Gallo":
             opcoes_regular.append("⚙️ Configurações")

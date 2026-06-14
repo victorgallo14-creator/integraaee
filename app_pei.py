@@ -10369,12 +10369,12 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 
-
 # =====================================================================
 # MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM (ULTRA EDITION)
 # =====================================================================
 import random
 import time
+import streamlit as st
 
 def injetar_css_album_premium():
     st.markdown("""
@@ -10434,7 +10434,7 @@ def injetar_css_album_premium():
             width: 100%;
             aspect-ratio: 3 / 4;
             margin-bottom: 20px;
-            perspective: 1000px; /* Para o efeito 3D */
+            perspective: 1000px;
             position: relative;
         }
 
@@ -10462,7 +10462,7 @@ def injetar_css_album_premium():
             box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
             display: flex; flex-direction: column;
             border: 1px solid #e0e0e0;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Animação elástica */
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             position: relative;
             z-index: 1;
         }
@@ -10553,7 +10553,7 @@ def inicializar_dados_album_premium():
             'repetidas': [],
             'total_figurinhas': TOTAL_FIGURINHAS,
             'pagina_atual': 0,
-            'ultimas_tiradas': [] # Guarda o último pacote aberto para exibir a animação
+            'ultimas_tiradas': []
         }
 
 def abrir_pacotinho_premium():
@@ -10587,7 +10587,7 @@ def render_modulo_album():
         </div>
     """, unsafe_allow_html=True)
 
-    aba_album, aba_pacotes, aba_trocas = st.tabs(["📖 O Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas"])
+    aba_album, aba_pacotes, aba_trocas = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas"])
 
     # ==========================================
     # ABA 1: MEU ÁLBUM (5 COLUNAS PREMIUM)
@@ -10596,12 +10596,11 @@ def render_modulo_album():
         figurinhas_por_pagina = 10 
         total_paginas = (dados['total_figurinhas'] // figurinhas_por_pagina) + (1 if dados['total_figurinhas'] % figurinhas_por_pagina > 0 else 0)
         
-        # Paginação Estilizada
         col_prev, col_page, col_next = st.columns([1, 2, 1])
         with col_prev:
             if st.button("⬅️ VOLTAR PÁGINA", use_container_width=True) and dados['pagina_atual'] > 0:
                 dados['pagina_atual'] -= 1
-                dados['ultimas_tiradas'] = [] # Limpa a tela de revelação
+                dados['ultimas_tiradas'] = []
                 st.rerun()
         with col_page:
             progresso = len(dados['coladas']) / dados['total_figurinhas']
@@ -10650,7 +10649,7 @@ def render_modulo_album():
                             """, unsafe_allow_html=True)
 
     # ==========================================
-    # ABA 2: ABRIR PACOTINHOS (COM ANIMAÇÃO DE REVELAÇÃO)
+    # ABA 2: ABRIR PACOTINHOS
     # ==========================================
     with aba_pacotes:
         st.markdown(f"<h3 style='font-family: Poppins; color: #004d23;'>🎒 Você tem <b>{dados['pacotes_disponiveis']}</b> pacotinhos fechados!</h3>", unsafe_allow_html=True)
@@ -10659,22 +10658,20 @@ def render_modulo_album():
             st.markdown('<div class="pacotinho-btn">', unsafe_allow_html=True)
             if st.button("💥 RASGAR PACOTINHO AGORA! 💥", use_container_width=True):
                 if abrir_pacotinho_premium():
-                    st.rerun() # Rerun para disparar a animação
+                    st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.error("Poxa, seus pacotinhos acabaram. Fale com o professor para recarregar sua mochila na próxima semana!")
 
-        # Área de Revelação Dinâmica (Só aparece logo após abrir um pacote)
         if dados.get('ultimas_tiradas'):
             st.write("---")
             st.markdown("<h2 style='text-align:center; font-family: Oswald; color: #009c3b; text-transform: uppercase;'>✨ VOCÊ TIROU: ✨</h2>", unsafe_allow_html=True)
             
-            # Animação de entrada cascata (delay no CSS inline)
             cols_novas = st.columns(5)
             for i, fig in enumerate(dados['ultimas_tiradas']):
                 classe_lendaria = "lendaria" if fig % 10 == 0 else ""
                 selo = "👑 LENDÁRIA" if fig % 10 == 0 else f"Nº {fig}"
-                delay = i * 0.15 # Cria um efeito de aparecer uma por uma
+                delay = i * 0.15
                 
                 with cols_novas[i]:
                     st.markdown(f"""
@@ -10686,42 +10683,90 @@ def render_modulo_album():
                         </div>
                     """, unsafe_allow_html=True)
             
-            # Botão para fechar a visualização do pacote e limpar
             if st.button("Guardar figurinhas no Álbum", use_container_width=True):
                 dados['ultimas_tiradas'] = []
                 st.rerun()
 
     # ==========================================
-    # ABA 3: BANCA DE TROCAS
+    # ABA 3: BANCA DE TROCAS (MURAL DE ANÚNCIOS)
     # ==========================================
     with aba_trocas:
         st.markdown("<h3 style='font-family: Poppins; color: #004d23;'>Mercado Oficial de Transferências</h3>", unsafe_allow_html=True)
+        
+        if 'anuncios_globais' not in st.session_state:
+            st.session_state['anuncios_globais'] = [
+                {"aluno": "Lucas Silva", "oferece": 5, "busca": 12, "raridade": False},
+                {"aluno": "Mariana Costa", "oferece": 20, "busca": 3, "raridade": True},
+                {"aluno": "Pedro Henrique", "oferece": 14, "busca": 22, "raridade": False}
+            ]
+        
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("#### 📥 Suas Repetidas")
+            st.markdown("#### 📥 Seu Bolo de Repetidas")
             if dados['repetidas']:
                 contagem_repetidas = {x: dados['repetidas'].count(x) for x in set(dados['repetidas'])}
                 for fig, qtd in contagem_repetidas.items(): 
                     tag = "✨ (Lendária!)" if fig % 10 == 0 else ""
                     st.info(f"🟢 **Nº {fig}** {tag} — Você tem {qtd} para trocar")
             else: 
-                st.write("Você não tem figurinhas repetidas.")
+                st.write("Você não tem figurinhas repetidas no momento.")
 
         with col2:
             st.markdown("#### 🤝 Fazer uma Proposta")
             if dados['repetidas']:
-                fig_oferecida = st.selectbox("Sua Figurinha (Oferta):", list(set(dados['repetidas'])))
+                fig_oferecida = st.selectbox("Sua Figurinha (Oferta):", list(set(dados['repetidas'])), key="oferecida_banca")
                 faltantes = [x for x in range(1, dados['total_figurinhas'] + 1) if x not in dados['coladas']]
                 
                 if faltantes:
-                    fig_desejada = st.selectbox("Qual você quer em troca?", faltantes)
+                    fig_desejada = st.selectbox("Qual você quer em troca?", faltantes, key="desejada_banca")
                     if st.button("Anunciar na Banca", type="primary", use_container_width=True):
-                        st.success(f"Anúncio no ar! Oferecendo a **Nº {fig_oferecida}** por uma **Nº {fig_desejada}**.")
+                        novo_anuncio = {
+                            "aluno": st.session_state.get('usuario_nome', 'Você'),
+                            "oferece": fig_oferecida,
+                            "busca": fig_desejada,
+                            "raridade": fig_oferecida % 10 == 0
+                        }
+                        st.session_state['anuncios_globais'].insert(0, novo_anuncio)
+                        st.success(f"Anúncio publicado com sucesso!")
+                        time.sleep(1)
+                        st.rerun()
                 else: 
                     st.success("Seu álbum já está completo, mestre das figurinhas!")
             else: 
                 st.warning("Abra pacotinhos para conseguir repetidas antes de negociar.")
+
+        # ==========================================
+        # O MURAL DE ANÚNCIOS DA ESCOLA
+        # ==========================================
+        st.write("---")
+        st.markdown("<h4 style='font-family: Oswald; color: #009c3b; text-transform: uppercase;'>📢 Mural de Anúncios da Escola</h4>", unsafe_allow_html=True)
+        st.write("Veja o que os seus colegas estão procurando:")
+        
+        if st.session_state['anuncios_globais']:
+            for idx, anuncio in enumerate(st.session_state['anuncios_globais']):
+                borda_cor = "#d4af37" if anuncio['raridade'] else "#009c3b"
+                bg_card = "#fffdf0" if anuncio['raridade'] else "#ffffff"
+                tag_lendaria = "<span style='color: #b8860b; font-weight: bold;'>[LENDÁRIA]</span>" if anuncio['raridade'] else ""
+                
+                st.markdown(f"""
+                    <div style='background-color: {bg_card}; padding: 15px; border-radius: 10px; border-left: 6px solid {borda_cor}; box-shadow: 2px 2px 8px rgba(0,0,0,0.05); margin-bottom: 12px;'>
+                        <div style='display: flex; justify-content: space-between; align-items: center;'>
+                            <div>
+                                <strong style='color: #002776; font-size: 1.1rem;'>{anuncio['aluno']}</strong> {tag_lendaria}<br>
+                                <span style='font-size: 0.95rem; color: #555;'>
+                                    Oferece a Figurinha <b>Nº {anuncio['oferece']}</b> em troca da Figurinha <b>Nº {anuncio['busca']}</b>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                if anuncio['aluno'] != st.session_state.get('usuario_nome', 'Você'):
+                    if st.button(f"Aceitar Troca com {anuncio['aluno']}##{idx}", use_container_width=True):
+                        st.success("Funcionalidade em desenvolvimento: Validando inventário de figurinhas...")
+        else:
+            st.info("Nenhum anúncio de troca ativo no momento. Seja o primeiro a anunciar!")
 
     st.markdown('</div>', unsafe_allow_html=True)
 

@@ -10366,14 +10366,14 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 # =====================================================================
-# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM (VERSÃO SUPABASE NATIVO)
+# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM (VERSÃO SUPABASE NATIVA)
+# Tabelas utilizadas: estudantes, figurinhas, inventario_album, banca_trocas
 # =====================================================================
 import random
 import time
 import streamlit as st
 
-# O cliente 'supabase' já está definido no topo do seu app_pei.py.
-# Vamos utilizá-lo diretamente para todas as operações abaixo.
+# Nota: A variável 'supabase' já está inicializada no topo do app_pei.py.
 
 def injetar_css_album_premium():
     st.markdown("""
@@ -10391,13 +10391,6 @@ def injetar_css_album_premium():
             padding: 25px; border-radius: 20px; text-align: center; border: 4px solid #d4af37;
             box-shadow: 0px 10px 30px rgba(0, 156, 59, 0.4); position: relative; overflow: hidden; margin-bottom: 25px;
         }
-        
-        .header-premium::after {
-            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
-            transform: rotate(30deg); animation: brilho-header 6s infinite linear;
-        }
-        @keyframes brilho-header { 0% { transform: translateX(-100%) rotate(30deg); } 100% { transform: translateX(100%) rotate(30deg); } }
         
         .header-premium h1 { 
             font-family: 'Oswald', sans-serif; margin: 0; color: #ffdf00; font-size: 3rem; text-transform: uppercase;
@@ -10453,43 +10446,41 @@ def injetar_css_album_premium():
 
 
 def puxar_dados_album_estudante(ra):
-    """Puxa os dados da Mochila do Estudante via Supabase API."""
-    # 1. Verifica se o estudante já existe na tabela do álbum
-    res_est = supabase.table("album_estudantes").select("nome, pacotes_disponiveis").eq("ra", ra).execute()
+    """Lê os dados da Mochila usando a biblioteca Supabase configurada."""
+    # 1. Puxa ou cria o estudante no banco
+    res_est = supabase.table("estudantes").select("nome, pacotes_disponiveis").eq("ra", ra).execute()
     
     if not res_est.data:
         nome_completo = st.session_state.get('usuario_nome', 'Utilizador Teste')
-        supabase.table("album_estudantes").insert({
+        supabase.table("estudantes").insert({
             "ra": ra, "nome": nome_completo, "turma": "Ensino Regular", "pacotes_disponiveis": 5
         }).execute()
         pacotes = 5
     else:
         pacotes = res_est.data[0]['pacotes_disponiveis']
         
-    # 2. Puxa as figurinhas já tiradas
-    res_inv = supabase.table("album_inventario").select("figurinha_id, quantidade").eq("estudante_ra", ra).execute()
+    # 2. Puxa as figurinhas já tiradas da tabela inventario_album
+    res_inv = supabase.table("inventario_album").select("figurinha_id, quantidade").eq("estudante_ra", ra).execute()
     
     coladas = []
     repetidas = []
     for item in res_inv.data:
         f_id = item['figurinha_id']
         qtd = item['quantidade']
-        if qtd >= 1:
-            coladas.append(f_id)
+        if qtd >= 1: coladas.append(f_id)
         if qtd > 1:
-            for _ in range(qtd - 1):
-                repetidas.append(f_id)
+            for _ in range(qtd - 1): repetidas.append(f_id)
                 
     # 3. Calcula total de figurinhas no catálogo
-    res_tot = supabase.table("album_figurinhas").select("id", count="exact").execute()
+    res_tot = supabase.table("figurinhas").select("id", count="exact").execute()
     total_figuras = res_tot.count if res_tot.count else 30
     
     return {"pacotes": pacotes, "coladas": coladas, "repetidas": repetidas, "total": total_figuras}
 
 
 def processar_abertura_pacote_supa(ra, total_catalogo):
-    """Executa a lógica de rasgar um pacote comunicando direto com o Supabase."""
-    res_est = supabase.table("album_estudantes").select("pacotes_disponiveis").eq("ra", ra).execute()
+    """Executa o sorteio e salva no Supabase (Sem uso de SQL puro/psycopg2)"""
+    res_est = supabase.table("estudantes").select("pacotes_disponiveis").eq("ra", ra).execute()
     if not res_est.data: return None
     
     disponiveis = res_est.data[0]['pacotes_disponiveis']
@@ -10497,12 +10488,12 @@ def processar_abertura_pacote_supa(ra, total_catalogo):
         
     st.balloons()
     # Diminui os pacotes disponíveis
-    supabase.table("album_estudantes").update({"pacotes_disponiveis": disponiveis - 1}).eq("ra", ra).execute()
+    supabase.table("estudantes").update({"pacotes_disponiveis": disponiveis - 1}).eq("ra", ra).execute()
     
     sorteio = random.choices(range(1, total_catalogo + 1), k=5)
     
-    # Atualiza o inventário com as figurinhas sorteadas
-    res_inv = supabase.table("album_inventario").select("figurinha_id, quantidade").eq("estudante_ra", ra).in_("figurinha_id", sorteio).execute()
+    # Puxa as quantidades atuais para somar
+    res_inv = supabase.table("inventario_album").select("figurinha_id, quantidade").eq("estudante_ra", ra).in_("figurinha_id", sorteio).execute()
     qtd_map = {item['figurinha_id']: item['quantidade'] for item in res_inv.data}
     
     sorteio_counts = {}
@@ -10511,9 +10502,9 @@ def processar_abertura_pacote_supa(ra, total_catalogo):
     for f_id, count in sorteio_counts.items():
         if f_id in qtd_map:
             nova_qtd = qtd_map[f_id] + count
-            supabase.table("album_inventario").update({"quantidade": nova_qtd}).eq("estudante_ra", ra).eq("figurinha_id", f_id).execute()
+            supabase.table("inventario_album").update({"quantidade": nova_qtd}).eq("estudante_ra", ra).eq("figurinha_id", f_id).execute()
         else:
-            supabase.table("album_inventario").insert({"estudante_ra": ra, "figurinha_id": f_id, "quantidade": count}).execute()
+            supabase.table("inventario_album").insert({"estudante_ra": ra, "figurinha_id": f_id, "quantidade": count}).execute()
             
     return sorteio
 
@@ -10521,9 +10512,7 @@ def processar_abertura_pacote_supa(ra, total_catalogo):
 def render_modulo_album():
     injetar_css_album_premium()
     
-    # Substituir pela lógica do R.A real após a integração do login de alunos
     estudante_ra = st.session_state.get('usuario_ra', 'RA-TESTE-GALLO')
-    
     dados_db = puxar_dados_album_estudante(estudante_ra)
     
     st.markdown('<div class="album-premium-container">', unsafe_allow_html=True)
@@ -10532,7 +10521,7 @@ def render_modulo_album():
     aba_album, aba_pacotes, aba_trocas = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas"])
 
     # ==========================================
-    # ABA 1: MEU ÁLBUM (SUPABASE)
+    # ABA 1: MEU ÁLBUM
     # ==========================================
     with aba_album:
         figurinhas_por_pagina = 10
@@ -10569,10 +10558,10 @@ def render_modulo_album():
         """, unsafe_allow_html=True)
         
         inicio_idx = st.session_state['pag_album'] * figurinhas_por_pagina
-        # No Supabase, o range é inclusivo, por isso subtraímos 1 do fim
+        # No Supabase, o range é inclusivo
         fim_idx = inicio_idx + figurinhas_por_pagina - 1
         
-        res_figs = supabase.table("album_figurinhas").select("*").order("id").range(inicio_idx, fim_idx).execute()
+        res_figs = supabase.table("figurinhas").select("*").order("id").range(inicio_idx, fim_idx).execute()
         figurinhas_pagina = res_figs.data
 
         for linha in range(0, len(figurinhas_pagina), 5):
@@ -10632,8 +10621,8 @@ def render_modulo_album():
             st.markdown("<h3 style='text-align:center; font-family: Oswald; color: #009c3b;'>✨ FIGURINHAS ENCONTRADAS: ✨</h3>", unsafe_allow_html=True)
             
             cols_novas = st.columns(5)
-            # Puxamos as informações das figurinhas a partir do Supabase
-            res_sorteadas = supabase.table("album_figurinhas").select("*").in_("id", st.session_state['ultimo_sorteio']).execute()
+            # Puxamos as informações das figurinhas a partir da tabela
+            res_sorteadas = supabase.table("figurinhas").select("*").in_("id", st.session_state['ultimo_sorteio']).execute()
             map_sorteadas = {f['id']: f for f in res_sorteadas.data}
             
             for i, f_id in enumerate(st.session_state['ultimo_sorteio']):
@@ -10661,13 +10650,12 @@ def render_modulo_album():
                 st.rerun()
 
     # ==========================================
-    # ABA 3: BANCA DE TROCAS (MURAL DINÂMICO SUPABASE)
+    # ABA 3: BANCA DE TROCAS (NATIVA SUPABASE)
     # ==========================================
     with aba_trocas:
         st.markdown("### 🤝 Mercado de Transferências Autêntico")
         
-        # Carrega dados para a banca numa única query
-        res_cat = supabase.table("album_figurinhas").select("id, nome, tipo").execute()
+        res_cat = supabase.table("figurinhas").select("id, nome, tipo").execute()
         catalogo_map = {f['id']: f for f in res_cat.data}
         
         col1, col2 = st.columns(2)
@@ -10680,20 +10668,21 @@ def render_modulo_album():
                     f_nome = info.get('nome', '')
                     f_tipo = info.get('tipo', 'comum')
                     tag = "✨ (LENDÁRIA!)" if f_tipo == "lendaria" else ""
-                    st.info(f"🟢 **Nº {f_id} - {f_nome}** {tag} — Tem {qtd} sobressalante(s)")
+                    st.info(f"🟢 **Nº {f_id} - {f_nome}** {tag} — Tem {qtd} extra(s)")
             else:
                 st.write("Não possui cartas repetidas para negociar de momento.")
 
         with col2:
             st.markdown("#### 📢 Publicar Oferta de Troca")
             if dados_db['repetidas']:
-                fig_oferecida = st.selectbox("Qual repetida deseja doar?", list(set(dados_db['repetidas'])), key="sql_of")
+                fig_oferecida = st.selectbox("Sua Figurinha Repetida:", list(set(dados_db['repetidas'])), key="supa_of")
                 faltantes = [x for x in range(1, dados_db['total'] + 1) if x not in dados_db['coladas']]
                 
                 if faltantes:
-                    fig_desejada = st.selectbox("Qual deseja receber?", faltantes, key="sql_des")
+                    fig_desejada = st.selectbox("Qual quer receber?", faltantes, key="supa_des")
                     if st.button("Registrar Proposta no Mural", type="primary", use_container_width=True):
-                        supabase.table("album_banca_trocas").insert({
+                        # Sem ID porque no banco PostgreSQL a coluna é SERIAL AUTOINCREMENT
+                        supabase.table("banca_trocas").insert({
                             "estudante_ra": estudante_ra, 
                             "id_oferecida": fig_oferecida, 
                             "id_desejada": fig_desejada, 
@@ -10710,12 +10699,12 @@ def render_modulo_album():
         st.write("---")
         st.markdown("#### 📢 Mural de Anúncios Ativos na Escola")
         
-        # Puxa o mural e os nomes dos estudantes para exibir (Cross-referência local rápida)
-        res_mural = supabase.table("album_banca_trocas").select("*").eq("status", "ativo").order("data_criacao", desc=True).execute()
+        # Puxa o mural ativo e mapeia localmente para evitar queries muito lentas
+        res_mural = supabase.table("banca_trocas").select("*").eq("status", "ativo").order("data_criacao", desc=True).execute()
         anuncios = res_mural.data
         
         if anuncios:
-            res_estudantes = supabase.table("album_estudantes").select("ra, nome").execute()
+            res_estudantes = supabase.table("estudantes").select("ra, nome").execute()
             estudantes_map = {e['ra']: e['nome'] for e in res_estudantes.data}
             
             for anuncio in anuncios:
@@ -10745,46 +10734,49 @@ def render_modulo_album():
                 
                 if dono_ra != estudante_ra:
                     if st.button(f"Aceitar Troca com {dono_nome} (Figurinha Nº {id_of})##{item_id}", use_container_width=True):
-                        # Validação de segurança via Supabase
-                        res_check = supabase.table("album_inventario").select("quantidade").eq("estudante_ra", estudante_ra).eq("figurinha_id", id_des).execute()
+                        # Verifica o inventário de quem clicou no botão
+                        res_check = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", estudante_ra).eq("figurinha_id", id_des).execute()
                         
                         if res_check.data and res_check.data[0]['quantidade'] > 1:
-                            # Conclui o anúncio
-                            supabase.table("album_banca_trocas").update({"status": "concluido"}).eq("id", item_id).execute()
+                            # 1. Finaliza a transação
+                            supabase.table("banca_trocas").update({"status": "concluido"}).eq("id", item_id).execute()
                             
-                            # Atualiza inventário do usuário atual (Tira a que ele deu, adiciona a que ele recebeu)
+                            # 2. Desconta a figurinha de quem aceitou
                             q_atual = res_check.data[0]['quantidade']
-                            supabase.table("album_inventario").update({"quantidade": q_atual - 1}).eq("estudante_ra", estudante_ra).eq("figurinha_id", id_des).execute()
+                            supabase.table("inventario_album").update({"quantidade": q_atual - 1}).eq("estudante_ra", estudante_ra).eq("figurinha_id", id_des).execute()
                             
-                            res_q2 = supabase.table("album_inventario").select("quantidade").eq("estudante_ra", estudante_ra).eq("figurinha_id", id_of).execute()
+                            # E credita a figurinha que ele ganhou na troca
+                            res_q2 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", estudante_ra).eq("figurinha_id", id_of).execute()
                             if res_q2.data:
-                                supabase.table("album_inventario").update({"quantidade": res_q2.data[0]['quantidade'] + 1}).eq("estudante_ra", estudante_ra).eq("figurinha_id", id_of).execute()
+                                supabase.table("inventario_album").update({"quantidade": res_q2.data[0]['quantidade'] + 1}).eq("estudante_ra", estudante_ra).eq("figurinha_id", id_of).execute()
                             else:
-                                supabase.table("album_inventario").insert({"estudante_ra": estudante_ra, "figurinha_id": id_of, "quantidade": 1}).execute()
+                                supabase.table("inventario_album").insert({"estudante_ra": estudante_ra, "figurinha_id": id_of, "quantidade": 1}).execute()
                             
-                            # Atualiza inventário do dono do anúncio (Tira a que ele deu, adiciona a que ele buscava)
-                            res_d1 = supabase.table("album_inventario").select("quantidade").eq("estudante_ra", dono_ra).eq("figurinha_id", id_of).execute()
+                            # 3. Desconta do dono do anúncio
+                            res_d1 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", dono_ra).eq("figurinha_id", id_of).execute()
                             if res_d1.data:
-                                supabase.table("album_inventario").update({"quantidade": res_d1.data[0]['quantidade'] - 1}).eq("estudante_ra", dono_ra).eq("figurinha_id", id_of).execute()
-                                
-                            res_d2 = supabase.table("album_inventario").select("quantidade").eq("estudante_ra", dono_ra).eq("figurinha_id", id_des).execute()
-                            if res_d2.data:
-                                supabase.table("album_inventario").update({"quantidade": res_d2.data[0]['quantidade'] + 1}).eq("estudante_ra", dono_ra).eq("figurinha_id", id_des).execute()
-                            else:
-                                supabase.table("album_inventario").insert({"estudante_ra": dono_ra, "figurinha_id": id_des, "quantidade": 1}).execute()
+                                supabase.table("inventario_album").update({"quantidade": res_d1.data[0]['quantidade'] - 1}).eq("estudante_ra", dono_ra).eq("figurinha_id", id_of).execute()
                             
-                            st.success("Troca realizada com sucesso! Confira o seu álbum.")
+                            # E credita a figurinha que ele estava buscando no anúncio
+                            res_d2 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", dono_ra).eq("figurinha_id", id_des).execute()
+                            if res_d2.data:
+                                supabase.table("inventario_album").update({"quantidade": res_d2.data[0]['quantidade'] + 1}).eq("estudante_ra", dono_ra).eq("figurinha_id", id_des).execute()
+                            else:
+                                supabase.table("inventario_album").insert({"estudante_ra": dono_ra, "figurinha_id": id_des, "quantidade": 1}).execute()
+                            
+                            st.success("Troca realizada com sucesso! Verifique sua página do álbum.")
                             time.sleep(1)
                             st.rerun()
                         else:
-                            st.error(f"Não possui a figurinha Nº {id_des} repetida na mochila para realizar esta transação.")
+                            st.error(f"Você não possui a figurinha Nº {id_des} sobrando no inventário para fechar essa troca.")
         else:
-            st.info("Nenhum anúncio de troca ativo no momento.")
+            st.info("Nenhum anúncio de troca em aberto.")
             
     st.markdown('</div>', unsafe_allow_html=True)
 
+
 # ==============================================================================
-# GATILHO DO FILTRO DO MENU REGULAR
+# GATILHO DO MENU (NÃO ESQUEÇA DE DEIXAR ISSO NO FINAL)
 # ==============================================================================
 if 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
     render_modulo_album()

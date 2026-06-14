@@ -10407,9 +10407,8 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 
-
 # =====================================================================
-# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM E ARENA DE JOGOS
+# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM E ARENA DE JOGOS INTERATIVA
 # Tabelas: estudantes, figurinhas, inventario_album, banca_trocas
 # =====================================================================
 import random
@@ -10821,86 +10820,35 @@ def render_modulo_album():
             st.info("Nenhum anúncio de troca em aberto.")
 
     # ==========================================
-    # ABA 4: ARENA DE JOGOS (Batalha, Pênalti, Memória, Quiz)
+    # ABA 4: ARENA DE JOGOS (AS 4 OPÇÕES REFINADAS)
     # ==========================================
     with aba_jogos:
         st.markdown("### 🏟️ Arena de Jogos e Desafios")
-        st.write("Acabaram os pacotinhos? Treine as suas habilidades na nossa Arena!")
+        st.write("Treine as suas habilidades cognitivas e reflexos nestes mini-jogos exclusivos!")
         st.write("---")
         
-        jogo1, jogo2, jogo3, jogo4 = st.tabs(["📚 Quiz Escolar", "⚔️ Batalha de Cartas", "🥅 Pênalti Animado", "🧠 Memória 3D"])
+        jogo1, jogo2, jogo3, jogo4 = st.tabs(["📚 Quiz Escolar", "🧠 Memória 3D", "🧤 Treino de Goleiro", "⚽ Embaixadinha"])
         
         # ---------------------------------------------------------
-        # JOGO 1: QUIZ DOS CAMPEÕES (COM TEXTOS E DIFICULDADES)
+        # 1. QUIZ DOS CAMPEÕES (MANTIDO CONFORME SEU PEDIDO)
         # ---------------------------------------------------------
         with jogo1:
             st.markdown("#### 📚 Quiz de Interpretação e Sabedoria")
             st.write("Leia os textos com atenção e mostre que você é um craque em conhecimentos gerais e interpretação!")
             
-            # Banco de Perguntas (Fáceis a Difíceis) adequadas para 6 a 12 anos
             banco_perguntas = [
-                {
-                    "dif": "Fácil", "texto": "", "q": "Qual é a cor da camisa principal da Seleção Brasileira de Futebol?",
-                    "op": ["Azul", "Branca", "Amarela", "Verde"], "r": "Amarela"
-                },
-                {
-                    "dif": "Fácil", "texto": "", "q": "Qual país é conhecido como o 'País do Futebol' e é o único a ser pentacampeão (ganhou 5 vezes) do mundo?",
-                    "op": ["Argentina", "Alemanha", "Brasil", "França"], "r": "Brasil"
-                },
-                {
-                    "dif": "Fácil", "texto": "", "q": "No futebol, qual é o único jogador que pode usar as mãos para tocar na bola durante a partida (dentro da sua área)?",
-                    "op": ["O atacante", "O juiz", "O capitão do time", "O goleiro"], "r": "O goleiro"
-                },
-                {
-                    "dif": "Média", 
-                    "texto": "Em 1930, aconteceu a primeiríssima Copa do Mundo de Futebol da história! O torneio não teve eliminatórias, e apenas 13 países foram convidados de barco para jogar. A grande final foi entre Uruguai e Argentina.", 
-                    "q": "Onde foi realizada a primeira Copa do Mundo de todas?",
-                    "op": ["Brasil", "Inglaterra", "Uruguai", "Espanha"], "r": "Uruguai"
-                },
-                {
-                    "dif": "Média", 
-                    "texto": "Toda Copa do Mundo tem uma mascote oficial, um personagem divertido que representa a cultura do país sede. Na Copa do Mundo de 2014, realizada aqui no Brasil, escolheram um animalzinho que se enrola todo para se proteger.", 
-                    "q": "Qual animal foi a mascote da Copa no Brasil em 2014?",
-                    "op": ["Arara-Azul", "Onça-Pintada", "Tatu-bola", "Mico-Leão-Dourado"], "r": "Tatu-bola"
-                },
-                {
-                    "dif": "Média", 
-                    "texto": "Durante uma partida oficial de futebol, cada time pode ter apenas 11 jogadores ao mesmo tempo dentro do campo. Se um time perder muitos jogadores por cartão vermelho e ficar com menos de 7, o jogo precisa ser encerrado.", 
-                    "q": "Quantos jogadores no TOTAL (juntando os dois times) começam uma partida de futebol?",
-                    "op": ["11 jogadores", "22 jogadores", "15 jogadores", "20 jogadores"], "r": "22 jogadores"
-                },
-                {
-                    "dif": "Média", 
-                    "texto": "O futebol feminino também tem o seu grande Mundial! A Copa do Mundo de Futebol Feminino atrai milhões de fãs. A seleção dos Estados Unidos é a equipe mais forte da história, tendo ganho o troféu quatro vezes.", 
-                    "q": "Qual país é o maior campeão da Copa do Mundo de Futebol Feminino?",
-                    "op": ["Brasil", "Alemanha", "Estados Unidos", "Japão"], "r": "Estados Unidos"
-                },
-                {
-                    "dif": "Difícil", "texto": "", "q": "A Copa do Mundo de Futebol, que reúne as melhores seleções do planeta, acontece de quanto em quanto tempo?",
-                    "op": ["A cada 2 anos", "A cada 4 anos", "Todos os anos", "A cada 5 anos"], "r": "A cada 4 anos"
-                },
-                {
-                    "dif": "Difícil", 
-                    "texto": "Marta Vieira da Silva é uma atleta brasileira considerada por muitos como a maior jogadora de futebol de todos os tempos. Pelo seu incrível talento, ela ganhou o prêmio de 'Melhor Jogadora do Mundo' da FIFA por incríveis 6 vezes!", 
-                    "q": "Quantas vezes a brasileira Marta foi eleita a melhor do mundo?",
-                    "op": ["3 vezes", "5 vezes", "6 vezes", "8 vezes"], "r": "6 vezes"
-                },
-                {
-                    "dif": "Difícil", 
-                    "texto": "O Brasil encantou o mundo em 1958, na Suécia. Foi lá que um jovem de apenas 17 anos chamado Pelé brilhou, ajudando a Seleção Brasileira a ganhar o seu primeiro título mundial da história.", 
-                    "q": "Em que ano o Brasil ganhou a Copa do Mundo pela primeira vez?",
-                    "op": ["1930", "1958", "1970", "1994"], "r": "1958"
-                },
-                {
-                    "dif": "Difícil", 
-                    "texto": "A taça da Copa do Mundo, aquele troféu brilhante que todos os capitães erguem, é muito pesada! Ela tem cerca de 6 quilos e é feita de ouro maciço 18 quilates. O desenho mostra duas figuras humanas segurando o planeta Terra.", 
-                    "q": "Do que é feito o troféu oficial da Copa do Mundo?",
-                    "op": ["Bronze e Prata", "Ouro maciço", "Cristal", "Plástico dourado"], "r": "Ouro maciço"
-                },
-                {
-                    "dif": "Difícil", "texto": "", "q": "O Rei Pelé tem um recorde mundial que até hoje ninguém conseguiu bater. Ele é o único jogador da história do futebol a conquistar...",
-                    "op": ["3 Copas do Mundo", "Mais de 2.000 gols", "O prêmio de melhor goleiro", "A Copa jogando sozinho"], "r": "3 Copas do Mundo"
-                }
+                {"dif": "Fácil", "texto": "", "q": "Qual é a cor da camisa principal da Seleção Brasileira de Futebol?", "op": ["Azul", "Branca", "Amarela", "Verde"], "r": "Amarela"},
+                {"dif": "Fácil", "texto": "", "q": "Qual país é conhecido como o 'País do Futebol' e é o único a ser pentacampeão (ganhou 5 vezes) do mundo?", "op": ["Argentina", "Alemanha", "Brasil", "França"], "r": "Brasil"},
+                {"dif": "Fácil", "texto": "", "q": "No futebol, qual é o único jogador que pode usar as mãos para tocar na bola durante a partida (dentro da sua área)?", "op": ["O atacante", "O juiz", "O capitão do time", "O goleiro"], "r": "O goleiro"},
+                {"dif": "Média", "texto": "Em 1930, aconteceu a primeiríssima Copa do Mundo de Futebol da história! O torneio não teve eliminatórias, e apenas 13 países foram convidados de barco para jogar. A grande final foi entre Uruguai e Argentina.", "q": "Onde foi realizada a primeira Copa do Mundo de todas?", "op": ["Brasil", "Inglaterra", "Uruguai", "Espanha"], "r": "Uruguai"},
+                {"dif": "Média", "texto": "Toda Copa do Mundo tem uma mascote oficial, um personagem divertido que representa a cultura do país sede. Na Copa do Mundo de 2014, realizada aqui no Brasil, escolheram um animalzinho que se enrola todo para se proteger.", "q": "Qual animal foi a mascote da Copa no Brasil em 2014?", "op": ["Arara-Azul", "Onça-Pintada", "Tatu-bola", "Mico-Leão-Dourado"], "r": "Tatu-bola"},
+                {"dif": "Média", "texto": "Durante uma partida oficial de futebol, cada time pode ter apenas 11 jogadores ao mesmo tempo dentro do campo. Se um time perder muitos jogadores por cartão vermelho e ficar com menos de 7, o jogo precisa ser encerrado.", "q": "Quantos jogadores no TOTAL (juntando os dois times) começam uma partida de futebol?", "op": ["11 jogadores", "22 jogadores", "15 jogadores", "20 jogadores"], "r": "22 jogadores"},
+                {"dif": "Média", "texto": "O futebol feminino também tem o seu grande Mundial! A Copa do Mundo de Futebol Feminino atrai milhões de fãs. A seleção dos Estados Unidos é a equipe mais forte da história, tendo ganho o troféu quatro vezes.", "q": "Qual país é o maior campeão da Copa do Mundo de Futebol Feminino?", "op": ["Brasil", "Alemanha", "Estados Unidos", "Japão"], "r": "Estados Unidos"},
+                {"dif": "Difícil", "texto": "", "q": "A Copa do Mundo de Futebol, que reúne as melhores seleções do planeta, acontece de quanto em quanto tempo?", "op": ["A cada 2 anos", "A cada 4 anos", "Todos os anos", "A cada 5 anos"], "r": "A cada 4 anos"},
+                {"dif": "Difícil", "texto": "Marta Vieira da Silva é uma atleta brasileira considerada por muitos como a maior jogadora de futebol de todos os tempos. Pelo seu incrível talento, ela ganhou o prêmio de 'Melhor Jogadora do Mundo' da FIFA por incríveis 6 vezes!", "q": "Quantas vezes a brasileira Marta foi eleita a melhor do mundo?", "op": ["3 vezes", "5 vezes", "6 vezes", "8 vezes"], "r": "6 vezes"},
+                {"dif": "Difícil", "texto": "O Brasil encantou o mundo em 1958, na Suécia. Foi lá que um jovem de apenas 17 anos chamado Pelé brilhou, ajudando a Seleção Brasileira a ganhar o seu primeiro título mundial da história.", "q": "Em que ano o Brasil ganhou a Copa do Mundo pela primeira vez?", "op": ["1930", "1958", "1970", "1994"], "r": "1958"},
+                {"dif": "Difícil", "texto": "A taça da Copa do Mundo, aquele troféu brilhante que todos os capitães erguem, é muito pesada! Ela tem cerca de 6 quilos e é feita de ouro maciço 18 quilates. O desenho mostra duas figuras humanas segurando o planeta Terra.", "q": "Do que é feito o troféu oficial da Copa do Mundo?", "op": ["Bronze e Prata", "Ouro maciço", "Cristal", "Plástico dourado"], "r": "Ouro maciço"},
+                {"dif": "Difícil", "texto": "", "q": "O Rei Pelé tem um recorde mundial que até hoje ninguém conseguiu bater. Ele é o único jogador da história do futebol a conquistar...", "op": ["3 Copas do Mundo", "Mais de 2.000 gols", "O prêmio de melhor goleiro", "A Copa jogando sozinho"], "r": "3 Copas do Mundo"}
             ]
             
             if "quiz_pergunta_atual" not in st.session_state:
@@ -10909,17 +10857,13 @@ def render_modulo_album():
                 
             q = st.session_state["quiz_pergunta_atual"]
             
-            # Badge de Dificuldade Colorida
             cor_dif = "#009c3b" if q['dif'] == "Fácil" else ("#d4af37" if q['dif'] == "Média" else "#8b0000")
             st.markdown(f"<div style='margin-bottom: 15px;'><b>Nível do Desafio:</b> <span style='background-color:{cor_dif}; color:white; padding: 3px 10px; border-radius: 15px; font-size: 0.8rem;'>{q['dif']}</span></div>", unsafe_allow_html=True)
             
-            # Exibe o texto se a pergunta tiver um
             if q.get('texto') != "":
                 st.info(f"📖 **LEIA COM ATENÇÃO:**\n\n{q['texto']}")
                 
             st.markdown(f"#### ❓ {q['q']}")
-            
-            # Opções de Resposta
             resposta_quiz = st.radio("Selecione a sua resposta:", q['op'], index=None, key="radio_quiz_escolha")
             
             if st.button("✅ Confirmar Resposta", use_container_width=True):
@@ -10941,103 +10885,11 @@ def render_modulo_album():
                     st.rerun()
 
         # ---------------------------------------------------------
-        # JOGO 2: BATALHA DE CARTAS (SUPER TRUNFO COM AS FOTOS DELES)
+        # 2. MEMÓRIA 3D (MANTIDO CONFORME SEU PEDIDO)
         # ---------------------------------------------------------
         with jogo2:
-            st.markdown("#### ⚔️ Batalha de Craques (Super Trunfo)")
-            st.write("Enfrente o Robô da Escola utilizando as figurinhas que você já possui coladas no álbum!")
-            
-            if not dados_db['coladas']:
-                st.warning("Tem de ter pelo menos 1 figurinha colada no álbum para poder batalhar!")
-            else:
-                if st.button("🔥 Puxar Carta e Batalhar!", use_container_width=True):
-                    minha_id = random.choice(dados_db['coladas'])
-                    robo_id = random.choice(dados_db['catalogo_ids'])
-                    
-                    res_bat = supabase.table("figurinhas").select("*").in_("id", [minha_id, robo_id]).execute()
-                    map_bat = {f['id']: f for f in res_bat.data}
-                    
-                    item_minha = map_bat.get(minha_id, {})
-                    item_robo = map_bat.get(robo_id, {})
-                    
-                    peso_minha = 2 if item_minha.get('tipo') == 'lendaria' else 1
-                    peso_robo = 2 if item_robo.get('tipo') == 'lendaria' else 1
-                    
-                    if peso_minha > peso_robo: vencedor = "VOCÊ VENCEU!"
-                    elif peso_robo > peso_minha: vencedor = "O ROBÔ VENCEU!"
-                    else:
-                        if minha_id > robo_id: vencedor = "VOCÊ VENCEU!"
-                        elif robo_id > minha_id: vencedor = "O ROBÔ VENCEU!"
-                        else: vencedor = "EMPATE TÉCNICO!"
-
-                    def criar_html_carta(f_id, item):
-                        f_nome = item.get('nome', '')
-                        f_cargo = item.get('cargo', '')
-                        f_tipo = item.get('tipo', 'comum')
-                        f_foto = item.get('foto_path', '')
-                        classe = "lendaria" if f_tipo == "lendaria" else ""
-                        foto = f'<img src="{f_foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">' if f_foto and str(f_foto).startswith('http') else '<span style="font-size: 2rem;">📸</span>'
-                        
-                        return f"""
-                            <div class="slot-preenchido {classe}" style="aspect-ratio: 3/4; transform: scale(1.0); box-shadow: 0px 8px 20px rgba(0,0,0,0.3); pointer-events: none;">
-                                <div class="foto-area" style="padding:0; overflow:hidden;">{foto}</div>
-                                <div class="foto-rodape">
-                                    <span class="rodape-num">Nº {f_id} - {f_cargo}</span>
-                                    <span class="rodape-nome" style="font-size:0.7rem;">{f_nome}</span>
-                                </div>
-                            </div>
-                        """
-
-                    st.markdown(f"<h3 style='text-align:center; color:#004d23; font-family:Oswald;'>{vencedor}</h3>", unsafe_allow_html=True)
-                    if vencedor == "VOCÊ VENCEU!": st.balloons()
-                    
-                    c1, c_vs, c2 = st.columns([2, 1, 2])
-                    with c1:
-                        st.markdown("<h5 style='text-align:center; color:#009c3b;'>Sua Carta</h5>", unsafe_allow_html=True)
-                        st.markdown(criar_html_carta(minha_id, item_minha), unsafe_allow_html=True)
-                    with c_vs:
-                        st.markdown("<h1 style='text-align:center; margin-top: 100px; text-shadow: 2px 2px #ddd;'>VS</h1>", unsafe_allow_html=True)
-                    with c2:
-                        st.markdown("<h5 style='text-align:center; color:#8b0000;'>Robô</h5>", unsafe_allow_html=True)
-                        st.markdown(criar_html_carta(robo_id, item_robo), unsafe_allow_html=True)
-
-        # ---------------------------------------------------------
-        # JOGO 3: PÊNALTI ANIMADO
-        # ---------------------------------------------------------
-        with jogo3:
-            st.markdown("#### 🥅 Pênalti Perfeito")
-            st.write("A pressão é grande! Escolha o canto com sabedoria para fazer o golo.")
-            
-            st.markdown("""
-                <div style="background-color: #2e7d32; background-image: repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(255,255,255,0.1) 20px, rgba(255,255,255,0.1) 40px); border: 4px solid white; height: 180px; border-radius: 8px; position: relative; display: flex; flex-direction: column; align-items: center; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);">
-                    <div style="border: 4px solid white; border-top: none; width: 60%; height: 60px; position: absolute; top: 0;"></div>
-                    <div style="background: white; width: 12px; height: 12px; border-radius: 50%; position: absolute; bottom: 25px;"></div>
-                    <span style="font-size: 4.5rem; margin-top: 15px; z-index: 10; text-shadow: 0px 5px 10px rgba(0,0,0,0.5);">🤖🧤</span>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            c_esq, c_meio, c_dir = st.columns(3)
-            chute = None
-            
-            if c_esq.button("⬅️ Chutar na Esquerda", use_container_width=True): chute = "Esquerda"
-            if c_meio.button("⏺️ Chutar no Meio", use_container_width=True): chute = "Meio"
-            if c_dir.button("➡️ Chutar na Direita", use_container_width=True): chute = "Direita"
-            
-            if chute:
-                goleiro = random.choice(["Esquerda", "Meio", "Direita"])
-                st.info(f"⚡ O árbitro apita... o Goleiro saltou para a **{goleiro}**!")
-                time.sleep(1)
-                if chute == goleiro:
-                    st.error("❌ INCRÍVEL ESPALMADA! O Robô adivinhou o seu canto e defendeu o pênalti!")
-                else:
-                    st.success("⚽ GOOOOOOOOOOL!!! Chute indefensável, direto na rede e para a história!")
-
-        # ---------------------------------------------------------
-        # JOGO 4: MEMÓRIA 3D (ANIMAÇÃO)
-        # ---------------------------------------------------------
-        with jogo4:
             st.markdown("#### 🧠 Memória 3D dos Campeões")
-            st.write("Vire as cartas, encontre os pares e treine a sua concentração neste mini-jogo super fluido.")
+            st.write("Vire as cartas e encontre os pares neste mini-jogo super fluido e animado.")
             
             codigo_html_memoria = """
             <!DOCTYPE html>
@@ -11061,21 +10913,17 @@ def render_modulo_album():
             <script>
                 const emojis = ['⚽','🏆','🏟️','🧤','👟','🇧🇷','🥅','⏱️'];
                 let cards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
-                let openCards = [];
-                let matched = 0;
-                
+                let openCards = []; let matched = 0;
                 cards.forEach((e) => {
                     let card = document.createElement('div'); card.className = 'card';
                     let inner = document.createElement('div'); inner.className = 'card-inner';
                     let front = document.createElement('div'); front.className = 'card-front'; front.innerText = '⚽';
                     let back = document.createElement('div'); back.className = 'card-back'; back.innerText = e;
-                    
                     inner.appendChild(front); inner.appendChild(back); card.appendChild(inner);
                     card.onclick = function() {
                         if(openCards.length < 2 && !this.classList.contains('open') && !this.classList.contains('match')){
                             this.classList.add('open');
                             openCards.push({el: this, emoji: e});
-                            
                             if(openCards.length === 2){
                                 setTimeout(() => {
                                     if(openCards[0].emoji === openCards[1].emoji){
@@ -11098,8 +10946,177 @@ def render_modulo_album():
             """
             components.html(codigo_html_memoria, height=480)
 
-    st.markdown('</div>', unsafe_allow_html=True)
+        # ---------------------------------------------------------
+        # 3. JOGO NOVO: TREINO DE GOLEIRO (WHACK-A-MOLE INTERATIVO)
+        # ---------------------------------------------------------
+        with jogo3:
+            st.markdown("#### 🧤 Reflexo de Goleiro")
+            st.write("Teste a sua agilidade! Clique nas bolas o mais rápido possível para defendê-las.")
+            
+            codigo_html_goleiro = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');
+                body { font-family: 'Oswald', sans-serif; text-align: center; margin: 0; background-color: transparent; }
+                .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 350px; margin: 20px auto; }
+                .hole { height: 90px; background: rgba(0, 100, 0, 0.6); border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 50px; cursor: pointer; box-shadow: inset 0 5px 15px rgba(0,0,0,0.5); border: 2px solid #004d23; transition: background 0.2s;}
+                .hole:active { background: rgba(0, 150, 0, 0.8); }
+                .hole.active::after { content: '⚽'; animation: pop 0.2s ease-out; }
+                @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+                .stats { font-size: 24px; color: #004d23; margin-top: 10px; }
+                button { font-family: 'Oswald', sans-serif; background: #d4af37; color: #002776; border: none; padding: 12px 25px; font-size: 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.1s;}
+                button:active { transform: scale(0.95); }
+            </style>
+            </head>
+            <body>
+            <div class="stats">DEFESAS: <span id="score">0</span> | TEMPO: <span id="time">15</span>s</div>
+            <button id="startBtn" onclick="startGame()">INICIAR TREINO</button>
+            <div class="grid" id="grid">
+                <div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div>
+                <div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div>
+                <div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div>
+            </div>
+            <script>
+                let score = 0; let lastHole; let timeUp = false; let timeLeft = 15;
+                const holes = document.querySelectorAll('.hole');
+                const scoreBoard = document.getElementById('score');
+                const timeBoard = document.getElementById('time');
+                const btn = document.getElementById('startBtn');
+                
+                function randomHole() {
+                    const idx = Math.floor(Math.random() * holes.length);
+                    const hole = holes[idx];
+                    if (hole === lastHole) return randomHole();
+                    lastHole = hole; return hole;
+                }
+                
+                function showBall() {
+                    const time = Math.random() * (900 - 400) + 400; // Velocidade da bola
+                    const hole = randomHole();
+                    hole.classList.add('active');
+                    setTimeout(() => {
+                        hole.classList.remove('active');
+                        if (!timeUp) showBall();
+                    }, time);
+                }
+                
+                function startGame() {
+                    scoreBoard.textContent = 0; timeBoard.textContent = 15;
+                    score = 0; timeUp = false; timeLeft = 15;
+                    btn.style.display = 'none';
+                    showBall();
+                    
+                    const countdown = setInterval(() => {
+                        timeLeft--; timeBoard.textContent = timeLeft;
+                        if(timeLeft <= 0) {
+                            clearInterval(countdown); timeUp = true;
+                            btn.style.display = 'inline-block'; btn.innerText = 'JOGAR NOVAMENTE';
+                        }
+                    }, 1000);
+                }
+                
+                function defend(hole) {
+                    if(!hole.classList.contains('active')) return;
+                    score++; scoreBoard.textContent = score;
+                    hole.classList.remove('active');
+                }
+            </script>
+            </body>
+            </html>
+            """
+            components.html(codigo_html_goleiro, height=450)
 
+        # ---------------------------------------------------------
+        # 4. JOGO NOVO: REI DA EMBAIXADINHA (GRAVIDADE INTERATIVA)
+        # ---------------------------------------------------------
+        with jogo4:
+            st.markdown("#### ⚽ Rei da Embaixadinha")
+            st.write("Clique na bola para mantê-la no ar! Não a deixe cair no chão.")
+            
+            codigo_html_embaixadinha = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');
+                body { margin: 0; padding: 0; overflow: hidden; font-family: 'Oswald', sans-serif; }
+                #gameArea { width: 100%; height: 350px; background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 70%, #228B22 70%, #228B22 100%); position: relative; border-radius: 12px; box-shadow: inset 0 0 20px rgba(0,0,0,0.2); cursor: crosshair; }
+                #score { position: absolute; top: 15px; left: 20px; font-size: 28px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); z-index: 10; }
+                #ball { font-size: 60px; position: absolute; left: 50%; transform: translateX(-50%); cursor: pointer; user-select: none; z-index: 5; transition: transform 0.1s;}
+                #startBtn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; background: #ffdf00; color: #002776; border: none; border-radius: 8px; font-size: 24px; font-family: 'Oswald', sans-serif; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 20; font-weight: bold;}
+                #startBtn:active { transform: translate(-50%, -45%); box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+            </style>
+            </head>
+            <body>
+            <div id="gameArea">
+                <div id="score">Embaixadinhas: 0</div>
+                <div id="ball" style="top: 50px;">⚽</div>
+                <button id="startBtn">COMEÇAR</button>
+            </div>
+            <script>
+                const ball = document.getElementById('ball');
+                const scoreEl = document.getElementById('score');
+                const startBtn = document.getElementById('startBtn');
+                
+                let y = 50; let vy = 0; let gravity = 0.6; 
+                let isPlaying = false; let score = 0; let animId; let rotation = 0;
+                
+                function update() {
+                    if(!isPlaying) return;
+                    vy += gravity;
+                    y += vy;
+                    
+                    // Rotação da bola para efeito visual
+                    rotation += vy * 1.5;
+                    ball.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+                    
+                    if(y > 280) { // Bateu no chão
+                        isPlaying = false;
+                        startBtn.style.display = 'block';
+                        startBtn.innerText = 'TENTAR DE NOVO';
+                        ball.style.top = '280px';
+                        return;
+                    }
+                    if(y < 0) { y = 0; vy = 0; } // Bateu no teto
+                    
+                    ball.style.top = y + 'px';
+                    animId = requestAnimationFrame(update);
+                }
+                
+                ball.onmousedown = function(e) {
+                    if(!isPlaying) return;
+                    vy = -12; // Impulso para cima
+                    score++;
+                    scoreEl.innerText = 'Embaixadinhas: ' + score;
+                }
+                
+                // Suporte para toque em telas de celular/tablet
+                ball.ontouchstart = function(e) {
+                    e.preventDefault();
+                    if(!isPlaying) return;
+                    vy = -12;
+                    score++;
+                    scoreEl.innerText = 'Embaixadinhas: ' + score;
+                }
+                
+                startBtn.onclick = function() {
+                    isPlaying = true;
+                    score = 0;
+                    scoreEl.innerText = 'Embaixadinhas: 0';
+                    y = 20; vy = 0; rotation = 0;
+                    startBtn.style.display = 'none';
+                    cancelAnimationFrame(animId);
+                    update();
+                }
+            </script>
+            </body>
+            </html>
+            """
+            components.html(codigo_html_embaixadinha, height=380)
+
+    st.markdown('</div>', unsafe_allow_html=True)
     # ==============================================================================
 # GATILHO DO ÁLBUM DE FIGURINHAS (MENU REGULAR)
 # ==============================================================================

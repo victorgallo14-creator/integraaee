@@ -710,40 +710,74 @@ def login():
                         try:
                             SENHA_MESTRA = st.secrets.get("credentials", {}).get("password", "admin")
                             user_id_limpo = str(user_id).strip()
-                            df_professores = safe_read("Professores", ["matricula", "nome"])
-                            authenticated_as_prof = False
+                            authenticated = False
                             
+                            # 1. TENTATIVA: PROFESSORES (Equipe Gestora / Docentes)
+                            df_professores = safe_read("Professores", ["matricula", "nome"])
                             if not df_professores.empty:
                                 df_professores['matricula'] = df_professores['matricula'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
                                 if password == SENHA_MESTRA and user_id_limpo in df_professores['matricula'].values:
                                     registro = df_professores[df_professores['matricula'] == user_id_limpo]
                                     nome_prof = registro['nome'].values[0]
+                                    
                                     st.session_state.authenticated = True
                                     st.session_state.usuario_nome = nome_prof
                                     st.session_state.user_role = 'professor'
                                     st.session_state.usuario_matricula = user_id_limpo
-                                    authenticated_as_prof = True
+                                    authenticated = True
+                                    
                                     st.toast(f"Acesso Docente autorizado. Bem-vindo(a), {nome_prof}!", icon="🔓")
-                                    time.sleep(1); st.rerun()
+                                    time.sleep(1)
+                                    st.rerun()
 
-                            if not authenticated_as_prof:
+                            # 2. TENTATIVA: MONITORES / FUNCIONÁRIOS
+                            if not authenticated:
                                 df_monitores = safe_read("Monitores", ["matricula", "nome"])
                                 if not df_monitores.empty:
                                     df_monitores['matricula'] = df_monitores['matricula'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
                                     if password == "123" and user_id_limpo in df_monitores['matricula'].values:
                                         registro = df_monitores[df_monitores['matricula'] == user_id_limpo]
                                         nome_mon = registro['nome'].values[0]
+                                        
                                         st.session_state.authenticated = True
                                         st.session_state.usuario_nome = nome_mon
                                         st.session_state.user_role = 'monitor'
+                                        st.session_state.usuario_matricula = user_id_limpo
+                                        authenticated = True
+                                        
                                         st.toast(f"Acesso Monitor autorizado. Bem-vindo(a), {nome_mon}!", icon="🛡️")
-                                        time.sleep(1); st.rerun()
-                                    else:
-                                        st.error("Credenciais inválidas.")
-                                else:
-                                    st.error("Credenciais inválidas.")
+                                        time.sleep(1)
+                                        st.rerun()
+                            
+                            # 3. TENTATIVA: ESTUDANTES (Para o Álbum de Figurinhas)
+                            if not authenticated:
+                                try:
+                                    # Consulta o RA diretamente na tabela estudantes do PostgreSQL (Supabase)
+                                    res_estudantes = supabase.table("estudantes").select("ra, nome").eq("ra", user_id_limpo).execute()
+                                    
+                                    if res_estudantes.data:
+                                        # Defini a senha padrão das crianças como "123" ou o próprio R.A. para facilitar
+                                        if password == "123" or password == user_id_limpo: 
+                                            aluno_nome = res_estudantes.data[0]['nome']
+                                            
+                                            st.session_state.authenticated = True
+                                            st.session_state.usuario_nome = aluno_nome
+                                            st.session_state.user_role = 'estudante'
+                                            st.session_state.usuario_ra = user_id_limpo # Fundamental para o Álbum!
+                                            authenticated = True
+                                            
+                                            st.toast(f"Acesso de Estudante autorizado! Bora colecionar, {aluno_nome}!", icon="🎒")
+                                            time.sleep(1)
+                                            st.rerun()
+                                except Exception as e_banco:
+                                    pass # Se a tabela não existir ou der erro, segue para falha de login
+                                    
+                            # SE PASSOU PELAS 3 ETAPAS E NÃO ACHOU NINGUÉM
+                            if not authenticated:
+                                st.error("Credenciais inválidas. Verifique sua Matrícula/R.A. e a Senha.")
+
                         except Exception as e:
-                            st.error(f"Erro técnico: {e}")
+                            st.error(f"Erro técnico no servidor: {e}")
 
             with tab_validar:
                 st.markdown("### Validação Pública")

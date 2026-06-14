@@ -1211,17 +1211,47 @@ with st.sidebar:
         # --- TRAVA DE SEGURANÇA: MODO ESTUDANTE ---
         # Adicione este bloco no início da sua área logada, antes de desenhar os menus laterais
         # --- TRAVA DE SEGURANÇA: MODO ESTUDANTE ---
+        # ==============================================================================
+    # INTERCEPTAÇÃO E REDIRECIONAMENTO DIRETO DO ESTUDANTE
+    # ==============================================================================
         if st.session_state.get('user_role') == 'estudante':
-            opcoes_regular = ["🏆 Álbum de Figurinhas"]
-        else:
-            opcoes_regular = [
-                "🖼️ Carômetro Escolar", 
-                "💻 Agendamento Informática", 
-                "📝 Nova Ata de Conselho", 
-                "📂 Histórico de Atas", 
-                "📖 Planejamento Curricular"
-            ]
-        
+            
+            # 1. MÁGICA DO CSS: Esconde completamente a barra lateral e a setinha de expandir
+            st.markdown("""
+                <style>
+                    [data-testid="stSidebar"] { display: none !important; }
+                    [data-testid="collapsedControl"] { display: none !important; }
+                    /* Dá um respiro no topo da tela para não colar o cabeçalho no limite */
+                    .block-container { padding-top: 2rem !important; }
+                </style>
+            """, unsafe_allow_html=True)
+            
+            # 2. Cria o Cabeçalho Superior do Aluno
+            c_nome, c_sair = st.columns([3, 1])
+            
+            with c_nome:
+                st.markdown(f"<h3 style='color: #004d23; font-family: Poppins; margin-bottom: 0;'>🎒 Olá, <b>{st.session_state.get('usuario_nome')}</b>!</h3>", unsafe_allow_html=True)
+                st.markdown(f"<span style='color: #666; font-size: 0.9rem;'>📌 R.A.: {st.session_state.get('usuario_ra')}</span>", unsafe_allow_html=True)
+                
+            with c_sair:
+                # Empurra o botão um pouco para baixo para alinhar com o texto
+                st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+                if st.button("🚪 Sair / Trocar Aluno", type="primary", use_container_width=True):
+                    st.session_state.authenticated = False
+                    st.session_state.user_role = None
+                    st.session_state.usuario_ra = None
+                    st.session_state.usuario_nome = None
+                    st.rerun()
+                    
+            st.write("---")
+            
+            # 3. Carrega o Álbum ocupando 100% da tela abaixo do cabeçalho
+            render_modulo_album()
+            
+            # 4. Para a execução do código (Impede que o aluno veja menus de professores)
+            st.stop()
+        # ==============================================================================
+            
         if st.session_state.get('usuario_nome') == "José Victor Souza Gallo":
             opcoes_regular.append("⚙️ Configurações")
             opcoes_regular.append("💾 Cofre de Segurança")

@@ -836,11 +836,12 @@ login()
 # ==============================================================================
 if st.session_state.authenticated:
 
-    # 1. ADICIONE ESTAS DUAS LINHAS AQUI:
+    # 1. AQUI O ALUNO É INTERCEPTADO E PULA O PORTAL:
     if st.session_state.get('user_role') == 'estudante':
-        pass # Pula todos os menus de professor e segue direto para o final
+        pass # Pula todos os menus de professor e segue direto para o final do arquivo
         
-    if st.session_state.modulo_atuacao is None:
+    # 2. AQUI TEM DE SER 'elif' PARA QUE O ALUNO NÃO ENTRE NESTE BLOCO!
+    elif st.session_state.modulo_atuacao is None:
         # Removido os <br> para o conteúdo subir e ficar mais centralizado
         st.write("") 
         
@@ -848,6 +849,7 @@ if st.session_state.authenticated:
         st.markdown("<div style='text-align: center; color: #1e293b; font-size: 32px; font-weight: bold; margin-bottom: 40px;'>Seja bem-vindo(a)! Escolha seu ambiente de trabalho:</div>", unsafe_allow_html=True)
         
         col1, col2, col3, col4 = st.columns(4) # Alterado para 4 colunas
+        
         
         # --- BOTÃO 1: ENSINO REGULAR (ESQUERDA) ---
         with col1:

@@ -10368,39 +10368,103 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 
-
 # =====================================================================
-# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM (ULTRA EDITION + LORE)
+# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM (VERSÃO POSTGRESQL DE PRODUÇÃO)
 # =====================================================================
 import random
 import time
 import streamlit as st
 
+def conectar_banco():
+    """
+    Retorna uma conexão ativa com o banco de dados PostgreSQL.
+    Configurado para ler as credenciais de segredos do Streamlit (.semibold/secrets.toml)
+    """
+    import psycopg2
+    return psycopg2.connect(
+        host=st.secrets["postgres"]["host"],
+        database=st.secrets["postgres"]["database"],
+        user=st.secrets["postgres"]["user"],
+        password=st.secrets["postgres"]["password"],
+        port=st.secrets["postgres"]["port"]
+    )
+
+def inicializar_estruturas_e_catalogo():
+    """Garante que as tabelas PostgreSQL e o catálogo de figurinhas existam."""
+    conn = conectar_banco()
+    cursor = conn.cursor()
+    
+    # Criação das tabelas compatíveis com PostgreSQL
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS estudantes (
+        ra VARCHAR(30) PRIMARY KEY, 
+        nome VARCHAR(100) NOT NULL,
+        turma VARCHAR(50), 
+        pacotes_disponiveis INT DEFAULT 5
+    );""")
+    
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS figurinhas (
+        id INT PRIMARY KEY, 
+        nome VARCHAR(100) NOT NULL,
+        cargo VARCHAR(50) DEFAULT 'Estudante', 
+        tipo VARCHAR(20) DEFAULT 'comum', 
+        foto_path VARCHAR(255)
+    );""")
+    
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS inventario_album (
+        estudante_ra VARCHAR(30), 
+        figurinha_id INT, 
+        quantidade INT DEFAULT 0,
+        PRIMARY KEY (estudante_ra, figurinha_id),
+        FOREIGN KEY (estudante_ra) REFERENCES estudantes(ra) ON DELETE CASCADE, 
+        FOREIGN KEY (figurinha_id) REFERENCES figurinhas(id) ON DELETE CASCADE
+    );""")
+    
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS banca_trocas (
+        id SERIAL PRIMARY KEY, 
+        estudante_ra VARCHAR(30),
+        id_oferecida INT, 
+        id_desejada INT, 
+        status VARCHAR(20) DEFAULT 'ativo',
+        data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (estudante_ra) REFERENCES estudantes(ra) ON DELETE CASCADE,
+        FOREIGN KEY (id_oferecida) REFERENCES figurinhas(id) ON DELETE CASCADE,
+        FOREIGN KEY (id_desejada) REFERENCES figurinhas(id) ON DELETE CASCADE
+    );""")
+    
+    # Alimenta o catálogo fixo de 30 figurinhas se estiver vazio
+    cursor.execute("SELECT COUNT(*) FROM figurinhas")
+    if cursor.fetchone()[0] == 0:
+        for i in range(1, 31):
+            tipo = "lendaria" if i % 10 == 0 else "comum"
+            cargo = "Equipe Escolar" if i % 10 == 0 else "Estudante"
+            nome = f"Membro {i}" if i % 10 == 0 else f"Estudante {i}"
+            cursor.execute("INSERT INTO figurinhas VALUES (%s, %s, %s, %s, %s)", (i, nome, cargo, tipo, ""))
+            
+    conn.commit()
+    conn.close()
+
 def injetar_css_album_premium():
     st.markdown("""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Poppins:wght@400;600&display=swap');
-
+        
         .album-premium-container {
             font-family: 'Poppins', sans-serif;
             background-color: #f4f7f6;
             background-image: radial-gradient(#d5dfd9 1px, transparent 1px);
             background-size: 20px 20px;
-            padding: 20px;
-            border-radius: 15px;
+            padding: 20px; border-radius: 15px;
             box-shadow: inset 0px 0px 20px rgba(0,0,0,0.05);
         }
-
+        
         .header-premium {
             background: linear-gradient(135deg, #004d23 0%, #009c3b 50%, #004d23 100%);
-            padding: 30px;
-            border-radius: 20px;
-            text-align: center;
-            border: 4px solid #d4af37;
-            box-shadow: 0px 10px 30px rgba(0, 156, 59, 0.4), inset 0px 0px 15px rgba(255, 223, 0, 0.3);
-            position: relative;
-            overflow: hidden;
-            margin-bottom: 30px;
+            padding: 25px; border-radius: 20px; text-align: center; border: 4px solid #d4af37;
+            box-shadow: 0px 10px 30px rgba(0, 156, 59, 0.4); position: relative; overflow: hidden; margin-bottom: 25px;
         }
         
         .header-premium::after {
@@ -10409,193 +10473,193 @@ def injetar_css_album_premium():
             transform: rotate(30deg); animation: brilho-header 6s infinite linear;
         }
         @keyframes brilho-header { 0% { transform: translateX(-100%) rotate(30deg); } 100% { transform: translateX(100%) rotate(30deg); } }
-
+        
         .header-premium h1 { 
-            font-family: 'Oswald', sans-serif; margin: 0; color: #ffdf00; 
-            font-weight: 700; font-size: 3.5rem; letter-spacing: 2px; text-transform: uppercase;
-            text-shadow: 3px 3px 0px #002776, 6px 6px 15px rgba(0,0,0,0.6); 
+            font-family: 'Oswald', sans-serif; margin: 0; color: #ffdf00; font-size: 3rem; text-transform: uppercase;
+            text-shadow: 3px 3px 0px #002776, 5px 5px 12px rgba(0,0,0,0.5); 
         }
-        .header-premium p { color: #ffffff; font-size: 1.2rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
-
-        .fig-wrapper {
-            width: 100%; aspect-ratio: 3 / 4; margin-bottom: 20px; perspective: 1000px; position: relative;
-        }
-
+        
+        .fig-wrapper { width: 100%; aspect-ratio: 3 / 4; margin-bottom: 20px; perspective: 1000px; }
+        
         .slot-vazio {
             width: 100%; height: 100%; border: 2px dashed rgba(0, 156, 59, 0.3);
             background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(240, 253, 244, 0.8) 100%);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             border-radius: 8px; color: rgba(0, 156, 59, 0.4); transition: all 0.3s ease;
-            box-shadow: inset 0px 4px 10px rgba(0,0,0,0.05); text-align: center; padding: 5px;
         }
-        .slot-vazio:hover { background: rgba(0, 156, 59, 0.1); border-color: #009c3b; color: #009c3b; transform: scale(1.02); cursor: pointer; }
-        .slot-vazio .numero { font-family: 'Oswald', sans-serif; font-size: 2.5rem; font-weight: 700; line-height: 1; }
-        .slot-vazio .texto { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; margin-top: 5px; }
-
+        .slot-vazio .numero { font-family: 'Oswald', sans-serif; font-size: 2.5rem; font-weight: 700; }
+        .slot-vazio .texto { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+        
         .slot-preenchido {
-            width: 100%; height: 100%; background-color: #ffffff; padding: 4%;
-            border-radius: 8px; box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
-            display: flex; flex-direction: column; border: 1px solid #e0e0e0;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; z-index: 1;
+            width: 100%; height: 100%; background-color: #ffffff; padding: 4%; border-radius: 8px;
+            box-shadow: 0px 5px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; border: 1px solid #e0e0e0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative;
         }
-        .slot-preenchido:hover { transform: scale(1.1) translateY(-10px); box-shadow: 0px 15px 30px rgba(0,0,0,0.3); z-index: 10; }
+        .slot-preenchido:hover { transform: scale(1.1) translateY(-5px); box-shadow: 0px 12px 25px rgba(0,0,0,0.3); z-index: 5; }
         
         .foto-area {
-            background: linear-gradient(to bottom, #ece9e6, #ffffff); flex-grow: 1;
-            border-radius: 4px; border: 2px solid #002776; display: flex; align-items: center; justify-content: center;
-            color: #002776; font-size: 2rem; font-weight: bold; overflow: hidden; position: relative;
+            background: linear-gradient(to bottom, #ece9e6, #ffffff); flex-grow: 1; border-radius: 4px;
+            border: 2px solid #002776; display: flex; align-items: center; justify-content: center; color: #002776;
         }
         
         .foto-rodape {
             height: 25%; background: #009c3b; margin-top: 5px; border-radius: 4px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: #ffffff; font-family: 'Oswald', sans-serif; text-align: center;
-            box-shadow: inset 0px -3px 0px rgba(0,0,0,0.2); padding: 2px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; font-family: 'Oswald', sans-serif;
+            padding: 2px; text-align: center;
         }
-        .rodape-num { font-size: 0.75rem; font-weight: 400; letter-spacing: 1px; margin-bottom: -2px; color: #ffdf00; }
-        .rodape-nome { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; line-height: 1.1; }
-
-        .lendaria {
-            background: linear-gradient(135deg, #ffd700, #ffb300); padding: 5%; border: none;
-            box-shadow: 0px 5px 20px rgba(255, 215, 0, 0.5); overflow: hidden;
-        }
-        .lendaria::before {
-            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
-            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%);
-            transform: skewX(-25deg); animation: holo-shine 4s infinite; z-index: 5; pointer-events: none;
-        }
-        @keyframes holo-shine { 0% { left: -100%; } 20% { left: 200%; } 100% { left: 200%; } }
+        .rodape-num { font-size: 0.7rem; color: #ffdf00; }
+        .rodape-nome { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; line-height: 1.1; }
         
-        .lendaria .foto-area { border: 3px solid #b8860b; background: linear-gradient(to bottom, #fff8dc, #fff); }
-        .lendaria .foto-rodape { 
-            background: linear-gradient(to bottom, #d4af37, #b8860b);
-            color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); border: 1px solid #ffdf00;
-        }
-
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(50px) scale(0.5); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        .anim-reveal { animation: fadeInUp 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-
+        .lendaria { background: linear-gradient(135deg, #ffd700, #ffb300); border: none; box-shadow: 0px 5px 20px rgba(255, 215, 0, 0.5); }
+        .lendaria .foto-area { border: 2px solid #b8860b; }
+        .lendaria .foto-rodape { background: linear-gradient(to bottom, #d4af37, #b8860b); }
+        
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px) scale(0.8); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .anim-reveal { animation: fadeInUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        
         .pacotinho-btn > button { 
-            background: linear-gradient(180deg, #ffdf00 0%, #d4af37 100%) !important;
-            color: #002776 !important; font-family: 'Oswald', sans-serif !important;
-            font-size: 1.8rem !important; font-weight: 700 !important; letter-spacing: 2px !important;
-            border: 4px solid #002776 !important; border-radius: 15px !important; 
-            width: 100%; height: 80px; box-shadow: 0px 8px 20px rgba(0,0,0,0.3); transition: all 0.2s ease;
+            background: linear-gradient(180deg, #ffdf00 0%, #d4af37 100%) !important; color: #002776 !important;
+            font-family: 'Oswald', sans-serif !important; font-size: 1.6rem !important; font-weight: 700 !important;
+            border: 3px solid #002776 !important; border-radius: 12px !important; width: 100%; height: 70px;
+            box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
         }
-        .pacotinho-btn > button:hover { 
-            background: linear-gradient(180deg, #d4af37 0%, #ffdf00 100%) !important;
-            transform: translateY(-5px); box-shadow: 0px 12px 25px rgba(255,223,0,0.4);
-        }
-        .pacotinho-btn > button:active { transform: translateY(2px); box-shadow: 0px 2px 5px rgba(0,0,0,0.3); }
         </style>
     """, unsafe_allow_html=True)
 
-def inicializar_dados_album_premium():
-    TOTAL_FIGURINHAS = 30 
-    if 'album_dados' not in st.session_state:
-        st.session_state['album_dados'] = {
-            'pacotes_disponiveis': 5,
-            'coladas': [],
-            'repetidas': [],
-            'total_figurinhas': TOTAL_FIGURINHAS,
-            'pagina_atual': 0,
-            'ultimas_tiradas': []
-        }
-
-def abrir_pacotinho_premium():
-    dados = st.session_state['album_dados']
-    if dados['pacotes_disponiveis'] > 0:
-        st.balloons() 
-        dados['pacotes_disponiveis'] -= 1
+def puxar_dados_album_estudante(ra):
+    """Varre as tabelas dinâmicas lendo o estado do álbum do estudante logado no PostgreSQL."""
+    conn = conectar_banco()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT nome, pacotes_disponiveis FROM estudantes WHERE ra = %s", (ra,))
+    resultado = cursor.fetchone()
+    if not resultado:
+        nome_completo = st.session_state.get('usuario_nome', 'Utilizador Teste')
+        cursor.execute("INSERT INTO estudantes VALUES (%s, %s, 'Ensino Regular', 5)", (ra, nome_completo))
+        pacotes = 5
+    else:
+        pacotes = resultado[1]
         
-        sorteio = random.choices(range(1, dados['total_figurinhas'] + 1), k=5)
-        for fig in sorteio:
-            if fig not in dados['coladas']: dados['coladas'].append(fig)
-            else: dados['repetidas'].append(fig)
+    cursor.execute("SELECT figurinha_id, quantidade FROM inventario_album WHERE estudante_ra = %s", (ra,))
+    linhas = cursor.fetchall()
+    
+    coladas = []
+    repetidas = []
+    for f_id, qtd in linhas:
+        if qtd >= 1:
+            coladas.append(f_id)
+        if qtd > 1:
+            for _ in range(qtd - 1):
+                repetidas.append(f_id)
                 
-        dados['coladas'].sort()
-        dados['repetidas'].sort()
-        dados['ultimas_tiradas'] = sorteio
-        return True
-    return False
+    cursor.execute("SELECT COUNT(*) FROM figurinhas")
+    total_figuras = cursor.fetchone()[0]
+    
+    conn.close()
+    return {"pacotes": pacotes, "coladas": coladas, "repetidas": repetidas, "total": total_figuras}
+
+def processar_abertura_pacote_sql(ra, total_catalogo):
+    """Executa a subtração de pacotes e insere os novos itens sorteados no PostgreSQL."""
+    conn = conectar_banco()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT pacotes_disponiveis FROM estudantes WHERE ra = %s", (ra,))
+    disponiveis = cursor.fetchone()[0]
+    
+    if disponiveis <= 0:
+        conn.close()
+        return None
+        
+    st.balloons()
+    cursor.execute("UPDATE estudantes SET pacotes_disponiveis = pacotes_disponiveis - 1 WHERE ra = %s", (ra,))
+    
+    sorteio = random.choices(range(1, total_catalogo + 1), k=5)
+    
+    for f_id in sorteio:
+        cursor.execute("SELECT quantidade FROM inventario_album WHERE estudante_ra = %s AND figurinha_id = %s", (ra, f_id))
+        row = cursor.fetchone()
+        if row is None:
+            cursor.execute("INSERT INTO inventario_album VALUES (%s, %s, 1)", (ra, f_id))
+        else:
+            cursor.execute("UPDATE inventario_album SET quantidade = quantidade + 1 WHERE estudante_ra = %s AND figurinha_id = %s", (ra, f_id))
+            
+    conn.commit()
+    conn.close()
+    return sorteio
 
 def render_modulo_album():
     injetar_css_album_premium()
-    inicializar_dados_album_premium()
-    dados = st.session_state['album_dados']
-
-    st.markdown('<div class="album-premium-container">', unsafe_allow_html=True)
+    inicializar_estruturas_e_catalogo()
     
-    st.markdown("""
-        <div class="header-premium">
-            <h1>🌟 Álbum Oficial CEIEF 🌟</h1>
-            <p>Rafael Affonso Leite — Coleção Ouro 2026</p>
-        </div>
-    """, unsafe_allow_html=True)
-
+    estudante_ra = st.session_state.get('usuario_ra', 'RA-TESTE-GALLO')
+    dados_db = puxar_dados_album_estudante(estudante_ra)
+    
+    st.markdown('<div class="album-premium-container">', unsafe_allow_html=True)
+    st.markdown('<div class="header-premium"><h1>🏆 ÁLBUM DA COPA CEIEF 🏆</h1><p>Módulo de Integração de Alunos</p></div>', unsafe_allow_html=True)
+    
     aba_album, aba_pacotes, aba_trocas = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas"])
 
     # ==========================================
-    # ABA 1: MEU ÁLBUM
+    # ABA 1: MEU ÁLBUM (5 COLUNAS COMPACTAS)
     # ==========================================
     with aba_album:
-        figurinhas_por_pagina = 10 
-        total_paginas = (dados['total_figurinhas'] // figurinhas_por_pagina) + (1 if dados['total_figurinhas'] % figurinhas_por_pagina > 0 else 0)
+        figurinhas_por_pagina = 10
+        if 'pag_album' not in st.session_state: st.session_state['pag_album'] = 0
         
-        col_prev, col_page, col_next = st.columns([1, 2, 1])
-        with col_prev:
-            if st.button("⬅️ VOLTAR PÁGINA", use_container_width=True) and dados['pagina_atual'] > 0:
-                dados['pagina_atual'] -= 1
-                dados['ultimas_tiradas'] = []
+        total_paginas = (dados_db['total'] // figurinhas_por_pagina) + (1 if dados_db['total'] % figurinhas_por_pagina > 0 else 0)
+        
+        c_prev, c_page, c_next = st.columns([1, 2, 1])
+        with c_prev:
+            if st.button("⬅️ PÁGINA ANTERIOR", use_container_width=True) and st.session_state['pag_album'] > 0:
+                st.session_state['pag_album'] -= 1
                 st.rerun()
-        with col_page:
-            progresso = len(dados['coladas']) / dados['total_figurinhas']
-            st.markdown(f"<div style='text-align: center; color: #004d23; font-family: Oswald; font-size: 22px; text-transform: uppercase;'>Página {dados['pagina_atual'] + 1} de {total_paginas}</div>", unsafe_allow_html=True)
-            st.progress(progresso, text=f"Completado: {len(dados['coladas'])} de {dados['total_figurinhas']} figurinhas")
-        with col_next:
-            if st.button("AVANÇAR PÁGINA ➡️", use_container_width=True) and dados['pagina_atual'] < (total_paginas - 1):
-                dados['pagina_atual'] += 1
-                dados['ultimas_tiradas'] = []
+        with c_page:
+            progresso = len(dados_db['coladas']) / dados_db['total']
+            st.markdown(f"<div style='text-align: center; color: #004d23; font-family: Oswald; font-size: 20px;'>PÁGINA {st.session_state['pag_album'] + 1} DE {total_paginas}</div>", unsafe_allow_html=True)
+            st.progress(progresso, text=f"Completado: {len(dados_db['coladas'])} de {dados_db['total']} coladas")
+        with c_next:
+            if st.button("PRÓXIMA PÁGINA ➡️", use_container_width=True) and st.session_state['pag_album'] < (total_paginas - 1):
+                st.session_state['pag_album'] += 1
                 st.rerun()
 
-        # Textos Temáticos Dinâmicos da Página
         textos_paginas = {
-            0: "Bem-vindos à edição histórica do nosso álbum! Aqui você vai encontrar todos os rostos que fazem o nosso dia a dia mais feliz. Comece sua coleção!",
-            1: "⭐ CURIOSIDADE: Você sabia que a nossa escola está ganhando uma fachada totalmente nova e colorida? Cada figurinha aqui representa uma cor especial e essencial da nossa equipe!",
-            2: "🎭 MOMENTOS INESQUECÍVEIS: Quem lembra das incríveis apresentações teatrais no nosso evento Escola Aberta? Será que você consegue achar a figurinha dos grandes artistas e organizadores?",
-            3: "Fique de olho nas figurinhas Lendárias! Elas são super raras e têm um brilho especial de ouro. Troque com os amigos na banca para conseguir fechar esta página."
+            0: "Bem-vindos à edição histórica do nosso álbum! Aqui vai encontrar todos os rostos que fazem o nosso dia a dia mais feliz. Comece a sua coleção!",
+            1: "⭐ CURIOSIDADE: Sabia que a nossa escola está a ganhar uma fachada totalmente nova e colorida? Cada figurinha aqui representa uma cor essencial do nosso time!",
+            2: "🎭 MOMENTOS INESQUECÍVEIS: Quem se lembra das incríveis apresentações teatrais no nosso evento Escola Aberta? Encontre os artistas da nossa escola!",
+            3: "Fique atento às figurinhas Lendárias! Elas são super raras e têm um brilho especial de ouro. Troque com os amigos na banca para conseguir fechar esta página."
         }
-        texto_atual = textos_paginas.get(dados['pagina_atual'], "Continue abrindo pacotinhos e negociando com a turma para completar 100% da sua coleção!")
+        texto_atual = textos_paginas.get(st.session_state['pag_album'], "Continue a abrir pacotinhos e a negociar com a turma para completar 100% da sua coleção!")
         
         st.markdown(f"""
-            <div style='background-color: #fffdf0; padding: 18px; border-left: 6px solid #d4af37; border-radius: 8px; margin-top: 15px; margin-bottom: 25px; color: #333; font-size: 0.95rem; box-shadow: 2px 2px 10px rgba(0,0,0,0.05); line-height: 1.5;'>
-                📖 <i>"{texto_atual}"</i>
+            <div style='background-color: #fffdf0; padding: 15px; border-left: 6px solid #d4af37; border-radius: 8px; margin-top: 15px; margin-bottom: 25px; color: #333; font-size: 0.95rem; box-shadow: 2px 2px 10px rgba(0,0,0,0.05); line-height: 1.5;'>
+                📖 <i>\"{texto_atual}\"</i>
             </div>
         """, unsafe_allow_html=True)
         
-        inicio_idx = dados['pagina_atual'] * figurinhas_por_pagina
-        fim_idx = inicio_idx + figurinhas_por_pagina
-        figurinhas_da_pagina = list(range(1, dados['total_figurinhas'] + 1))[inicio_idx:fim_idx]
+        inicio_idx = st.session_state['pag_album'] * figurinhas_por_pagina
+        
+        conn = conectar_banco()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, nome, cargo, tipo FROM figurinhas LIMIT %s OFFSET %s", (figurinhas_por_pagina, inicio_idx))
+        figurinhas_pagina = cursor.fetchall()
+        conn.close()
 
-        for linha in range(0, len(figurinhas_da_pagina), 5):
+        for linha in range(0, len(figurinhas_pagina), 5):
             cols = st.columns(5)
             for i, col in enumerate(cols):
-                if linha + i < len(figurinhas_da_pagina):
-                    id_fig = figurinhas_da_pagina[linha + i]
-                    classe_lendaria = "lendaria" if id_fig % 10 == 0 else ""
-                    
-                    # Nomes simulados (Você pode puxar do seu JSON depois)
-                    nome_pessoa = "Direção" if id_fig % 10 == 0 else f"Aluno(a) {id_fig}"
+                if linha + i < len(figurinhas_pagina):
+                    f_id, f_nome, f_cargo, f_tipo = figurinhas_pagina[linha + i]
+                    classe_lendaria = "lendaria" if f_tipo == "lendaria" else ""
                     
                     with col:
-                        if id_fig in dados['coladas']:
+                        if f_id in dados_db['coladas']:
                             st.markdown(f"""
                                 <div class="fig-wrapper">
                                     <div class="slot-preenchido {classe_lendaria}">
                                         <div class="foto-area">📸</div>
                                         <div class="foto-rodape">
-                                            <span class="rodape-num">Nº {id_fig}</span>
-                                            <span class="rodape-nome">{nome_pessoa}</span>
+                                            <span class="rodape-num">Nº {f_id} - {f_cargo}</span>
+                                            <span class="rodape-nome">{f_nome}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -10604,7 +10668,7 @@ def render_modulo_album():
                             st.markdown(f"""
                                 <div class="fig-wrapper">
                                     <div class="slot-vazio">
-                                        <div class="numero">{id_fig}</div>
+                                        <div class="numero">{f_id}</div>
                                         <div class="texto">Faltando</div>
                                     </div>
                                 </div>
@@ -10614,123 +10678,151 @@ def render_modulo_album():
     # ABA 2: ABRIR PACOTINHOS
     # ==========================================
     with aba_pacotes:
-        st.markdown(f"<h3 style='font-family: Poppins; color: #004d23;'>🎒 Você tem <b>{dados['pacotes_disponiveis']}</b> pacotinhos fechados!</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='font-family: Poppins; color: #004d23;'>🎒 Possui <b>{dados_db['pacotes']}</b> pacotinhos fechados!</h3>", unsafe_allow_html=True)
         
-        if dados['pacotes_disponiveis'] > 0:
+        if dados_db['pacotes'] > 0:
             st.markdown('<div class="pacotinho-btn">', unsafe_allow_html=True)
-            if st.button("💥 RASGAR PACOTINHO AGORA! 💥", use_container_width=True):
-                if abrir_pacotinho_premium():
+            if st.button("💥 RASGAR PACOTINHO OFICIAL! 💥", use_container_width=True):
+                sorteio = processar_abertura_pacote_sql(estudante_ra, dados_db['total'])
+                if sorteio:
+                    st.session_state['ultimo_sorteio'] = sorteio
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
         else:
-            st.error("Poxa, seus pacotinhos acabaram. Aguarde os professores liberarem mais na próxima semana!")
+            st.error("Os seus pacotinhos acabaram. Aguarde que os professores libertem mais cargas semanais!")
 
-        if dados.get('ultimas_tiradas'):
+        if 'ultimo_sorteio' in st.session_state and st.session_state['ultimo_sorteio']:
             st.write("---")
-            st.markdown("<h2 style='text-align:center; font-family: Oswald; color: #009c3b; text-transform: uppercase;'>✨ VOCÊ TIROU: ✨</h2>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align:center; font-family: Oswald; color: #009c3b;'>✨ FIGURINHAS ENCONTRADAS: ✨</h3>", unsafe_allow_html=True)
             
+            conn = conectar_banco()
+            cursor = conn.cursor()
             cols_novas = st.columns(5)
-            for i, fig in enumerate(dados['ultimas_tiradas']):
-                classe_lendaria = "lendaria" if fig % 10 == 0 else ""
-                nome_pessoa = "Lendária" if fig % 10 == 0 else "Comum"
+            for i, f_id in enumerate(st.session_state['ultimo_sorteio']):
+                cursor.execute("SELECT nome, tipo FROM figurinhas WHERE id = %s", (f_id,))
+                f_nome, f_tipo = cursor.fetchone()
+                classe_lendaria = "lendaria" if f_tipo == "lendaria" else ""
                 delay = i * 0.15
                 
                 with cols_novas[i]:
                     st.markdown(f"""
-                        <div class="fig-wrapper anim-reveal" style="animation-delay: {delay}s; opacity: 0; margin-top: 20px;">
+                        <div class="fig-wrapper anim-reveal" style="animation-delay: {delay}s; opacity: 0; margin-top: 15px;">
                             <div class="slot-preenchido {classe_lendaria}">
-                                <div class="foto-area" style="font-size: 1.5rem;">📸</div>
+                                <div class="foto-area" style="font-size: 1.2rem;">📸</div>
                                 <div class="foto-rodape">
-                                    <span class="rodape-num">Nº {fig}</span>
-                                    <span class="rodape-nome">{nome_pessoa}</span>
+                                    <span class="rodape-num">Nº {f_id}</span>
+                                    <span class="rodape-nome">{f_nome}</span>
                                 </div>
                             </div>
                         </div>
                     """, unsafe_allow_html=True)
+            conn.close()
             
-            if st.button("Guardar figurinhas no Álbum", use_container_width=True):
-                dados['ultimas_tiradas'] = []
+            if st.button("Guardar tudo na coleção e continuar", use_container_width=True):
+                st.session_state['ultimo_sorteio'] = None
                 st.rerun()
 
     # ==========================================
-    # ABA 3: BANCA DE TROCAS
+    # ABA 3: BANCA DE TROCAS (MURAL DINÂMICO POSTGRESQL)
     # ==========================================
     with aba_trocas:
-        st.markdown("<h3 style='font-family: Poppins; color: #004d23;'>Mercado Oficial de Transferências</h3>", unsafe_allow_html=True)
-        
-        if 'anuncios_globais' not in st.session_state:
-            st.session_state['anuncios_globais'] = [
-                {"aluno": "Lucas Silva", "oferece": 5, "busca": 12, "raridade": False},
-                {"aluno": "Mariana Costa", "oferece": 20, "busca": 3, "raridade": True},
-            ]
+        st.markdown("### 🤝 Mercado de Transferências Autêntico")
+        conn = conectar_banco()
+        cursor = conn.cursor()
         
         col1, col2 = st.columns(2)
-        
         with col1:
-            st.markdown("#### 📥 Suas Repetidas")
-            if dados['repetidas']:
-                contagem_repetidas = {x: dados['repetidas'].count(x) for x in set(dados['repetidas'])}
-                for fig, qtd in contagem_repetidas.items(): 
-                    tag = "✨ (Lendária!)" if fig % 10 == 0 else ""
-                    st.info(f"🟢 **Nº {fig}** {tag} — Você tem {qtd} para trocar")
-            else: 
-                st.write("Você não tem figurinhas repetidas no momento.")
+            st.markdown("#### 📥 As Suas Figurinhas Repetidas")
+            if dados_db['repetidas']:
+                contagem = {x: dados_db['repetidas'].count(x) for x in set(dados_db['repetidas'])}
+                for f_id, qtd in contagem.items():
+                    cursor.execute("SELECT nome, tipo FROM figurinhas WHERE id = %s", (f_id,))
+                    f_nome, f_tipo = cursor.fetchone()
+                    tag = "✨ (LENDÁRIA!)" if f_tipo == "lendaria" else ""
+                    st.info(f"🟢 **Nº {f_id} - {f_nome}** {tag} — Tem {qtd} sobressalante(s)")
+            else:
+                st.write("Não possui cartas repetidas para negociar de momento.")
 
         with col2:
-            st.markdown("#### 🤝 Fazer uma Proposta")
-            if dados['repetidas']:
-                fig_oferecida = st.selectbox("Sua Figurinha (Oferta):", list(set(dados['repetidas'])), key="oferecida_banca")
-                faltantes = [x for x in range(1, dados['total_figurinhas'] + 1) if x not in dados['coladas']]
+            st.markdown("#### 📢 Publicar Oferta de Troca")
+            if dados_db['repetidas']:
+                fig_oferecida = st.selectbox("Qual repetida deseja doar?", list(set(dados_db['repetidas'])), key="sql_of")
+                faltantes = [x for x in range(1, dados_db['total'] + 1) if x not in dados_db['coladas']]
                 
                 if faltantes:
-                    fig_desejada = st.selectbox("Qual você quer em troca?", faltantes, key="desejada_banca")
-                    if st.button("Anunciar na Banca", type="primary", use_container_width=True):
-                        novo_anuncio = {
-                            "aluno": st.session_state.get('usuario_nome', 'Você'),
-                            "oferece": fig_oferecida, "busca": fig_desejada,
-                            "raridade": fig_oferecida % 10 == 0
-                        }
-                        st.session_state['anuncios_globais'].insert(0, novo_anuncio)
-                        st.success(f"Anúncio publicado com sucesso!")
+                    fig_desejada = st.selectbox("Qual deseja receber?", faltantes, key="sql_des")
+                    if st.button("Registrar Proposta no Mural", type="primary", use_container_width=True):
+                        cursor.execute("""
+                            INSERT INTO banca_trocas (estudante_ra, id_oferecida, id_desejada, status)
+                            VALUES (%s, %s, %s, 'ativo')
+                        """, (estudante_ra, fig_oferecida, fig_desejada))
+                        conn.commit()
+                        st.success("Proposta gravada com sucesso no mural de trocas!")
                         time.sleep(1)
                         st.rerun()
-                else: 
-                    st.success("Seu álbum já está completo, mestre das figurinhas!")
-            else: 
-                st.warning("Abra pacotinhos para conseguir repetidas antes de negociar.")
+                else:
+                    st.success("Álbum completo!")
+            else:
+                st.warning("Consiga repetidas abrindo pacotes antes de criar propostas.")
 
         st.write("---")
-        st.markdown("<h4 style='font-family: Oswald; color: #009c3b; text-transform: uppercase;'>📢 Mural de Anúncios da Escola</h4>", unsafe_allow_html=True)
+        st.markdown("#### 📢 Mural de Anúncios Ativos na Escola")
         
-        if st.session_state['anuncios_globais']:
-            for idx, anuncio in enumerate(st.session_state['anuncios_globais']):
-                borda_cor = "#d4af37" if anuncio['raridade'] else "#009c3b"
-                bg_card = "#fffdf0" if anuncio['raridade'] else "#ffffff"
-                tag_lendaria = "<span style='color: #b8860b; font-weight: bold;'>[LENDÁRIA]</span>" if anuncio['raridade'] else ""
+        cursor.execute("""
+            SELECT b.id, e.nome, b.id_oferecida, f1.nome, b.id_desejada, f2.nome, f1.tipo, b.estudante_ra
+            FROM banca_trocas b
+            JOIN estudantes e ON b.estudante_ra = e.ra
+            JOIN figurinhas f1 ON b.id_oferecida = f1.id
+            JOIN figurinhas f2 ON b.id_desejada = f2.id
+            WHERE b.status = 'ativo'
+            ORDER BY b.data_criacao DESC
+        """)
+        anuncios = cursor.fetchall()
+        
+        if anuncios:
+            for item_id, dono_nome, id_of, nome_of, id_des, nome_des, tipo_of, dono_ra in anuncios:
+                escala_ouro = tipo_of == "lendaria"
+                border_color = "#d4af37" if escala_ouro else "#009c3b"
+                bg_card = "#fffdf0" if escala_ouro else "#ffffff"
                 
                 st.markdown(f"""
-                    <div style='background-color: {bg_card}; padding: 15px; border-radius: 10px; border-left: 6px solid {borda_cor}; box-shadow: 2px 2px 8px rgba(0,0,0,0.05); margin-bottom: 12px;'>
-                        <div style='display: flex; justify-content: space-between; align-items: center;'>
-                            <div>
-                                <strong style='color: #002776; font-size: 1.1rem;'>{anuncio['aluno']}</strong> {tag_lendaria}<br>
-                                <span style='font-size: 0.95rem; color: #555;'>
-                                    Oferece a <b>Nº {anuncio['oferece']}</b> pela <b>Nº {anuncio['busca']}</b>
-                                </span>
-                            </div>
-                        </div>
+                    <div style='background-color: {bg_card}; padding: 15px; border-radius: 10px; border-left: 6px solid {border_color}; box-shadow: 2px 2px 6px rgba(0,0,0,0.05); margin-bottom: 10px;'>
+                        <strong style='color: #002776;'>{dono_nome}</strong> {"<span style='color:#b8860b;'>[LENDÁRIA]</span>" if escala_ouro else ""}<br>
+                        <span style='font-size:0.9rem; color:#444;'>Oferece a carta <b>Nº {id_of} ({nome_of})</b> em troca da <b>Nº {id_des} ({nome_des})</b></span>
                     </div>
                 """, unsafe_allow_html=True)
                 
-                if anuncio['aluno'] != st.session_state.get('usuario_nome', 'Você'):
-                    if st.button(f"Aceitar Troca com {anuncio['aluno']}##{idx}", use_container_width=True):
-                        st.success("Em desenvolvimento...")
+                if dono_ra != estudante_ra:
+                    if st.button(f"Aceitar Troca com {dono_nome} (Figurinha Nº {id_of})##{item_id}", use_container_width=True):
+                        cursor.execute("SELECT quantidade FROM inventario_album WHERE estudante_ra = %s AND figurinha_id = %s", (estudante_ra, id_des))
+                        tem_repetida_para_dar = cursor.fetchone()
+                        
+                        if tem_repetida_para_dar and tem_repetida_para_dar[0] > 1:
+                            # 1. Conclui o anúncio
+                            cursor.execute("UPDATE banca_trocas SET status = 'concluido' WHERE id = %s", (item_id,))
+                            # 2. Atualiza inventários com compatibilidade PostgreSQL (ON CONFLICT)
+                            cursor.execute("UPDATE inventario_album SET quantidade = quantidade - 1 WHERE estudante_ra = %s AND figurinha_id = %s", (estudante_ra, id_des))
+                            cursor.execute("INSERT INTO inventario_album (estudante_ra, figurinha_id, quantidade) VALUES (%s, %s, 0) ON CONFLICT (estudante_ra, figurinha_id) DO NOTHING", (estudante_ra, id_of))
+                            cursor.execute("UPDATE inventario_album SET quantidade = quantidade + 1 WHERE estudante_ra = %s AND figurinha_id = %s", (estudante_ra, id_of))
+                            
+                            cursor.execute("UPDATE inventario_album SET quantidade = quantidade - 1 WHERE estudante_ra = %s AND figurinha_id = %s", (dono_ra, id_of))
+                            cursor.execute("INSERT INTO inventario_album (estudante_ra, figurinha_id, quantidade) VALUES (%s, %s, 0) ON CONFLICT (estudante_ra, figurinha_id) DO NOTHING", (dono_ra, id_des))
+                            cursor.execute("UPDATE inventario_album SET quantidade = quantidade + 1 WHERE estudante_ra = %s AND figurinha_id = %s", (dono_ra, id_des))
+                            
+                            conn.commit()
+                            st.success("Troca realizada com sucesso! Confira o seu álbum.")
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error(f"Não possui a figurinha Nº {id_des} repetida na mochila para realizar esta transação.")
         else:
-            st.info("Nenhum anúncio de troca ativo.")
-
+            st.info("Nenhum anúncio de troca ativo no momento.")
+            
+        conn.close()
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# GATILHO PARA EXIBIR A TELA
+# GATILHO DO FILTRO DO MENU REGULAR
 # ==============================================================================
 if 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
     render_modulo_album()

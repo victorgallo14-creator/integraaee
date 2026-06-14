@@ -10413,14 +10413,12 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 # =====================================================================
-# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM (VERSÃO SUPABASE NATIVA)
+# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM (VERSÃO EXCLUSIVA POR TURMA)
 # Tabelas utilizadas: estudantes, figurinhas, inventario_album, banca_trocas
 # =====================================================================
 import random
 import time
 import streamlit as st
-
-# Nota: A variável 'supabase' já está inicializada no topo do app_pei.py.
 
 def injetar_css_album_premium():
     st.markdown("""
@@ -10493,20 +10491,27 @@ def injetar_css_album_premium():
 
 
 def puxar_dados_album_estudante(ra):
-    """Lê os dados da Mochila usando a biblioteca Supabase configurada."""
-    # 1. Puxa ou cria o estudante no banco
-    res_est = supabase.table("estudantes").select("nome, pacotes_disponiveis").eq("ra", ra).execute()
+    """Puxa os dados do inventário e a lista filtrada de figurinhas da TURMA do aluno."""
+    res_est = supabase.table("estudantes").select("nome, turma, pacotes_disponiveis").eq("ra", ra).execute()
     
     if not res_est.data:
-        nome_completo = st.session_state.get('usuario_nome', 'Utilizador Teste')
-        supabase.table("estudantes").insert({
-            "ra": ra, "nome": nome_completo, "turma": "Ensino Regular", "pacotes_disponiveis": 5
-        }).execute()
+        # Se não encontrar o aluno, usa valores base
         pacotes = 5
+        turma_aluno = "Sem Turma"
     else:
         pacotes = res_est.data[0]['pacotes_disponiveis']
+        turma_aluno = res_est.data[0]['turma']
         
-    # 2. Puxa as figurinhas já tiradas da tabela inventario_album
+    # === AQUI ACONTECE O FILTRO ===
+    # Busca apenas figurinhas que são da mesma turma do aluno
+    res_turma = supabase.table("figurinhas").select("id").eq("turma", turma_aluno).execute()
+    # Busca as figurinhas lendárias (direção, funcionários) que são para todos
+    res_lendarias = supabase.table("figurinhas").select("id").eq("tipo", "lendaria").execute()
+    
+    # Cria uma lista apenas com os IDs permitidos (Turma + Lendárias)
+    catalogo_ids = sorted(list(set([f['id'] for f in res_turma.data] + [f['id'] for f in res_lendarias.data])))
+    
+    # Puxa o inventário (as cartas que ele já colou ou tem repetida)
     res_inv = supabase.table("inventario_album").select("figurinha_id, quantidade").eq("estudante_ra", ra).execute()
     
     coladas = []
@@ -10514,19 +10519,28 @@ def puxar_dados_album_estudante(ra):
     for item in res_inv.data:
         f_id = item['figurinha_id']
         qtd = item['quantidade']
-        if qtd >= 1: coladas.append(f_id)
-        if qtd > 1:
-            for _ in range(qtd - 1): repetidas.append(f_id)
+        # Adiciona à mochila apenas se fizer parte da lista permitida da turma dele
+        if f_id in catalogo_ids:
+            if qtd >= 1: coladas.append(f_id)
+            if qtd > 1:
+                for _ in range(qtd - 1): repetidas.append(f_id)
                 
-    # 3. Calcula total de figurinhas no catálogo
-    res_tot = supabase.table("figurinhas").select("id", count="exact").execute()
-    total_figuras = res_tot.count if res_tot.count else 30
+    total_figuras_turma = len(catalogo_ids)
     
-    return {"pacotes": pacotes, "coladas": coladas, "repetidas": repetidas, "total": total_figuras}
+    return {
+        "pacotes": pacotes, 
+        "coladas": coladas, 
+        "repetidas": repetidas, 
+        "catalogo_ids": catalogo_ids, 
+        "turma": turma_aluno,
+        "total": total_figuras_turma
+    }
 
 
-def processar_abertura_pacote_supa(ra, total_catalogo):
-    """Executa o sorteio e salva no Supabase (Sem uso de SQL puro/psycopg2)"""
+def processar_abertura_pacote_supa(ra, catalogo_ids_permitidos):
+    """Garante que os sorteios sejam apenas dos IDs da turma do aluno"""
+    if not catalogo_ids_permitidos: return None
+    
     res_est = supabase.table("estudantes").select("pacotes_disponiveis").eq("ra", ra).execute()
     if not res_est.data: return None
     
@@ -10534,12 +10548,11 @@ def processar_abertura_pacote_supa(ra, total_catalogo):
     if disponiveis <= 0: return None
         
     st.balloons()
-    # Diminui os pacotes disponíveis
     supabase.table("estudantes").update({"pacotes_disponiveis": disponiveis - 1}).eq("ra", ra).execute()
     
-    sorteio = random.choices(range(1, total_catalogo + 1), k=5)
+    # Sorteia APENAS dentro dos IDs da turma do aluno
+    sorteio = random.choices(catalogo_ids_permitidos, k=5)
     
-    # Puxa as quantidades atuais para somar
     res_inv = supabase.table("inventario_album").select("figurinha_id, quantidade").eq("estudante_ra", ra).in_("figurinha_id", sorteio).execute()
     qtd_map = {item['figurinha_id']: item['quantidade'] for item in res_inv.data}
     
@@ -10568,13 +10581,20 @@ def render_modulo_album():
     aba_album, aba_pacotes, aba_trocas = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas"])
 
     # ==========================================
-    # ABA 1: MEU ÁLBUM
+    # ABA 1: MEU ÁLBUM (FILTRADO POR TURMA)
     # ==========================================
     with aba_album:
         figurinhas_por_pagina = 10
+        total_figuras = dados_db['total']
+        
+        if total_figuras == 0:
+            st.warning(f"Nenhuma figurinha cadastrada para a turma '{dados_db['turma']}'. Peça ao professor para atualizar o sistema!")
+            return
+            
         if 'pag_album' not in st.session_state: st.session_state['pag_album'] = 0
         
-        total_paginas = (dados_db['total'] // figurinhas_por_pagina) + (1 if dados_db['total'] % figurinhas_por_pagina > 0 else 0)
+        # Paginação baseada no total de figurinhas DA TURMA
+        total_paginas = (total_figuras // figurinhas_por_pagina) + (1 if total_figuras % figurinhas_por_pagina > 0 else 0)
         
         c_prev, c_page, c_next = st.columns([1, 2, 1])
         with c_prev:
@@ -10582,21 +10602,21 @@ def render_modulo_album():
                 st.session_state['pag_album'] -= 1
                 st.rerun()
         with c_page:
-            progresso = len(dados_db['coladas']) / dados_db['total']
+            progresso = len(dados_db['coladas']) / total_figuras if total_figuras > 0 else 0
             st.markdown(f"<div style='text-align: center; color: #004d23; font-family: Oswald; font-size: 20px;'>PÁGINA {st.session_state['pag_album'] + 1} DE {total_paginas}</div>", unsafe_allow_html=True)
-            st.progress(progresso, text=f"Completado: {len(dados_db['coladas'])} de {dados_db['total']} coladas")
+            st.progress(progresso, text=f"Completado: {len(dados_db['coladas'])} de {total_figuras} da Turma {dados_db['turma']}")
         with c_next:
             if st.button("PRÓXIMA PÁGINA ➡️", use_container_width=True) and st.session_state['pag_album'] < (total_paginas - 1):
                 st.session_state['pag_album'] += 1
                 st.rerun()
 
         textos_paginas = {
-            0: "Bem-vindos à edição histórica do nosso álbum! Aqui vai encontrar todos os rostos que fazem o nosso dia a dia mais feliz. Comece a sua coleção!",
-            1: "⭐ CURIOSIDADE: Sabia que a nossa escola está a ganhar uma fachada totalmente nova e colorida? Cada figurinha aqui representa uma cor essencial do nosso time!",
-            2: "🎭 MOMENTOS INESQUECÍVEIS: Quem se lembra das incríveis apresentações teatrais no nosso evento Escola Aberta? Encontre os artistas da nossa escola!",
-            3: "Fique atento às figurinhas Lendárias! Elas são super raras e têm um brilho especial de ouro. Troque com os amigos na banca para conseguir fechar esta página."
+            0: f"Bem-vindos à edição histórica da Turma {dados_db['turma']}! Comece a sua coleção!",
+            1: "⭐ CURIOSIDADE: Sabia que a nossa escola está a ganhar uma fachada totalmente nova e colorida?",
+            2: "🎭 MOMENTOS INESQUECÍVEIS: Quem se lembra das incríveis apresentações teatrais no evento Escola Aberta?",
+            3: "Fique atento às figurinhas Lendárias da Equipe Escolar! Elas são brilhantes e muito raras!"
         }
-        texto_atual = textos_paginas.get(st.session_state['pag_album'], "Continue a abrir pacotinhos e a negociar com a turma para completar 100% da sua coleção!")
+        texto_atual = textos_paginas.get(st.session_state['pag_album'], "Continue a abrir pacotinhos e a negociar com os colegas para completar sua coleção!")
         
         st.markdown(f"""
             <div style='background-color: #fffdf0; padding: 15px; border-left: 6px solid #d4af37; border-radius: 8px; margin-top: 15px; margin-bottom: 25px; color: #333; font-size: 0.95rem; box-shadow: 2px 2px 10px rgba(0,0,0,0.05); line-height: 1.5;'>
@@ -10604,47 +10624,50 @@ def render_modulo_album():
             </div>
         """, unsafe_allow_html=True)
         
+        # Isola APENAS os IDs que devem ser renderizados nesta página
         inicio_idx = st.session_state['pag_album'] * figurinhas_por_pagina
-        # No Supabase, o range é inclusivo
-        fim_idx = inicio_idx + figurinhas_por_pagina - 1
+        fim_idx = inicio_idx + figurinhas_por_pagina
+        ids_da_pagina = dados_db['catalogo_ids'][inicio_idx:fim_idx]
         
-        res_figs = supabase.table("figurinhas").select("*").order("id").range(inicio_idx, fim_idx).execute()
-        figurinhas_pagina = res_figs.data
+        if ids_da_pagina:
+            # Puxa informações apenas dos IDs desta página específica
+            res_figs = supabase.table("figurinhas").select("*").in_("id", ids_da_pagina).execute()
+            map_figs = {f['id']: f for f in res_figs.data}
 
-        for linha in range(0, len(figurinhas_pagina), 5):
-            cols = st.columns(5)
-            for i, col in enumerate(cols):
-                if linha + i < len(figurinhas_pagina):
-                    item = figurinhas_pagina[linha + i]
-                    f_id = item['id']
-                    f_nome = item['nome']
-                    f_cargo = item['cargo']
-                    f_tipo = item['tipo']
-                    
-                    classe_lendaria = "lendaria" if f_tipo == "lendaria" else ""
-                    
-                    with col:
-                        if f_id in dados_db['coladas']:
-                            st.markdown(f"""
-                                <div class="fig-wrapper">
-                                    <div class="slot-preenchido {classe_lendaria}">
-                                        <div class="foto-area">📸</div>
-                                        <div class="foto-rodape">
-                                            <span class="rodape-num">Nº {f_id} - {f_cargo}</span>
-                                            <span class="rodape-nome">{f_nome}</span>
+            for linha in range(0, len(ids_da_pagina), 5):
+                cols = st.columns(5)
+                for i, col in enumerate(cols):
+                    if linha + i < len(ids_da_pagina):
+                        f_id = ids_da_pagina[linha + i]
+                        item = map_figs.get(f_id, {'nome': '???', 'cargo': '?', 'tipo': 'comum'})
+                        f_nome = item.get('nome', '')
+                        f_cargo = item.get('cargo', '')
+                        f_tipo = item.get('tipo', 'comum')
+                        
+                        classe_lendaria = "lendaria" if f_tipo == "lendaria" else ""
+                        
+                        with col:
+                            if f_id in dados_db['coladas']:
+                                st.markdown(f"""
+                                    <div class="fig-wrapper">
+                                        <div class="slot-preenchido {classe_lendaria}">
+                                            <div class="foto-area">📸</div>
+                                            <div class="foto-rodape">
+                                                <span class="rodape-num">Nº {f_id} - {f_cargo}</span>
+                                                <span class="rodape-nome">{f_nome}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            """, unsafe_allow_html=True)
-                        else:
-                            st.markdown(f"""
-                                <div class="fig-wrapper">
-                                    <div class="slot-vazio">
-                                        <div class="numero">{f_id}</div>
-                                        <div class="texto">Faltando</div>
+                                """, unsafe_allow_html=True)
+                            else:
+                                st.markdown(f"""
+                                    <div class="fig-wrapper">
+                                        <div class="slot-vazio">
+                                            <div class="numero">{f_id}</div>
+                                            <div class="texto">Faltando</div>
+                                        </div>
                                     </div>
-                                </div>
-                            """, unsafe_allow_html=True)
+                                """, unsafe_allow_html=True)
 
     # ==========================================
     # ABA 2: ABRIR PACOTINHOS
@@ -10654,8 +10677,9 @@ def render_modulo_album():
         
         if dados_db['pacotes'] > 0:
             st.markdown('<div class="pacotinho-btn">', unsafe_allow_html=True)
-            if st.button("💥 RASGAR PACOTINHO OFICIAL! 💥", use_container_width=True):
-                sorteio = processar_abertura_pacote_supa(estudante_ra, dados_db['total'])
+            if st.button("💥 RASGAR PACOTINHO DA TURMA! 💥", use_container_width=True):
+                # O pacotinho agora recebe os ids estritos da turma
+                sorteio = processar_abertura_pacote_supa(estudante_ra, dados_db['catalogo_ids'])
                 if sorteio:
                     st.session_state['ultimo_sorteio'] = sorteio
                     st.rerun()
@@ -10668,7 +10692,6 @@ def render_modulo_album():
             st.markdown("<h3 style='text-align:center; font-family: Oswald; color: #009c3b;'>✨ FIGURINHAS ENCONTRADAS: ✨</h3>", unsafe_allow_html=True)
             
             cols_novas = st.columns(5)
-            # Puxamos as informações das figurinhas a partir da tabela
             res_sorteadas = supabase.table("figurinhas").select("*").in_("id", st.session_state['ultimo_sorteio']).execute()
             map_sorteadas = {f['id']: f for f in res_sorteadas.data}
             
@@ -10697,12 +10720,13 @@ def render_modulo_album():
                 st.rerun()
 
     # ==========================================
-    # ABA 3: BANCA DE TROCAS (NATIVA SUPABASE)
+    # ABA 3: BANCA DE TROCAS
     # ==========================================
     with aba_trocas:
-        st.markdown("### 🤝 Mercado de Transferências Autêntico")
+        st.markdown("### 🤝 Mercado de Transferências da Turma")
         
-        res_cat = supabase.table("figurinhas").select("id, nome, tipo").execute()
+        # Puxa informações apenas do catálogo desta turma
+        res_cat = supabase.table("figurinhas").select("id, nome, tipo").in_("id", dados_db['catalogo_ids']).execute()
         catalogo_map = {f['id']: f for f in res_cat.data}
         
         col1, col2 = st.columns(2)
@@ -10712,7 +10736,7 @@ def render_modulo_album():
                 contagem = {x: dados_db['repetidas'].count(x) for x in set(dados_db['repetidas'])}
                 for f_id, qtd in contagem.items():
                     info = catalogo_map.get(f_id, {})
-                    f_nome = info.get('nome', '')
+                    f_nome = info.get('nome', 'ID Desconhecido')
                     f_tipo = info.get('tipo', 'comum')
                     tag = "✨ (LENDÁRIA!)" if f_tipo == "lendaria" else ""
                     st.info(f"🟢 **Nº {f_id} - {f_nome}** {tag} — Tem {qtd} extra(s)")
@@ -10723,12 +10747,11 @@ def render_modulo_album():
             st.markdown("#### 📢 Publicar Oferta de Troca")
             if dados_db['repetidas']:
                 fig_oferecida = st.selectbox("Sua Figurinha Repetida:", list(set(dados_db['repetidas'])), key="supa_of")
-                faltantes = [x for x in range(1, dados_db['total'] + 1) if x not in dados_db['coladas']]
+                faltantes = [x for x in dados_db['catalogo_ids'] if x not in dados_db['coladas']]
                 
                 if faltantes:
                     fig_desejada = st.selectbox("Qual quer receber?", faltantes, key="supa_des")
                     if st.button("Registrar Proposta no Mural", type="primary", use_container_width=True):
-                        # Sem ID porque no banco PostgreSQL a coluna é SERIAL AUTOINCREMENT
                         supabase.table("banca_trocas").insert({
                             "estudante_ra": estudante_ra, 
                             "id_oferecida": fig_oferecida, 
@@ -10739,14 +10762,13 @@ def render_modulo_album():
                         time.sleep(1)
                         st.rerun()
                 else:
-                    st.success("Álbum completo!")
+                    st.success("Álbum da turma completo!")
             else:
                 st.warning("Consiga repetidas abrindo pacotes antes de criar propostas.")
 
         st.write("---")
         st.markdown("#### 📢 Mural de Anúncios Ativos na Escola")
         
-        # Puxa o mural ativo e mapeia localmente para evitar queries muito lentas
         res_mural = supabase.table("banca_trocas").select("*").eq("status", "ativo").order("data_criacao", desc=True).execute()
         anuncios = res_mural.data
         
@@ -10761,61 +10783,57 @@ def render_modulo_album():
                 id_of = anuncio['id_oferecida']
                 id_des = anuncio['id_desejada']
                 
-                info_of = catalogo_map.get(id_of, {})
-                nome_of = info_of.get('nome', '')
-                tipo_of = info_of.get('tipo', 'comum')
-                
-                info_des = catalogo_map.get(id_des, {})
-                nome_des = info_des.get('nome', '')
-                
-                escala_ouro = tipo_of == "lendaria"
-                border_color = "#d4af37" if escala_ouro else "#009c3b"
-                bg_card = "#fffdf0" if escala_ouro else "#ffffff"
-                
-                st.markdown(f"""
-                    <div style='background-color: {bg_card}; padding: 15px; border-radius: 10px; border-left: 6px solid {border_color}; box-shadow: 2px 2px 6px rgba(0,0,0,0.05); margin-bottom: 10px;'>
-                        <strong style='color: #002776;'>{dono_nome}</strong> {"<span style='color:#b8860b;'>[LENDÁRIA]</span>" if escala_ouro else ""}<br>
-                        <span style='font-size:0.9rem; color:#444;'>Oferece a carta <b>Nº {id_of} ({nome_of})</b> em troca da <b>Nº {id_des} ({nome_des})</b></span>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                if dono_ra != estudante_ra:
-                    if st.button(f"Aceitar Troca com {dono_nome} (Figurinha Nº {id_of})##{item_id}", use_container_width=True):
-                        # Verifica o inventário de quem clicou no botão
-                        res_check = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", estudante_ra).eq("figurinha_id", id_des).execute()
-                        
-                        if res_check.data and res_check.data[0]['quantidade'] > 1:
-                            # 1. Finaliza a transação
-                            supabase.table("banca_trocas").update({"status": "concluido"}).eq("id", item_id).execute()
+                # Exibe a oferta se pelo menos uma das figurinhas for do catálogo desta turma
+                if id_of in dados_db['catalogo_ids'] or id_des in dados_db['catalogo_ids']:
+                    info_of = catalogo_map.get(id_of, {})
+                    nome_of = info_of.get('nome', f'Figurinha {id_of}')
+                    tipo_of = info_of.get('tipo', 'comum')
+                    
+                    info_des = catalogo_map.get(id_des, {})
+                    nome_des = info_des.get('nome', f'Figurinha {id_des}')
+                    
+                    escala_ouro = tipo_of == "lendaria"
+                    border_color = "#d4af37" if escala_ouro else "#009c3b"
+                    bg_card = "#fffdf0" if escala_ouro else "#ffffff"
+                    
+                    st.markdown(f"""
+                        <div style='background-color: {bg_card}; padding: 15px; border-radius: 10px; border-left: 6px solid {border_color}; box-shadow: 2px 2px 6px rgba(0,0,0,0.05); margin-bottom: 10px;'>
+                            <strong style='color: #002776;'>{dono_nome}</strong> {"<span style='color:#b8860b;'>[LENDÁRIA]</span>" if escala_ouro else ""}<br>
+                            <span style='font-size:0.9rem; color:#444;'>Oferece a carta <b>Nº {id_of} ({nome_of})</b> em troca da <b>Nº {id_des} ({nome_des})</b></span>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    if dono_ra != estudante_ra:
+                        if st.button(f"Aceitar Troca com {dono_nome} (Figurinha Nº {id_of})##{item_id}", use_container_width=True):
+                            res_check = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", estudante_ra).eq("figurinha_id", id_des).execute()
                             
-                            # 2. Desconta a figurinha de quem aceitou
-                            q_atual = res_check.data[0]['quantidade']
-                            supabase.table("inventario_album").update({"quantidade": q_atual - 1}).eq("estudante_ra", estudante_ra).eq("figurinha_id", id_des).execute()
-                            
-                            # E credita a figurinha que ele ganhou na troca
-                            res_q2 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", estudante_ra).eq("figurinha_id", id_of).execute()
-                            if res_q2.data:
-                                supabase.table("inventario_album").update({"quantidade": res_q2.data[0]['quantidade'] + 1}).eq("estudante_ra", estudante_ra).eq("figurinha_id", id_of).execute()
+                            if res_check.data and res_check.data[0]['quantidade'] > 1:
+                                supabase.table("banca_trocas").update({"status": "concluido"}).eq("id", item_id).execute()
+                                
+                                q_atual = res_check.data[0]['quantidade']
+                                supabase.table("inventario_album").update({"quantidade": q_atual - 1}).eq("estudante_ra", estudante_ra).eq("figurinha_id", id_des).execute()
+                                
+                                res_q2 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", estudante_ra).eq("figurinha_id", id_of).execute()
+                                if res_q2.data:
+                                    supabase.table("inventario_album").update({"quantidade": res_q2.data[0]['quantidade'] + 1}).eq("estudante_ra", estudante_ra).eq("figurinha_id", id_of).execute()
+                                else:
+                                    supabase.table("inventario_album").insert({"estudante_ra": estudante_ra, "figurinha_id": id_of, "quantidade": 1}).execute()
+                                
+                                res_d1 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", dono_ra).eq("figurinha_id", id_of).execute()
+                                if res_d1.data:
+                                    supabase.table("inventario_album").update({"quantidade": res_d1.data[0]['quantidade'] - 1}).eq("estudante_ra", dono_ra).eq("figurinha_id", id_of).execute()
+                                
+                                res_d2 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", dono_ra).eq("figurinha_id", id_des).execute()
+                                if res_d2.data:
+                                    supabase.table("inventario_album").update({"quantidade": res_d2.data[0]['quantidade'] + 1}).eq("estudante_ra", dono_ra).eq("figurinha_id", id_des).execute()
+                                else:
+                                    supabase.table("inventario_album").insert({"estudante_ra": dono_ra, "figurinha_id": id_des, "quantidade": 1}).execute()
+                                
+                                st.success("Troca realizada com sucesso! Verifique sua página do álbum.")
+                                time.sleep(1)
+                                st.rerun()
                             else:
-                                supabase.table("inventario_album").insert({"estudante_ra": estudante_ra, "figurinha_id": id_of, "quantidade": 1}).execute()
-                            
-                            # 3. Desconta do dono do anúncio
-                            res_d1 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", dono_ra).eq("figurinha_id", id_of).execute()
-                            if res_d1.data:
-                                supabase.table("inventario_album").update({"quantidade": res_d1.data[0]['quantidade'] - 1}).eq("estudante_ra", dono_ra).eq("figurinha_id", id_of).execute()
-                            
-                            # E credita a figurinha que ele estava buscando no anúncio
-                            res_d2 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", dono_ra).eq("figurinha_id", id_des).execute()
-                            if res_d2.data:
-                                supabase.table("inventario_album").update({"quantidade": res_d2.data[0]['quantidade'] + 1}).eq("estudante_ra", dono_ra).eq("figurinha_id", id_des).execute()
-                            else:
-                                supabase.table("inventario_album").insert({"estudante_ra": dono_ra, "figurinha_id": id_des, "quantidade": 1}).execute()
-                            
-                            st.success("Troca realizada com sucesso! Verifique sua página do álbum.")
-                            time.sleep(1)
-                            st.rerun()
-                        else:
-                            st.error(f"Você não possui a figurinha Nº {id_des} sobrando no inventário para fechar essa troca.")
+                                st.error(f"Você não possui a figurinha Nº {id_des} sobrando no inventário para fechar essa troca.")
         else:
             st.info("Nenhum anúncio de troca em aberto.")
             
@@ -10823,7 +10841,7 @@ def render_modulo_album():
 
 
 # ==============================================================================
-# GATILHO DO MENU (NÃO ESQUEÇA DE DEIXAR ISSO NO FINAL)
+# GATILHO DO MENU 
 # ==============================================================================
 if 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
     render_modulo_album()

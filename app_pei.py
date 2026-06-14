@@ -692,7 +692,7 @@ def login():
                     
                     st.write("") # Espaço
                     
-                    user_id = st.text_input("Matrícula Funcional", placeholder="Ex: 12345")
+                    user_id = st.text_input("Matrícula", placeholder="Ex: 12345")
                     password = st.text_input("Senha", type="password", placeholder="••••••")
                     
                     st.markdown("""

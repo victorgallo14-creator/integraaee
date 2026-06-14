@@ -1207,16 +1207,13 @@ with st.sidebar:
         )
         
     elif modulo_atuacao == "🏫 Ensino Regular":
-        st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
-        # --- TRAVA DE SEGURANÇA: MODO ESTUDANTE ---
-        # Adicione este bloco no início da sua área logada, antes de desenhar os menus laterais
-        # --- TRAVA DE SEGURANÇA: MODO ESTUDANTE ---
+        
         # ==============================================================================
-    # INTERCEPTAÇÃO E REDIRECIONAMENTO DIRETO DO ESTUDANTE
-    # ==============================================================================
+        # 1. INTERCEPTAÇÃO E REDIRECIONAMENTO DIRETO DO ESTUDANTE (TELA CHEIA)
+        # ==============================================================================
         if st.session_state.get('user_role') == 'estudante':
             
-            # 1. MÁGICA DO CSS: Esconde completamente a barra lateral e a setinha de expandir
+            # MÁGICA DO CSS: Esconde completamente a barra lateral e a setinha de expandir
             st.markdown("""
                 <style>
                     [data-testid="stSidebar"] { display: none !important; }
@@ -1226,7 +1223,7 @@ with st.sidebar:
                 </style>
             """, unsafe_allow_html=True)
             
-            # 2. Cria o Cabeçalho Superior do Aluno
+            # Cabeçalho Superior do Aluno
             c_nome, c_sair = st.columns([3, 1])
             
             with c_nome:
@@ -1234,7 +1231,6 @@ with st.sidebar:
                 st.markdown(f"<span style='color: #666; font-size: 0.9rem;'>📌 R.A.: {st.session_state.get('usuario_ra')}</span>", unsafe_allow_html=True)
                 
             with c_sair:
-                # Empurra o botão um pouco para baixo para alinhar com o texto
                 st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
                 if st.button("🚪 Sair / Trocar Aluno", type="primary", use_container_width=True):
                     st.session_state.authenticated = False
@@ -1245,25 +1241,39 @@ with st.sidebar:
                     
             st.write("---")
             
-            # 3. Carrega o Álbum ocupando 100% da tela abaixo do cabeçalho
+            # Carrega o Álbum ocupando 100% da tela abaixo do cabeçalho
             render_modulo_album()
             
-            # 4. Para a execução do código (Impede que o aluno veja menus de professores)
+            # Para a execução do código (Impede que o aluno veja menus de professores)
             st.stop()
+            
         # ==============================================================================
+        # 2. MENU NORMAL PARA PROFESSORES E DIREÇÃO
+        # ==============================================================================
+        else:
+            st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
             
-        if st.session_state.get('usuario_nome') == "José Victor Souza Gallo":
-            opcoes_regular.append("⚙️ Configurações")
-            opcoes_regular.append("💾 Cofre de Segurança")
-            opcoes_regular.append("🏆 Álbum de Figurinhas")  # Liberado apenas para o seu usuário para testes
+            opcoes_regular = [
+                "🖼️ Carômetro Escolar", 
+                "💻 Agendamento Informática", 
+                "📝 Nova Ata de Conselho", 
+                "📂 Histórico de Atas", 
+                "📖 Planejamento Curricular"
+            ]
             
-        # ADICIONADA A CHAVE: key="nav_regular"
-        app_mode_regular = st.radio(
-            "Navegação", 
-            opcoes_regular, 
-            label_visibility="collapsed",
-            key="nav_regular"
-        )
+            # Adiciona as opções secretas/administração apenas para o seu usuário
+            if st.session_state.get('usuario_nome') == "José Victor Souza Gallo":
+                opcoes_regular.append("⚙️ Configurações")
+                opcoes_regular.append("💾 Cofre de Segurança")
+                opcoes_regular.append("🏆 Álbum de Figurinhas")  # Liberado para os seus testes
+                
+            # ADICIONADA A CHAVE: key="nav_regular"
+            app_mode_regular = st.radio(
+                "Navegação", 
+                opcoes_regular, 
+                label_visibility="collapsed",
+                key="nav_regular"
+            )
 
         
     # ====== ADICIONE ESTE BLOCO ABAIXO ======

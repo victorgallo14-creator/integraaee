@@ -10973,9 +10973,42 @@ def render_modulo_album():
 
 
 
-
-    # ==============================================================================
-# GATILHO DO ÁLBUM DE FIGURINHAS (MENU REGULAR)
 # ==============================================================================
-if 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
-    render_modulo_album()
+# 2. A ÚLTIMA COISA DO SEU ARQUIVO DEVE SER OS GATILHOS DE TELA!
+# ==============================================================================
+if st.session_state.get('authenticated'):
+    
+    # GATILHO 1: SE FOR ESTUDANTE (TELA CHEIA AUTOMÁTICA)
+    if st.session_state.get('user_role') == 'estudante':
+        # Mágica CSS: Esconde a barra lateral inteira para parecer um App
+        st.markdown("""
+            <style>
+                [data-testid="stSidebar"] { display: none !important; }
+                [data-testid="collapsedControl"] { display: none !important; }
+                .block-container { padding-top: 2rem !important; }
+            </style>
+        """, unsafe_allow_html=True)
+        
+        # Cabeçalho Superior do Aluno
+        c_nome, c_sair = st.columns([3, 1])
+        with c_nome:
+            st.markdown(f"<h3 style='color: #004d23; font-family: Poppins; margin-bottom: 0;'>🎒 Olá, <b>{st.session_state.get('usuario_nome')}</b>!</h3>", unsafe_allow_html=True)
+            st.markdown(f"<span style='color: #666; font-size: 0.9rem;'>📌 R.A.: {st.session_state.get('usuario_ra')}</span>", unsafe_allow_html=True)
+            
+        with c_sair:
+            st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+            if st.button("🚪 Sair da Conta", type="primary", use_container_width=True):
+                st.session_state.authenticated = False
+                st.session_state.user_role = None
+                st.session_state.usuario_ra = None
+                st.session_state.usuario_nome = None
+                st.rerun()
+                
+        st.write("---")
+        
+        # Chama a função (agora o Python já a conhece porque ela está logo acima!)
+        render_modulo_album()
+
+    # GATILHO 2: SE VOCÊ (DIRETOR) CLICAR NO MENU DA BARRA LATERAL
+    elif 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
+        render_modulo_album()

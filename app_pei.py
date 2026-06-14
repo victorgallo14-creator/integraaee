@@ -1178,6 +1178,7 @@ with st.sidebar:
         if st.session_state.get('usuario_nome') == "José Victor Souza Gallo":
             opcoes_regular.append("⚙️ Configurações")
             opcoes_regular.append("💾 Cofre de Segurança")
+            opcoes_regular.append("🏆 Álbum de Figurinhas")  # Liberado apenas para o seu usuário para testes
             
         # ADICIONADA A CHAVE: key="nav_regular"
         app_mode_regular = st.radio(
@@ -10347,3 +10348,169 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
                     
             except Exception as e:
                 st.error(f"Erro crítico no processamento da Ata: {e}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# =====================================================================
+# MÓDULO: ÁLBUM DE FIGURINHAS TEMÁTICO (TESTE)
+# =====================================================================
+import random
+
+def injetar_css_album():
+    st.markdown("""
+        <style>
+        .album-header {
+            background: linear-gradient(to right, #009c3b, #ffdf00);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            color: #ffffff;
+            font-family: 'Arial Black', sans-serif;
+            text-transform: uppercase;
+            box-shadow: 3px 3px 10px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+            border: 3px solid #002776;
+        }
+        .album-header h1 { margin: 0; color: #ffffff; text-shadow: 2px 2px 4px #000000; }
+        .slot-vazio { border: 3px dashed #009c3b; background-color: #f0fdf4; height: 180px; display: flex; align-items: center; justify-content: center; border-radius: 10px; color: #009c3b; font-weight: 900; font-size: 30px; margin-bottom: 15px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.1); }
+        .slot-preenchido { border: 3px solid #ffdf00; background-color: #009c3b; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; color: #ffffff; font-weight: bold; margin-bottom: 15px; box-shadow: 2px 2px 8px rgba(0,0,0,0.4); }
+        .pacotinho-btn > button { background-color: #009c3b !important; color: #ffdf00 !important; font-size: 20px !important; font-weight: bold !important; border: 2px solid #ffdf00 !important; border-radius: 10px !important; width: 100%; height: 60px; }
+        .pacotinho-btn > button:hover { background-color: #ffdf00 !important; color: #009c3b !important; border: 2px solid #009c3b !important; }
+        </style>
+    """, unsafe_allow_html=True)
+
+def inicializar_dados_album():
+    TOTAL_FIGURINHAS = 30
+    if 'album_dados' not in st.session_state:
+        st.session_state['album_dados'] = {
+            'pacotes_disponiveis': 2,
+            'coladas': [],
+            'repetidas': [],
+            'total_figurinhas': TOTAL_FIGURINHAS,
+            'pagina_atual': 0
+        }
+
+def abrir_pacotinho():
+    dados = st.session_state['album_dados']
+    if dados['pacotes_disponiveis'] > 0:
+        st.balloons()
+        dados['pacotes_disponiveis'] -= 1
+        sorteio = random.choices(range(1, dados['total_figurinhas'] + 1), k=5)
+        for fig in sorteio:
+            if fig not in dados['coladas']: 
+                dados['coladas'].append(fig)
+            else: 
+                dados['repetidas'].append(fig)
+        dados['coladas'].sort()
+        dados['repetidas'].sort()
+        return sorteio
+    return None
+
+def render_modulo_album():
+    injetar_css_album()
+    inicializar_dados_album()
+    dados = st.session_state['album_dados']
+
+    st.markdown('<div class="album-header"><h1>🏆 Álbum Oficial do CEIEF 🏆</h1><p>Colecione a sua turma e a equipa escolar!</p></div>', unsafe_allow_html=True)
+
+    aba_album, aba_pacotes, aba_trocas = st.tabs(["📖 O Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas"])
+
+    with aba_album:
+        figurinhas_por_pagina = 6
+        total_paginas = (dados['total_figurinhas'] // figurinhas_por_pagina) + (1 if dados['total_figurinhas'] % figurinhas_por_pagina > 0 else 0)
+        
+        col_prev, col_page, col_next = st.columns([1, 2, 1])
+        with col_prev:
+            if st.button("⬅️ Página Anterior") and dados['pagina_atual'] > 0:
+                dados['pagina_atual'] -= 1
+                st.rerun()
+        with col_page:
+            st.markdown(f"<h4 style='text-align: center; color: #009c3b;'>Página {dados['pagina_atual'] + 1} de {total_paginas}</h4>", unsafe_allow_html=True)
+            progresso = len(dados['coladas']) / dados['total_figurinhas']
+            st.progress(progresso, text=f"Completado: {len(dados['coladas'])}/{dados['total_figurinhas']}")
+        with col_next:
+            if st.button("Próxima Página ➡️") and dados['pagina_atual'] < (total_paginas - 1):
+                dados['pagina_atual'] += 1
+                st.rerun()
+
+        st.write("---")
+        inicio_idx = dados['pagina_atual'] * figurinhas_por_pagina
+        fim_idx = inicio_idx + figurinhas_por_pagina
+        figurinhas_da_pagina = list(range(1, dados['total_figurinhas'] + 1))[inicio_idx:fim_idx]
+
+        for linha in range(0, len(figurinhas_da_pagina), 3):
+            cols = st.columns(3)
+            for i, col in enumerate(cols):
+                if linha + i < len(figurinhas_da_pagina):
+                    id_fig = figurinhas_da_pagina[linha + i]
+                    with col:
+                        if id_fig in dados['coladas']:
+                            st.markdown(f"<div class='slot-preenchido'><span style='font-size: 40px;'>⭐</span><span>Figurinha {id_fig}</span></div>", unsafe_allow_html=True)
+                        else:
+                            st.markdown(f'<div class="slot-vazio">{id_fig}</div>', unsafe_allow_html=True)
+
+    with aba_pacotes:
+        st.info(f"Tem **{dados['pacotes_disponiveis']}** pacotinhos disponíveis para abrir esta semana!")
+        if dados['pacotes_disponiveis'] > 0:
+            st.markdown('<div class="pacotinho-btn">', unsafe_allow_html=True)
+            if st.button("🎉 ABRIR 1 PACOTINHO 🎉", use_container_width=True):
+                novas_figs = abrir_pacotinho()
+                st.success("Pacotinho aberto! Veja as figurinhas que calharam:")
+                cols_novas = st.columns(5)
+                for i, fig in enumerate(novas_figs):
+                    with cols_novas[i]:
+                        st.markdown(f"<div style='text-align:center; padding:10px; border:2px solid #009c3b; border-radius:5px; background-color:#ffdf00; color:#002776; font-weight:bold;'># {fig}</div>", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.warning("Não tem pacotinhos de momento.")
+
+    with aba_trocas:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("### As Suas Repetidas")
+            if dados['repetidas']:
+                contagem_repetidas = {x: dados['repetidas'].count(x) for x in set(dados['repetidas'])}
+                for fig, qtd in contagem_repetidas.items(): 
+                    st.write(f"🟢 Figurinha **{fig}** (Tem {qtd} extra)")
+            else: 
+                st.write("Ainda não tem figurinhas repetidas.")
+
+        with col2:
+            st.markdown("### Fazer uma Oferta")
+            if dados['repetidas']:
+                fig_oferecida = st.selectbox("Qual a repetida que quer dar?", list(set(dados['repetidas'])))
+                faltantes = [x for x in range(1, dados['total_figurinhas'] + 1) if x not in dados['coladas']]
+                if faltantes:
+                    fig_desejada = st.selectbox("Qual a figurinha que quer receber?", faltantes)
+                    if st.button("Publicar Oferta de Troca", type="primary"):
+                        st.success(f"Oferta publicada! Está a oferecer a **{fig_oferecida}** em troca da **{fig_desejada}**.")
+                else: 
+                    st.success("O seu álbum já está completo!")
+            else: 
+                st.info("Consiga repetidas nos pacotinhos para poder realizar trocas.")
+
+# ==============================================================================
+# GATILHO PARA EXIBIR A TELA (EXATAMENTE NO FINAL DO FICHEIRO)
+# ==============================================================================
+if 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
+    render_modulo_album()

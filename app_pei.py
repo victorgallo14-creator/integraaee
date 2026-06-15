@@ -10846,3 +10846,47 @@ def render_modulo_album():
             st.info("Ainda não há recordes registrados para este jogo. Seja o primeiro a dominar o placar!")
 
     st.markdown('</div>', unsafe_allow_html=True)
+
+# ==============================================================================
+# GATILHOS FINAIS DO SISTEMA (FICAM NO FUNDO DO ARQUIVO)
+# ==============================================================================
+if st.session_state.get('authenticated'):
+    
+    # GATILHO 1: ALUNO LOGADO (O Módulo dele agora é exclusivo, pula todo o resto!)
+    if st.session_state.get('modulo_atuacao') == "Álbum do Estudante":
+        
+        # Mágica CSS: Esconde a barra lateral inteira para parecer um App
+        st.markdown("""
+            <style>
+                [data-testid="stSidebar"] { display: none !important; }
+                [data-testid="collapsedControl"] { display: none !important; }
+                .block-container { padding-top: 2rem !important; }
+            </style>
+        """, unsafe_allow_html=True)
+        
+        # Cabeçalho Superior do Aluno
+        c_nome, c_sair = st.columns([3, 1])
+        with c_nome:
+            st.markdown(f"<h3 style='color: #004d23; font-family: Poppins; margin-bottom: 0;'>🎒 Olá, <b>{st.session_state.get('usuario_nome')}</b>!</h3>", unsafe_allow_html=True)
+            st.markdown(f"<span style='color: #666; font-size: 0.9rem;'>📌 R.A.: {st.session_state.get('usuario_ra')}</span>", unsafe_allow_html=True)
+            
+        with c_sair:
+            st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+            if st.button("🚪 Sair da Conta", type="primary", use_container_width=True):
+                st.session_state.authenticated = False
+                st.session_state.user_role = None
+                st.session_state.usuario_ra = None
+                st.session_state.usuario_nome = None
+                st.session_state.modulo_atuacao = None
+                st.rerun()
+                
+        st.write("---")
+        
+        # Chama a função principal do álbum!
+        render_modulo_album()
+        st.stop()
+
+    # GATILHO 2: DIRETOR (Para você testar entrando no Ensino Regular)
+    elif st.session_state.get('modulo_atuacao') == "🏫 Ensino Regular":
+        if 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
+            render_modulo_album()

@@ -10496,7 +10496,7 @@ def render_modulo_album():
     estudante_ra = st.session_state.get('usuario_ra', 'RA-TESTE-GALLO')
     dados_db = puxar_dados_album_estudante(estudante_ra)
     st.markdown('<div class="album-premium-container">', unsafe_allow_html=True)
-    st.markdown('<div class="header-premium"><h1>🏆 ÁLBUM DA COPA CEIEF 🏆</h1><p>Módulo de Integração de Alunos</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="header-premium"><h1>🏆 SUPER ÁLBUM DOS CRAQUES 🏆</h1><p>A seleção oficial da nossa escola!</p></div>', unsafe_allow_html=True)
     aba_album, aba_pacotes, aba_trocas, aba_jogos = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas", "🏟️ Arena de Jogos"])
     with aba_album:
         figurinhas_por_pagina = 10

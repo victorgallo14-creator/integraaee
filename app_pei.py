@@ -10440,8 +10440,15 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 
+
+
+
+
+
+
+
 # =====================================================================
-# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM E ARENA DE JOGOS INTERATIVA (V FINAL)
+# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM E ARENA DE JOGOS (VERSÃO SUPER)
 # Tabelas: estudantes, figurinhas, inventario_album, banca_trocas
 # =====================================================================
 import random
@@ -10524,11 +10531,10 @@ def render_modulo_album():
     estudante_ra = st.session_state.get('usuario_ra', 'RA-TESTE-GALLO')
     dados_db = puxar_dados_album_estudante(estudante_ra)
     st.markdown('<div class="album-premium-container">', unsafe_allow_html=True)
-    
-    # Nome atualizado e divertido!
     st.markdown('<div class="header-premium"><h1>⚽ SUPER ÁLBUM DOS CRAQUES ⚽</h1><p style="font-size: 1.2rem; color: #ffffff; font-weight: 600;">A seleção oficial da nossa escola!</p></div>', unsafe_allow_html=True)
     
     aba_album, aba_pacotes, aba_trocas, aba_jogos = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas", "🏟️ Arena de Jogos"])
+    
     with aba_album:
         figurinhas_por_pagina = 10
         total_figuras = dados_db['total']
@@ -10651,14 +10657,10 @@ def render_modulo_album():
                             else: st.error(f"Você não possui a figurinha Nº {id_des} sobrando no inventário para fechar essa troca.")
         else: st.info("Nenhum anúncio de troca em aberto.")
 
-    # =========================================================================
-    # ARENA DE JOGOS: AGORA COM 5 JOGOS TOTALMENTE INTERATIVOS!
-    # =========================================================================
     with aba_jogos:
         st.markdown("### 🏟️ Arena de Jogos e Desafios")
-        st.write("Treine as suas habilidades nestes mini-jogos exclusivos!")
+        st.write("Treine as suas habilidades cognitivas e reflexos nestes mini-jogos exclusivos!")
         st.write("---")
-        
         jogo1, jogo2, jogo3, jogo4, jogo5 = st.tabs(["🧠 Memória", "🧤 Goleiro", "🎯 Falta", "🏃 Pula Craque", "⚽ Embaixadinha"])
         
         with jogo1:
@@ -10676,9 +10678,43 @@ def render_modulo_album():
             components.html("""<!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body{margin:0;font-family:'Oswald',sans-serif;user-select:none; overflow:hidden;} #game{width:100%;height:300px;background:linear-gradient(#87CEEB 70%, #4CAF50 30%);position:relative;border-radius:10px;overflow:hidden;box-shadow:inset 0 0 10px rgba(0,0,0,0.3);} #goal{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);width:200px;height:100px;border:5px solid white;border-bottom:none;} #targetZone{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);width:60px;height:100px;background:rgba(0,255,0,0.3);} #target{position:absolute;bottom:130px;left:0;font-size:30px;} #ball{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:40px;transition:bottom 0.3s ease-out;} button{position:absolute;top:20px;left:50%;transform:translateX(-50%);padding:10px 30px;font-size:20px;font-weight:bold;background:#ffdf00;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';} #msg{position:absolute;top:80px;width:100%;text-align:center;font-size:30px;color:white;text-shadow:2px 2px 4px #000;font-weight:bold;} </style></head><body> <div id="game"> <div id="goal"></div><div id="targetZone"></div><div id="target">🎯</div><div id="ball">⚽</div> <button id="btn" onclick="shoot()">CHUTAR!</button><div id="msg"></div> </div> <script> let tx=0; let d=1; let speed=3; let moving=true; const tg=document.getElementById('target'); const bl=document.getElementById('ball'); const btn=document.getElementById('btn'); const msg=document.getElementById('msg'); function anim(){ if(!moving)return; let w = window.innerWidth || 300; tx+=speed*d; if(tx>w-40||tx<0)d*=-1; tg.style.left=tx+'px'; requestAnimationFrame(anim); } anim(); function shoot(){ if(!moving){ moving=true; bl.style.bottom='20px'; msg.innerText=''; btn.innerText='CHUTAR!'; anim(); return; } moving=false; bl.style.bottom='130px'; setTimeout(()=>{ let w = window.innerWidth || 300; let center=w/2; let tCenter=tx+15; if(Math.abs(tCenter-center)<35){ msg.innerText="🎉 GOLAÇO!!!"; msg.style.color="#00FF00"; } else{ msg.innerText="❌ NA TRAVE!"; msg.style.color="red"; } btn.innerText='JOGAR DE NOVO'; },300); } </script></body></html>""", height=350)
             
         with jogo4:
-            st.markdown("#### 🏃 Pula Craque")
-            st.write("Toque ou clique na tela para saltar os obstáculos!")
-            components.html("""<!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body{margin:0;font-family:'Oswald',sans-serif;user-select:none;overflow:hidden;} #game{width:100%;height:300px;background:#E0F7FA;position:relative;border-radius:10px;overflow:hidden;box-shadow:inset 0 0 10px rgba(0,0,0,0.3);cursor:pointer;} #ground{position:absolute;bottom:0;width:100%;height:60px;background:#4CAF50;} #player{position:absolute;bottom:60px;left:40px;font-size:50px;transition:bottom 0.4s cubic-bezier(0.1, 0.9, 0.3, 1);} #obstacle{position:absolute;bottom:60px;left:800px;font-size:40px;} #score{position:absolute;top:15px;left:20px;font-size:24px;font-weight:bold;color:#004d23;} #msg{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.9);padding:20px;border-radius:10px;text-align:center;font-size:24px;color:red; z-index:10;} button{margin-top:10px;padding:10px 20px;font-size:18px;background:#d4af37;border:none;border-radius:5px;cursor:pointer;font-family:'Oswald';font-weight:bold;} </style></head><body> <div id="game" onmousedown="jump()" ontouchstart="jump(event)"> <div id="score">Pontos: 0</div><div id="ground"></div><div id="player">🏃‍♂️</div><div id="obstacle">🟥</div> <div id="msg">FIM DE JOGO!<br><button onclick="start(event)">TENTAR DE NOVO</button></div> </div> <script> let p=document.getElementById('player'); let o=document.getElementById('obstacle'); let sEl=document.getElementById('score'); let m=document.getElementById('msg'); let jumping=false; let over=true; let score=0; let ox=800; let speed=3.5; function jump(e){ if(e)e.preventDefault(); if(over||jumping)return; jumping=true; p.style.bottom='180px'; setTimeout(()=>{ p.style.bottom='60px'; setTimeout(()=>{ jumping=false; }, 400); }, 400); } function start(e){ if(e)e.stopPropagation(); over=false; score=0; speed=3.5; ox=window.innerWidth || 400; o.style.left=ox+'px'; sEl.innerText='Pontos: 0'; m.style.display='none'; requestAnimationFrame(loop); } function loop(){ if(over)return; ox-=speed; if(ox<-50){ ox=(window.innerWidth || 400)+Math.random()*150; score++; sEl.innerText='Pontos: '+score; speed+=0.05; o.innerText=Math.random()>0.5?'🟥':'🚧'; } o.style.left=ox+'px'; let pB=parseInt(p.style.bottom)||60; if(ox>20 && ox<80 && pB<100){ over=true; m.style.display='block'; return; } requestAnimationFrame(loop); } setTimeout(start, 500); </script></body></html>""", height=350)
+            st.markdown("#### 🏃‍♂️ Super Pula Craque")
+            st.write("Dê um toque para pular, ou toque no ar para um **Duplo Salto**! Colete os troféus 🏆.")
+            components.html("""<!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');body{margin:0;font-family:'Oswald',sans-serif;user-select:none;overflow:hidden;background:transparent;}#game{width:100%;height:350px;background:linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 70%, #4CAF50 70%, #2E7D32 100%);position:relative;border-radius:12px;overflow:hidden;box-shadow:inset 0 0 20px rgba(0,0,0,0.2);cursor:pointer;}.cloud{position:absolute;font-size:40px;color:rgba(255,255,255,0.7);white-space:nowrap;}#player{position:absolute;bottom:105px;left:50px;font-size:55px;z-index:10; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));}#obstacle{position:absolute;bottom:105px;left:800px;font-size:45px;z-index:9; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));}#coin{position:absolute;bottom:200px;left:900px;font-size:35px;z-index:8;}#scoreBoard{position:absolute;top:15px;left:20px;font-size:28px;color:#002776;text-shadow:1px 1px 0px #fff;z-index:20;}#msg{display:flex;flex-direction:column;justify-content:center;align-items:center;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);color:white;font-size:36px;z-index:30;text-shadow:2px 2px 5px #000;}button{margin-top:15px;padding:12px 25px;font-size:22px;background:#ffdf00;color:#002776;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';font-weight:bold;box-shadow:0 4px 10px rgba(0,0,0,0.5);transition:transform 0.1s;}button:active{transform:scale(0.95);}.pulse{animation:pulse 0.5s ease-out;}@keyframes pulse{0%{transform:scale(1);}50%{transform:scale(1.5);color:#d4af37;}100%{transform:scale(1);}}</style></head><body>
+            <div id="game">
+                <div class="cloud" style="top:20px; left:100px; font-size:60px;">☁️</div>
+                <div class="cloud" style="top:50px; left:400px; font-size:40px;">☁️</div>
+                <div id="scoreBoard">Pontos: <span id="score">0</span></div>
+                <div id="player">🏃‍♂️⚽</div><div id="obstacle">🚧</div><div id="coin">🏆</div>
+                <div id="msg">
+                    <div id="gameOverText">SUPER PULA CRAQUE</div>
+                    <div style="font-size:20px; color:#ffdf00; margin-top:5px;">Recorde: <span id="high">0</span></div>
+                    <button onclick="startGame(event)">JOGAR</button>
+                </div>
+            </div>
+            <script>
+            const p=document.getElementById('player');const o=document.getElementById('obstacle');const c=document.getElementById('coin');
+            const sEl=document.getElementById('score');const msg=document.getElementById('msg');const hsEl=document.getElementById('high');
+            const clouds=document.querySelectorAll('.cloud'); let isPlaying=false; let score=0; let highScore=0; let frame=0;
+            let py=105; let vy=0; let gravity=0.8; let isJumping=false; let canDouble=false;
+            let ox=800; let speed=5; let cx=1000; let cy=200; let coinActive=true; let animId;
+            function jump(e){if(e)e.preventDefault();if(!isPlaying)return;if(!isJumping){vy=15;isJumping=true;canDouble=true;p.innerText="🤸‍♂️⚽";}else if(canDouble){vy=12;canDouble=false;p.innerText="🦸‍♂️⚽";}}
+            document.getElementById('game').addEventListener('mousedown', jump);document.getElementById('game').addEventListener('touchstart', jump, {passive:false});
+            function startGame(e){if(e)e.stopPropagation();isPlaying=true;msg.style.display='none';score=0;sEl.innerText=0;speed=5;ox=window.innerWidth+100;cx=ox+400;coinActive=true;py=105;vy=0;isJumping=false;canDouble=false;p.innerText="🏃‍♂️⚽";if(animId)cancelAnimationFrame(animId);loop();}
+            function loop(){if(!isPlaying)return;
+                vy-=gravity;py+=vy;if(py<=105){py=105;vy=0;if(isJumping){isJumping=false;canDouble=false;p.innerText=(frame%10<5)?"🏃‍♂️⚽":"🚶‍♂️⚽";}}
+                if(!isJumping)p.innerText=(frame%16<8)?"🏃‍♂️⚽":"🚶‍♂️⚽"; p.style.bottom=py+'px';
+                ox-=speed;if(ox<-60){ox=window.innerWidth+Math.random()*300+200;let em=['🟥','🟨','🚧','🦵'];o.innerText=em[Math.floor(Math.random()*em.length)];speed+=0.05;} o.style.left=ox+'px';
+                cx-=speed*0.8;if(cx<-50){cx=window.innerWidth+Math.random()*500+400;cy=180+Math.random()*80;coinActive=true;c.style.display='block';} c.style.left=cx+'px'; c.style.bottom=cy+'px';
+                clouds[0].style.left=(parseInt(clouds[0].style.left||100)-1)+'px';if(parseInt(clouds[0].style.left)<-100)clouds[0].style.left=window.innerWidth+'px';
+                clouds[1].style.left=(parseInt(clouds[1].style.left||400)-0.5)+'px';if(parseInt(clouds[1].style.left)<-100)clouds[1].style.left=window.innerWidth+'px';
+                let pRect={x:50,y:py,w:40,h:50}; let oRect={x:ox+10,y:105,w:30,h:40}; let cRect={x:cx,y:cy,w:30,h:30};
+                if(pRect.x<oRect.x+oRect.w && pRect.x+pRect.w>oRect.x && pRect.y<oRect.y+oRect.h && pRect.y+pRect.h>oRect.y){gameOver();return;}
+                if(coinActive && pRect.x<cRect.x+cRect.w && pRect.x+pRect.w>cRect.x && pRect.y<cRect.y+cRect.h && pRect.y+pRect.h>cRect.y){score+=50;coinActive=false;c.style.display='none';sEl.innerText=score;sEl.classList.remove('pulse');void sEl.offsetWidth;sEl.classList.add('pulse');}
+                if(frame%10===0){score+=1;sEl.innerText=score;} frame++; animId=requestAnimationFrame(loop);
+            }
+            function gameOver(){isPlaying=false;p.innerText="😵💥";msg.style.display='flex';document.getElementById('gameOverText').innerText="FIM DE JOGO!";if(score>highScore)highScore=score;hsEl.innerText=highScore;}
+            </script></body></html>""", height=380)
             
         with jogo5:
             st.markdown("#### ⚽ Embaixadinha")

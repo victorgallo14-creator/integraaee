@@ -10446,29 +10446,33 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 
+
 # =====================================================================
-# MÓDULO: ÁLBUM PREMIUM, JOGOS EVOLUTIVOS E RANKING ANTI-TRAPAÇA
+# MÓDULO: ÁLBUM PREMIUM, JOGOS EVOLUTIVOS E RANKING ANTI-TRAPAÇA (CLOUD FIX)
 # Tabelas: estudantes, figurinhas, inventario_album, banca_trocas, ranking_jogos
 # =====================================================================
 import os
 import random
 import time
-import tempfile
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
 # ==============================================================================
-# MOTOR DE JOGOS ANTI-TRAPAÇA (COMUNICAÇÃO DIRETA HTML -> PYTHON)
+# MOTOR DE JOGOS ANTI-TRAPAÇA (FIX PARA STREAMLIT CLOUD)
 # ==============================================================================
-@st.cache_resource
 def criar_motor_jogo(nome_jogo, html_codigo):
-    """Cria um componente invisível que permite aos jogos HTML enviarem a pontuação sozinhos."""
-    diretorio = os.path.join(tempfile.gettempdir(), f"ceief_jogo_{nome_jogo}")
+    """Cria um componente local fixo em vez de temporário, evitando falhas de carregamento no Cloud."""
+    # Cria uma pasta fixa no diretório atual do seu projeto
+    pasta_base = os.path.join(os.getcwd(), "jogos_html_seguros")
+    diretorio = os.path.join(pasta_base, nome_jogo)
     os.makedirs(diretorio, exist_ok=True)
+    
     caminho_arquivo = os.path.join(diretorio, "index.html")
+    # Escreve/atualiza o arquivo sempre para garantir que ele existe
     with open(caminho_arquivo, "w", encoding="utf-8") as f:
         f.write(html_codigo)
+        
     return components.declare_component(f"comp_{nome_jogo}", path=diretorio)
 
 def salvar_ranking(ra, nome, jogo, pontuacao, detalhes=""):
@@ -10481,7 +10485,7 @@ def salvar_ranking(ra, nome, jogo, pontuacao, detalhes=""):
             "detalhes": detalhes
         }).execute()
     except Exception as e:
-        pass # Ignora erro caso a tabela ainda não tenha sido criada no Supabase
+        pass # Ignora erro silenciosamente caso a tabela ainda não exista
 
 
 def injetar_css_album_premium():
@@ -10885,7 +10889,7 @@ def render_modulo_album():
             else:
                 st.info("Nenhum recorde registrado ainda. Jogue para ser o Número 1!")
         except Exception as e:
-            st.error("Crie a tabela 'ranking_jogos' no banco de dados primeiro!")
+            st.error("Por favor, crie a tabela 'ranking_jogos' no Supabase para visualizar o placar!")
 
     st.markdown('</div>', unsafe_allow_html=True)
 

@@ -10446,7 +10446,6 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 
-
 # =====================================================================
 # MÓDULO: ÁLBUM PREMIUM, JOGOS EVOLUTIVOS E RANKING ANTI-TRAPAÇA
 # Tabelas: estudantes, figurinhas, inventario_album, banca_trocas, ranking_jogos
@@ -10473,13 +10472,16 @@ def criar_motor_jogo(nome_jogo, html_codigo):
     return components.declare_component(f"comp_{nome_jogo}", path=diretorio)
 
 def salvar_ranking(ra, nome, jogo, pontuacao, detalhes=""):
-    supabase.table("ranking_jogos").insert({
-        "estudante_ra": ra,
-        "nome_estudante": nome,
-        "jogo": jogo,
-        "pontuacao": pontuacao,
-        "detalhes": detalhes
-    }).execute()
+    try:
+        supabase.table("ranking_jogos").insert({
+            "estudante_ra": ra,
+            "nome_estudante": nome,
+            "jogo": jogo,
+            "pontuacao": pontuacao,
+            "detalhes": detalhes
+        }).execute()
+    except Exception as e:
+        pass # Ignora erro caso a tabela ainda não tenha sido criada no Supabase
 
 
 def injetar_css_album_premium():
@@ -10807,8 +10809,8 @@ def render_modulo_album():
             <script>
                 let score=0; let lastHole; let timeUp=false; let timeLeft=15; const holes=document.querySelectorAll('.hole'); const scoreBoard=document.getElementById('score'); const timeBoard=document.getElementById('time'); const btn=document.getElementById('startBtn');
                 function randomHole() {{ const idx=Math.floor(Math.random()*holes.length); const hole=holes[idx]; if (hole===lastHole) return randomHole(); lastHole=hole; return hole; }}
-                function showBall() {{ const time=Math.random()*(900-400)+400; const hole=randomHole(); hole.classList.add('active'); setTimeout(()=>{ { hole.classList.remove('active'); if (!timeUp) showBall(); } }, time); }}
-                function startGame() {{ scoreBoard.textContent=0; timeBoard.textContent=15; score=0; timeUp=false; timeLeft=15; btn.style.display='none'; showBall(); const countdown=setInterval(()=>{ { timeLeft--; timeBoard.textContent=timeLeft; if(timeLeft<=0) {{ clearInterval(countdown); timeUp=true; btn.style.display='inline-block'; btn.innerText='SALVANDO...'; btn.disabled=true; enviarParaBanco("goleiro", score, "Em 15s"); }} } }, 1000); }}
+                function showBall() {{ const time=Math.random()*(900-400)+400; const hole=randomHole(); hole.classList.add('active'); setTimeout(() => {{ hole.classList.remove('active'); if (!timeUp) showBall(); }}, time); }}
+                function startGame() {{ scoreBoard.textContent=0; timeBoard.textContent=15; score=0; timeUp=false; timeLeft=15; btn.style.display='none'; showBall(); const countdown=setInterval(() => {{ timeLeft--; timeBoard.textContent=timeLeft; if(timeLeft<=0) {{ clearInterval(countdown); timeUp=true; btn.style.display='inline-block'; btn.innerText='SALVANDO...'; btn.disabled=true; enviarParaBanco("goleiro", score, "Em 15s"); }} }}, 1000); }}
                 function defend(hole) {{ if(!hole.classList.contains('active')) return; score++; scoreBoard.textContent=score; hole.classList.remove('active'); }}
             </script></body></html>
             """

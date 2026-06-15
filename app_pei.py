@@ -10740,8 +10740,8 @@ def render_modulo_album():
             <div id="obstacle">🚧</div><div id="coin">🏆</div>
             <div id="msg"><div id="gameOverText">SUPER PULA CRAQUE</div><button id="btnPlay" onclick="startGame(event)">JOGAR</button></div></div>
             <script>
-            const p=document.getElementById('player'); const o=document.getElementById('obstacle'); const c=document.getElementById('coin');
-            const sEl=document.getElementById('score'); const msg=document.getElementById('msg');
+            const p=document.getElementById('player');const o=document.getElementById('obstacle');const c=document.getElementById('coin');
+            const sEl=document.getElementById('score');const msg=document.getElementById('msg'); const btn = document.getElementById('btnPlay');
             const clouds=document.querySelectorAll('.cloud'); let isPlaying=false; let score=0; let frame=0;
             let py=105; let vy=0; let gravity=0.45; let isJumping=false; let canDouble=false;
             let ox=800; let speed=4.5; let cx=1000; let cy=200; let coinActive=true; let animId; let ballRot=0;
@@ -10781,25 +10781,27 @@ def render_modulo_album():
         # ---------------- 3. GOLEIRO ----------------
         with jogo3:
             html_goleiro = """
-            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body { font-family: 'Oswald', sans-serif; text-align: center; margin: 0; background-color: transparent; } .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 350px; margin: 20px auto; } .hole { height: 90px; background: rgba(0, 100, 0, 0.6); border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 50px; cursor: pointer; box-shadow: inset 0 5px 15px rgba(0,0,0,0.5); border: 2px solid #004d23; transition: background 0.2s;} .hole:active { background: rgba(0, 150, 0, 0.8); } .hole.active::after { content: '⚽'; animation: pop 0.2s ease-out; } @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } } .stats { font-size: 24px; color: #004d23; margin-top: 10px; } button { font-family: 'Oswald', sans-serif; background: #d4af37; color: #002776; border: none; padding: 12px 25px; font-size: 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.1s;} button:active { transform: scale(0.95); } #endMsg { display:none; background:#fffdf0; border: 3px solid #d4af37; padding: 15px; margin: 10px auto; max-width: 350px; border-radius:10px; font-size: 22px; color: #002776;} </style>
+            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body { font-family: 'Oswald', sans-serif; text-align: center; margin: 0; background-color: transparent; } #gameContainer { position:relative; width:100%; height:420px; overflow:hidden;} .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 350px; margin: 20px auto; } .hole { height: 90px; background: rgba(0, 100, 0, 0.6); border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 50px; cursor: pointer; box-shadow: inset 0 5px 15px rgba(0,0,0,0.5); border: 2px solid #004d23; transition: background 0.2s;} .hole:active { background: rgba(0, 150, 0, 0.8); } .hole.active::after { content: '⚽'; animation: pop 0.2s ease-out; } @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } } .stats { font-size: 24px; color: #004d23; margin-top: 10px; } button { font-family: 'Oswald', sans-serif; background: #d4af37; color: #002776; border: none; padding: 12px 25px; font-size: 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.1s;} button:active { transform: scale(0.95); } #endMsg { display:none; background:#fffdf0; border: 4px solid #d4af37; padding: 20px; border-radius:10px; font-size: 24px; color: #002776; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 80%; max-width: 300px; } </style>
             </head><body>
-            <div class="stats">DEFESAS: <span id="score">0</span> | TEMPO: <span id="time">15</span>s</div>
-            <button id="startBtn" onclick="startGame()">INICIAR TREINO (15s)</button>
-            <div class="grid" id="grid">
-                <div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div>
-                <div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div>
-                <div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div>
+            <div id="gameContainer">
+                <div class="stats">DEFESAS: <span id="score">0</span> | TEMPO: <span id="time">15</span>s</div>
+                <button id="startBtn" onclick="startGame()">INICIAR TREINO (15s)</button>
+                <div class="grid" id="grid">
+                    <div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div>
+                    <div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div>
+                    <div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div>
+                </div>
+                <div id="endMsg"></div>
             </div>
-            <div id="endMsg"></div>
             <script>
-                let score=0; let lastHole; let timeUp=false; let timeLeft=15; const holes=document.querySelectorAll('.hole'); const scoreBoard=document.getElementById('score'); const timeBoard=document.getElementById('time'); const btn=document.getElementById('startBtn'); const msg=document.getElementById('endMsg');
+                let score=0; let lastHole; let timeUp=false; let timeLeft=15; const holes=document.querySelectorAll('.hole'); const scoreBoard=document.getElementById('score'); const timeBoard=document.getElementById('time'); const btn=document.getElementById('startBtn'); const msg=document.getElementById('endMsg'); const grid=document.getElementById('grid');
                 function randomHole() { const idx=Math.floor(Math.random()*holes.length); const hole=holes[idx]; if (hole===lastHole) return randomHole(); lastHole=hole; return hole; }
                 function showBall() { const time=Math.random()*(900-400)+400; const hole=randomHole(); hole.classList.add('active'); setTimeout(() => { hole.classList.remove('active'); if (!timeUp) showBall(); }, time); }
-                function startGame() { msg.style.display='none'; scoreBoard.textContent=0; timeBoard.textContent=15; score=0; timeUp=false; timeLeft=15; btn.style.display='none'; showBall(); const countdown=setInterval(() => { timeLeft--; timeBoard.textContent=timeLeft; if(timeLeft<=0) { clearInterval(countdown); timeUp=true; btn.style.display='inline-block'; btn.innerText='JOGAR DE NOVO'; let segCode = (score * 8) + 22; msg.style.display='block'; msg.innerHTML=`O JOGO ACABOU!<br>Defesas: <b>${score}</b><br><span style='color:red;'>CÓDIGO: ${segCode}</span>`; } }, 1000); }
+                function startGame() { msg.style.display='none'; grid.style.display='grid'; scoreBoard.textContent=0; timeBoard.textContent=15; score=0; timeUp=false; timeLeft=15; btn.style.display='none'; showBall(); const countdown=setInterval(() => { timeLeft--; timeBoard.textContent=timeLeft; if(timeLeft<=0) { clearInterval(countdown); timeUp=true; btn.style.display='inline-block'; btn.innerText='JOGAR DE NOVO'; let segCode = (score * 8) + 22; grid.style.display='none'; msg.style.display='block'; msg.innerHTML=`O JOGO ACABOU!<br>Defesas: <b>${score}</b><br><span style='color:red;'>CÓDIGO: ${segCode}</span>`; } }, 1000); }
                 function defend(hole) { if(!hole.classList.contains('active')) return; score++; scoreBoard.textContent=score; hole.classList.remove('active'); }
             </script></body></html>
             """
-            components.html(html_goleiro, height=500)
+            components.html(html_goleiro, height=450)
             c_g1, c_g2, c_g3 = st.columns([1, 1, 1])
             pts_g = c_g1.number_input("🧤 Número de Defesas", min_value=0, max_value=999, key="p_gol")
             cod_g = c_g2.number_input("🔒 Código Secreto", min_value=0, max_value=9999, key="c_gol")

@@ -1220,72 +1220,28 @@ with st.sidebar:
         
     elif modulo_atuacao == "🏫 Ensino Regular":
         
-        # ==============================================================================
-        # 1. INTERCEPTAÇÃO E REDIRECIONAMENTO DIRETO DO ESTUDANTE (TELA CHEIA)
-        # ==============================================================================
-        if st.session_state.get('user_role') == 'estudante':
+        st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
+        
+        opcoes_regular = [
+            "🖼️ Carômetro Escolar", 
+            "💻 Agendamento Informática", 
+            "📝 Nova Ata de Conselho", 
+            "📂 Histórico de Atas", 
+            "📖 Planejamento Curricular"
+        ]
+        
+        # A opção do Álbum aparece para si
+        if st.session_state.get('usuario_nome') == "José Victor Souza Gallo":
+            opcoes_regular.append("⚙️ Configurações")
+            opcoes_regular.append("💾 Cofre de Segurança")
+            opcoes_regular.append("🏆 Álbum de Figurinhas")
             
-            # MÁGICA DO CSS: Esconde completamente a barra lateral e a setinha de expandir
-            st.markdown("""
-                <style>
-                    [data-testid="stSidebar"] { display: none !important; }
-                    [data-testid="collapsedControl"] { display: none !important; }
-                    /* Dá um respiro no topo da tela para não colar o cabeçalho no limite */
-                    .block-container { padding-top: 2rem !important; }
-                </style>
-            """, unsafe_allow_html=True)
-            
-            # Cabeçalho Superior do Aluno
-            c_nome, c_sair = st.columns([3, 1])
-            
-            with c_nome:
-                st.markdown(f"<h3 style='color: #004d23; font-family: Poppins; margin-bottom: 0;'>🎒 Olá, <b>{st.session_state.get('usuario_nome')}</b>!</h3>", unsafe_allow_html=True)
-                st.markdown(f"<span style='color: #666; font-size: 0.9rem;'>📌 R.A.: {st.session_state.get('usuario_ra')}</span>", unsafe_allow_html=True)
-                
-            with c_sair:
-                st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
-                if st.button("🚪 Sair / Trocar Aluno", type="primary", use_container_width=True):
-                    st.session_state.authenticated = False
-                    st.session_state.user_role = None
-                    st.session_state.usuario_ra = None
-                    st.session_state.usuario_nome = None
-                    st.rerun()
-                    
-            st.write("---")
-            
-            # Carrega o Álbum ocupando 100% da tela abaixo do cabeçalho
-            render_modulo_album()
-            
-            # Para a execução do código (Impede que o aluno veja menus de professores)
-            st.stop()
-            
-        # ==============================================================================
-        # 2. MENU NORMAL PARA PROFESSORES E DIREÇÃO
-        # ==============================================================================
-        else:
-            st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
-            
-            opcoes_regular = [
-                "🖼️ Carômetro Escolar", 
-                "💻 Agendamento Informática", 
-                "📝 Nova Ata de Conselho", 
-                "📂 Histórico de Atas", 
-                "📖 Planejamento Curricular"
-            ]
-            
-            # Adiciona as opções secretas/administração apenas para o seu usuário
-            if st.session_state.get('usuario_nome') == "José Victor Souza Gallo":
-                opcoes_regular.append("⚙️ Configurações")
-                opcoes_regular.append("💾 Cofre de Segurança")
-                opcoes_regular.append("🏆 Álbum de Figurinhas")  # Liberado para os seus testes
-                
-            # ADICIONADA A CHAVE: key="nav_regular"
-            app_mode_regular = st.radio(
-                "Navegação", 
-                opcoes_regular, 
-                label_visibility="collapsed",
-                key="nav_regular"
-            )
+        app_mode_regular = st.radio(
+            "Navegação", 
+            opcoes_regular, 
+            label_visibility="collapsed",
+            key="nav_regular"
+        )
 
         
     # ====== ADICIONE ESTE BLOCO ABAIXO ======
@@ -10971,18 +10927,28 @@ def render_modulo_album():
 
 
 
+# ... (aqui terminam os seus outros códigos do sistema) ...
 
-
+# ==============================================================================
+# FUNÇÕES DO ÁLBUM E JOGOS (FICAM NO FINAL COMO VOCÊ PREFERE)
+# ==============================================================================
+# Cole aqui aquelas 3 funções gigantes:
+# def puxar_dados_album_estudante(ra): ...
+# def processar_abertura_pacote_supa(ra, catalogo_ids_permitidos): ...
+# def render_modulo_album(): ... 
 
 
 # ==============================================================================
-# 2. A ÚLTIMA COISA DO SEU ARQUIVO DEVE SER OS GATILHOS DE TELA!
+# AGORA SIM: OS GATILHOS FINAIS! (COLOQUE NAS ÚLTIMAS LINHAS DO FICHEIRO)
 # ==============================================================================
+# Como o Python já leu as funções acima, ele já sabe o que é o 'render_modulo_album()'
 if st.session_state.get('authenticated'):
     
-    # GATILHO 1: SE FOR ESTUDANTE (TELA CHEIA AUTOMÁTICA)
+    # ---------------------------------------------------------
+    # GATILHO 1: SE FOR ALUNO LOGADO (ABRE TELA CHEIA)
+    # ---------------------------------------------------------
     if st.session_state.get('user_role') == 'estudante':
-        # Mágica CSS: Esconde a barra lateral inteira para parecer um App
+        # Esconde menu lateral
         st.markdown("""
             <style>
                 [data-testid="stSidebar"] { display: none !important; }
@@ -10991,7 +10957,7 @@ if st.session_state.get('authenticated'):
             </style>
         """, unsafe_allow_html=True)
         
-        # Cabeçalho Superior do Aluno
+        # Cabeçalho Superior
         c_nome, c_sair = st.columns([3, 1])
         with c_nome:
             st.markdown(f"<h3 style='color: #004d23; font-family: Poppins; margin-bottom: 0;'>🎒 Olá, <b>{st.session_state.get('usuario_nome')}</b>!</h3>", unsafe_allow_html=True)
@@ -11008,9 +10974,13 @@ if st.session_state.get('authenticated'):
                 
         st.write("---")
         
-        # Chama a função (agora o Python já a conhece porque ela está logo acima!)
+        # CHAMA O ÁLBUM
         render_modulo_album()
+        st.stop()
 
-    # GATILHO 2: SE VOCÊ (DIRETOR) CLICAR NO MENU DA BARRA LATERAL
-    elif 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
-        render_modulo_album()
+    # ---------------------------------------------------------
+    # GATILHO 2: SE FOR O DIRETOR (TESTANDO PELO MENU)
+    # ---------------------------------------------------------
+    elif st.session_state.get('modulo_atuacao') == "🏫 Ensino Regular":
+        if 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
+            render_modulo_album()

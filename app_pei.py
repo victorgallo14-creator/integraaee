@@ -10732,35 +10732,37 @@ def render_modulo_album():
         # ---------------- 2. SUPER PULA CRAQUE ----------------
         with jogo2:
             html_pula = """
-            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');body{margin:0;font-family:'Oswald',sans-serif;user-select:none;overflow:hidden;background:transparent;}#game{width:100%;height:350px;background:linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 70%, #4CAF50 70%, #2E7D32 100%);position:relative;border-radius:12px;overflow:hidden;box-shadow:inset 0 0 20px rgba(0,0,0,0.2);cursor:pointer;}.cloud{position:absolute;font-size:40px;color:rgba(255,255,255,0.7);white-space:nowrap;}#player{position:absolute;bottom:105px;left:50px;font-size:55px;z-index:10; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));}#obstacle{position:absolute;bottom:105px;left:800px;font-size:45px;z-index:9; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));}#coin{position:absolute;bottom:200px;left:900px;font-size:35px;z-index:8;}#scoreBoard{position:absolute;top:15px;left:20px;font-size:28px;color:#002776;text-shadow:1px 1px 0px #fff;z-index:20;}#msg{display:none;flex-direction:column;justify-content:center;align-items:center;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);color:white;font-size:30px;z-index:30;text-shadow:2px 2px 5px #000;text-align:center;padding:20px;}button{margin-top:15px;padding:12px 25px;font-size:22px;background:#ffdf00;color:#002776;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';font-weight:bold;box-shadow:0 4px 10px rgba(0,0,0,0.5);}</style>
+            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');body{margin:0;font-family:'Oswald',sans-serif;user-select:none;overflow:hidden;background:transparent;}#game{width:100%;height:350px;background:linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 70%, #4CAF50 70%, #2E7D32 100%);position:relative;border-radius:12px;overflow:hidden;box-shadow:inset 0 0 20px rgba(0,0,0,0.2);cursor:pointer;}.cloud{position:absolute;font-size:40px;color:rgba(255,255,255,0.7);white-space:nowrap;}#player{position:absolute;bottom:105px;left:50px;font-size:55px;z-index:10; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3)); display:flex; align-items:center; justify-content:center;} .flip { transform: scaleX(-1); display: inline-block; margin-right: -10px;} #obstacle{position:absolute;bottom:105px;left:800px;font-size:45px;z-index:9; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));}#coin{position:absolute;bottom:200px;left:900px;font-size:35px;z-index:8;}#scoreBoard{position:absolute;top:15px;left:20px;font-size:28px;color:#002776;text-shadow:1px 1px 0px #fff;z-index:20;}#msg{display:none;flex-direction:column;justify-content:center;align-items:center;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);color:white;font-size:30px;z-index:30;text-shadow:2px 2px 5px #000;text-align:center;padding:20px;}button{margin-top:15px;padding:12px 25px;font-size:22px;background:#ffdf00;color:#002776;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';font-weight:bold;box-shadow:0 4px 10px rgba(0,0,0,0.5);}</style>
             </head><body>
             <div id="game"><div class="cloud" style="top:20px; left:100px; font-size:60px;">☁️</div><div class="cloud" style="top:50px; left:400px; font-size:40px;">☁️</div>
             <div id="scoreBoard">Pontos: <span id="score">0</span></div>
-            <div id="player">🏃‍♂️⚽</div><div id="obstacle">🚧</div><div id="coin">🏆</div>
+            <div id="player"><span class="flip">🏃‍♂️</span><span id="ballRoll">⚽</span></div>
+            <div id="obstacle">🚧</div><div id="coin">🏆</div>
             <div id="msg"><div id="gameOverText">SUPER PULA CRAQUE</div><button id="btnPlay" onclick="startGame(event)">JOGAR</button></div></div>
             <script>
-            const p=document.getElementById('player');const o=document.getElementById('obstacle');const c=document.getElementById('coin');
-            const sEl=document.getElementById('score');const msg=document.getElementById('msg'); const btn = document.getElementById('btnPlay');
+            const p=document.getElementById('player'); const o=document.getElementById('obstacle'); const c=document.getElementById('coin');
+            const sEl=document.getElementById('score'); const msg=document.getElementById('msg');
             const clouds=document.querySelectorAll('.cloud'); let isPlaying=false; let score=0; let frame=0;
             let py=105; let vy=0; let gravity=0.45; let isJumping=false; let canDouble=false;
-            let ox=800; let speed=4.5; let cx=1000; let cy=200; let coinActive=true; let animId;
-            function jump(e){if(e)e.preventDefault();if(!isPlaying)return;if(!isJumping){vy=11;isJumping=true;canDouble=true;p.innerText="🤸‍♂️⚽";}else if(canDouble){vy=9;canDouble=false;p.innerText="🦸‍♂️⚽";}}
+            let ox=800; let speed=4.5; let cx=1000; let cy=200; let coinActive=true; let animId; let ballRot=0;
+            function jump(e){if(e)e.preventDefault();if(!isPlaying)return;if(!isJumping){vy=11;isJumping=true;canDouble=true;p.innerHTML="<span class='flip'>🤸‍♂️</span><span id='ballRoll'>⚽</span>";}else if(canDouble){vy=9;canDouble=false;p.innerHTML="<span class='flip'>🦸‍♂️</span><span id='ballRoll'>⚽</span>";}}
             document.getElementById('game').addEventListener('mousedown', jump);document.getElementById('game').addEventListener('touchstart', jump, {passive:false});
-            function startGame(e){if(e)e.stopPropagation();isPlaying=true;msg.style.display='none';score=0;sEl.innerText=0;speed=4.5;ox=window.innerWidth+100;cx=ox+400;coinActive=true;py=105;vy=0;isJumping=false;canDouble=false;p.innerText="🏃‍♂️⚽";if(animId)cancelAnimationFrame(animId);loop();}
+            function startGame(e){if(e)e.stopPropagation();isPlaying=true;msg.style.display='none';score=0;sEl.innerText=0;speed=4.5;ox=800;cx=1200;coinActive=true;py=105;vy=0;isJumping=false;canDouble=false;p.innerHTML="<span class='flip'>🏃‍♂️</span><span id='ballRoll'>⚽</span>";if(animId)cancelAnimationFrame(animId);loop();}
             function loop(){if(!isPlaying)return;
-                vy-=gravity;py+=vy;if(py<=105){py=105;vy=0;if(isJumping){isJumping=false;canDouble=false;p.innerText=(frame%10<5)?"🏃‍♂️⚽":"🚶‍♂️⚽";}}
-                if(!isJumping)p.innerText=(frame%16<8)?"🏃‍♂️⚽":"🚶‍♂️⚽"; p.style.bottom=py+'px';
-                ox-=speed;if(ox<-60){ox=window.innerWidth+Math.random()*300+200;let em=['🟥','🟨','🚧','🦵'];o.innerText=em[Math.floor(Math.random()*em.length)];speed+=0.03;} o.style.left=ox+'px';
-                cx-=speed*0.8;if(cx<-50){cx=window.innerWidth+Math.random()*500+400;cy=180+Math.random()*80;coinActive=true;c.style.display='block';} c.style.left=cx+'px'; c.style.bottom=cy+'px';
-                clouds[0].style.left=(parseInt(clouds[0].style.left||100)-1)+'px';if(parseInt(clouds[0].style.left)<-100)clouds[0].style.left=window.innerWidth+'px';
-                clouds[1].style.left=(parseInt(clouds[1].style.left||400)-0.5)+'px';if(parseInt(clouds[1].style.left)<-100)clouds[1].style.left=window.innerWidth+'px';
-                let pRect={x:50,y:py,w:40,h:50}; let oRect={x:ox+10,y:105,w:30,h:40}; let cRect={x:cx,y:cy,w:30,h:30};
+                vy-=gravity;py+=vy;if(py<=105){py=105;vy=0;if(isJumping){isJumping=false;canDouble=false;p.innerHTML=(frame%10<5)?"<span class='flip'>🏃‍♂️</span><span id='ballRoll'>⚽</span>":"<span class='flip'>🚶‍♂️</span><span id='ballRoll'>⚽</span>";}}
+                if(!isJumping) p.innerHTML=(frame%16<8)?"<span class='flip'>🏃‍♂️</span><span id='ballRoll'>⚽</span>":"<span class='flip'>🚶‍♂️</span><span id='ballRoll'>⚽</span>"; p.style.bottom=py+'px';
+                let b=document.getElementById('ballRoll'); if(b){ ballRot+=speed*3; b.style.transform=`rotate(${ballRot}deg)`; }
+                ox-=speed;if(ox<-60){ox=600+Math.random()*400;let em=['🟥','🟨','🚧','🦵'];o.innerText=em[Math.floor(Math.random()*em.length)];speed+=0.04;} o.style.left=ox+'px';
+                cx-=speed*0.8;if(cx<-50){cx=800+Math.random()*800;cy=180+Math.random()*80;coinActive=true;c.style.display='block';} c.style.left=cx+'px'; c.style.bottom=cy+'px';
+                clouds[0].style.left=(parseInt(clouds[0].style.left||100)-1)+'px';if(parseInt(clouds[0].style.left)<-100)clouds[0].style.left='800px';
+                clouds[1].style.left=(parseInt(clouds[1].style.left||400)-0.5)+'px';if(parseInt(clouds[1].style.left)<-100)clouds[1].style.left='800px';
+                let pRect={x:50,y:py,w:40,h:50}; let oRect={x:ox+15,y:105,w:30,h:40}; let cRect={x:cx,y:cy,w:30,h:30};
                 if(pRect.x<oRect.x+oRect.w && pRect.x+pRect.w>oRect.x && pRect.y<oRect.y+oRect.h && pRect.y+pRect.h>oRect.y){gameOver();return;}
                 if(coinActive && pRect.x<cRect.x+cRect.w && pRect.x+pRect.w>cRect.x && pRect.y<cRect.y+cRect.h && pRect.y+pRect.h>cRect.y){score+=50;coinActive=false;c.style.display='none';sEl.innerText=score;}
                 if(frame%10===0){score+=1;sEl.innerText=score;} frame++; animId=requestAnimationFrame(loop);
             }
             function gameOver(){
-                isPlaying=false;p.innerText="😵💥";msg.style.display='flex';
+                isPlaying=false;p.innerHTML="<span class='flip'>😵</span>💥";msg.style.display='flex';
                 let segCode = (score * 5) + 10;
                 msg.innerHTML=`FIM DE JOGO!<br><span style='color:#ffdf00;'>Pontos: ${score}</span><br><span style='color:red; font-size:24px;'>CÓDIGO SECRETO: ${segCode}</span><br><button onclick="startGame(event)">JOGAR NOVAMENTE</button>`;
             }

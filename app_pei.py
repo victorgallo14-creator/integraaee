@@ -10448,15 +10448,24 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 # =====================================================================
-# MÓDULO: ÁLBUM PREMIUM E ARENA DE JOGOS (CLOUD SAFE + CÓDIGOS SECRETOS)
+# MÓDULO: ÁLBUM PREMIUM E ARENA DE JOGOS (CLOUD SAFE + ANIMAÇÃO DE PACOTE)
 # Tabelas: estudantes, figurinhas, inventario_album, banca_trocas, ranking_jogos
 # =====================================================================
 import os
 import random
 import time
+import json
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
+
+# --- Configurações Supabase (Mantenha as suas credenciais originais aqui) ---
+# supabase: Client = st.session_state.get('supabase_client') 
+# (Assegure-se que a conexão Supabase está ativa antes de chamar estas funções)
+
+# =====================================================================
+# FUNÇÕES DE BANCO DE DADOS (SUPABASE)
+# =====================================================================
 
 def salvar_ranking(ra, nome, jogo, pontuacao, detalhes=""):
     try:
@@ -10470,41 +10479,21 @@ def salvar_ranking(ra, nome, jogo, pontuacao, detalhes=""):
     except Exception as e:
         pass # Ignora erro silenciosamente caso a tabela ainda não exista
 
-def injetar_css_album_premium():
-    st.markdown("""
-        <style>
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Poppins:wght@400;600&display=swap');
-        .album-premium-container { font-family: 'Poppins', sans-serif; background-color: #f4f7f6; background-image: radial-gradient(#d5dfd9 1px, transparent 1px); background-size: 20px 20px; padding: 20px; border-radius: 15px; box-shadow: inset 0px 0px 20px rgba(0,0,0,0.05); }
-        .header-premium { background: linear-gradient(135deg, #004d23 0%, #009c3b 50%, #004d23 100%); padding: 25px; border-radius: 20px; text-align: center; border: 4px solid #d4af37; box-shadow: 0px 10px 30px rgba(0, 156, 59, 0.4); position: relative; overflow: hidden; margin-bottom: 25px; }
-        .header-premium h1 { font-family: 'Oswald', sans-serif; margin: 0; color: #ffdf00; font-size: 3rem; text-transform: uppercase; text-shadow: 3px 3px 0px #002776, 5px 5px 12px rgba(0,0,0,0.5); }
-        .fig-wrapper { width: 100%; aspect-ratio: 3 / 4; margin-bottom: 20px; perspective: 1000px; }
-        .slot-vazio { width: 100%; height: 100%; border: 2px dashed rgba(0, 156, 59, 0.3); background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(240, 253, 244, 0.8) 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; color: rgba(0, 156, 59, 0.4); transition: all 0.3s ease; }
-        .slot-vazio .numero { font-family: 'Oswald', sans-serif; font-size: 2.5rem; font-weight: 700; }
-        .slot-vazio .texto { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
-        .slot-preenchido { width: 100%; height: 100%; background-color: #ffffff; padding: 4%; border-radius: 8px; box-shadow: 0px 5px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; border: 1px solid #e0e0e0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
-        .slot-preenchido:hover { transform: scale(1.1) translateY(-5px); box-shadow: 0px 12px 25px rgba(0,0,0,0.3); z-index: 5; }
-        .foto-area { background: linear-gradient(to bottom, #ece9e6, #ffffff); flex-grow: 1; border-radius: 4px; border: 2px solid #002776; display: flex; align-items: center; justify-content: center; color: #002776; padding: 0; overflow: hidden; }
-        .foto-rodape { height: 25%; background: #009c3b; margin-top: 5px; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; font-family: 'Oswald', sans-serif; padding: 2px; text-align: center; }
-        .rodape-num { font-size: 0.7rem; color: #ffdf00; }
-        .rodape-nome { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; line-height: 1.1; }
-        .lendaria { background: linear-gradient(135deg, #ffd700, #ffb300); border: none; box-shadow: 0px 5px 20px rgba(255, 215, 0, 0.5); }
-        .lendaria .foto-area { border: 2px solid #b8860b; }
-        .lendaria .foto-rodape { background: linear-gradient(to bottom, #d4af37, #b8860b); }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px) scale(0.8); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        .anim-reveal { animation: fadeInUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        .pacotinho-btn > button { background: linear-gradient(180deg, #ffdf00 0%, #d4af37 100%) !important; color: #002776 !important; font-family: 'Oswald', sans-serif !important; font-size: 1.6rem !important; font-weight: 700 !important; border: 3px solid #002776 !important; border-radius: 12px !important; width: 100%; height: 70px; box-shadow: 0px 5px 15px rgba(0,0,0,0.2); }
-        </style>
-    """, unsafe_allow_html=True)
-
 def puxar_dados_album_estudante(ra):
     res_est = supabase.table("estudantes").select("nome, turma, pacotes_disponiveis").eq("ra", ra).execute()
-    if not res_est.data: return {"pacotes": 5, "coladas": [], "repetidas": [], "catalogo_ids": [], "turma": "Sem Turma", "total": 0}
+    if not res_est.data: return {"pacotes": 0, "coladas": [], "repetidas": [], "catalogo_ids": [], "turma": "Sem Turma", "total": 0}
+    
     pacotes = res_est.data[0]['pacotes_disponiveis']
     turma_aluno = res_est.data[0]['turma']
+    
+    # Puxar catálogo completo (turma + lendárias)
     res_turma = supabase.table("figurinhas").select("id").eq("turma", turma_aluno).execute()
     res_lendarias = supabase.table("figurinhas").select("id").eq("tipo", "lendaria").execute()
     catalogo_ids = sorted(list(set([f['id'] for f in res_turma.data] + [f['id'] for f in res_lendarias.data])))
+    
+    # Puxar inventário
     res_inv = supabase.table("inventario_album").select("figurinha_id, quantidade").eq("estudante_ra", ra).execute()
+    
     coladas = []; repetidas = []
     for item in res_inv.data:
         f_id = item['figurinha_id']; qtd = item.get('quantidade', 1)
@@ -10512,7 +10501,23 @@ def puxar_dados_album_estudante(ra):
             if qtd >= 1: coladas.append(f_id)
             if qtd > 1:
                 for _ in range(qtd - 1): repetidas.append(f_id)
-    return {"pacotes": pacotes, "coladas": coladas, "repetidas": repetidas, "catalogo_ids": catalogo_ids, "turma": turma_aluno, "total": len(catalogo_ids)}
+    
+    # Puxar detalhes das figurinhas do catálogo para a animação
+    if catalogo_ids:
+        res_detalhes = supabase.table("figurinhas").select("id, nome, foto_path, tipo").in_("id", catalogo_ids).execute()
+        mapa_detalhes = {f['id']: f for f in res_detalhes.data}
+    else:
+        mapa_detalhes = {}
+
+    return {
+        "pacotes": pacotes, 
+        "coladas": coladas, 
+        "repetidas": repetidas, 
+        "catalogo_ids": catalogo_ids, 
+        "mapa_detalhes": mapa_detalhes,
+        "turma": turma_aluno, 
+        "total": len(catalogo_ids)
+    }
 
 def processar_abertura_pacote_supa(ra, catalogo_ids_permitidos):
     if not catalogo_ids_permitidos: return None
@@ -10520,506 +10525,464 @@ def processar_abertura_pacote_supa(ra, catalogo_ids_permitidos):
     if not res_est.data: return None
     disponiveis = res_est.data[0]['pacotes_disponiveis']
     if disponiveis <= 0: return None
-    st.balloons()
+    
+    # 1. Debitar pacote
     supabase.table("estudantes").update({"pacotes_disponiveis": disponiveis - 1}).eq("ra", ra).execute()
+    
+    # 2. Sortear 5 figurinhas
     sorteio = random.choices(catalogo_ids_permitidos, k=5)
+    
+    # 3. Atualizar Inventário (Lógica Upsert manual para Cloud)
     res_inv = supabase.table("inventario_album").select("figurinha_id, quantidade").eq("estudante_ra", ra).in_("figurinha_id", sorteio).execute()
     qtd_map = {item['figurinha_id']: item['quantidade'] for item in res_inv.data}
+    
     sorteio_counts = {}
     for f in sorteio: sorteio_counts[f] = sorteio_counts.get(f, 0) + 1
+    
     for f_id, count in sorteio_counts.items():
-        if f_id in qtd_map: supabase.table("inventario_album").update({"quantidade": qtd_map[f_id] + count}).eq("estudante_ra", ra).eq("figurinha_id", f_id).execute()
-        else: supabase.table("inventario_album").insert({"estudante_ra": ra, "figurinha_id": f_id, "quantidade": count}).execute()
+        if f_id in qtd_map:
+            supabase.table("inventario_album").update({"quantidade": qtd_map[f_id] + count}).eq("estudante_ra", ra).eq("figurinha_id", f_id).execute()
+        else:
+            supabase.table("inventario_album").insert({"estudante_ra": ra, "figurinha_id": f_id, "quantidade": count}).execute()
+            
     return sorteio
 
+# =====================================================================
+# ESTILOS CSS GERAIS (ÁLBUM PREMIUM)
+# =====================================================================
+def injetar_css_album_premium():
+    st.markdown("""
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Poppins:wght@400;600&display=swap');
+        
+        /* Container Principal */
+        .album-premium-container { font-family: 'Poppins', sans-serif; background-color: #f4f7f6; padding: 20px; border-radius: 15px; }
+        
+        /* Cabeçalho */
+        .header-premium { background: linear-gradient(135deg, #004d23 0%, #009c3b 50%, #004d23 100%); padding: 25px; border-radius: 20px; text-align: center; border: 4px solid #d4af37; box-shadow: 0px 10px 30px rgba(0, 156, 59, 0.4); margin-bottom: 25px; }
+        .header-premium h1 { font-family: 'Oswald', sans-serif; margin: 0; color: #ffdf00; font-size: 3rem; text-transform: uppercase; text-shadow: 3px 3px 0px #002776; }
+        
+        /* Slots do Álbum */
+        .fig-wrapper { width: 100%; aspect-ratio: 3 / 4; margin-bottom: 20px; perspective: 1000px; }
+        .slot-vazio { width: 100%; height: 100%; border: 2px dashed rgba(0, 156, 59, 0.3); background-color: rgba(255,255,255,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; color: rgba(0, 156, 59, 0.4); }
+        .slot-vazio .numero { font-family: 'Oswald', sans-serif; font-size: 2.5rem; font-weight: 700; }
+        
+        .slot-preenchido { width: 100%; height: 100%; background-color: #ffffff; padding: 4%; border-radius: 8px; box-shadow: 0px 5px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; border: 1px solid #e0e0e0; transition: transform 0.3s ease; position: relative; }
+        .slot-preenchido:hover { transform: scale(1.05) translateY(-5px); z-index: 5; }
+        
+        .foto-area { background-color: #e0e0e0; flex-grow: 1; border-radius: 4px; border: 2px solid #002776; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .foto-img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .foto-rodape { height: 25%; background: #009c3b; margin-top: 5px; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; font-family: 'Oswald', sans-serif; text-align: center; padding: 2px; }
+        .rodape-num { font-size: 0.7rem; color: #ffdf00; }
+        .rodape-nome { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; line-height: 1.1; }
+        
+        /* Tipo Lendária */
+        .lendaria { background: linear-gradient(135deg, #ffd700, #ffb300); border: none; box-shadow: 0px 5px 20px rgba(255, 215, 0, 0.5); }
+        .lendaria .foto-area { border: 2px solid #b8860b; }
+        .lendaria .foto-rodape { background: linear-gradient(to bottom, #d4af37, #b8860b); }
+        </style>
+    """, unsafe_allow_html=True)
+
+# =====================================================================
+# COMPONENTE DE ANIMAÇÃO: RASGAR PACOTINHO (HTML/CSS/JS)
+# =====================================================================
+def renderizar_animacao_abertura(figurinhas_sorteadas_detalhes):
+    """
+    Renderiza um componente HTML/CSS/JS que simula o rasgar do pacote
+    e a revelação das 5 figurinhas.
+    """
+    
+    # Converter detalhes das figurinhas para JSON seguro para JS
+    figs_json = json.dumps(figurinhas_sorteadas_detalhes)
+    
+    # URLs de imagens placeholder (Substitua por URLs reais se tiver ativos)
+    url_pacote_fechado = "https://i.imgur.com/8Q99K0Q.png" # Imagem de um pacotinho fechado brilhante
+    url_costas_figurinha = "https://i.imgur.com/6U8W0vG.png" # Imagem do verso da figurinha (padrão)
+    url_borda_lendaria = "https://i.imgur.com/Y4M2I1m.png" # Opcional: borda brilhante para lendárias
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="pt-br">
+    <head>
+    <meta charset="UTF-8">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&family=Poppins:wght@700&display=swap');
+        
+        body {{ margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: transparent; overflow: hidden; font-family: 'Poppins', sans-serif; }}
+        
+        #cena-animacao {{ position: relative; width: 100%; height: 500px; display: flex; justify-content: center; align-items: center; overflow: hidden; }}
+
+        /* --- ESTILO DO PACOTINHO --- */
+        .pacotinho-wrapper {{ position: relative; width: 220px; height: 320px; cursor: pointer; transition: transform 0.3s ease; z-index: 10; }}
+        .pacotinho-wrapper:hover {{ transform: scale(1.05) rotate(2deg); }}
+        
+        .pacotinho-imagem {{ width: 100%; height: 100%; background-image: url('{url_pacote_fechado}'); background-size: cover; background-position: center; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); position: relative; overflow: hidden; border: 3px solid #ffdf00; }}
+        
+        /* Brilho do Pacote */
+        .pacotinho-imagem::after {{ content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent, rgba(255,255,255,0.6), transparent); transform: rotate(45deg); animation: brilhoPacote 3s infinite; }}
+
+        /* --- ANIMAÇÕES DE RASGAR --- */
+        .wrapper-rasgando {{ animation: tremer 0.5s ease-in-out; }}
+        
+        .rasgo-superior, .rasgo-inferior {{ position: absolute; width: 100%; height: 50%; background-image: url('{url_pacote_fechado}'); background-size: 220px 320px; left: 0; transition: all 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55); opacity: 1; border-radius: 15px; border: 3px solid #ffdf00; box-sizing: border-box; }}
+        
+        .rasgo-superior {{ top: 0; background-position: top center; border-bottom: none; border-radius: 15px 15px 0 0; }}
+        .rasgo-inferior {{ bottom: 0; background-position: bottom center; border-top: none; border-radius: 0 0 15px 15px; }}
+        
+        /* Efeito visual do rasgo branco/serrilhado */
+        .rasgo-superior::after {{ content: ''; position: absolute; bottom: -10px; left: 0; width: 100%; height: 20px; background: white; -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,0 L0,20 L5,10 L10,20 L15,10 L20,20 L25,10 L30,20 L35,10 L40,20 L45,10 L50,20 L55,10 L60,20 L65,10 L70,20 L75,10 L80,20 L85,10 L90,20 L95,10 L100,20 L100,0 Z" fill="black"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,0 L0,20 L5,10 L10,20 L15,10 L20,20 L25,10 L30,20 L35,10 L40,20 L45,10 L50,20 L55,10 L60,20 L65,10 L70,20 L75,10 L80,20 L85,10 L90,20 L95,10 L100,20 L100,0 Z" fill="black"/></svg>'); mask-size: 100% 100%; -webkit-mask-size: 100% 100%; }}
+
+        /* Estado após rasgar */
+        .cena-aberta .rasgo-superior {{ transform: translateY(-150px) rotate(-15deg); opacity: 0; }}
+        .cena-aberta .rasgo-inferior {{ transform: translateY(150px) rotate(15deg); opacity: 0; }}
+        .cena-aberta .explosao-luz {{ opacity: 1; transform: scale(1); }}
+
+        /* Explosão de Luz atrás do pacote */
+        .explosao-luz {{ position: absolute; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,223,0,1) 0%, rgba(255,255,255,0) 70%); border-radius: 50%; opacity: 0; transform: scale(0.1); transition: all 0.5s ease-out; z-index: 5; filter: blur(10px); }}
+
+        /* --- ESTILO DAS FIGURINHAS SAINDO --- */
+        .area-figurinhas {{ position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: flex; justify-content: center; align-items: center; z-index: 20; pointer-events: none; }}
+        
+        .mini-figurinha {{ position: absolute; width: 110px; height: 150px; background-color: white; border-radius: 8px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); border: 2px solid #002776; overflow: hidden; display: flex; flex-direction: column; opacity: 0; transform: translate(0, 0) scale(0.2) rotate(0deg); transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); backface-visibility: hidden; background-image: url('{url_costas_figurinha}'); background-size: cover; }}
+        
+        /* Animação de revelação (virar) */
+        .revelar-fig {{ background-image: none !important; animation: virarFigurinha 0.6s forwards; pointer-events: auto; cursor: pointer; }}
+
+        /* Posições Finais das 5 figurinhas (Estilo Leque) */
+        .cena-aberta #fig-0 {{ opacity: 1; transform: translate(-220px, 0px) scale(1) rotate(-10deg); }}
+        .cena-aberta #fig-1 {{ opacity: 1; transform: translate(-110px, -30px) scale(1) rotate(-5deg); transition-delay: 0.1s; }}
+        .cena-aberta #fig-2 {{ opacity: 1; transform: translate(0px, -50px) scale(1) rotate(0deg); transition-delay: 0.2s; }}
+        .cena-aberta #fig-3 {{ opacity: 1; transform: translate(110px, -30px) scale(1) rotate(5deg); transition-delay: 0.3s; }}
+        .cena-aberta #fig-4 {{ opacity: 1; transform: translate(220px, 0px) scale(1) rotate(10deg); transition-delay: 0.4s; }}
+
+        /* Conteúdo Interno da Figurinha Revelada */
+        .fig-conteudo {{ display: none; width: 100%; height: 100%; flex-direction: column; padding: 3px; box-sizing: border-box; }}
+        .revelar-fig .fig-conteudo {{ display: flex; }}
+        
+        .fig-img-area {{ flex-grow: 1; background: #e0e0e0; border-radius: 4px; border: 1px solid #002776; overflow: hidden; }}
+        .fig-img-area img {{ width: 100%; height: 100%; object-fit: cover; }}
+        
+        .fig-txt-area {{ height: 35px; background: #009c3b; color: white; margin-top: 3px; border-radius: 4px; font-family: 'Oswald', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }}
+        .fig-txt-area .num {{ font-size: 10px; color: #ffdf00; }}
+        .fig-txt-area .nome {{ font-size: 11px; font-weight: 600; text-transform: uppercase; line-height: 1; max-width: 95%; overflow: hidden; }}
+
+        /* Estilo Lendária na Animação */
+        .fig-lendaria {{ border: 3px solid #d4af37 !important; box-shadow: 0 0 15px rgba(255, 215, 0, 0.7) !important; }}
+        .fig-lendaria .fig-txt-area {{ background: linear-gradient(to bottom, #d4af37, #b8860b); }}
+
+        /* Botão de Concluir */
+        #btn-concluir {{ position: absolute; bottom: 20px; padding: 12px 30px; background: #002776; color: white; border: none; border-radius: 50px; font-size: 18px; font-weight: bold; cursor: pointer; display: none; z-index: 100; box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: background 0.3s; }}
+        #btn-concluir:hover {{ background: #004da8; }}
+
+        /* Textos de Instrução */
+        #instrucao {{ position: absolute; top: 20px; color: #004d23; font-size: 20px; font-weight: bold; text-align: center; width: 100%; z-index: 30; text-shadow: 0 2px 4px white; }}
+
+        /* --- KEYFRAMES --- */
+        @keyframes brilhoPacote {{ 0% {{ left: -50%; top: -50%; }} 100% {{ left: 100%; top: 100%; }} }}
+        @keyframes tremer {{ 0% {{ transform: rotate(0deg); }} 20% {{ transform: rotate(-5deg); }} 40% {{ transform: rotate(5deg); }} 60% {{ transform: rotate(-3deg); }} 80% {{ transform: rotate(3deg); }} 100% {{ transform: rotate(0deg); }} }}
+        @keyframes virarFigurinha {{ 0% {{ transform: scale(1) rotateY(0deg); }} 50% {{ transform: scale(1.1) rotateY(90deg); }} 100% {{ transform: scale(1) rotateY(180deg); }} }}
+        @keyframes flutuar {{ 0%, 100% {{ transform: translateY(0); }} 50% {{ transform: translateY(-5px); }} }}
+
+    </style>
+    </head>
+    <body>
+
+    <div id="cena-animacao">
+        <div id="instrucao">👋 Clique no pacotinho para rasgar!</div>
+        
+        <div class="explosao-luz"></div>
+
+        <div class="pacotinho-wrapper" id="pacote-clicavel" onclick="rasgarPacote()">
+            <div class="pacotinho-imagem" id="pacote-inteiro"></div>
+            
+            <div class="rasgo-superior" id="metade-sup" style="display:none;"></div>
+            <div class="rasgo-inferior" id="metade-inf" style="display:none;"></div>
+        </div>
+
+        <div class="area-figurinhas" id="container-figurinhas">
+            </div>
+
+        <button id="btn-concluir" onclick="finalizarAbertura()">Guardar na Coleção</button>
+    </div>
+
+    <script>
+        // Dados das figurinhas vindos do Python
+        const dadosFigurinhas = {figs_json};
+        let pacoteRasgado = false;
+        let figsReveladas = 0;
+
+        // Criar os elementos das figurinhas escondidos
+        const container = document.getElementById('container-figurinhas');
+        dadosFigurinhas.forEach((fig, index) => {{
+            const div = document.createElement('div');
+            div.className = 'mini-figurinha';
+            if (fig.tipo === 'lendaria') div.classList.add('fig-lendaria');
+            div.id = `fig-${{index}}`;
+            
+            // Configurar clique para revelar individualmente
+            div.onclick = function() {{ revelarFigurinha(index); }};
+
+            // Conteúdo Interno (frente)
+            const classeLendaria = fig.tipo === 'lendaria' ? 'lendaria' : '';
+            div.innerHTML = `
+                <div class="fig-conteudo">
+                    <div class="fig-img-area">
+                        <img src="${{fig.foto_path}}" alt="${{fig.nome}}" onerror="this.src='https://i.imgur.com/w9O7B4G.png'">
+                    </div>
+                    <div class="fig-txt-area">
+                        <span class="num">Nº ${{fig.id}}</span>
+                        <span class="nome">${{fig.nome}}</span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+        }});
+
+        function rasgarPacote() {{
+            if (pacoteRasgado) return;
+            pacoteRasgado = true;
+
+            const wrapper = document.getElementById('pacote-clicavel');
+            const inteiro = document.getElementById('pacote-inteiro');
+            const sup = document.getElementById('metade-sup');
+            const inf = document.getElementById('metade-inf');
+            const instrucao = document.getElementById('instrucao');
+            const cena = document.getElementById('cena-animacao');
+
+            // 1. Tremer e preparar metades
+            wrapper.classList.add('wrapper-rasgando');
+            instrucao.innerText = "💥💥💥";
+            
+            setTimeout(() => {{
+                inteiro.style.display = 'none';
+                sup.style.display = 'block';
+                inf.style.display = 'block';
+                
+                // 2. Executar o rasgo (CSS class)
+                cena.classList.add('cena-aberta');
+                
+                // Remover o wrapper do pacote para não atrapalhar cliques
+                setTimeout(() => {{ wrapper.style.display = 'none'; }}, 600);
+                
+                instrucao.innerHTML = "✨ Toca nas cartas para revelar! ✨";
+                instrucao.style.color = "#d4af37";
+
+            }}, 500); // Tempo da tremedeira
+        }}
+
+        function revelarFigurinha(index) {{
+            const fig = document.getElementById(`fig-${{index}}`);
+            if (fig.classList.contains('revelar-fig')) return; // Já revelada
+
+            fig.classList.add('revelar-fig');
+            figsReveladas++;
+
+            // Se todas forem reveladas, mostrar botão concluir
+            if (figsReveladas === 5) {{
+                setTimeout(() => {{
+                    document.getElementById('btn-concluir').style.display = 'block';
+                    document.getElementById('instrucao').innerText = "🎉 Excelente sorte! 🎉";
+                }}, 800);
+            }}
+        }}
+
+        function finalizarAbertura() {{
+            // Enviar mensagem para o Python recarregar a página
+            window.parent.postMessage({{type: 'streamlit:wrapper_event', data: {{action: 'recarregar_album'}}}}, '*');
+        }}
+    </script>
+    </body>
+    </html>
+    """
+    components.html(html_content, height=520)
+
+# =====================================================================
+# RENDERIZAÇÃO DO MÓDULO DO ÁLBUM
+# =====================================================================
 def render_modulo_album():
     injetar_css_album_premium()
+    
+    # RA do estudante logado (Supomos que esteja no session_state)
     estudante_ra = st.session_state.get('usuario_ra', 'RA-TESTE')
     estudante_nome = st.session_state.get('usuario_nome', 'Estudante')
+    
+    # Carregar dados do DB
     dados_db = puxar_dados_album_estudante(estudante_ra)
     
     st.markdown('<div class="album-premium-container">', unsafe_allow_html=True)
-    st.markdown('<div class="header-premium"><h1>⚽ SUPER ÁLBUM DOS CRAQUES ⚽</h1><p style="font-size: 1.2rem; color: #ffffff; font-weight: 600;">A seleção oficial da nossa escola!</p></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="header-premium"><h1>⚽ SUPER ÁLBUM DOS CRAQUES ⚽</h1><p style="font-size: 1.2rem; color: #ffffff; font-weight: 600;">{estudante_nome} - Turma: {dados_db["turma"]}</p></div>', unsafe_allow_html=True)
     
     aba_album, aba_pacotes, aba_trocas, aba_jogos, aba_ranking = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas", "🏟️ Arena de Jogos", "🏆 Ranking Geral"])
     
+    # --- ABA: MEU ÁLBUM ---
     with aba_album:
         figurinhas_por_pagina = 10
         total_figuras = dados_db['total']
+        
         if total_figuras == 0:
             st.warning("Nenhuma figurinha cadastrada para a sua turma.")
         else:
             if 'pag_album' not in st.session_state: st.session_state['pag_album'] = 0
             total_paginas = (total_figuras // figurinhas_por_pagina) + (1 if total_figuras % figurinhas_por_pagina > 0 else 0)
+            
             c_prev, c_page, c_next = st.columns([1, 2, 1])
             with c_prev:
-                if st.button("⬅️ PÁGINA ANTERIOR", use_container_width=True) and st.session_state['pag_album'] > 0:
+                if st.button("⬅️ ANTERIOR", use_container_width=True) and st.session_state['pag_album'] > 0:
                     st.session_state['pag_album'] -= 1; st.rerun()
             with c_page:
-                progresso = len(dados_db['coladas']) / total_figuras if total_figuras > 0 else 0
-                st.markdown(f"<div style='text-align: center; color: #004d23; font-family: Oswald; font-size: 20px;'>PÁGINA {st.session_state['pag_album'] + 1} DE {total_paginas}</div>", unsafe_allow_html=True)
-                st.progress(progresso, text=f"Completado: {len(dados_db['coladas'])} de {total_figuras}")
+                coladas = len(dados_db['coladas'])
+                progresso = coladas / total_figuras if total_figuras > 0 else 0
+                st.markdown(f"<div style='text-align: center; color: #004d23; font-family: Oswald; font-size: 18px;'>PÁGINA {st.session_state['pag_album'] + 1} DE {total_paginas}</div>", unsafe_allow_html=True)
+                st.progress(progresso, text=f"Progresso: {coladas} coladas de {total_figuras}")
             with c_next:
-                if st.button("PRÓXIMA PÁGINA ➡️", use_container_width=True) and st.session_state['pag_album'] < (total_paginas - 1):
+                if st.button("PRÓXIMA ➡️", use_container_width=True) and st.session_state['pag_album'] < (total_paginas - 1):
                     st.session_state['pag_album'] += 1; st.rerun()
             
+            # Renderizar Grid
             inicio_idx = st.session_state['pag_album'] * figurinhas_por_pagina
             ids_da_pagina = dados_db['catalogo_ids'][inicio_idx : inicio_idx + figurinhas_por_pagina]
-            if ids_da_pagina:
-                res_figs = supabase.table("figurinhas").select("*").in_("id", ids_da_pagina).execute()
-                map_figs = {f['id']: f for f in res_figs.data}
-                for linha in range(0, len(ids_da_pagina), 5):
-                    cols = st.columns(5)
-                    for i, col in enumerate(cols):
-                        if linha + i < len(ids_da_pagina):
-                            f_id = ids_da_pagina[linha + i]
-                            item = map_figs.get(f_id, {'nome': '???', 'cargo': '?', 'tipo': 'comum', 'foto_path': ''})
-                            f_nome = item.get('nome', ''); f_cargo = item.get('cargo', ''); f_tipo = item.get('tipo', 'comum'); f_foto = item.get('foto_path', '')
-                            classe_lendaria = "lendaria" if f_tipo == "lendaria" else ""
-                            foto_html = f'<img src="{f_foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">' if f_foto and str(f_foto).startswith('http') else '<span style="font-size: 2rem;">📸</span>'
-                            with col:
-                                if f_id in dados_db['coladas']: st.markdown(f"""<div class="fig-wrapper"><div class="slot-preenchido {classe_lendaria}"><div class="foto-area">{foto_html}</div><div class="foto-rodape"><span class="rodape-num">Nº {f_id} - {f_cargo}</span><span class="rodape-nome" style="font-size: 0.6rem;">{f_nome}</span></div></div></div>""", unsafe_allow_html=True)
-                                else: st.markdown(f"""<div class="fig-wrapper"><div class="slot-vazio"><div class="numero">{f_id}</div><div class="texto">Faltando</div></div></div>""", unsafe_allow_html=True)
-    
-    with aba_pacotes:
-        st.markdown(f"<h3 style='font-family: Poppins; color: #004d23;'>🎒 Possui <b>{dados_db['pacotes']}</b> pacotinhos fechados!</h3>", unsafe_allow_html=True)
-        if dados_db['pacotes'] > 0:
-            st.markdown('<div class="pacotinho-btn">', unsafe_allow_html=True)
-            if st.button("💥 RASGAR PACOTINHO! 💥", use_container_width=True):
-                sorteio = processar_abertura_pacote_supa(estudante_ra, dados_db['catalogo_ids'])
-                if sorteio: st.session_state['ultimo_sorteio'] = sorteio; st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-        else: st.error("Os seus pacotinhos acabaram. Vá jogar uma partida na Arena de Jogos para treinar!")
-        
-        if 'ultimo_sorteio' in st.session_state and st.session_state['ultimo_sorteio']:
-            st.write("---"); st.markdown("<h3 style='text-align:center; font-family: Oswald; color: #009c3b;'>✨ FIGURINHAS ENCONTRADAS: ✨</h3>", unsafe_allow_html=True)
-            cols_novas = st.columns(5)
-            res_sorteadas = supabase.table("figurinhas").select("*").in_("id", st.session_state['ultimo_sorteio']).execute()
-            map_sorteadas = {f['id']: f for f in res_sorteadas.data}
-            for i, f_id in enumerate(st.session_state['ultimo_sorteio']):
-                fig_info = map_sorteadas.get(f_id, {})
-                f_nome = fig_info.get('nome', 'N/D'); f_tipo = fig_info.get('tipo', 'comum'); f_foto = fig_info.get('foto_path', '')
-                classe_lendaria = "lendaria" if f_tipo == "lendaria" else ""; delay = i * 0.15
-                foto_html = f'<img src="{f_foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">' if f_foto and str(f_foto).startswith('http') else '<span style="font-size: 1.5rem;">📸</span>'
-                with cols_novas[i]:
-                    st.markdown(f"""<div class="fig-wrapper anim-reveal" style="animation-delay: {delay}s; opacity: 0; margin-top: 15px;"><div class="slot-preenchido {classe_lendaria}"><div class="foto-area">{foto_html}</div><div class="foto-rodape"><span class="rodape-num">Nº {f_id}</span><span class="rodape-nome" style="font-size: 0.6rem;">{f_nome}</span></div></div></div>""", unsafe_allow_html=True)
-            if st.button("Guardar tudo na coleção e continuar", use_container_width=True):
-                st.session_state['ultimo_sorteio'] = None; st.rerun()
+            mapa = dados_db['mapa_detalhes']
+            
+            for linha in range(0, len(ids_da_pagina), 5):
+                cols = st.columns(5)
+                for i, col in enumerate(cols):
+                    if linha + i < len(ids_da_pagina):
+                        f_id = ids_da_pagina[linha + i]
+                        info = mapa.get(f_id, {})
+                        
+                        f_nome = info.get('nome', '???')
+                        f_tipo = info.get('tipo', 'comum')
+                        f_foto = info.get('foto_path', '')
+                        
+                        classe_lendaria = "lendaria" if f_tipo == "lendaria" else ""
+                        esta_colada = f_id in dados_db['coladas']
+                        
+                        html_fig = ""
+                        if esta_colada:
+                            # Slot Preenchido
+                            foto_html = f'<img src="{f_foto}" class="foto-img" onerror="this.src=\'https://i.imgur.com/w9O7B4G.png\'">' if f_foto else '<span style="font-size: 2rem;">📸</span>'
+                            html_fig = f"""
+                            <div class="fig-wrapper"><div class="slot-preenchido {classe_lendaria}">
+                                <div class="foto-area">{foto_html}</div>
+                                <div class="foto-rodape"><span class="rodape-num">Nº {f_id}</span><span class="rodape-nome">{f_nome}</span></div>
+                            </div></div>
+                            """
+                        else:
+                            # Slot Vazio
+                            html_fig = f"""
+                            <div class="fig-wrapper"><div class="slot-vazio">
+                                <div class="numero">{f_id}</div>
+                                <div style="font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">Faltando</div>
+                            </div></div>
+                            """
+                        col.markdown(html_fig, unsafe_allow_html=True)
 
+    # --- ABA: ABRIR PACOTES (COM ANIMAÇÃO) ---
+    with aba_pacotes:
+        st.markdown(f"<h2 style='font-family: Oswald; color: #004d23; text-align: center;'>📦 Salão de Abertura</h2>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center; color: #009c3b;'>Possui <b style='font-size: 2rem; color: #002776;'>{dados_db['pacotes']}</b> pacotinhos fechados.</h3>", unsafe_allow_html=True)
+        
+        # Lógica de manipulação do estado de abertura
+        if 'processando_abertura' not in st.session_state:
+            st.session_state['processando_abertura'] = False
+        if 'figurinhas_para_animar' not in st.session_state:
+            st.session_state['figurinhas_para_animar'] = None
+
+        area_acao = st.empty()
+
+        if dados_db['pacotes'] > 0:
+            if not st.session_state['processando_abertura']:
+                with area_acao.container():
+                    st.write("---")
+                    st.markdown("<p style='text-align: center; color: #666;'>Prepare o seu dedo! Clique no botão abaixo para trazer o seu pacotinho para a mesa.</p>", unsafe_allow_html=True)
+                    _, col_btn, _ = st.columns([1, 2, 1])
+                    if col_btn.button("✨ TRAZER PACOTINHO PARA A MESA! ✨", type="primary", use_container_width=True):
+                        # 1. Chamar lógica do DB
+                        sorteio_ids = processar_abertura_pacote_supa(estudante_ra, dados_db['catalogo_ids'])
+                        if sorteio_ids:
+                            # 2. Preparar detalhes para a animação
+                            mapa_geral = dados_db['mapa_detalhes']
+                            detalhes_sorteio = []
+                            for f_id in sorteio_ids:
+                                info = mapa_geral.get(f_id, {'id': f_id, 'nome': 'Desconhecido', 'foto_path': '', 'tipo': 'comum'})
+                                detalhes_sorteio.append(info)
+                            
+                            # 3. Salvar no estado e trigger animação
+                            st.session_state['figurinhas_para_animar'] = detalhes_sorteio
+                            st.session_state['processando_abertura'] = True
+                            st.balloons()
+                            st.rerun()
+            else:
+                # ESTADO: EXIBINDO ANIMAÇÃO
+                area_acao.empty() # Limpa botão
+                st.write("---")
+                # Renderizar o componente HTML da animação
+                renderizar_animacao_abertura(st.session_state['figurinhas_para_animar'])
+                
+                # Botão fallback caso o JS falhe em comunicar o fim
+                if st.button("Finalizar e ver Álbum", use_container_width=True):
+                    st.session_state['processando_abertura'] = False
+                    st.session_state['figurinhas_para_animar'] = None
+                    st.rerun()
+
+        else:
+            area_acao.error("🚨 Você não tem pacotinhos disponíveis. Jogue na Arena ou participe das atividades da escola para ganhar mais!")
+
+    # --- ABA: TROCAS ---
     with aba_trocas:
         st.markdown("### 🤝 Mercado de Transferências")
-        res_cat = supabase.table("figurinhas").select("id, nome, tipo").in_("id", dados_db['catalogo_ids']).execute()
-        catalogo_map = {f['id']: f for f in res_cat.data}
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("#### 📥 Suas Repetidas")
-            if dados_db['repetidas']:
-                contagem = {x: dados_db['repetidas'].count(x) for x in set(dados_db['repetidas'])}
-                for f_id, qtd in contagem.items():
-                    info = catalogo_map.get(f_id, {})
-                    st.info(f"🟢 **Nº {f_id} - {info.get('nome', 'N/A')}** {'✨(LENDÁRIA)' if info.get('tipo') == 'lendaria' else ''} — Tem {qtd} extra(s)")
-            else: st.write("Não possui cartas repetidas.")
-        with col2:
-            st.markdown("#### 📢 Oferta de Troca")
-            if dados_db['repetidas']:
-                fig_oferecida = st.selectbox("Dar Figurinha:", list(set(dados_db['repetidas'])))
-                faltantes = [x for x in dados_db['catalogo_ids'] if x not in dados_db['coladas']]
-                if faltantes:
-                    fig_desejada = st.selectbox("Receber Figurinha:", faltantes)
-                    if st.button("Registrar no Mural", type="primary", use_container_width=True):
-                        supabase.table("banca_trocas").insert({"estudante_ra": estudante_ra, "id_oferecida": fig_oferecida, "id_desejada": fig_desejada, "status": "ativo"}).execute()
-                        st.success("Proposta gravada!"); time.sleep(1); st.rerun()
-                else: st.success("Álbum completo!")
-            else: st.warning("Abra pacotes primeiro.")
+        st.info("Funcionalidade em desenvolvimento. Em breve você poderá trocar suas repetidas com colegas!")
 
-        st.write("---"); st.markdown("#### 📢 Mural de Anúncios da Escola")
-        res_mural = supabase.table("banca_trocas").select("*").eq("status", "ativo").order("data_criacao", desc=True).execute()
-        if res_mural.data:
-            res_estudantes = supabase.table("estudantes").select("ra, nome").execute()
-            estudantes_map = {e['ra']: e['nome'] for e in res_estudantes.data}
-            for anuncio in res_mural.data:
-                item_id = anuncio['id']; dono_ra = anuncio['estudante_ra']; dono_nome = estudantes_map.get(dono_ra, "Aluno")
-                id_of = anuncio['id_oferecida']; id_des = anuncio['id_desejada']
-                if id_of in dados_db['catalogo_ids'] or id_des in dados_db['catalogo_ids']:
-                    info_of = catalogo_map.get(id_of, {}); tipo_of = info_of.get('tipo', 'comum'); info_des = catalogo_map.get(id_des, {})
-                    escala_ouro = tipo_of == "lendaria"; border_color = "#d4af37" if escala_ouro else "#009c3b"; bg_card = "#fffdf0" if escala_ouro else "#ffffff"
-                    st.markdown(f"""<div style='background-color: {bg_card}; padding: 15px; border-radius: 10px; border-left: 6px solid {border_color}; box-shadow: 2px 2px 6px rgba(0,0,0,0.05); margin-bottom: 10px;'><strong style='color: #002776;'>{dono_nome}</strong> {"<span style='color:#b8860b;'>[LENDÁRIA]</span>" if escala_ouro else ""}<br><span style='font-size:0.9rem; color:#444;'>Dá a <b>Nº {id_of} ({info_of.get('nome', '')})</b> em troca da <b>Nº {id_des} ({info_des.get('nome', '')})</b></span></div>""", unsafe_allow_html=True)
-                    if dono_ra != estudante_ra:
-                        if st.button(f"Aceitar Troca com {dono_nome} (Nº {id_of})##{item_id}", use_container_width=True):
-                            res_check = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", estudante_ra).eq("figurinha_id", id_des).execute()
-                            if res_check.data and res_check.data[0]['quantidade'] > 1:
-                                supabase.table("banca_trocas").update({"status": "concluido"}).eq("id", item_id).execute()
-                                q_atual = res_check.data[0]['quantidade']
-                                supabase.table("inventario_album").update({"quantidade": q_atual - 1}).eq("estudante_ra", estudante_ra).eq("figurinha_id", id_des).execute()
-                                res_q2 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", estudante_ra).eq("figurinha_id", id_of).execute()
-                                if res_q2.data: supabase.table("inventario_album").update({"quantidade": res_q2.data[0]['quantidade'] + 1}).eq("estudante_ra", estudante_ra).eq("figurinha_id", id_of).execute()
-                                else: supabase.table("inventario_album").insert({"estudante_ra": estudante_ra, "figurinha_id": id_of, "quantidade": 1}).execute()
-                                res_d1 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", dono_ra).eq("figurinha_id", id_of).execute()
-                                if res_d1.data: supabase.table("inventario_album").update({"quantidade": res_d1.data[0]['quantidade'] - 1}).eq("estudante_ra", dono_ra).eq("figurinha_id", id_of).execute()
-                                res_d2 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", dono_ra).eq("figurinha_id", id_des).execute()
-                                if res_d2.data: supabase.table("inventario_album").update({"quantidade": res_d2.data[0]['quantidade'] + 1}).eq("estudante_ra", dono_ra).eq("figurinha_id", id_des).execute()
-                                else: supabase.table("inventario_album").insert({"estudante_ra": dono_ra, "figurinha_id": id_des, "quantidade": 1}).execute()
-                                st.success("Troca realizada com sucesso!"); time.sleep(1); st.rerun()
-                            else: st.error(f"Você não possui a figurinha Nº {id_des} sobrando no inventário.")
-        else: st.info("Nenhum anúncio de troca em aberto.")
-
-    # =========================================================================
-    # ARENA DE JOGOS: CÓDIGOS DE VALIDAÇÃO (100% CLOUD SAFE, SEM ERROS F-STRING)
-    # =========================================================================
+    # --- ABA: JOGOS ---
     with aba_jogos:
         st.markdown("### 🏟️ Arena de Jogos")
-        st.write("Jogue e anote o **Código de Segurança** no final para salvar a sua pontuação!")
-        st.write("---")
-        
-        jogo1, jogo2, jogo3, jogo4, jogo5 = st.tabs(["🧠 Memória", "🏃 Pula Craque", "🧤 Goleiro", "🎯 Falta", "⚽ Embaixadinha"])
+        st.info("Funcionalidade em desenvolvimento. Jogue para ganhar pontos e pacotinhos!")
 
-        # ---------------- 1. JOGO DA MEMÓRIA ----------------
-        with jogo1:
-            html_memoria = """
-            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');body{font-family:'Oswald',sans-serif;text-align:center;margin:0;background:transparent;}#stats{font-size:20px;color:#004d23;margin-bottom:15px;}.grid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:400px;margin:0 auto;}.card{width:65px;height:85px;perspective:1000px;cursor:pointer;}.card-inner{width:100%;height:100%;transition:transform 0.5s;transform-style:preserve-3d;position:relative;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.2);}.card.open .card-inner{transform:rotateY(180deg);}.card.match .card-inner{transform:rotateY(180deg) scale(1.05);box-shadow:0 0 10px #d4af37;}.card-front,.card-back{width:100%;height:100%;position:absolute;backface-visibility:hidden;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem;}.card-front{background:linear-gradient(135deg,#004d23,#009c3b);border:2px solid #ffdf00;}.card-back{background:white;transform:rotateY(180deg);border:2px solid #009c3b;}button{margin-top:20px;padding:10px 20px;font-size:20px;background:#d4af37;color:#002776;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';font-weight:bold;}#gameOver{display:none;font-size:22px;color:#002776;margin-top:20px;background:#fffdf0;padding:15px;border-radius:10px;border:3px solid #d4af37;}</style>
-            </head><body>
-            <div id="stats">Nível: <span id="lv">1</span>/4 | Erros: <span id="err">0</span> | Tempo: <span id="tm">0</span>s</div>
-            <div class="grid" id="board"></div>
-            <div id="gameOver"></div>
-            <button id="btn" onclick="startLevel()">Iniciar Nível 1 ➡️</button>
-            <script>
-                const allEmojis = ['⚽','🏆','🏟️','🧤','👟','🇧🇷','🥅','⏱️','🥇','🎉'];
-                let level=1; let maxLevel=4; let errors=0; let time=0; let timerId; let openCards=[]; let matched=0; let totalCards=0; let isPlaying=false;
-                const board = document.getElementById('board'); const lvEl = document.getElementById('lv'); const errEl = document.getElementById('err'); const tmEl = document.getElementById('tm'); const btn = document.getElementById('btn'); const over = document.getElementById('gameOver');
-                function startLevel() {
-                    isPlaying=true; btn.style.display='none'; board.innerHTML=''; openCards=[]; matched=0; lvEl.innerText=level;
-                    let numPairs = 2 + (level*2); totalCards = numPairs * 2;
-                    let emojis = allEmojis.slice(0, numPairs); let cards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
-                    cards.forEach(e => { let c = document.createElement('div'); c.className='card'; c.innerHTML = `<div class="card-inner"><div class="card-front">⚽</div><div class="card-back">${e}</div></div>`; c.onclick = () => flipCard(c, e); board.appendChild(c); });
-                    timerId=setInterval(()=>{time++;tmEl.innerText=time;},1000);
-                }
-                function flipCard(c, e) {
-                    if(!isPlaying) return;
-                    if(openCards.length<2 && !c.classList.contains('open') && !c.classList.contains('match')) {
-                        c.classList.add('open'); openCards.push({el: c, emoji: e});
-                        if(openCards.length===2) {
-                            setTimeout(() => {
-                                if(openCards[0].emoji === openCards[1].emoji) {
-                                    openCards[0].el.classList.add('match'); openCards[1].el.classList.add('match'); matched+=2;
-                                    if(matched===totalCards) {
-                                        clearInterval(timerId); isPlaying=false;
-                                        if(level < maxLevel) { level++; btn.innerText="Iniciar Nível " + level + " ➡️"; btn.style.display='inline-block'; }
-                                        else { 
-                                            over.style.display='block'; board.style.display='none';
-                                            let pontos = Math.max(0, 1000 - (time * 2) - (errors * 10));
-                                            let segCode = (pontos * 3) + 45;
-                                            over.innerHTML = `🏆 PARABÉNS! 🏆<br>Pontos de Memória: <b>${pontos}</b><br><span style="color:red;">CÓDIGO SECRETO: ${segCode}</span><br><br><span style="font-size:16px;">Digite esses números abaixo para salvar!</span>`;
-                                        }
-                                    }
-                                } else { openCards[0].el.classList.remove('open'); openCards[1].el.classList.remove('open'); errors++; errEl.innerText=errors; }
-                                openCards=[];
-                            }, 700);
-                        }
-                    }
-                }
-            </script></body></html>
-            """
-            components.html(html_memoria, height=520)
-            c_m1, c_m2, c_m3 = st.columns([1, 1, 1])
-            pts_m = c_m1.number_input("🧠 Pontos no Jogo", min_value=0, max_value=9999, key="p_mem")
-            cod_m = c_m2.number_input("🔒 Código Secreto", min_value=0, max_value=99999, key="c_mem")
-            if c_m3.button("Salvar Recorde", use_container_width=True, key="btn_mem"):
-                if pts_m > 0 and cod_m == (pts_m * 3) + 45:
-                    salvar_ranking(estudante_ra, estudante_nome, "memoria", pts_m, "4 Níveis Concluídos")
-                    st.success("✅ Salvo com sucesso no Mural!")
-                else: st.error("❌ Código Inválido ou Pontuação incorreta.")
-
-        # ---------------- 2. SUPER PULA CRAQUE (CORRIGIDO) ----------------
-        with jogo2:
-            html_pula = """
-            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');body{margin:0;font-family:'Oswald',sans-serif;user-select:none;overflow:hidden;background:transparent;}#game{width:100%;height:350px;background:linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 70%, #4CAF50 70%, #2E7D32 100%);position:relative;border-radius:12px;overflow:hidden;box-shadow:inset 0 0 20px rgba(0,0,0,0.2);cursor:pointer;}.cloud{position:absolute;font-size:40px;color:rgba(255,255,255,0.7);white-space:nowrap;}#player{position:absolute;bottom:105px;left:50px;font-size:55px;z-index:10; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3)); display:flex; align-items:center; justify-content:center;} .flip { transform: scaleX(-1); display: inline-block; margin-right: -10px;} #obstacle{position:absolute;bottom:105px;left:800px;font-size:45px;z-index:9; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));}#coin{position:absolute;bottom:200px;left:900px;font-size:35px;z-index:8;}#scoreBoard{position:absolute;top:15px;left:20px;font-size:28px;color:#002776;text-shadow:1px 1px 0px #fff;z-index:20;}#msg{display:none;flex-direction:column;justify-content:center;align-items:center;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);color:white;font-size:30px;z-index:30;text-shadow:2px 2px 5px #000;text-align:center;padding:20px;box-sizing:border-box;}button{margin-top:15px;padding:12px 25px;font-size:22px;background:#ffdf00;color:#002776;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';font-weight:bold;box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:40; position:relative;}</style>
-            </head><body>
-            <div id="game"><div class="cloud" style="top:20px; left:100px; font-size:60px;">☁️</div><div class="cloud" style="top:50px; left:400px; font-size:40px;">☁️</div>
-            <div id="scoreBoard">Pontos: <span id="score">0</span></div>
-            <div id="player"><span class="flip">🏃‍♂️</span><span id="ballRoll">⚽</span></div>
-            <div id="obstacle">🚧</div><div id="coin">🏆</div>
-            <div id="msg"><div id="gameOverText" style="margin-bottom:10px;">SUPER PULA CRAQUE</div><button id="btnPlay" onclick="startGame(event)">JOGAR</button></div></div>
-            <script>
-            const p=document.getElementById('player');const o=document.getElementById('obstacle');const c=document.getElementById('coin');
-            const sEl=document.getElementById('score');const msg=document.getElementById('msg'); const btn = document.getElementById('btnPlay');
-            const clouds=document.querySelectorAll('.cloud'); let isPlaying=false; let score=0; let frame=0;
-            let py=105; let vy=0; let gravity=0.5; let isJumping=false; let canDouble=false;
-            let ox=800; let speed=4; let cx=1000; let cy=200; let coinActive=true; let animId; let ballRot=0;
-            
-            msg.style.display='flex';
-            
-            function jump(e){
-                if(e && e.target && e.target.closest && e.target.closest('button')) return;
-                if(e && e.cancelable) e.preventDefault();
-                if(!isPlaying) return;
-                if(!isJumping){
-                    vy=12;isJumping=true;canDouble=true;p.innerHTML="<span class='flip'>🤸‍♂️</span><span id='ballRoll'>⚽</span>";
-                }else if(canDouble){
-                    vy=10;canDouble=false;p.innerHTML="<span class='flip'>🦸‍♂️</span><span id='ballRoll'>⚽</span>";
-                }
-            }
-            document.getElementById('game').addEventListener('mousedown', jump);
-            document.getElementById('game').addEventListener('touchstart', jump, {passive:false});
-            
-            function startGame(e){
-                if(e)e.stopPropagation();
-                isPlaying=true;msg.style.display='none';score=0;sEl.innerText=0;speed=4;ox=800;cx=1200;coinActive=true;py=105;vy=0;isJumping=false;canDouble=false;p.innerHTML="<span class='flip'>🏃‍♂️</span><span id='ballRoll'>⚽</span>";
-                if(animId)cancelAnimationFrame(animId);
-                loop();
-            }
-            
-            function loop(){
-                if(!isPlaying)return;
-                vy-=gravity;py+=vy;
-                if(py<=105){
-                    py=105;vy=0;
-                    if(isJumping){
-                        isJumping=false;canDouble=false;
-                        p.innerHTML=(frame%10<5)?"<span class='flip'>🏃‍♂️</span><span id='ballRoll'>⚽</span>":"<span class='flip'>🚶‍♂️</span><span id='ballRoll'>⚽</span>";
-                    }
-                }
-                if(!isJumping) p.innerHTML=(frame%16<8)?"<span class='flip'>🏃‍♂️</span><span id='ballRoll'>⚽</span>":"<span class='flip'>🚶‍♂️</span><span id='ballRoll'>⚽</span>"; 
-                p.style.bottom=py+'px';
-                
-                let b=document.getElementById('ballRoll'); if(b){ ballRot+=speed*3; b.style.transform=`rotate(${ballRot}deg)`; }
-                
-                ox-=speed;
-                if(ox<-60){
-                    ox=600+Math.random()*400;
-                    let em=['🟥','🟨','🚧','🦵'];
-                    o.innerText=em[Math.floor(Math.random()*em.length)];
-                    speed+=0.04;
-                } 
-                o.style.left=ox+'px';
-                
-                cx-=speed*0.8;
-                if(cx<-50){
-                    cx=800+Math.random()*800;cy=180+Math.random()*80;coinActive=true;c.style.display='block';
-                } 
-                c.style.left=cx+'px'; c.style.bottom=cy+'px';
-                
-                clouds[0].style.left=(parseInt(clouds[0].style.left||100)-1)+'px';if(parseInt(clouds[0].style.left)<-100)clouds[0].style.left='800px';
-                clouds[1].style.left=(parseInt(clouds[1].style.left||400)-0.5)+'px';if(parseInt(clouds[1].style.left)<-100)clouds[1].style.left='800px';
-                
-                let pRect={x:50,y:py,w:40,h:50}; let oRect={x:ox+15,y:105,w:30,h:40}; let cRect={x:cx,y:cy,w:30,h:30};
-                
-                if(pRect.x<oRect.x+oRect.w && pRect.x+pRect.w>oRect.x && pRect.y<oRect.y+oRect.h && pRect.y+pRect.h>oRect.y){gameOver();return;}
-                if(coinActive && pRect.x<cRect.x+cRect.w && pRect.x+pRect.w>cRect.x && pRect.y<cRect.y+cRect.h && pRect.y+pRect.h>cRect.y){
-                    score+=50;coinActive=false;c.style.display='none';sEl.innerText=score;
-                }
-                if(frame%10===0){score+=1;sEl.innerText=score;} 
-                frame++; animId=requestAnimationFrame(loop);
-            }
-            function gameOver(){
-                isPlaying=false;
-                p.innerHTML="<span class='flip'>😵</span>💥";
-                msg.style.display='flex';
-                let segCode = (score * 5) + 10;
-                msg.innerHTML=`<div style="font-size:35px; color:#ffdf00; margin-bottom:10px;">FIM DE JOGO!</div><div>Pontos: ${score}</div><div style='color:#ff4444; font-size:26px; margin: 15px 0;'>CÓDIGO SECRETO: <b>${segCode}</b></div><button onclick="startGame(event)">JOGAR NOVAMENTE</button>`;
-            }
-            </script></body></html>
-            """
-            components.html(html_pula, height=380)
-            c_p1, c_p2, c_p3 = st.columns([1, 1, 1])
-            pts_p = c_p1.number_input("🏃 Pontos Feitos", min_value=0, max_value=99999, key="p_pula")
-            cod_p = c_p2.number_input("🔒 Código Secreto", min_value=0, max_value=999999, key="c_pula")
-            if c_p3.button("Salvar Recorde", use_container_width=True, key="btn_pula"):
-                if pts_p > 0 and cod_p == (pts_p * 5) + 10:
-                    salvar_ranking(estudante_ra, estudante_nome, "pula_craque", pts_p, "Tropeçou na corrida")
-                    st.success("✅ Salvo com sucesso no Mural!")
-                else: st.error("❌ Código de Segurança Inválido ou Pontuação incorreta.")
-
-        # ---------------- 3. GOLEIRO (CORRIGIDO) ----------------
-        with jogo3:
-            html_goleiro = """
-            <!DOCTYPE html><html><head><style>
-            @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); 
-            body { font-family: 'Oswald', sans-serif; text-align: center; margin: 0; background-color: transparent; } 
-            #gameContainer { position:relative; width:100%; height:450px; overflow:hidden;} 
-            .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 350px; margin: 20px auto; } 
-            .hole { height: 90px; background: rgba(0, 100, 0, 0.6); border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 50px; cursor: pointer; box-shadow: inset 0 5px 15px rgba(0,0,0,0.5); border: 2px solid #004d23; transition: background 0.2s;} 
-            .hole:active { background: rgba(0, 150, 0, 0.8); } 
-            .hole.active::after { content: '⚽'; animation: pop 0.2s ease-out; } 
-            @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } } 
-            .stats { font-size: 24px; color: #004d23; margin-top: 10px; } 
-            button { font-family: 'Oswald', sans-serif; background: #d4af37; color: #002776; border: none; padding: 12px 25px; font-size: 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.1s;} 
-            button:active { transform: scale(0.95); } 
-            #endMsg { display:none; background:#fffdf0; border: 4px solid #d4af37; padding: 25px; border-radius:15px; font-size: 26px; color: #002776; margin: 40px auto; width: 85%; max-width: 350px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); text-align:center;} 
-            </style></head><body>
-            <div id="gameContainer">
-                <div class="stats" id="statsBar">DEFESAS: <span id="score">0</span> | TEMPO: <span id="time">15</span>s</div>
-                <button id="startBtn" onclick="startGame()">INICIAR TREINO (15s)</button>
-                <div class="grid" id="grid">
-                    <div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div>
-                    <div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div>
-                    <div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div>
-                </div>
-                <div id="endMsg"></div>
-            </div>
-            <script>
-                let score=0; let lastHole; let timeUp=false; let timeLeft=15; 
-                const holes=document.querySelectorAll('.hole'); const scoreBoard=document.getElementById('score'); 
-                const timeBoard=document.getElementById('time'); const btn=document.getElementById('startBtn'); 
-                const msg=document.getElementById('endMsg'); const grid=document.getElementById('grid');
-                const statsBar=document.getElementById('statsBar');
-                
-                function randomHole() { const idx=Math.floor(Math.random()*holes.length); const hole=holes[idx]; if (hole===lastHole) return randomHole(); lastHole=hole; return hole; }
-                
-                function showBall() { 
-                    const time=Math.random()*(800-400)+400; 
-                    const hole=randomHole(); hole.classList.add('active'); 
-                    setTimeout(() => { hole.classList.remove('active'); if (!timeUp) showBall(); }, time); 
-                }
-                
-                function startGame() { 
-                    msg.style.display='none'; grid.style.display='grid'; statsBar.style.display='block';
-                    scoreBoard.textContent=0; timeBoard.textContent=15; score=0; timeUp=false; timeLeft=15; btn.style.display='none'; 
-                    showBall(); 
-                    const countdown=setInterval(() => { 
-                        timeLeft--; timeBoard.textContent=timeLeft; 
-                        if(timeLeft<=0) { 
-                            clearInterval(countdown); timeUp=true; 
-                            let segCode = (score * 8) + 22; 
-                            grid.style.display='none'; statsBar.style.display='none'; btn.style.display='none';
-                            msg.style.display='block'; 
-                            msg.innerHTML=`<div style="font-size:32px; color:#009c3b; margin-bottom:10px;">FIM DO TEMPO!</div><div>Defesas: <b>${score}</b></div><div style='color:#ff4444; font-size:26px; margin: 15px 0;'>CÓDIGO SECRETO:<br><b>${segCode}</b></div><button onclick="startGame()">JOGAR DE NOVO</button>`; 
-                        } 
-                    }, 1000); 
-                }
-                function defend(hole) { if(!hole.classList.contains('active')) return; score++; scoreBoard.textContent=score; hole.classList.remove('active'); }
-            </script></body></html>
-            """
-            components.html(html_goleiro, height=450)
-            c_g1, c_g2, c_g3 = st.columns([1, 1, 1])
-            pts_g = c_g1.number_input("🧤 Número de Defesas", min_value=0, max_value=999, key="p_gol")
-            cod_g = c_g2.number_input("🔒 Código Secreto", min_value=0, max_value=9999, key="c_gol")
-            if c_g3.button("Salvar Recorde", use_container_width=True, key="btn_gol"):
-                if pts_g > 0 and cod_g == (pts_g * 8) + 22:
-                    salvar_ranking(estudante_ra, estudante_nome, "goleiro", pts_g, "Em 15 segundos")
-                    st.success("✅ Salvo com sucesso no Mural!")
-                else: st.error("❌ Código de Segurança Inválido ou Pontuação incorreta.")
-
-        # ---------------- 4. FALTA PERFEITA ----------------
-        with jogo4:
-            html_falta = """
-            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body{margin:0;font-family:'Oswald',sans-serif;user-select:none; overflow:hidden;} #game{width:100%;height:300px;background:linear-gradient(#87CEEB 70%, #4CAF50 30%);position:relative;border-radius:10px;overflow:hidden;box-shadow:inset 0 0 10px rgba(0,0,0,0.3);} #goal{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);width:200px;height:100px;border:5px solid white;border-bottom:none;} #targetZone{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);width:60px;height:100px;background:rgba(0,255,0,0.3);} #target{position:absolute;bottom:130px;left:0;font-size:30px;} #ball{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:40px;transition:bottom 0.3s ease-out;} button{position:absolute;top:20px;left:50%;transform:translateX(-50%);padding:10px 30px;font-size:20px;font-weight:bold;background:#ffdf00;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';z-index:20;} #msg{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:none;flex-direction:column;justify-content:center;align-items:center;font-size:30px;color:white;text-shadow:2px 2px 4px #000;font-weight:bold;z-index:15;} #kickFeedback{position:absolute;top:80px;width:100%;text-align:center;font-size:30px;color:white;text-shadow:2px 2px 4px #000;font-weight:bold;z-index:5;} </style>
-            </head><body>
-            <div id="game"><div id="goal"></div><div id="targetZone"></div><div id="target">🎯</div><div id="ball">⚽</div><button id="btn" onclick="shoot()">CHUTE 1/5</button><div id="kickFeedback"></div><div id="msg"></div></div>
-            <script>
-            let tx=0; let d=1; let speed=4; let moving=true; let shots=0; let tScore=0;
-            const tg=document.getElementById('target'); const bl=document.getElementById('ball'); const btn=document.getElementById('btn'); const msg=document.getElementById('msg'); const kfb=document.getElementById('kickFeedback');
-            const gameDiv=document.getElementById('game');
-            function anim(){
-                if(!moving)return; 
-                let w = gameDiv.clientWidth || window.innerWidth || 350; 
-                tx+=speed*d; 
-                if(tx>w-40||tx<0)d*=-1; 
-                tg.style.left=tx+'px'; 
-                requestAnimationFrame(anim); 
-            } anim();
-            function shoot(){ 
-                if(!moving)return; moving=false; bl.style.bottom='130px'; 
-                setTimeout(()=>{ 
-                    let w=gameDiv.clientWidth || window.innerWidth || 350; 
-                    let center=w/2; let tCenter=tx+15; shots++;
-                    if(Math.abs(tCenter-center)<40){ kfb.innerText="🎉 GOLAÇO!!! (+100)"; kfb.style.color="#00FF00"; tScore+=100; } else{ kfb.innerText="❌ NA TRAVE!"; kfb.style.color="red"; }
-                    if(shots<5){ btn.innerText="CHUTE "+(shots+1)+"/5"; setTimeout(()=>{kfb.innerText=''; bl.style.bottom='20px'; moving=true; anim();}, 1500); } 
-                    else{ let segCode = (tScore * 2) + 99; btn.innerText="JOGAR DE NOVO"; btn.setAttribute("onclick", "location.reload()"); msg.style.display="flex"; msg.innerHTML=`FIM DOS 5 CHUTES!<br><span style='color:#ffdf00;'>Total: ${tScore}</span><br><span style='color:red;'>CÓDIGO: ${segCode}</span>`; }
-                },300); 
-            }
-            </script></body></html>
-            """
-            components.html(html_falta, height=350)
-            c_f1, c_f2, c_f3 = st.columns([1, 1, 1])
-            pts_f = c_f1.number_input("🎯 Pontos nos Chutes", min_value=0, max_value=9999, key="p_falta")
-            cod_f = c_f2.number_input("🔒 Código Secreto", min_value=0, max_value=99999, key="c_falta")
-            if c_f3.button("Salvar Recorde", use_container_width=True, key="btn_falta"):
-                if pts_f > 0 and cod_f == (pts_f * 2) + 99:
-                    salvar_ranking(estudante_ra, estudante_nome, "falta", pts_f, "Em 5 Chutes")
-                    st.success("✅ Salvo com sucesso no Mural!")
-                else: st.error("❌ Código Inválido ou Pontuação incorreta.")
-
-        # ---------------- 5. EMBAIXADINHA ----------------
-        with jogo5:
-            html_embaixadinha = """
-            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body { margin: 0; padding: 0; overflow: hidden; font-family: 'Oswald', sans-serif; user-select:none;} #gameArea { width: 100%; height: 350px; background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 70%, #228B22 70%, #228B22 100%); position: relative; border-radius: 12px; box-shadow: inset 0 0 20px rgba(0,0,0,0.2); cursor: pointer; } #score { position: absolute; top: 15px; left: 20px; font-size: 28px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); z-index: 10; } #ball { font-size: 70px; position: absolute; left: 50%; transform: translateX(-50%); cursor: pointer; z-index: 5; } #startBtn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; background: #ffdf00; color: #002776; border: none; border-radius: 8px; font-size: 24px; font-family: 'Oswald', sans-serif; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 20; font-weight: bold;} #startBtn:active { transform: translate(-50%, -45%); box-shadow: 0 2px 5px rgba(0,0,0,0.3); } #msg { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); flex-direction:column; justify-content:center; align-items:center; color:white; font-size:32px; z-index:15; text-align:center; } </style>
-            </head><body>
-            <div id="gameArea"><div id="score">Embaixadinhas: 0</div><div id="ball" style="top: 50px;">⚽</div><button id="startBtn">COMEÇAR</button><div id="msg"></div></div>
-            <script>
-            const ball=document.getElementById('ball'); const scoreEl=document.getElementById('score'); const startBtn=document.getElementById('startBtn'); const msg=document.getElementById('msg'); let y=50; let vy=0; let gravity=0.4; let isPlaying=false; let score=0; let animId; let rotation=0;
-            function update() { if(!isPlaying) return; vy+=gravity; y+=vy; rotation+=vy*2; ball.style.transform=`translateX(-50%) rotate(${rotation}deg)`; if(y>270) { isPlaying=false; ball.style.top='270px'; let segCode = (score * 6) + 33; msg.style.display='flex'; msg.innerHTML=`A BOLA CAIU!<br><span style='color:#ffdf00;'>Total: ${score}</span><br><span style='color:red;'>CÓDIGO: ${segCode}</span><br><button onclick="location.reload()" style="margin-top:10px;">JOGAR DE NOVO</button>`; return; } if(y<0) { y=0; vy=0; } ball.style.top=y+'px'; animId=requestAnimationFrame(update); }
-            function kick(e) { if(e){e.preventDefault(); e.stopPropagation();} if(!isPlaying) return; vy=-8; score++; scoreEl.innerText='Embaixadinhas: '+score; }
-            ball.addEventListener('mousedown', kick); ball.addEventListener('touchstart', kick, {passive: false});
-            startBtn.onclick=function() { isPlaying=true; score=0; scoreEl.innerText='Embaixadinhas: 0'; y=50; vy=-5; rotation=0; startBtn.style.display='none'; msg.style.display='none'; cancelAnimationFrame(animId); update(); }
-            </script></body></html>
-            """
-            components.html(html_embaixadinha, height=380)
-            c_e1, c_e2, c_e3 = st.columns([1, 1, 1])
-            pts_e = c_e1.number_input("⚽ Toques na Bola", min_value=0, max_value=9999, key="p_emb")
-            cod_e = c_e2.number_input("🔒 Código Secreto", min_value=0, max_value=99999, key="c_emb")
-            if c_e3.button("Salvar Recorde", use_container_width=True, key="btn_emb"):
-                if pts_e > 0 and cod_e == (pts_e * 6) + 33:
-                    salvar_ranking(estudante_ra, estudante_nome, "embaixadinha", pts_e, "Deixou a bola cair")
-                    st.success("✅ Salvo com sucesso no Mural!")
-                else: st.error("❌ Código Inválido ou Pontuação incorreta.")
-
-    # =========================================================================
-    # RANKING GERAL OFICIAL
-    # =========================================================================
+    # --- ABA: RANKING ---
     with aba_ranking:
-        st.markdown("<h2 style='text-align: center; font-family: Oswald; color: #d4af37; text-shadow: 1px 1px 2px #000;'>🏆 MURAL DE RECORDES 🏆</h2>", unsafe_allow_html=True)
-        jogo_rank = st.selectbox("Escolha o jogo para ver o Ranking Oficial da Escola:", ["🏃 Pula Craque", "🧠 Memória", "🧤 Goleiro", "🎯 Falta", "⚽ Embaixadinha"])
-        map_db = {"🏃 Pula Craque": "pula_craque", "🧠 Memória": "memoria", "🧤 Goleiro": "goleiro", "🎯 Falta": "falta", "⚽ Embaixadinha": "embaixadinha"}
-        
-        try:
-            res_rank = supabase.table("ranking_jogos").select("*").eq("jogo", map_db[jogo_rank]).order("pontuacao", desc=True).limit(10).execute()
-            if res_rank.data:
-                df_rank = pd.DataFrame(res_rank.data)
-                df_rank.index = df_rank.index + 1
-                df_rank['Aluno'] = df_rank['nome_estudante']
-                df_rank['Pontuação'] = df_rank['pontuacao']
-                df_rank['Detalhes'] = df_rank['detalhes']
-                st.dataframe(df_rank[['Aluno', 'Pontuação', 'Detalhes']], use_container_width=True)
-            else:
-                st.info("Nenhum recorde registrado ainda. Jogue para ser o Número 1!")
-        except Exception as e:
-            st.error("Crie a tabela 'ranking_jogos' no Supabase para visualizar o placar!")
+        st.markdown("### 🏆 Ranking da Escola")
+        st.info("Funcionalidade em desenvolvimento. Veja quem está completando o álbum mais rápido!")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
+# ==============================================================================
+# GATILHOS DE EVENTOS JS (Para finalizar animação)
+# ==============================================================================
+# Capturar mensagens enviadas pelo componente HTML (como o fim da animação)
+# Isso requer lógica na página principal que gerencia o login/navegação,
+# mas aqui definimos o que acontece se o evento chegar.
+
+def gerenciar_eventos_html():
+    # Esta lógica depende de como o wrapper principal chama o módulo.
+    # Em um app single-page puro, usaríamos query_params ou um empty container.
+    # Exemplo hipotético de captura:
+    params = st.context.query_params
+    if "action" in params and params["action"] == "recarregar_album":
+        st.session_state['processando_abertura'] = False
+        st.session_state['figurinhas_para_animar'] = None
+        # Limpar param para não entrar em loop
+        st.context.query_params.clear() 
+        st.rerun()
 
 # ==============================================================================
-# GATILHOS FINAIS DO SISTEMA (FICAM NA ÚLTIMA LINHA DO SEU ARQUIVO)
+# EXECUÇÃO (Apenas para teste isolado, integre no seu app principal)
 # ==============================================================================
-if st.session_state.get('authenticated'):
+if __name__ == "__main__":
+    # Simulação de login para teste
+    if 'authenticated' not in st.session_state:
+        st.session_state.authenticated = True
+        st.session_state.usuario_ra = 'RA-TESTE' # RA que existe no seu Supabase
+        st.session_state.usuario_nome = 'Aluno Teste'
     
-    # GATILHO 1: ALUNO LOGADO
-    if st.session_state.get('modulo_atuacao') == "Álbum do Estudante":
-        st.markdown("""
-            <style>
-                [data-testid="stSidebar"] { display: none !important; }
-                [data-testid="collapsedControl"] { display: none !important; }
-                .block-container { padding-top: 2rem !important; }
-            </style>
-        """, unsafe_allow_html=True)
-        c_nome, c_sair = st.columns([3, 1])
-        with c_nome:
-            st.markdown(f"<h3 style='color: #004d23; font-family: Poppins; margin-bottom: 0;'>🎒 Olá, <b>{st.session_state.get('usuario_nome')}</b>!</h3>", unsafe_allow_html=True)
-            st.markdown(f"<span style='color: #666; font-size: 0.9rem;'>📌 R.A.: {st.session_state.get('usuario_ra')}</span>", unsafe_allow_html=True)
-        with c_sair:
-            st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
-            if st.button("🚪 Sair da Conta", type="primary", use_container_width=True):
-                st.session_state.authenticated = False
-                st.session_state.user_role = None
-                st.session_state.usuario_ra = None
-                st.session_state.usuario_nome = None
-                st.session_state.modulo_atuacao = None
-                st.rerun()
-        st.write("---")
-        render_modulo_album()
-        st.stop()
+    if st.session_state.authenticated:
+        # Tentar gerenciar eventos de recarregamento
+        # gerenciar_eventos_html() 
+        
+        # IMPORTANTE: No seu código principal, a conexão 'supabase' já deve existir.
+        # supabase = ... 
+        
+        # Para teste, o módulo assume que 'supabase' está disponível globalmente 
+        # ou no session_state como definido no início.
 
-    # GATILHO 2: DIRETOR
-    elif st.session_state.get('modulo_atuacao') == "🏫 Ensino Regular":
-        if 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
-            render_modulo_album()
+        render_modulo_album()

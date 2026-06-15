@@ -10413,9 +10413,37 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 
-# ==============================================================================
-# 1. FUNÇÕES DO ÁLBUM E JOGOS (DEVEM FICAR ANTES DO GATILHO)
-# ==============================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# =====================================================================
+# MÓDULO: ÁLBUM DE FIGURINHAS PREMIUM E ARENA DE JOGOS INTERATIVA
+# Tabelas: estudantes, figurinhas, inventario_album, banca_trocas
+# =====================================================================
 import random
 import time
 import streamlit as st
@@ -10496,7 +10524,10 @@ def render_modulo_album():
     estudante_ra = st.session_state.get('usuario_ra', 'RA-TESTE-GALLO')
     dados_db = puxar_dados_album_estudante(estudante_ra)
     st.markdown('<div class="album-premium-container">', unsafe_allow_html=True)
-    st.markdown('<div class="header-premium"><h1>🏆 SUPER ÁLBUM DOS CRAQUES 🏆</h1><p>A seleção oficial da nossa escola!</p></div>', unsafe_allow_html=True)
+    
+    # Nome atualizado e mais divertido para a escola!
+    st.markdown('<div class="header-premium"><h1>⚽ SUPER ÁLBUM DOS CRAQUES ⚽</h1><p style="font-size: 1.2rem; color: #ffffff; font-weight: 600;">A seleção oficial da nossa escola!</p></div>', unsafe_allow_html=True)
+    
     aba_album, aba_pacotes, aba_trocas, aba_jogos = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas", "🏟️ Arena de Jogos"])
     with aba_album:
         figurinhas_por_pagina = 10
@@ -10517,7 +10548,7 @@ def render_modulo_album():
         with c_next:
             if st.button("PRÓXIMA PÁGINA ➡️", use_container_width=True) and st.session_state['pag_album'] < (total_paginas - 1):
                 st.session_state['pag_album'] += 1; st.rerun()
-        textos_paginas = {0: f"Bem-vindos ao Álbum da Copa CEIEF da Turma {dados_db['turma']}! O apito inicial foi dado, comece sua coleção rumo ao título!", 1: "⚽ CURIOSIDADE DA COPA: Sabia que o Brasil é a única seleção do planeta que participou de absolutamente todas as edições da Copa do Mundo?", 2: "🏆 MOMENTO HISTÓRICO: Pelé, o eterno Rei do Futebol, é o único jogador da história a vencer três Copas do Mundo.", 3: "🌍 VOCÊ SABIA? A Copa do Mundo de 2002 foi a primeira da história a ser sediada em dois países simultaneamente: Coreia do Sul e Japão."}
+        textos_paginas = {0: f"Bem-vindos ao Super Álbum da Turma {dados_db['turma']}! O apito inicial foi dado, comece sua coleção rumo ao título!", 1: "⚽ CURIOSIDADE: Sabia que o Brasil é a única seleção do planeta que participou de absolutamente todas as Copas do Mundo?", 2: "🏆 HISTÓRIA: Pelé, o eterno Rei do Futebol, é o único jogador da história a vencer três Copas do Mundo.", 3: "🌍 VOCÊ SABIA? A Copa de 2002 foi a primeira da história a ser sediada em dois países simultaneamente: Coreia do Sul e Japão."}
         texto_atual = textos_paginas.get(st.session_state['pag_album'], "Continue a abrir pacotinhos e a negociar com os colegas para completar sua coleção!")
         st.markdown(f"""<div style='background-color: #fffdf0; padding: 15px; border-left: 6px solid #d4af37; border-radius: 8px; margin-top: 15px; margin-bottom: 25px; color: #333; font-size: 0.95rem; box-shadow: 2px 2px 10px rgba(0,0,0,0.05); line-height: 1.5;'>📖 <i>\"{texto_atual}\"</i></div>""", unsafe_allow_html=True)
         inicio_idx = st.session_state['pag_album'] * figurinhas_por_pagina
@@ -10619,51 +10650,47 @@ def render_modulo_album():
                                 st.success("Troca realizada com sucesso!"); time.sleep(1); st.rerun()
                             else: st.error(f"Você não possui a figurinha Nº {id_des} sobrando no inventário para fechar essa troca.")
         else: st.info("Nenhum anúncio de troca em aberto.")
+
+    # =========================================================================
+    # ARENA DE JOGOS: TODOS OS JOGOS AGORA SÃO 100% INTERATIVOS (HTML/JS)
+    # =========================================================================
     with aba_jogos:
         st.markdown("### 🏟️ Arena de Jogos e Desafios")
         st.write("Treine as suas habilidades cognitivas e reflexos nestes mini-jogos exclusivos!")
         st.write("---")
-        jogo1, jogo2, jogo3, jogo4 = st.tabs(["📚 Quiz Escolar", "🧠 Memória 3D", "🧤 Treino de Goleiro", "⚽ Embaixadinha"])
+        
+        # Abas internas dos 4 jogos dinâmicos
+        jogo1, jogo2, jogo3, jogo4 = st.tabs(["🧠 Memória 3D", "🧤 Treino de Goleiro", "🎯 Falta Perfeita", "🏃 Pula Craque"])
+        
         with jogo1:
-            st.markdown("#### 📚 Quiz de Interpretação e Sabedoria")
-            st.write("Leia os textos com atenção e mostre que você é um craque em conhecimentos gerais!")
-            banco_perguntas = [{"dif": "Fácil", "texto": "", "q": "Qual é a cor da camisa principal da Seleção Brasileira de Futebol?", "op": ["Azul", "Branca", "Amarela", "Verde"], "r": "Amarela"}, {"dif": "Fácil", "texto": "", "q": "Qual país é conhecido como o 'País do Futebol' e é o único a ser pentacampeão?", "op": ["Argentina", "Alemanha", "Brasil", "França"], "r": "Brasil"}]
-            if "quiz_pergunta_atual" not in st.session_state: st.session_state["quiz_pergunta_atual"] = random.choice(banco_perguntas); st.session_state["quiz_respondido"] = False
-            q = st.session_state["quiz_pergunta_atual"]; cor_dif = "#009c3b" if q['dif'] == "Fácil" else ("#d4af37" if q['dif'] == "Média" else "#8b0000")
-            st.markdown(f"<div style='margin-bottom: 15px;'><b>Nível do Desafio:</b> <span style='background-color:{cor_dif}; color:white; padding: 3px 10px; border-radius: 15px; font-size: 0.8rem;'>{q['dif']}</span></div>", unsafe_allow_html=True)
-            if q.get('texto') != "": st.info(f"📖 **LEIA COM ATENÇÃO:**\n\n{q['texto']}")
-            st.markdown(f"#### ❓ {q['q']}")
-            resposta_quiz = st.radio("Selecione a sua resposta:", q['op'], index=None, key="radio_quiz_escolha")
-            if st.button("✅ Confirmar Resposta", use_container_width=True):
-                if resposta_quiz:
-                    if resposta_quiz == q['r']: st.success("🎉 Golaço! Você acertou em cheio!"); st.balloons()
-                    else: st.error(f"❌ Na trave! A resposta correta era: **{q['r']}**.")
-                    st.session_state["quiz_respondido"] = True
-                else: st.warning("Tem de escolher uma opção antes de confirmar!")
-            if st.session_state.get("quiz_respondido"):
-                st.write("---")
-                if st.button("🔄 Puxar Outra Pergunta", use_container_width=True, type="primary"): st.session_state["quiz_pergunta_atual"] = random.choice(banco_perguntas); st.session_state["quiz_respondido"] = False; st.rerun()
-        with jogo2:
             st.markdown("#### 🧠 Memória 3D dos Campeões")
             components.html("""<!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body { font-family: 'Oswald', sans-serif; display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; align-items: center; padding: 20px; background: transparent; margin: 0; } .card { width: 75px; height: 95px; perspective: 1000px; cursor: pointer; } .card-inner { width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.2); border-radius: 8px;} .card.open .card-inner { transform: rotateY(180deg); } .card.match .card-inner { transform: rotateY(180deg) scale(1.05); box-shadow: 0 0 15px #d4af37; } .card-front, .card-back { width: 100%; height: 100%; position: absolute; backface-visibility: hidden; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; } .card-front { background: linear-gradient(135deg, #004d23, #009c3b); color: white; border: 2px solid #ffdf00; font-size: 1.8rem; } .card-back { background: white; transform: rotateY(180deg); border: 2px solid #009c3b; } #msg { width: 100%; text-align: center; color: #004d23; font-size: 1.8rem; display: none; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); margin-bottom: 10px;} </style></head><body> <div id="msg">🏆 ESPETACULAR! VOCÊ ENCONTROU TODOS OS PARES! 🏆</div> <script> const emojis = ['⚽','🏆','🏟️','🧤','👟','🇧🇷','🥅','⏱️']; let cards = [...emojis, ...emojis].sort(() => Math.random() - 0.5); let openCards = []; let matched = 0; cards.forEach((e) => { let card = document.createElement('div'); card.className = 'card'; let inner = document.createElement('div'); inner.className = 'card-inner'; let front = document.createElement('div'); front.className = 'card-front'; front.innerText = '⚽'; let back = document.createElement('div'); back.className = 'card-back'; back.innerText = e; inner.appendChild(front); inner.appendChild(back); card.appendChild(inner); card.onclick = function() { if(openCards.length < 2 && !this.classList.contains('open') && !this.classList.contains('match')){ this.classList.add('open'); openCards.push({el: this, emoji: e}); if(openCards.length === 2){ setTimeout(() => { if(openCards[0].emoji === openCards[1].emoji){ openCards[0].el.classList.add('match'); openCards[1].el.classList.add('match'); matched += 2; if(matched === cards.length) document.getElementById('msg').style.display = 'block'; } else { openCards[0].el.classList.remove('open'); openCards[1].el.classList.remove('open'); } openCards = []; }, 800); } } }; document.body.appendChild(card); }); </script></body></html>""", height=480)
-        with jogo3:
+        
+        with jogo2:
             st.markdown("#### 🧤 Reflexo de Goleiro")
+            st.write("Clique nas bolas o mais rápido possível para defender!")
             components.html("""<!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body { font-family: 'Oswald', sans-serif; text-align: center; margin: 0; background-color: transparent; } .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 350px; margin: 20px auto; } .hole { height: 90px; background: rgba(0, 100, 0, 0.6); border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 50px; cursor: pointer; box-shadow: inset 0 5px 15px rgba(0,0,0,0.5); border: 2px solid #004d23; transition: background 0.2s;} .hole:active { background: rgba(0, 150, 0, 0.8); } .hole.active::after { content: '⚽'; animation: pop 0.2s ease-out; } @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } } .stats { font-size: 24px; color: #004d23; margin-top: 10px; } button { font-family: 'Oswald', sans-serif; background: #d4af37; color: #002776; border: none; padding: 12px 25px; font-size: 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.1s;} button:active { transform: scale(0.95); } </style></head><body> <div class="stats">DEFESAS: <span id="score">0</span> | TEMPO: <span id="time">15</span>s</div> <button id="startBtn" onclick="startGame()">INICIAR TREINO</button> <div class="grid" id="grid"> <div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div> <div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div> <div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div> </div> <script> let score = 0; let lastHole; let timeUp = false; let timeLeft = 15; const holes = document.querySelectorAll('.hole'); const scoreBoard = document.getElementById('score'); const timeBoard = document.getElementById('time'); const btn = document.getElementById('startBtn'); function randomHole() { const idx = Math.floor(Math.random() * holes.length); const hole = holes[idx]; if (hole === lastHole) return randomHole(); lastHole = hole; return hole; } function showBall() { const time = Math.random() * (900 - 400) + 400; const hole = randomHole(); hole.classList.add('active'); setTimeout(() => { hole.classList.remove('active'); if (!timeUp) showBall(); }, time); } function startGame() { scoreBoard.textContent = 0; timeBoard.textContent = 15; score = 0; timeUp = false; timeLeft = 15; btn.style.display = 'none'; showBall(); const countdown = setInterval(() => { timeLeft--; timeBoard.textContent = timeLeft; if(timeLeft <= 0) { clearInterval(countdown); timeUp = true; btn.style.display = 'inline-block'; btn.innerText = 'JOGAR NOVAMENTE'; } }, 1000); } function defend(hole) { if(!hole.classList.contains('active')) return; score++; scoreBoard.textContent = score; hole.classList.remove('active'); } </script></body></html>""", height=450)
+        
+        with jogo3:
+            st.markdown("#### 🎯 Falta Perfeita")
+            st.write("Um jogo de timing! Carregue em CHUTAR exatamente quando o alvo estiver no centro da baliza.")
+            components.html("""<!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body{margin:0;font-family:'Oswald',sans-serif;user-select:none;} #game{width:100%;height:300px;background:linear-gradient(#87CEEB 70%, #4CAF50 30%);position:relative;border-radius:10px;overflow:hidden;box-shadow:inset 0 0 10px rgba(0,0,0,0.3);} #goal{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);width:200px;height:100px;border:5px solid white;border-bottom:none;} #targetZone{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);width:60px;height:100px;background:rgba(0,255,0,0.3);} #target{position:absolute;bottom:130px;left:0;font-size:30px;} #ball{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:40px;transition:bottom 0.3s ease-out;} button{position:absolute;top:20px;left:50%;transform:translateX(-50%);padding:10px 30px;font-size:20px;font-weight:bold;background:#ffdf00;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';} #msg{position:absolute;top:80px;width:100%;text-align:center;font-size:30px;color:white;text-shadow:2px 2px 4px #000;font-weight:bold;} </style></head><body> <div id="game"> <div id="goal"></div><div id="targetZone"></div><div id="target">🎯</div><div id="ball">⚽</div> <button id="btn" onclick="shoot()">CHUTAR!</button><div id="msg"></div> </div> <script> let tx=0; let d=1; let speed=4; let moving=true; let w=document.getElementById('game').clientWidth; const tg=document.getElementById('target'); const bl=document.getElementById('ball'); const btn=document.getElementById('btn'); const msg=document.getElementById('msg'); function anim(){ if(!moving)return; tx+=speed*d; if(tx>w-30||tx<0)d*=-1; tg.style.left=tx+'px'; requestAnimationFrame(anim); } anim(); function shoot(){ if(!moving){ moving=true; bl.style.bottom='20px'; msg.innerText=''; btn.innerText='CHUTAR!'; anim(); return; } moving=false; bl.style.bottom='130px'; setTimeout(()=>{ let center=w/2; let tCenter=tx+15; if(Math.abs(tCenter-center)<35){ msg.innerText="🎉 GOLAÇO!!!"; msg.style.color="#00FF00"; } else{ msg.innerText="❌ NA TRAVE!"; msg.style.color="red"; } btn.innerText='JOGAR DE NOVO'; },300); } </script></body></html>""", height=350)
+            
         with jogo4:
-            st.markdown("#### ⚽ Rei da Embaixadinha")
-            components.html("""<!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body { margin: 0; padding: 0; overflow: hidden; font-family: 'Oswald', sans-serif; } #gameArea { width: 100%; height: 350px; background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 70%, #228B22 70%, #228B22 100%); position: relative; border-radius: 12px; box-shadow: inset 0 0 20px rgba(0,0,0,0.2); cursor: crosshair; } #score { position: absolute; top: 15px; left: 20px; font-size: 28px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); z-index: 10; } #ball { font-size: 60px; position: absolute; left: 50%; transform: translateX(-50%); cursor: pointer; user-select: none; z-index: 5; transition: transform 0.1s;} #startBtn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; background: #ffdf00; color: #002776; border: none; border-radius: 8px; font-size: 24px; font-family: 'Oswald', sans-serif; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 20; font-weight: bold;} #startBtn:active { transform: translate(-50%, -45%); box-shadow: 0 2px 5px rgba(0,0,0,0.3); } </style></head><body> <div id="gameArea"> <div id="score">Embaixadinhas: 0</div><div id="ball" style="top: 50px;">⚽</div><button id="startBtn">COMEÇAR</button> </div> <script> const ball = document.getElementById('ball'); const scoreEl = document.getElementById('score'); const startBtn = document.getElementById('startBtn'); let y = 50; let vy = 0; let gravity = 0.6; let isPlaying = false; let score = 0; let animId; let rotation = 0; function update() { if(!isPlaying) return; vy += gravity; y += vy; rotation += vy * 1.5; ball.style.transform = `translateX(-50%) rotate(${rotation}deg)`; if(y > 280) { isPlaying = false; startBtn.style.display = 'block'; startBtn.innerText = 'TENTAR DE NOVO'; ball.style.top = '280px'; return; } if(y < 0) { y = 0; vy = 0; } ball.style.top = y + 'px'; animId = requestAnimationFrame(update); } function kick() { if(!isPlaying) return; vy = -12; score++; scoreEl.innerText = 'Embaixadinhas: ' + score; } ball.onmousedown = kick; ball.ontouchstart = function(e) { e.preventDefault(); kick(); } startBtn.onclick = function() { isPlaying = true; score = 0; scoreEl.innerText = 'Embaixadinhas: 0'; y = 20; vy = 0; rotation = 0; startBtn.style.display = 'none'; cancelAnimationFrame(animId); update(); } </script></body></html>""", height=380)
+            st.markdown("#### 🏃 Pula Craque")
+            st.write("Toque ou clique na tela para saltar os obstáculos e sobreviver o máximo possível!")
+            components.html("""<!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body{margin:0;font-family:'Oswald',sans-serif;user-select:none;} #game{width:100%;height:300px;background:#E0F7FA;position:relative;border-radius:10px;overflow:hidden;box-shadow:inset 0 0 10px rgba(0,0,0,0.3);cursor:pointer;} #ground{position:absolute;bottom:0;width:100%;height:60px;background:#4CAF50;} #player{position:absolute;bottom:60px;left:40px;font-size:50px;transition:bottom 0.3s cubic-bezier(0.1, 0.9, 0.3, 1);} #obstacle{position:absolute;bottom:60px;left:500px;font-size:40px;} #score{position:absolute;top:15px;left:20px;font-size:24px;font-weight:bold;color:#004d23;} #msg{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.9);padding:20px;border-radius:10px;text-align:center;font-size:24px;color:red;} button{margin-top:10px;padding:10px 20px;font-size:18px;background:#d4af37;border:none;border-radius:5px;cursor:pointer;font-family:'Oswald';font-weight:bold;} </style></head><body> <div id="game" onmousedown="jump()" ontouchstart="jump(event)"> <div id="score">Pontos: 0</div><div id="ground"></div><div id="player">🏃‍♂️</div><div id="obstacle">🟥</div> <div id="msg">FIM DE JOGO!<br><button onclick="start(event)">TENTAR DE NOVO</button></div> </div> <script> let p=document.getElementById('player'); let o=document.getElementById('obstacle'); let sEl=document.getElementById('score'); let m=document.getElementById('msg'); let jumping=false; let over=false; let score=0; let ox=400; let speed=6; let w=document.getElementById('game').clientWidth; function jump(e){ if(e)e.preventDefault(); if(over||jumping)return; jumping=true; p.style.bottom='180px'; setTimeout(()=>{ p.style.bottom='60px'; setTimeout(()=>{ jumping=false; }, 300); }, 350); } function start(e){ if(e)e.stopPropagation(); over=false; score=0; speed=6; ox=w; o.style.left=ox+'px'; sEl.innerText='Pontos: 0'; m.style.display='none'; requestAnimationFrame(loop); } function loop(){ if(over)return; ox-=speed; if(ox<-50){ ox=w+Math.random()*200; score++; sEl.innerText='Pontos: '+score; speed+=0.2; o.innerText=Math.random()>0.5?'🟥':'🚧'; } o.style.left=ox+'px'; let pB=parseInt(p.style.bottom)||60; if(ox>20 && ox<80 && pB<100){ over=true; m.style.display='block'; return; } requestAnimationFrame(loop); } setTimeout(start, 500); </script></body></html>""", height=350)
+            
     st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ==============================================================================
-# 2. GATILHO FINAL DO SISTEMA (ESSAS SÃO AS ÚLTIMAS LINHAS DE TODO O SEU ARQUIVO)
+# 2. GATILHOS DE EXECUÇÃO (MANTENHA NO FINAL DO ARQUIVO)
 # ==============================================================================
 if st.session_state.get('authenticated'):
     
-    # 2.1 SE FOR ALUNO LOGADO (O Módulo dele agora é exclusivo, pula todo o resto!)
+    # 2.1 ALUNO LOGADO (Pula os menus, oculta barra lateral e abre direto)
     if st.session_state.get('modulo_atuacao') == "Álbum do Estudante":
-        
-        # Mágica CSS: Esconde a barra lateral inteira para parecer um App
         st.markdown("""
             <style>
                 [data-testid="stSidebar"] { display: none !important; }
@@ -10672,12 +10699,10 @@ if st.session_state.get('authenticated'):
             </style>
         """, unsafe_allow_html=True)
         
-        # Cabeçalho Superior do Aluno
         c_nome, c_sair = st.columns([3, 1])
         with c_nome:
             st.markdown(f"<h3 style='color: #004d23; font-family: Poppins; margin-bottom: 0;'>🎒 Olá, <b>{st.session_state.get('usuario_nome')}</b>!</h3>", unsafe_allow_html=True)
             st.markdown(f"<span style='color: #666; font-size: 0.9rem;'>📌 R.A.: {st.session_state.get('usuario_ra')}</span>", unsafe_allow_html=True)
-            
         with c_sair:
             st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
             if st.button("🚪 Sair da Conta", type="primary", use_container_width=True):
@@ -10689,12 +10714,10 @@ if st.session_state.get('authenticated'):
                 st.rerun()
                 
         st.write("---")
-        
-        # Chama a função principal do álbum, que o Python já leu ali em cima!
         render_modulo_album()
         st.stop()
 
-    # 2.2 SE FOR O DIRETOR (Para você testar entrando no Ensino Regular)
+    # 2.2 DIRETOR NO ENSINO REGULAR (Para você testar pelo seu menu)
     elif st.session_state.get('modulo_atuacao') == "🏫 Ensino Regular":
         if 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
             render_modulo_album()

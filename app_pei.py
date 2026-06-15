@@ -10588,18 +10588,14 @@ def injetar_css_album_premium():
 # COMPONENTE DE ANIMAÇÃO: RASGAR PACOTINHO (HTML/CSS/JS)
 # =====================================================================
 def renderizar_animacao_abertura(figurinhas_sorteadas_detalhes):
-    """
-    Renderiza um componente HTML/CSS/JS que simula o rasgar do pacote
-    e a revelação das 5 figurinhas.
-    """
+    import json
+    import streamlit.components.v1 as components
     
-    # Converter detalhes das figurinhas para JSON seguro para JS
     figs_json = json.dumps(figurinhas_sorteadas_detalhes)
     
-    # URLs de imagens placeholder (Substitua por URLs reais se tiver ativos)
+    # Mantivemos a URL original, mas adicionamos uma camada de segurança no CSS
     url_pacote_fechado = "https://bkqhbwnphnnueyyhdqbn.supabase.co/storage/v1/object/public/fotos_alunos/8A4EB18F-22F4-4076-997B-4C285995DE5F-%281%29.jpg"
     url_costas_figurinha = "https://bkqhbwnphnnueyyhdqbn.supabase.co/storage/v1/object/public/fotos_alunos/23A39E31-E7F4-444E-BC12-508181FC50E7.jpg"
-    url_borda_lendaria = "https://i.postimg.cc/KY84KVtN/3E7079A4-2572-49F0-B6A6-3E4C193A22D0.jpg" # Opcional: borda brilhante para lendárias
 
     html_content = f"""
     <!DOCTYPE html>
@@ -10610,121 +10606,89 @@ def renderizar_animacao_abertura(figurinhas_sorteadas_detalhes):
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&family=Poppins:wght@700&display=swap');
         
         body {{ margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: transparent; overflow: hidden; font-family: 'Poppins', sans-serif; }}
-        
         #cena-animacao {{ position: relative; width: 100%; height: 500px; display: flex; justify-content: center; align-items: center; overflow: hidden; }}
 
-        /* --- ESTILO DO PACOTINHO --- */
         .pacotinho-wrapper {{ position: relative; width: 220px; height: 320px; cursor: pointer; transition: transform 0.3s ease; z-index: 10; }}
         .pacotinho-wrapper:hover {{ transform: scale(1.05) rotate(2deg); }}
         
-        .pacotinho-imagem {{ width: 100%; height: 100%; background-image: url('{url_pacote_fechado}'); background-size: cover; background-position: center; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); position: relative; overflow: hidden; border: 3px solid #ffdf00; }}
+        /* A MÁGICA DE DEBUG ESTÁ AQUI: Adicionamos cor de fundo, fallback de erro e texto centralizado */
+        .pacotinho-imagem {{ 
+            width: 100%; height: 100%; 
+            background-color: #d4af37; /* Dourado de fallback */
+            background-image: url('{url_pacote_fechado}'); 
+            background-size: cover; background-position: center; 
+            border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); 
+            position: relative; overflow: hidden; border: 3px solid #ffdf00; 
+            display: flex; justify-content: center; align-items: center; text-align: center; color: #fff; font-size: 24px; text-shadow: 2px 2px 4px #000;
+        }}
         
-        /* Brilho do Pacote */
-        .pacotinho-imagem::after {{ content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent, rgba(255,255,255,0.6), transparent); transform: rotate(45deg); animation: brilhoPacote 3s infinite; }}
+        /* Se a imagem quebrar, esse texto aparece no fundo dourado */
+        .pacotinho-imagem::before {{ content: 'PACOTE MISTERIOSO'; z-index: 1; }}
 
-        /* --- ANIMAÇÕES DE RASGAR --- */
+        .pacotinho-imagem::after {{ content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent, rgba(255,255,255,0.6), transparent); transform: rotate(45deg); animation: brilhoPacote 3s infinite; z-index: 2; }}
+
         .wrapper-rasgando {{ animation: tremer 0.5s ease-in-out; }}
-        
-        .rasgo-superior, .rasgo-inferior {{ position: absolute; width: 100%; height: 50%; background-image: url('{url_pacote_fechado}'); background-size: 220px 320px; left: 0; transition: all 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55); opacity: 1; border-radius: 15px; border: 3px solid #ffdf00; box-sizing: border-box; }}
-        
+        .rasgo-superior, .rasgo-inferior {{ position: absolute; width: 100%; height: 50%; background-color: #d4af37; background-image: url('{url_pacote_fechado}'); background-size: 220px 320px; left: 0; transition: all 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55); opacity: 1; border-radius: 15px; border: 3px solid #ffdf00; box-sizing: border-box; }}
         .rasgo-superior {{ top: 0; background-position: top center; border-bottom: none; border-radius: 15px 15px 0 0; }}
         .rasgo-inferior {{ bottom: 0; background-position: bottom center; border-top: none; border-radius: 0 0 15px 15px; }}
         
-        /* Efeito visual do rasgo branco/serrilhado */
-        .rasgo-superior::after {{ content: ''; position: absolute; bottom: -10px; left: 0; width: 100%; height: 20px; background: white; -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,0 L0,20 L5,10 L10,20 L15,10 L20,20 L25,10 L30,20 L35,10 L40,20 L45,10 L50,20 L55,10 L60,20 L65,10 L70,20 L75,10 L80,20 L85,10 L90,20 L95,10 L100,20 L100,0 Z" fill="black"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,0 L0,20 L5,10 L10,20 L15,10 L20,20 L25,10 L30,20 L35,10 L40,20 L45,10 L50,20 L55,10 L60,20 L65,10 L70,20 L75,10 L80,20 L85,10 L90,20 L95,10 L100,20 L100,0 Z" fill="black"/></svg>'); mask-size: 100% 100%; -webkit-mask-size: 100% 100%; }}
-
-        /* Estado após rasgar */
         .cena-aberta .rasgo-superior {{ transform: translateY(-150px) rotate(-15deg); opacity: 0; }}
         .cena-aberta .rasgo-inferior {{ transform: translateY(150px) rotate(15deg); opacity: 0; }}
+        .explosao-luz {{ position: absolute; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,223,0,1) 0%, rgba(255,255,255,0) 70%); border-radius: 50%; opacity: 0; transform: scale(0.1); transition: all 0.5s ease-out; z-index: 5; filter: blur(10px); }}
         .cena-aberta .explosao-luz {{ opacity: 1; transform: scale(1); }}
 
-        /* Explosão de Luz atrás do pacote */
-        .explosao-luz {{ position: absolute; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,223,0,1) 0%, rgba(255,255,255,0) 70%); border-radius: 50%; opacity: 0; transform: scale(0.1); transition: all 0.5s ease-out; z-index: 5; filter: blur(10px); }}
-
-        /* --- ESTILO DAS FIGURINHAS SAINDO --- */
         .area-figurinhas {{ position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: flex; justify-content: center; align-items: center; z-index: 20; pointer-events: none; }}
-        
         .mini-figurinha {{ position: absolute; width: 110px; height: 150px; background-color: white; border-radius: 8px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); border: 2px solid #002776; overflow: hidden; display: flex; flex-direction: column; opacity: 0; transform: translate(0, 0) scale(0.2) rotate(0deg); transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); backface-visibility: hidden; background-image: url('{url_costas_figurinha}'); background-size: cover; }}
         
-        /* Animação de revelação (virar) */
         .revelar-fig {{ background-image: none !important; animation: virarFigurinha 0.6s forwards; pointer-events: auto; cursor: pointer; }}
 
-        /* Posições Finais das 5 figurinhas (Estilo Leque) */
         .cena-aberta #fig-0 {{ opacity: 1; transform: translate(-220px, 0px) scale(1) rotate(-10deg); }}
         .cena-aberta #fig-1 {{ opacity: 1; transform: translate(-110px, -30px) scale(1) rotate(-5deg); transition-delay: 0.1s; }}
         .cena-aberta #fig-2 {{ opacity: 1; transform: translate(0px, -50px) scale(1) rotate(0deg); transition-delay: 0.2s; }}
         .cena-aberta #fig-3 {{ opacity: 1; transform: translate(110px, -30px) scale(1) rotate(5deg); transition-delay: 0.3s; }}
         .cena-aberta #fig-4 {{ opacity: 1; transform: translate(220px, 0px) scale(1) rotate(10deg); transition-delay: 0.4s; }}
 
-        /* Conteúdo Interno da Figurinha Revelada */
         .fig-conteudo {{ display: none; width: 100%; height: 100%; flex-direction: column; padding: 3px; box-sizing: border-box; }}
         .revelar-fig .fig-conteudo {{ display: flex; }}
-        
         .fig-img-area {{ flex-grow: 1; background: #e0e0e0; border-radius: 4px; border: 1px solid #002776; overflow: hidden; }}
         .fig-img-area img {{ width: 100%; height: 100%; object-fit: cover; }}
-        
         .fig-txt-area {{ height: 35px; background: #009c3b; color: white; margin-top: 3px; border-radius: 4px; font-family: 'Oswald', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }}
         .fig-txt-area .num {{ font-size: 10px; color: #ffdf00; }}
         .fig-txt-area .nome {{ font-size: 11px; font-weight: 600; text-transform: uppercase; line-height: 1; max-width: 95%; overflow: hidden; }}
 
-        /* Estilo Lendária na Animação */
-        .fig-lendaria {{ border: 3px solid #d4af37 !important; box-shadow: 0 0 15px rgba(255, 215, 0, 0.7) !important; }}
-        .fig-lendaria .fig-txt-area {{ background: linear-gradient(to bottom, #d4af37, #b8860b); }}
-
-        /* Botão de Concluir */
         #btn-concluir {{ position: absolute; bottom: 20px; padding: 12px 30px; background: #002776; color: white; border: none; border-radius: 50px; font-size: 18px; font-weight: bold; cursor: pointer; display: none; z-index: 100; box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: background 0.3s; }}
-        #btn-concluir:hover {{ background: #004da8; }}
-
-        /* Textos de Instrução */
         #instrucao {{ position: absolute; top: 20px; color: #004d23; font-size: 20px; font-weight: bold; text-align: center; width: 100%; z-index: 30; text-shadow: 0 2px 4px white; }}
 
-        /* --- KEYFRAMES --- */
         @keyframes brilhoPacote {{ 0% {{ left: -50%; top: -50%; }} 100% {{ left: 100%; top: 100%; }} }}
         @keyframes tremer {{ 0% {{ transform: rotate(0deg); }} 20% {{ transform: rotate(-5deg); }} 40% {{ transform: rotate(5deg); }} 60% {{ transform: rotate(-3deg); }} 80% {{ transform: rotate(3deg); }} 100% {{ transform: rotate(0deg); }} }}
         @keyframes virarFigurinha {{ 0% {{ transform: scale(1) rotateY(0deg); }} 50% {{ transform: scale(1.1) rotateY(90deg); }} 100% {{ transform: scale(1) rotateY(180deg); }} }}
-        @keyframes flutuar {{ 0%, 100% {{ transform: translateY(0); }} 50% {{ transform: translateY(-5px); }} }}
-
     </style>
     </head>
     <body>
 
     <div id="cena-animacao">
         <div id="instrucao">👋 Clique no pacotinho para rasgar!</div>
-        
         <div class="explosao-luz"></div>
-
         <div class="pacotinho-wrapper" id="pacote-clicavel" onclick="rasgarPacote()">
             <div class="pacotinho-imagem" id="pacote-inteiro"></div>
-            
             <div class="rasgo-superior" id="metade-sup" style="display:none;"></div>
             <div class="rasgo-inferior" id="metade-inf" style="display:none;"></div>
         </div>
-
-        <div class="area-figurinhas" id="container-figurinhas">
-            </div>
-
+        <div class="area-figurinhas" id="container-figurinhas"></div>
         <button id="btn-concluir" onclick="finalizarAbertura()">Guardar na Coleção</button>
     </div>
 
     <script>
-        // Dados das figurinhas vindos do Python
         const dadosFigurinhas = {figs_json};
         let pacoteRasgado = false;
         let figsReveladas = 0;
 
-        // Criar os elementos das figurinhas escondidos
         const container = document.getElementById('container-figurinhas');
         dadosFigurinhas.forEach((fig, index) => {{
             const div = document.createElement('div');
             div.className = 'mini-figurinha';
-            if (fig.tipo === 'lendaria') div.classList.add('fig-lendaria');
             div.id = `fig-${{index}}`;
-            
-            // Configurar clique para revelar individualmente
             div.onclick = function() {{ revelarFigurinha(index); }};
-
-            // Conteúdo Interno (frente)
-            const classeLendaria = fig.tipo === 'lendaria' ? 'lendaria' : '';
             div.innerHTML = `
                 <div class="fig-conteudo">
                     <div class="fig-img-area">
@@ -10750,7 +10714,6 @@ def renderizar_animacao_abertura(figurinhas_sorteadas_detalhes):
             const instrucao = document.getElementById('instrucao');
             const cena = document.getElementById('cena-animacao');
 
-            // 1. Tremer e preparar metades
             wrapper.classList.add('wrapper-rasgando');
             instrucao.innerText = "💥💥💥";
             
@@ -10758,27 +10721,18 @@ def renderizar_animacao_abertura(figurinhas_sorteadas_detalhes):
                 inteiro.style.display = 'none';
                 sup.style.display = 'block';
                 inf.style.display = 'block';
-                
-                // 2. Executar o rasgo (CSS class)
                 cena.classList.add('cena-aberta');
-                
-                // Remover o wrapper do pacote para não atrapalhar cliques
                 setTimeout(() => {{ wrapper.style.display = 'none'; }}, 600);
-                
                 instrucao.innerHTML = "✨ Toca nas cartas para revelar! ✨";
                 instrucao.style.color = "#d4af37";
-
-            }}, 500); // Tempo da tremedeira
+            }}, 500);
         }}
 
         function revelarFigurinha(index) {{
             const fig = document.getElementById(`fig-${{index}}`);
-            if (fig.classList.contains('revelar-fig')) return; // Já revelada
-
+            if (fig.classList.contains('revelar-fig')) return;
             fig.classList.add('revelar-fig');
             figsReveladas++;
-
-            // Se todas forem reveladas, mostrar botão concluir
             if (figsReveladas === 5) {{
                 setTimeout(() => {{
                     document.getElementById('btn-concluir').style.display = 'block';
@@ -10788,7 +10742,6 @@ def renderizar_animacao_abertura(figurinhas_sorteadas_detalhes):
         }}
 
         function finalizarAbertura() {{
-            // Enviar mensagem para o Python recarregar a página
             window.parent.postMessage({{type: 'streamlit:wrapper_event', data: {{action: 'recarregar_album'}}}}, '*');
         }}
     </script>

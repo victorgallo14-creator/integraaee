@@ -10597,7 +10597,7 @@ def renderizar_animacao_abertura(figurinhas_sorteadas_detalhes):
     figs_json = json.dumps(figurinhas_sorteadas_detalhes)
     
     # URLs de imagens placeholder (Substitua por URLs reais se tiver ativos)
-    url_pacote_fechado = "https://drive.google.com/file/d/1LRBhSgvY_hYoarVrEJrlvr6UIpnw6Kv0/view" # Imagem de um pacotinho fechado brilhante
+    url_pacote_fechado = "https://i.postimg.cc/KcqF9jSb/8A4EB18F-22F4-4076-997B-4C285995DE5F.png" # Imagem de um pacotinho fechado brilhante
     url_costas_figurinha = "https://i.imgur.com/6U8W0vG.png" # Imagem do verso da figurinha (padrão)
     url_borda_lendaria = "https://i.imgur.com/Y4M2I1m.png" # Opcional: borda brilhante para lendárias
 

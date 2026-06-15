@@ -10448,7 +10448,7 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 # =====================================================================
-# MÓDULO: ÁLBUM PREMIUM, JOGOS EVOLUTIVOS E RANKING ANTI-TRAPAÇA (CLOUD FIX)
+# MÓDULO: ÁLBUM PREMIUM E ARENA DE JOGOS (CLOUD SAFE + CÓDIGOS SECRETOS)
 # Tabelas: estudantes, figurinhas, inventario_album, banca_trocas, ranking_jogos
 # =====================================================================
 import os
@@ -10457,23 +10457,6 @@ import time
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
-
-# ==============================================================================
-# MOTOR DE JOGOS ANTI-TRAPAÇA (FIX PARA STREAMLIT CLOUD)
-# ==============================================================================
-def criar_motor_jogo(nome_jogo, html_codigo):
-    """Cria um componente local fixo em vez de temporário, evitando falhas de carregamento no Cloud."""
-    # Cria uma pasta fixa no diretório atual do seu projeto
-    pasta_base = os.path.join(os.getcwd(), "jogos_html_seguros")
-    diretorio = os.path.join(pasta_base, nome_jogo)
-    os.makedirs(diretorio, exist_ok=True)
-    
-    caminho_arquivo = os.path.join(diretorio, "index.html")
-    # Escreve/atualiza o arquivo sempre para garantir que ele existe
-    with open(caminho_arquivo, "w", encoding="utf-8") as f:
-        f.write(html_codigo)
-        
-    return components.declare_component(f"comp_{nome_jogo}", path=diretorio)
 
 def salvar_ranking(ra, nome, jogo, pontuacao, detalhes=""):
     try:
@@ -10486,7 +10469,6 @@ def salvar_ranking(ra, nome, jogo, pontuacao, detalhes=""):
         }).execute()
     except Exception as e:
         pass # Ignora erro silenciosamente caso a tabela ainda não exista
-
 
 def injetar_css_album_premium():
     st.markdown("""
@@ -10682,86 +10664,75 @@ def render_modulo_album():
         else: st.info("Nenhum anúncio de troca em aberto.")
 
     # =========================================================================
-    # ARENA DE JOGOS: SISTEMA ANTI-TRAPAÇA E SALVAMENTO AUTOMÁTICO
+    # ARENA DE JOGOS: HTML PURO COM CÓDIGOS DE VALIDAÇÃO (100% CLOUD SAFE)
     # =========================================================================
     with aba_jogos:
         st.markdown("### 🏟️ Arena de Jogos")
-        st.write("Jogue e sua pontuação será enviada **automaticamente** para o Banco de Dados!")
+        st.write("Jogue e anote o **Código de Segurança** no final para salvar a sua pontuação!")
         st.write("---")
         
         jogo1, jogo2, jogo3, jogo4, jogo5 = st.tabs(["🧠 Memória", "🏃 Pula Craque", "🧤 Goleiro", "🎯 Falta", "⚽ Embaixadinha"])
-        
-        # SCRIPT COMUM: Comunica os pontos do HTML direto para o Python!
-        script_anti_trapaca = """
-        <script>
-            function setFrameHeight(h) { window.parent.postMessage({isStreamlitMessage: true, type: "setFrameHeight", height: h}, "*"); }
-            function enviarParaBanco(jogo, pontos, detalhes) {
-                const data = { isStreamlitMessage: true, type: "setComponentValue", value: {jogo: jogo, pontuacao: pontos, detalhes: detalhes, id_salvamento: Date.now()} };
-                window.parent.postMessage(data, "*");
-            }
-            window.onload = () => setFrameHeight(450);
-        </script>
-        """
 
         # ---------------- 1. JOGO DA MEMÓRIA INTELIGENTE ----------------
         with jogo1:
-            html_memoria = f"""
-            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');body{{font-family:'Oswald',sans-serif;text-align:center;margin:0;background:transparent;}}#stats{{font-size:20px;color:#004d23;margin-bottom:15px;}}.grid{{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:400px;margin:0 auto;}}.card{{width:65px;height:85px;perspective:1000px;cursor:pointer;}}.card-inner{{width:100%;height:100%;transition:transform 0.5s;transform-style:preserve-3d;position:relative;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.2);}}.card.open .card-inner{{transform:rotateY(180deg);}}.card.match .card-inner{{transform:rotateY(180deg) scale(1.05);box-shadow:0 0 10px #d4af37;}}.card-front,.card-back{{width:100%;height:100%;position:absolute;backface-visibility:hidden;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem;}}.card-front{{background:linear-gradient(135deg,#004d23,#009c3b);border:2px solid #ffdf00;}}.card-back{{background:white;transform:rotateY(180deg);border:2px solid #009c3b;}}button{{margin-top:20px;padding:10px 20px;font-size:20px;background:#d4af37;color:#002776;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';font-weight:bold;}}#gameOver{{display:none;font-size:26px;color:#b8860b;margin-top:20px;}}</style>
-            {script_anti_trapaca}
+            html_memoria = """
+            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');body{font-family:'Oswald',sans-serif;text-align:center;margin:0;background:transparent;}#stats{font-size:20px;color:#004d23;margin-bottom:15px;}.grid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:400px;margin:0 auto;}.card{width:65px;height:85px;perspective:1000px;cursor:pointer;}.card-inner{width:100%;height:100%;transition:transform 0.5s;transform-style:preserve-3d;position:relative;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.2);}.card.open .card-inner{transform:rotateY(180deg);}.card.match .card-inner{transform:rotateY(180deg) scale(1.05);box-shadow:0 0 10px #d4af37;}.card-front,.card-back{width:100%;height:100%;position:absolute;backface-visibility:hidden;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem;}.card-front{background:linear-gradient(135deg,#004d23,#009c3b);border:2px solid #ffdf00;}.card-back{background:white;transform:rotateY(180deg);border:2px solid #009c3b;}button{margin-top:20px;padding:10px 20px;font-size:20px;background:#d4af37;color:#002776;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';font-weight:bold;}#gameOver{display:none;font-size:22px;color:#002776;margin-top:20px;background:#fffdf0;padding:15px;border-radius:10px;border:3px solid #d4af37;}</style>
             </head><body>
             <div id="stats">Nível: <span id="lv">1</span>/4 | Erros: <span id="err">0</span> | Tempo: <span id="tm">0</span>s</div>
             <div class="grid" id="board"></div>
-            <div id="gameOver">🏆 DADOS ENVIADOS AO SISTEMA! 🏆</div>
+            <div id="gameOver"></div>
             <button id="btn" onclick="startLevel()">Iniciar Nível 1 ➡️</button>
             <script>
                 const allEmojis = ['⚽','🏆','🏟️','🧤','👟','🇧🇷','🥅','⏱️','🥇','🎉'];
                 let level=1; let maxLevel=4; let errors=0; let time=0; let timerId; let openCards=[]; let matched=0; let totalCards=0; let isPlaying=false;
                 const board = document.getElementById('board'); const lvEl = document.getElementById('lv'); const errEl = document.getElementById('err'); const tmEl = document.getElementById('tm'); const btn = document.getElementById('btn'); const over = document.getElementById('gameOver');
-                function startLevel() {{
+                function startLevel() {
                     isPlaying=true; btn.style.display='none'; board.innerHTML=''; openCards=[]; matched=0; lvEl.innerText=level;
                     let numPairs = 2 + (level*2); totalCards = numPairs * 2;
                     let emojis = allEmojis.slice(0, numPairs); let cards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
-                    cards.forEach(e => {{ let c = document.createElement('div'); c.className='card'; c.innerHTML = `<div class="card-inner"><div class="card-front">⚽</div><div class="card-back">${{e}}</div></div>`; c.onclick = () => flipCard(c, e); board.appendChild(c); }});
-                    timerId=setInterval(()=>{{time++;tmEl.innerText=time;}},1000);
-                }}
-                function flipCard(c, e) {{
+                    cards.forEach(e => { let c = document.createElement('div'); c.className='card'; c.innerHTML = `<div class="card-inner"><div class="card-front">⚽</div><div class="card-back">${e}</div></div>`; c.onclick = () => flipCard(c, e); board.appendChild(c); });
+                    timerId=setInterval(()=>{time++;tmEl.innerText=time;},1000);
+                }
+                function flipCard(c, e) {
                     if(!isPlaying) return;
-                    if(openCards.length<2 && !c.classList.contains('open') && !c.classList.contains('match')) {{
-                        c.classList.add('open'); openCards.push({{el: c, emoji: e}});
-                        if(openCards.length===2) {{
-                            setTimeout(() => {{
-                                if(openCards[0].emoji === openCards[1].emoji) {{
+                    if(openCards.length<2 && !c.classList.contains('open') && !c.classList.contains('match')) {
+                        c.classList.add('open'); openCards.push({el: c, emoji: e});
+                        if(openCards.length===2) {
+                            setTimeout(() => {
+                                if(openCards[0].emoji === openCards[1].emoji) {
                                     openCards[0].el.classList.add('match'); openCards[1].el.classList.add('match'); matched+=2;
-                                    if(matched===totalCards) {{
+                                    if(matched===totalCards) {
                                         clearInterval(timerId); isPlaying=false;
-                                        if(level < maxLevel) {{ level++; btn.innerText="Iniciar Nível " + level + " ➡️"; btn.style.display='inline-block'; }}
-                                        else {{ 
+                                        if(level < maxLevel) { level++; btn.innerText="Iniciar Nível " + level + " ➡️"; btn.style.display='inline-block'; }
+                                        else { 
                                             over.style.display='block'; board.style.display='none';
                                             let pontos = Math.max(0, 1000 - (time * 2) - (errors * 10));
-                                            enviarParaBanco("memoria", pontos, errors + " Erros | " + time + "s");
-                                        }}
-                                    }}
-                                }} else {{ openCards[0].el.classList.remove('open'); openCards[1].el.classList.remove('open'); errors++; errEl.innerText=errors; }}
+                                            let segCode = (pontos * 3) + 45;
+                                            over.innerHTML = `🏆 PARABÉNS! 🏆<br>Pontos de Memória: <b>${pontos}</b><br><span style="color:red;">CÓDIGO SECRETO: ${segCode}</span><br><br><span style="font-size:16px;">Digite esses números abaixo para salvar!</span>`;
+                                        }
+                                    }
+                                } else { openCards[0].el.classList.remove('open'); openCards[1].el.classList.remove('open'); errors++; errEl.innerText=errors; }
                                 openCards=[];
-                            }}, 700);
-                        }}
-                    }}
-                }}
+                            }, 700);
+                        }
+                    }
+                }
             </script></body></html>
             """
-            st.write("Complete os 4 Níveis! O tempo PAUSA entre cada nível.")
-            comp_memoria = criar_motor_jogo("memoria", html_memoria)
-            res_mem = comp_memoria(key="key_memoria")
-            if res_mem and res_mem.get("id_salvamento") != st.session_state.get("last_memoria"):
-                salvar_ranking(estudante_ra, estudante_nome, res_mem["jogo"], res_mem["pontuacao"], res_mem["detalhes"])
-                st.session_state["last_memoria"] = res_mem["id_salvamento"]
-                st.success(f"🏆 {res_mem['pontuacao']} Pontos salvos automaticamente!")
+            components.html(html_memoria, height=520)
+            c_m1, c_m2, c_m3 = st.columns([1, 1, 1])
+            pts_m = c_m1.number_input("🧠 Pontos no Jogo", min_value=0, max_value=9999, key="p_mem")
+            cod_m = c_m2.number_input("🔒 Código Secreto", min_value=0, max_value=99999, key="c_mem")
+            if c_m3.button("Salvar Recorde", use_container_width=True, key="btn_mem"):
+                if pts_m > 0 and cod_m == (pts_m * 3) + 45:
+                    salvar_ranking(estudante_ra, estudante_nome, "memoria", pts_m, "4 Níveis Concluídos")
+                    st.success("✅ Código Válido! Salvo com sucesso no Mural!")
+                else: st.error("❌ Código de Segurança Inválido ou Pontuação não confere.")
 
         # ---------------- 2. SUPER PULA CRAQUE ----------------
         with jogo2:
-            html_pula = f"""
-            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');body{{margin:0;font-family:'Oswald',sans-serif;user-select:none;overflow:hidden;background:transparent;}}#game{{width:100%;height:350px;background:linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 70%, #4CAF50 70%, #2E7D32 100%);position:relative;border-radius:12px;overflow:hidden;box-shadow:inset 0 0 20px rgba(0,0,0,0.2);cursor:pointer;}}.cloud{{position:absolute;font-size:40px;color:rgba(255,255,255,0.7);white-space:nowrap;}}#player{{position:absolute;bottom:105px;left:50px;font-size:55px;z-index:10; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));}}#obstacle{{position:absolute;bottom:105px;left:800px;font-size:45px;z-index:9; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));}}#coin{{position:absolute;bottom:200px;left:900px;font-size:35px;z-index:8;}}#scoreBoard{{position:absolute;top:15px;left:20px;font-size:28px;color:#002776;text-shadow:1px 1px 0px #fff;z-index:20;}}#msg{{display:flex;flex-direction:column;justify-content:center;align-items:center;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);color:white;font-size:36px;z-index:30;text-shadow:2px 2px 5px #000;}}button{{margin-top:15px;padding:12px 25px;font-size:22px;background:#ffdf00;color:#002776;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';font-weight:bold;box-shadow:0 4px 10px rgba(0,0,0,0.5);}} .pulse{{animation:pulse 0.5s ease-out;}}@keyframes pulse{{0%{{transform:scale(1);}}50%{{transform:scale(1.5);color:#d4af37;}}100%{{transform:scale(1);}}}}</style>
-            {script_anti_trapaca}
+            html_pula = """
+            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');body{margin:0;font-family:'Oswald',sans-serif;user-select:none;overflow:hidden;background:transparent;}#game{width:100%;height:350px;background:linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 70%, #4CAF50 70%, #2E7D32 100%);position:relative;border-radius:12px;overflow:hidden;box-shadow:inset 0 0 20px rgba(0,0,0,0.2);cursor:pointer;}.cloud{position:absolute;font-size:40px;color:rgba(255,255,255,0.7);white-space:nowrap;}#player{position:absolute;bottom:105px;left:50px;font-size:55px;z-index:10; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));}#obstacle{position:absolute;bottom:105px;left:800px;font-size:45px;z-index:9; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));}#coin{position:absolute;bottom:200px;left:900px;font-size:35px;z-index:8;}#scoreBoard{position:absolute;top:15px;left:20px;font-size:28px;color:#002776;text-shadow:1px 1px 0px #fff;z-index:20;}#msg{display:none;flex-direction:column;justify-content:center;align-items:center;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);color:white;font-size:30px;z-index:30;text-shadow:2px 2px 5px #000;text-align:center;padding:20px;}button{margin-top:15px;padding:12px 25px;font-size:22px;background:#ffdf00;color:#002776;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';font-weight:bold;box-shadow:0 4px 10px rgba(0,0,0,0.5);}</style>
             </head><body>
             <div id="game"><div class="cloud" style="top:20px; left:100px; font-size:60px;">☁️</div><div class="cloud" style="top:50px; left:400px; font-size:40px;">☁️</div>
             <div id="scoreBoard">Pontos: <span id="score">0</span></div>
@@ -10773,101 +10744,119 @@ def render_modulo_album():
             const clouds=document.querySelectorAll('.cloud'); let isPlaying=false; let score=0; let frame=0;
             let py=105; let vy=0; let gravity=0.45; let isJumping=false; let canDouble=false;
             let ox=800; let speed=4.5; let cx=1000; let cy=200; let coinActive=true; let animId;
-            function jump(e){{if(e)e.preventDefault();if(!isPlaying)return;if(!isJumping){{vy=11;isJumping=true;canDouble=true;p.innerText="🤸‍♂️⚽";}}else if(canDouble){{vy=9;canDouble=false;p.innerText="🦸‍♂️⚽";}}}}
-            document.getElementById('game').addEventListener('mousedown', jump);document.getElementById('game').addEventListener('touchstart', jump, {{passive:false}});
-            function startGame(e){{if(e)e.stopPropagation();isPlaying=true;msg.style.display='none';score=0;sEl.innerText=0;speed=4.5;ox=window.innerWidth+100;cx=ox+400;coinActive=true;py=105;vy=0;isJumping=false;canDouble=false;p.innerText="🏃‍♂️⚽";if(animId)cancelAnimationFrame(animId);loop();}}
-            function loop(){{if(!isPlaying)return;
-                vy-=gravity;py+=vy;if(py<=105){{py=105;vy=0;if(isJumping){{isJumping=false;canDouble=false;p.innerText=(frame%10<5)?"🏃‍♂️⚽":"🚶‍♂️⚽";}}}}
+            function jump(e){if(e)e.preventDefault();if(!isPlaying)return;if(!isJumping){vy=11;isJumping=true;canDouble=true;p.innerText="🤸‍♂️⚽";}else if(canDouble){vy=9;canDouble=false;p.innerText="🦸‍♂️⚽";}}
+            document.getElementById('game').addEventListener('mousedown', jump);document.getElementById('game').addEventListener('touchstart', jump, {passive:false});
+            function startGame(e){if(e)e.stopPropagation();isPlaying=true;msg.style.display='none';score=0;sEl.innerText=0;speed=4.5;ox=window.innerWidth+100;cx=ox+400;coinActive=true;py=105;vy=0;isJumping=false;canDouble=false;p.innerText="🏃‍♂️⚽";if(animId)cancelAnimationFrame(animId);loop();}
+            function loop(){if(!isPlaying)return;
+                vy-=gravity;py+=vy;if(py<=105){py=105;vy=0;if(isJumping){isJumping=false;canDouble=false;p.innerText=(frame%10<5)?"🏃‍♂️⚽":"🚶‍♂️⚽";}}
                 if(!isJumping)p.innerText=(frame%16<8)?"🏃‍♂️⚽":"🚶‍♂️⚽"; p.style.bottom=py+'px';
-                ox-=speed;if(ox<-60){{ox=window.innerWidth+Math.random()*300+200;let em=['🟥','🟨','🚧','🦵'];o.innerText=em[Math.floor(Math.random()*em.length)];speed+=0.03;}} o.style.left=ox+'px';
-                cx-=speed*0.8;if(cx<-50){{cx=window.innerWidth+Math.random()*500+400;cy=180+Math.random()*80;coinActive=true;c.style.display='block';}} c.style.left=cx+'px'; c.style.bottom=cy+'px';
+                ox-=speed;if(ox<-60){ox=window.innerWidth+Math.random()*300+200;let em=['🟥','🟨','🚧','🦵'];o.innerText=em[Math.floor(Math.random()*em.length)];speed+=0.03;} o.style.left=ox+'px';
+                cx-=speed*0.8;if(cx<-50){cx=window.innerWidth+Math.random()*500+400;cy=180+Math.random()*80;coinActive=true;c.style.display='block';} c.style.left=cx+'px'; c.style.bottom=cy+'px';
                 clouds[0].style.left=(parseInt(clouds[0].style.left||100)-1)+'px';if(parseInt(clouds[0].style.left)<-100)clouds[0].style.left=window.innerWidth+'px';
                 clouds[1].style.left=(parseInt(clouds[1].style.left||400)-0.5)+'px';if(parseInt(clouds[1].style.left)<-100)clouds[1].style.left=window.innerWidth+'px';
-                let pRect={{x:50,y:py,w:40,h:50}}; let oRect={{x:ox+10,y:105,w:30,h:40}}; let cRect={{x:cx,y:cy,w:30,h:30}};
-                if(pRect.x<oRect.x+oRect.w && pRect.x+pRect.w>oRect.x && pRect.y<oRect.y+oRect.h && pRect.y+pRect.h>oRect.y){{gameOver();return;}}
-                if(coinActive && pRect.x<cRect.x+cRect.w && pRect.x+pRect.w>cRect.x && pRect.y<cRect.y+cRect.h && pRect.y+pRect.h>cRect.y){{score+=50;coinActive=false;c.style.display='none';sEl.innerText=score;sEl.classList.remove('pulse');void sEl.offsetWidth;sEl.classList.add('pulse');}}
-                if(frame%10===0){{score+=1;sEl.innerText=score;}} frame++; animId=requestAnimationFrame(loop);
-            }}
-            function gameOver(){{isPlaying=false;p.innerText="😵💥";msg.style.display='flex';document.getElementById('gameOverText').innerText="SALVANDO PONTOS..."; btn.style.display='none'; enviarParaBanco("pula_craque", score, "Tropeçou!");}}
+                let pRect={x:50,y:py,w:40,h:50}; let oRect={x:ox+10,y:105,w:30,h:40}; let cRect={x:cx,y:cy,w:30,h:30};
+                if(pRect.x<oRect.x+oRect.w && pRect.x+pRect.w>oRect.x && pRect.y<oRect.y+oRect.h && pRect.y+pRect.h>oRect.y){gameOver();return;}
+                if(coinActive && pRect.x<cRect.x+cRect.w && pRect.x+pRect.w>cRect.x && pRect.y<cRect.y+cRect.h && pRect.y+pRect.h>cRect.y){score+=50;coinActive=false;c.style.display='none';sEl.innerText=score;}
+                if(frame%10===0){score+=1;sEl.innerText=score;} frame++; animId=requestAnimationFrame(loop);
+            }
+            function gameOver(){
+                isPlaying=false;p.innerText="😵💥";msg.style.display='flex';
+                let segCode = (score * 5) + 10;
+                msg.innerHTML=`FIM DE JOGO!<br><span style='color:#ffdf00;'>Pontos: ${score}</span><br><span style='color:red; font-size:24px;'>CÓDIGO SECRETO: ${segCode}</span><br><button onclick="startGame(event)">JOGAR NOVAMENTE</button>`;
+            }
             </script></body></html>
             """
-            comp_pula = criar_motor_jogo("pula", html_pula)
-            res_pula = comp_pula(key="key_pula")
-            if res_pula and res_pula.get("id_salvamento") != st.session_state.get("last_pula"):
-                salvar_ranking(estudante_ra, estudante_nome, res_pula["jogo"], res_pula["pontuacao"], res_pula["detalhes"])
-                st.session_state["last_pula"] = res_pula["id_salvamento"]
-                st.success(f"🏆 {res_pula['pontuacao']} Pontos salvos automaticamente!")
+            components.html(html_pula, height=380)
+            c_p1, c_p2, c_p3 = st.columns([1, 1, 1])
+            pts_p = c_p1.number_input("🏃 Pontos Feitos", min_value=0, max_value=99999, key="p_pula")
+            cod_p = c_p2.number_input("🔒 Código Secreto", min_value=0, max_value=999999, key="c_pula")
+            if c_p3.button("Salvar Recorde", use_container_width=True, key="btn_pula"):
+                if pts_p > 0 and cod_p == (pts_p * 5) + 10:
+                    salvar_ranking(estudante_ra, estudante_nome, "pula_craque", pts_p, "Tropeçou na corrida")
+                    st.success("✅ Código Válido! Salvo com sucesso no Mural!")
+                else: st.error("❌ Código de Segurança Inválido ou Pontuação não confere.")
 
         # ---------------- 3. GOLEIRO ----------------
         with jogo3:
-            html_goleiro = f"""
-            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body {{ font-family: 'Oswald', sans-serif; text-align: center; margin: 0; background-color: transparent; }} .grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 350px; margin: 20px auto; }} .hole {{ height: 90px; background: rgba(0, 100, 0, 0.6); border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 50px; cursor: pointer; box-shadow: inset 0 5px 15px rgba(0,0,0,0.5); border: 2px solid #004d23; transition: background 0.2s;}} .hole:active {{ background: rgba(0, 150, 0, 0.8); }} .hole.active::after {{ content: '⚽'; animation: pop 0.2s ease-out; }} @keyframes pop {{ from {{ transform: scale(0); }} to {{ transform: scale(1); }} }} .stats {{ font-size: 24px; color: #004d23; margin-top: 10px; }} button {{ font-family: 'Oswald', sans-serif; background: #d4af37; color: #002776; border: none; padding: 12px 25px; font-size: 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.1s;}} button:active {{ transform: scale(0.95); }} </style>
-            {script_anti_trapaca}</head><body>
+            html_goleiro = """
+            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body { font-family: 'Oswald', sans-serif; text-align: center; margin: 0; background-color: transparent; } .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 350px; margin: 20px auto; } .hole { height: 90px; background: rgba(0, 100, 0, 0.6); border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 50px; cursor: pointer; box-shadow: inset 0 5px 15px rgba(0,0,0,0.5); border: 2px solid #004d23; transition: background 0.2s;} .hole:active { background: rgba(0, 150, 0, 0.8); } .hole.active::after { content: '⚽'; animation: pop 0.2s ease-out; } @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } } .stats { font-size: 24px; color: #004d23; margin-top: 10px; } button { font-family: 'Oswald', sans-serif; background: #d4af37; color: #002776; border: none; padding: 12px 25px; font-size: 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.1s;} button:active { transform: scale(0.95); } #endMsg { display:none; background:#fffdf0; border: 3px solid #d4af37; padding: 15px; margin: 10px auto; max-width: 350px; border-radius:10px; font-size: 22px; color: #002776;} </style>
+            </head><body>
             <div class="stats">DEFESAS: <span id="score">0</span> | TEMPO: <span id="time">15</span>s</div>
-            <button id="startBtn" onclick="startGame()">INICIAR TREINO</button>
+            <button id="startBtn" onclick="startGame()">INICIAR TREINO (15s)</button>
             <div class="grid" id="grid">
                 <div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div>
                 <div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div>
                 <div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div>
             </div>
+            <div id="endMsg"></div>
             <script>
-                let score=0; let lastHole; let timeUp=false; let timeLeft=15; const holes=document.querySelectorAll('.hole'); const scoreBoard=document.getElementById('score'); const timeBoard=document.getElementById('time'); const btn=document.getElementById('startBtn');
-                function randomHole() {{ const idx=Math.floor(Math.random()*holes.length); const hole=holes[idx]; if (hole===lastHole) return randomHole(); lastHole=hole; return hole; }}
-                function showBall() {{ const time=Math.random()*(900-400)+400; const hole=randomHole(); hole.classList.add('active'); setTimeout(() => {{ hole.classList.remove('active'); if (!timeUp) showBall(); }}, time); }}
-                function startGame() {{ scoreBoard.textContent=0; timeBoard.textContent=15; score=0; timeUp=false; timeLeft=15; btn.style.display='none'; showBall(); const countdown=setInterval(() => {{ timeLeft--; timeBoard.textContent=timeLeft; if(timeLeft<=0) {{ clearInterval(countdown); timeUp=true; btn.style.display='inline-block'; btn.innerText='SALVANDO...'; btn.disabled=true; enviarParaBanco("goleiro", score, "Em 15s"); }} }}, 1000); }}
-                function defend(hole) {{ if(!hole.classList.contains('active')) return; score++; scoreBoard.textContent=score; hole.classList.remove('active'); }}
+                let score=0; let lastHole; let timeUp=false; let timeLeft=15; const holes=document.querySelectorAll('.hole'); const scoreBoard=document.getElementById('score'); const timeBoard=document.getElementById('time'); const btn=document.getElementById('startBtn'); const msg=document.getElementById('endMsg');
+                function randomHole() { const idx=Math.floor(Math.random()*holes.length); const hole=holes[idx]; if (hole===lastHole) return randomHole(); lastHole=hole; return hole; }
+                function showBall() { const time=Math.random()*(900-400)+400; const hole=randomHole(); hole.classList.add('active'); setTimeout(() => { hole.classList.remove('active'); if (!timeUp) showBall(); }, time); }
+                function startGame() { msg.style.display='none'; scoreBoard.textContent=0; timeBoard.textContent=15; score=0; timeUp=false; timeLeft=15; btn.style.display='none'; showBall(); const countdown=setInterval(() => { timeLeft--; timeBoard.textContent=timeLeft; if(timeLeft<=0) { clearInterval(countdown); timeUp=true; btn.style.display='inline-block'; btn.innerText='JOGAR DE NOVO'; let segCode = (score * 8) + 22; msg.style.display='block'; msg.innerHTML=`O JOGO ACABOU!<br>Defesas: <b>${score}</b><br><span style='color:red;'>CÓDIGO: ${segCode}</span>`; } }, 1000); }
+                function defend(hole) { if(!hole.classList.contains('active')) return; score++; scoreBoard.textContent=score; hole.classList.remove('active'); }
             </script></body></html>
             """
-            comp_gol = criar_motor_jogo("goleiro", html_goleiro)
-            res_gol = comp_gol(key="key_gol")
-            if res_gol and res_gol.get("id_salvamento") != st.session_state.get("last_gol"):
-                salvar_ranking(estudante_ra, estudante_nome, res_gol["jogo"], res_gol["pontuacao"], res_gol["detalhes"])
-                st.session_state["last_gol"] = res_gol["id_salvamento"]
-                st.success(f"🏆 {res_gol['pontuacao']} Defesas salvas automaticamente!")
+            components.html(html_goleiro, height=500)
+            c_g1, c_g2, c_g3 = st.columns([1, 1, 1])
+            pts_g = c_g1.number_input("🧤 Número de Defesas", min_value=0, max_value=999, key="p_gol")
+            cod_g = c_g2.number_input("🔒 Código Secreto", min_value=0, max_value=9999, key="c_gol")
+            if c_g3.button("Salvar Recorde", use_container_width=True, key="btn_gol"):
+                if pts_g > 0 and cod_g == (pts_g * 8) + 22:
+                    salvar_ranking(estudante_ra, estudante_nome, "goleiro", pts_g, "Em 15 segundos")
+                    st.success("✅ Código Válido! Salvo com sucesso no Mural!")
+                else: st.error("❌ Código de Segurança Inválido ou Pontuação não confere.")
 
         # ---------------- 4. FALTA PERFEITA ----------------
         with jogo4:
-            html_falta = f"""
-            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body{{margin:0;font-family:'Oswald',sans-serif;user-select:none; overflow:hidden;}} #game{{width:100%;height:300px;background:linear-gradient(#87CEEB 70%, #4CAF50 30%);position:relative;border-radius:10px;overflow:hidden;box-shadow:inset 0 0 10px rgba(0,0,0,0.3);}} #goal{{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);width:200px;height:100px;border:5px solid white;border-bottom:none;}} #targetZone{{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);width:60px;height:100px;background:rgba(0,255,0,0.3);}} #target{{position:absolute;bottom:130px;left:0;font-size:30px;}} #ball{{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:40px;transition:bottom 0.3s ease-out;}} button{{position:absolute;top:20px;left:50%;transform:translateX(-50%);padding:10px 30px;font-size:20px;font-weight:bold;background:#ffdf00;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';}} #msg{{position:absolute;top:80px;width:100%;text-align:center;font-size:30px;color:white;text-shadow:2px 2px 4px #000;font-weight:bold;}} </style>
-            {script_anti_trapaca}</head><body>
-            <div id="game"><div id="goal"></div><div id="targetZone"></div><div id="target">🎯</div><div id="ball">⚽</div><button id="btn" onclick="shoot()">CHUTE 1/5</button><div id="msg"></div></div>
+            html_falta = """
+            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body{margin:0;font-family:'Oswald',sans-serif;user-select:none; overflow:hidden;} #game{width:100%;height:300px;background:linear-gradient(#87CEEB 70%, #4CAF50 30%);position:relative;border-radius:10px;overflow:hidden;box-shadow:inset 0 0 10px rgba(0,0,0,0.3);} #goal{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);width:200px;height:100px;border:5px solid white;border-bottom:none;} #targetZone{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);width:60px;height:100px;background:rgba(0,255,0,0.3);} #target{position:absolute;bottom:130px;left:0;font-size:30px;} #ball{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:40px;transition:bottom 0.3s ease-out;} button{position:absolute;top:20px;left:50%;transform:translateX(-50%);padding:10px 30px;font-size:20px;font-weight:bold;background:#ffdf00;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';z-index:20;} #msg{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:none;flex-direction:column;justify-content:center;align-items:center;font-size:30px;color:white;text-shadow:2px 2px 4px #000;font-weight:bold;z-index:15;} #kickFeedback{position:absolute;top:80px;width:100%;text-align:center;font-size:30px;color:white;text-shadow:2px 2px 4px #000;font-weight:bold;z-index:5;} </style>
+            </head><body>
+            <div id="game"><div id="goal"></div><div id="targetZone"></div><div id="target">🎯</div><div id="ball">⚽</div><button id="btn" onclick="shoot()">CHUTE 1/5</button><div id="kickFeedback"></div><div id="msg"></div></div>
             <script>
             let tx=0; let d=1; let speed=3.5; let moving=true; let shots=0; let tScore=0;
-            const tg=document.getElementById('target'); const bl=document.getElementById('ball'); const btn=document.getElementById('btn'); const msg=document.getElementById('msg');
-            function anim(){{if(!moving)return; let w = window.innerWidth || 300; tx+=speed*d; if(tx>w-40||tx<0)d*=-1; tg.style.left=tx+'px'; requestAnimationFrame(anim); }} anim();
-            function shoot(){{ if(!moving)return; moving=false; bl.style.bottom='130px'; setTimeout(()=>{{ let w=window.innerWidth||300; let center=w/2; let tCenter=tx+15; shots++;
-                if(Math.abs(tCenter-center)<35){{ msg.innerText="🎉 GOLAÇO!!! (+100)"; msg.style.color="#00FF00"; tScore+=100; }} else{{ msg.innerText="❌ NA TRAVE!"; msg.style.color="red"; }}
-                if(shots<5){{ btn.innerText="CHUTE "+(shots+1)+"/5"; setTimeout(()=>{{msg.innerText=''; bl.style.bottom='20px'; moving=true; anim();}}, 1500); }} else{{ msg.innerText="FIM! Total: "+tScore; btn.innerText="SALVANDO..."; btn.disabled=true; enviarParaBanco("falta", tScore, "5 Chutes"); }}
-            }},300); }}
+            const tg=document.getElementById('target'); const bl=document.getElementById('ball'); const btn=document.getElementById('btn'); const msg=document.getElementById('msg'); const kfb=document.getElementById('kickFeedback');
+            function anim(){if(!moving)return; let w = window.innerWidth || 300; tx+=speed*d; if(tx>w-40||tx<0)d*=-1; tg.style.left=tx+'px'; requestAnimationFrame(anim); } anim();
+            function shoot(){ if(!moving)return; moving=false; bl.style.bottom='130px'; setTimeout(()=>{ let w=window.innerWidth||300; let center=w/2; let tCenter=tx+15; shots++;
+                if(Math.abs(tCenter-center)<35){ kfb.innerText="🎉 GOLAÇO!!! (+100)"; kfb.style.color="#00FF00"; tScore+=100; } else{ kfb.innerText="❌ NA TRAVE!"; kfb.style.color="red"; }
+                if(shots<5){ btn.innerText="CHUTE "+(shots+1)+"/5"; setTimeout(()=>{kfb.innerText=''; bl.style.bottom='20px'; moving=true; anim();}, 1500); } 
+                else{ let segCode = (tScore * 2) + 99; btn.innerText="JOGAR DE NOVO"; btn.setAttribute("onclick", "location.reload()"); msg.style.display="flex"; msg.innerHTML=`FIM DOS 5 CHUTES!<br><span style='color:#ffdf00;'>Total: ${tScore}</span><br><span style='color:red;'>CÓDIGO: ${segCode}</span>`; }
+            },300); }
             </script></body></html>
             """
-            comp_falta = criar_motor_jogo("falta", html_falta)
-            res_falta = comp_falta(key="key_falta")
-            if res_falta and res_falta.get("id_salvamento") != st.session_state.get("last_falta"):
-                salvar_ranking(estudante_ra, estudante_nome, res_falta["jogo"], res_falta["pontuacao"], res_falta["detalhes"])
-                st.session_state["last_falta"] = res_falta["id_salvamento"]
-                st.success(f"🏆 {res_falta['pontuacao']} Pontos salvos automaticamente!")
+            components.html(html_falta, height=350)
+            c_f1, c_f2, c_f3 = st.columns([1, 1, 1])
+            pts_f = c_f1.number_input("🎯 Pontos nos Chutes", min_value=0, max_value=9999, key="p_falta")
+            cod_f = c_f2.number_input("🔒 Código Secreto", min_value=0, max_value=99999, key="c_falta")
+            if c_f3.button("Salvar Recorde", use_container_width=True, key="btn_falta"):
+                if pts_f > 0 and cod_f == (pts_f * 2) + 99:
+                    salvar_ranking(estudante_ra, estudante_nome, "falta", pts_f, "Em 5 Chutes")
+                    st.success("✅ Código Válido! Salvo com sucesso no Mural!")
+                else: st.error("❌ Código de Segurança Inválido ou Pontuação não confere.")
 
         # ---------------- 5. EMBAIXADINHA ----------------
         with jogo5:
-            html_embaixadinha = f"""
-            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body {{ margin: 0; padding: 0; overflow: hidden; font-family: 'Oswald', sans-serif; user-select:none;}} #gameArea {{ width: 100%; height: 350px; background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 70%, #228B22 70%, #228B22 100%); position: relative; border-radius: 12px; box-shadow: inset 0 0 20px rgba(0,0,0,0.2); cursor: pointer; }} #score {{ position: absolute; top: 15px; left: 20px; font-size: 28px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); z-index: 10; }} #ball {{ font-size: 70px; position: absolute; left: 50%; transform: translateX(-50%); cursor: pointer; z-index: 5; }} #startBtn {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; background: #ffdf00; color: #002776; border: none; border-radius: 8px; font-size: 24px; font-family: 'Oswald', sans-serif; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 20; font-weight: bold;}} #startBtn:active {{ transform: translate(-50%, -45%); box-shadow: 0 2px 5px rgba(0,0,0,0.3); }} </style>
-            {script_anti_trapaca}</head><body>
-            <div id="gameArea"><div id="score">Embaixadinhas: 0</div><div id="ball" style="top: 50px;">⚽</div><button id="startBtn">COMEÇAR</button></div>
+            html_embaixadinha = """
+            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body { margin: 0; padding: 0; overflow: hidden; font-family: 'Oswald', sans-serif; user-select:none;} #gameArea { width: 100%; height: 350px; background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 70%, #228B22 70%, #228B22 100%); position: relative; border-radius: 12px; box-shadow: inset 0 0 20px rgba(0,0,0,0.2); cursor: pointer; } #score { position: absolute; top: 15px; left: 20px; font-size: 28px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); z-index: 10; } #ball { font-size: 70px; position: absolute; left: 50%; transform: translateX(-50%); cursor: pointer; z-index: 5; } #startBtn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; background: #ffdf00; color: #002776; border: none; border-radius: 8px; font-size: 24px; font-family: 'Oswald', sans-serif; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 20; font-weight: bold;} #startBtn:active { transform: translate(-50%, -45%); box-shadow: 0 2px 5px rgba(0,0,0,0.3); } #msg { display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); flex-direction:column; justify-content:center; align-items:center; color:white; font-size:32px; z-index:15; text-align:center; } </style>
+            </head><body>
+            <div id="gameArea"><div id="score">Embaixadinhas: 0</div><div id="ball" style="top: 50px;">⚽</div><button id="startBtn">COMEÇAR</button><div id="msg"></div></div>
             <script>
-            const ball=document.getElementById('ball'); const scoreEl=document.getElementById('score'); const startBtn=document.getElementById('startBtn'); let y=50; let vy=0; let gravity=0.4; let isPlaying=false; let score=0; let animId; let rotation=0;
-            function update() {{ if(!isPlaying) return; vy+=gravity; y+=vy; rotation+=vy*2; ball.style.transform=`translateX(-50%) rotate(${{rotation}}deg)`; if(y>270) {{ isPlaying=false; startBtn.style.display='block'; startBtn.innerText='SALVANDO...'; startBtn.disabled=true; enviarParaBanco("embaixadinha", score, "Deixou cair"); ball.style.top='270px'; return; }} if(y<0) {{ y=0; vy=0; }} ball.style.top=y+'px'; animId=requestAnimationFrame(update); }}
-            function kick(e) {{ if(e){{e.preventDefault(); e.stopPropagation();}} if(!isPlaying) return; vy=-8; score++; scoreEl.innerText='Embaixadinhas: '+score; }}
-            ball.addEventListener('mousedown', kick); ball.addEventListener('touchstart', kick, {{passive: false}});
-            startBtn.onclick=function() {{ isPlaying=true; score=0; scoreEl.innerText='Embaixadinhas: 0'; y=50; vy=-5; rotation=0; startBtn.style.display='none'; cancelAnimationFrame(animId); update(); }}
+            const ball=document.getElementById('ball'); const scoreEl=document.getElementById('score'); const startBtn=document.getElementById('startBtn'); const msg=document.getElementById('msg'); let y=50; let vy=0; let gravity=0.4; let isPlaying=false; let score=0; let animId; let rotation=0;
+            function update() { if(!isPlaying) return; vy+=gravity; y+=vy; rotation+=vy*2; ball.style.transform=`translateX(-50%) rotate(${rotation}deg)`; if(y>270) { isPlaying=false; ball.style.top='270px'; let segCode = (score * 6) + 33; msg.style.display='flex'; msg.innerHTML=`A BOLA CAIU!<br><span style='color:#ffdf00;'>Total: ${score}</span><br><span style='color:red;'>CÓDIGO: ${segCode}</span><br><button onclick="location.reload()" style="margin-top:10px;">JOGAR DE NOVO</button>`; return; } if(y<0) { y=0; vy=0; } ball.style.top=y+'px'; animId=requestAnimationFrame(update); }
+            function kick(e) { if(e){e.preventDefault(); e.stopPropagation();} if(!isPlaying) return; vy=-8; score++; scoreEl.innerText='Embaixadinhas: '+score; }
+            ball.addEventListener('mousedown', kick); ball.addEventListener('touchstart', kick, {passive: false});
+            startBtn.onclick=function() { isPlaying=true; score=0; scoreEl.innerText='Embaixadinhas: 0'; y=50; vy=-5; rotation=0; startBtn.style.display='none'; msg.style.display='none'; cancelAnimationFrame(animId); update(); }
             </script></body></html>
             """
-            comp_emb = criar_motor_jogo("embaixadinha", html_embaixadinha)
-            res_emb = comp_emb(key="key_emb")
-            if res_emb and res_emb.get("id_salvamento") != st.session_state.get("last_emb"):
-                salvar_ranking(estudante_ra, estudante_nome, res_emb["jogo"], res_emb["pontuacao"], res_emb["detalhes"])
-                st.session_state["last_emb"] = res_emb["id_salvamento"]
-                st.success(f"🏆 {res_emb['pontuacao']} Embaixadinhas salvas automaticamente!")
+            components.html(html_embaixadinha, height=380)
+            c_e1, c_e2, c_e3 = st.columns([1, 1, 1])
+            pts_e = c_e1.number_input("⚽ Toques na Bola", min_value=0, max_value=9999, key="p_emb")
+            cod_e = c_e2.number_input("🔒 Código Secreto", min_value=0, max_value=99999, key="c_emb")
+            if c_e3.button("Salvar Recorde", use_container_width=True, key="btn_emb"):
+                if pts_e > 0 and cod_e == (pts_e * 6) + 33:
+                    salvar_ranking(estudante_ra, estudante_nome, "embaixadinha", pts_e, "Deixou a bola cair")
+                    st.success("✅ Código Válido! Salvo com sucesso no Mural!")
+                else: st.error("❌ Código de Segurança Inválido ou Pontuação não confere.")
 
     # =========================================================================
     # RANKING GERAL OFICIAL
@@ -10889,7 +10878,7 @@ def render_modulo_album():
             else:
                 st.info("Nenhum recorde registrado ainda. Jogue para ser o Número 1!")
         except Exception as e:
-            st.error("Por favor, crie a tabela 'ranking_jogos' no Supabase para visualizar o placar!")
+            st.error("Crie a tabela 'ranking_jogos' no Supabase para visualizar o placar!")
 
     st.markdown('</div>', unsafe_allow_html=True)
 

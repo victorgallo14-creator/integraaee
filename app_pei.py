@@ -10598,8 +10598,8 @@ def renderizar_animacao_abertura(figurinhas_sorteadas_detalhes):
     
     # URLs de imagens placeholder (Substitua por URLs reais se tiver ativos)
     url_pacote_fechado = "https://i.postimg.cc/K8sJwXc1/8A4EB18F-22F4-4076-997B-4C285995DE5F-(1).jpg" # Imagem de um pacotinho fechado brilhante
-    url_costas_figurinha = "https://i.postimg.cc/KY84KVtN/3E7079A4-2572-49F0-B6A6-3E4C193A22D0.jpg" # Imagem do verso da figurinha (padrão)
-    url_borda_lendaria = "https://i.imgur.com/Y4M2I1m.png" # Opcional: borda brilhante para lendárias
+    url_costas_figurinha = "https://i.postimg.cc/rpjFM9bC/23A39E31-E7F4-444E-BC12-508181FC50E7.jpg" # Imagem do verso da figurinha (padrão)
+    url_borda_lendaria = "https://i.postimg.cc/KY84KVtN/3E7079A4-2572-49F0-B6A6-3E4C193A22D0.jpg" # Opcional: borda brilhante para lendárias
 
     html_content = f"""
     <!DOCTYPE html>

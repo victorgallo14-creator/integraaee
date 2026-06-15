@@ -10811,7 +10811,7 @@ def render_modulo_album():
     dados_db = puxar_dados_album_estudante(estudante_ra)
     
     st.markdown('<div class="album-premium-container">', unsafe_allow_html=True)
-    st.markdown(f'<div class="header-premium"><h1>⚽ SUPER ÁLBUM DOS CRAQUES ⚽</h1><p style="font-size: 1.2rem; color: #ffffff; font-weight: 600;">{estudante_nome} - Turma: {dados_db["turma"]}</p></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="header-premium"><h1>⚽ SUPER ÁLBUM DOS CRAQUES ⚽</h1><p style="font-size: 1.2rem; color: #ffffff; font-weight: 600;">O álbum de figurinhas da turma</p></div>', unsafe_allow_html=True)
     
     aba_album, aba_pacotes, aba_trocas, aba_jogos, aba_ranking = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas", "🏟️ Arena de Jogos", "🏆 Ranking Geral"])
     

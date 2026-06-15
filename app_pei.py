@@ -10597,8 +10597,8 @@ def renderizar_animacao_abertura(figurinhas_sorteadas_detalhes):
     figs_json = json.dumps(figurinhas_sorteadas_detalhes)
     
     # URLs de imagens placeholder (Substitua por URLs reais se tiver ativos)
-    url_pacote_fechado = "https://bkqhbwnphnnueyyhdqbn.supabase.co/storage/v1/object/public/fotos_alunos/8A4EB18F-22F4-4076-997B-4C285995DE5F-(1).jpg" # Imagem de um pacotinho fechado brilhante
-    url_costas_figurinha = "https://bkqhbwnphnnueyyhdqbn.supabase.co/storage/v1/object/public/fotos_alunos/23A39E31-E7F4-444E-BC12-508181FC50E7.jpg" # Imagem do verso da figurinha (padrão)
+    url_pacote_fechado = "https://bkqhbwnphnnueyyhdqbn.supabase.co/storage/v1/object/public/fotos_alunos/8A4EB18F-22F4-4076-997B-4C285995DE5F-%281%29.jpg"
+    url_costas_figurinha = "https://bkqhbwnphnnueyyhdqbn.supabase.co/storage/v1/object/public/fotos_alunos/23A39E31-E7F4-444E-BC12-508181FC50E7.jpg"
     url_borda_lendaria = "https://i.postimg.cc/KY84KVtN/3E7079A4-2572-49F0-B6A6-3E4C193A22D0.jpg" # Opcional: borda brilhante para lendárias
 
     html_content = f"""
@@ -10883,7 +10883,6 @@ def render_modulo_album():
         st.markdown(f"<h2 style='font-family: Oswald; color: #004d23; text-align: center;'>📦 Salão de Abertura</h2>", unsafe_allow_html=True)
         st.markdown(f"<h3 style='text-align: center; color: #009c3b;'>Possui <b style='font-size: 2rem; color: #002776;'>{dados_db['pacotes']}</b> pacotinhos fechados.</h3>", unsafe_allow_html=True)
         
-        # Lógica de manipulação do estado de abertura
         if 'processando_abertura' not in st.session_state:
             st.session_state['processando_abertura'] = False
         if 'figurinhas_para_animar' not in st.session_state:
@@ -10898,36 +10897,42 @@ def render_modulo_album():
                     st.markdown("<p style='text-align: center; color: #666;'>Prepare o seu dedo! Clique no botão abaixo para trazer o seu pacotinho para a mesa.</p>", unsafe_allow_html=True)
                     _, col_btn, _ = st.columns([1, 2, 1])
                     if col_btn.button("✨ TRAZER PACOTINHO PARA A MESA! ✨", type="primary", use_container_width=True):
-                        # 1. Chamar lógica do DB
+                        
                         sorteio_ids = processar_abertura_pacote_supa(estudante_ra, dados_db['catalogo_ids'])
                         if sorteio_ids:
-                            # 2. Preparar detalhes para a animação
                             mapa_geral = dados_db['mapa_detalhes']
                             detalhes_sorteio = []
+                            
                             for f_id in sorteio_ids:
                                 info = mapa_geral.get(f_id, {'id': f_id, 'nome': 'Desconhecido', 'foto_path': '', 'tipo': 'comum'})
-                                detalhes_sorteio.append(info)
+                                
+                                # CORRECÇÃO DA URL DA FIGURINHA: Garante o endereço completo para o iframe
+                                foto = info.get('foto_path', '')
+                                if foto and not foto.startswith('http'):
+                                    # Concatena o domínio público do bucket do Supabase
+                                    foto = f"https://bkqhbwnphnnueyyhdqbn.supabase.co/storage/v1/object/public/fotos_alunos/{foto}"
+                                
+                                info_completa = info.copy()
+                                info_completa['foto_path'] = foto
+                                detalhes_sorteio.append(info_completa)
                             
-                            # 3. Salvar no estado e trigger animação
                             st.session_state['figurinhas_para_animar'] = detalhes_sorteio
                             st.session_state['processando_abertura'] = True
                             st.balloons()
                             st.rerun()
             else:
-                # ESTADO: EXIBINDO ANIMAÇÃO
-                area_acao.empty() # Limpa botão
+                area_acao.empty() 
                 st.write("---")
-                # Renderizar o componente HTML da animação
+                
+                # Executa a animação com as URLs corrigidas e absolutas
                 renderizar_animacao_abertura(st.session_state['figurinhas_para_animar'])
                 
-                # Botão fallback caso o JS falhe em comunicar o fim
                 if st.button("Finalizar e ver Álbum", use_container_width=True):
                     st.session_state['processando_abertura'] = False
                     st.session_state['figurinhas_para_animar'] = None
                     st.rerun()
-
         else:
-            area_acao.error("🚨 Você não tem pacotinhos disponíveis. Jogue na Arena ou participe das atividades da escola para ganhar mais!")
+            area_acao.error("🚨 Você não tem pacotinhos disponíveis.")
 
     with aba_trocas:
         st.markdown("### 🤝 Mercado de Transferências")

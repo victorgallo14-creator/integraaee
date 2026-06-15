@@ -769,9 +769,8 @@ def login():
                                             st.session_state.usuario_nome = aluno_nome
                                             st.session_state.user_role = 'estudante'
                                             st.session_state.usuario_ra = user_id_limpo # Fundamental para o Álbum!
-                                            st.session_state.modulo_atuacao = "🏫 Ensino Regular"  # <--- ADICIONE ESTA LINHA!
+                                            st.session_state.modulo_atuacao = "Álbum do Estudante"
                                             authenticated = True
-                                            
                                             st.toast(f"Acesso de Estudante autorizado! Bora colecionar, {aluno_nome}!", icon="🎒")
                                             time.sleep(1)
                                             st.rerun()
@@ -10414,10 +10413,9 @@ elif app_mode_adm == "🖨️ Emissão de Boletins":
 
 
 
-
-# =====================================================================
-# COLE ISTO NO TOPO DO SEU ARQUIVO (LOGO APÓS OS IMPORTS PRINCIPAIS)
-# =====================================================================
+# ==============================================================================
+# 1. FUNÇÕES DO ÁLBUM E JOGOS (DEVEM FICAR ANTES DO GATILHO)
+# ==============================================================================
 import random
 import time
 import streamlit as st
@@ -10427,69 +10425,25 @@ def injetar_css_album_premium():
     st.markdown("""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Poppins:wght@400;600&display=swap');
-        
-        .album-premium-container {
-            font-family: 'Poppins', sans-serif; background-color: #f4f7f6;
-            background-image: radial-gradient(#d5dfd9 1px, transparent 1px); background-size: 20px 20px;
-            padding: 20px; border-radius: 15px; box-shadow: inset 0px 0px 20px rgba(0,0,0,0.05);
-        }
-        
-        .header-premium {
-            background: linear-gradient(135deg, #004d23 0%, #009c3b 50%, #004d23 100%);
-            padding: 25px; border-radius: 20px; text-align: center; border: 4px solid #d4af37;
-            box-shadow: 0px 10px 30px rgba(0, 156, 59, 0.4); position: relative; overflow: hidden; margin-bottom: 25px;
-        }
-        
-        .header-premium h1 { 
-            font-family: 'Oswald', sans-serif; margin: 0; color: #ffdf00; font-size: 3rem; text-transform: uppercase;
-            text-shadow: 3px 3px 0px #002776, 5px 5px 12px rgba(0,0,0,0.5); 
-        }
-        
+        .album-premium-container { font-family: 'Poppins', sans-serif; background-color: #f4f7f6; background-image: radial-gradient(#d5dfd9 1px, transparent 1px); background-size: 20px 20px; padding: 20px; border-radius: 15px; box-shadow: inset 0px 0px 20px rgba(0,0,0,0.05); }
+        .header-premium { background: linear-gradient(135deg, #004d23 0%, #009c3b 50%, #004d23 100%); padding: 25px; border-radius: 20px; text-align: center; border: 4px solid #d4af37; box-shadow: 0px 10px 30px rgba(0, 156, 59, 0.4); position: relative; overflow: hidden; margin-bottom: 25px; }
+        .header-premium h1 { font-family: 'Oswald', sans-serif; margin: 0; color: #ffdf00; font-size: 3rem; text-transform: uppercase; text-shadow: 3px 3px 0px #002776, 5px 5px 12px rgba(0,0,0,0.5); }
         .fig-wrapper { width: 100%; aspect-ratio: 3 / 4; margin-bottom: 20px; perspective: 1000px; }
-        
-        .slot-vazio {
-            width: 100%; height: 100%; border: 2px dashed rgba(0, 156, 59, 0.3);
-            background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(240, 253, 244, 0.8) 100%);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            border-radius: 8px; color: rgba(0, 156, 59, 0.4); transition: all 0.3s ease;
-        }
+        .slot-vazio { width: 100%; height: 100%; border: 2px dashed rgba(0, 156, 59, 0.3); background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(240, 253, 244, 0.8) 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; color: rgba(0, 156, 59, 0.4); transition: all 0.3s ease; }
         .slot-vazio .numero { font-family: 'Oswald', sans-serif; font-size: 2.5rem; font-weight: 700; }
         .slot-vazio .texto { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
-        
-        .slot-preenchido {
-            width: 100%; height: 100%; background-color: #ffffff; padding: 4%; border-radius: 8px;
-            box-shadow: 0px 5px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; border: 1px solid #e0e0e0;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative;
-        }
+        .slot-preenchido { width: 100%; height: 100%; background-color: #ffffff; padding: 4%; border-radius: 8px; box-shadow: 0px 5px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; border: 1px solid #e0e0e0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
         .slot-preenchido:hover { transform: scale(1.1) translateY(-5px); box-shadow: 0px 12px 25px rgba(0,0,0,0.3); z-index: 5; }
-        
-        .foto-area {
-            background: linear-gradient(to bottom, #ece9e6, #ffffff); flex-grow: 1; border-radius: 4px;
-            border: 2px solid #002776; display: flex; align-items: center; justify-content: center; color: #002776;
-            padding: 0; overflow: hidden;
-        }
-        
-        .foto-rodape {
-            height: 25%; background: #009c3b; margin-top: 5px; border-radius: 4px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; font-family: 'Oswald', sans-serif;
-            padding: 2px; text-align: center;
-        }
+        .foto-area { background: linear-gradient(to bottom, #ece9e6, #ffffff); flex-grow: 1; border-radius: 4px; border: 2px solid #002776; display: flex; align-items: center; justify-content: center; color: #002776; padding: 0; overflow: hidden; }
+        .foto-rodape { height: 25%; background: #009c3b; margin-top: 5px; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; font-family: 'Oswald', sans-serif; padding: 2px; text-align: center; }
         .rodape-num { font-size: 0.7rem; color: #ffdf00; }
         .rodape-nome { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; line-height: 1.1; }
-        
         .lendaria { background: linear-gradient(135deg, #ffd700, #ffb300); border: none; box-shadow: 0px 5px 20px rgba(255, 215, 0, 0.5); }
         .lendaria .foto-area { border: 2px solid #b8860b; }
         .lendaria .foto-rodape { background: linear-gradient(to bottom, #d4af37, #b8860b); }
-        
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px) scale(0.8); } to { opacity: 1; transform: translateY(0) scale(1); } }
         .anim-reveal { animation: fadeInUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        
-        .pacotinho-btn > button { 
-            background: linear-gradient(180deg, #ffdf00 0%, #d4af37 100%) !important; color: #002776 !important;
-            font-family: 'Oswald', sans-serif !important; font-size: 1.6rem !important; font-weight: 700 !important;
-            border: 3px solid #002776 !important; border-radius: 12px !important; width: 100%; height: 70px;
-            box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
-        }
+        .pacotinho-btn > button { background: linear-gradient(180deg, #ffdf00 0%, #d4af37 100%) !important; color: #002776 !important; font-family: 'Oswald', sans-serif !important; font-size: 1.6rem !important; font-weight: 700 !important; border: 3px solid #002776 !important; border-radius: 12px !important; width: 100%; height: 70px; box-shadow: 0px 5px 15px rgba(0,0,0,0.2); }
         </style>
     """, unsafe_allow_html=True)
 
@@ -10501,24 +10455,18 @@ def puxar_dados_album_estudante(ra):
     else:
         pacotes = res_est.data[0]['pacotes_disponiveis']
         turma_aluno = res_est.data[0]['turma']
-        
     res_turma = supabase.table("figurinhas").select("id").eq("turma", turma_aluno).execute()
     res_lendarias = supabase.table("figurinhas").select("id").eq("tipo", "lendaria").execute()
-    
     catalogo_ids = sorted(list(set([f['id'] for f in res_turma.data] + [f['id'] for f in res_lendarias.data])))
-    
     res_inv = supabase.table("inventario_album").select("figurinha_id, quantidade").eq("estudante_ra", ra).execute()
-    
-    coladas = []
-    repetidas = []
+    coladas = []; repetidas = []
     for item in res_inv.data:
         f_id = item['figurinha_id']
-        qtd = item['quantidade']
+        qtd = item.get('quantidade', 1)
         if f_id in catalogo_ids:
             if qtd >= 1: coladas.append(f_id)
             if qtd > 1:
                 for _ in range(qtd - 1): repetidas.append(f_id)
-                
     total_figuras_turma = len(catalogo_ids)
     return {"pacotes": pacotes, "coladas": coladas, "repetidas": repetidas, "catalogo_ids": catalogo_ids, "turma": turma_aluno, "total": total_figuras_turma}
 
@@ -10526,156 +10474,95 @@ def processar_abertura_pacote_supa(ra, catalogo_ids_permitidos):
     if not catalogo_ids_permitidos: return None
     res_est = supabase.table("estudantes").select("pacotes_disponiveis").eq("ra", ra).execute()
     if not res_est.data: return None
-    
     disponiveis = res_est.data[0]['pacotes_disponiveis']
     if disponiveis <= 0: return None
-        
     st.balloons()
     supabase.table("estudantes").update({"pacotes_disponiveis": disponiveis - 1}).eq("ra", ra).execute()
-    
     sorteio = random.choices(catalogo_ids_permitidos, k=5)
-    
     res_inv = supabase.table("inventario_album").select("figurinha_id, quantidade").eq("estudante_ra", ra).in_("figurinha_id", sorteio).execute()
     qtd_map = {item['figurinha_id']: item['quantidade'] for item in res_inv.data}
-    
     sorteio_counts = {}
     for f in sorteio: sorteio_counts[f] = sorteio_counts.get(f, 0) + 1
-        
     for f_id, count in sorteio_counts.items():
         if f_id in qtd_map:
             nova_qtd = qtd_map[f_id] + count
             supabase.table("inventario_album").update({"quantidade": nova_qtd}).eq("estudante_ra", ra).eq("figurinha_id", f_id).execute()
         else:
             supabase.table("inventario_album").insert({"estudante_ra": ra, "figurinha_id": f_id, "quantidade": count}).execute()
-            
     return sorteio
 
 def render_modulo_album():
     injetar_css_album_premium()
     estudante_ra = st.session_state.get('usuario_ra', 'RA-TESTE-GALLO')
     dados_db = puxar_dados_album_estudante(estudante_ra)
-    
     st.markdown('<div class="album-premium-container">', unsafe_allow_html=True)
     st.markdown('<div class="header-premium"><h1>🏆 ÁLBUM DA COPA CEIEF 🏆</h1><p>Módulo de Integração de Alunos</p></div>', unsafe_allow_html=True)
-    
     aba_album, aba_pacotes, aba_trocas, aba_jogos = st.tabs(["📖 Meu Álbum", "📦 Abrir Pacotinhos", "🤝 Banca de Trocas", "🏟️ Arena de Jogos"])
-
     with aba_album:
         figurinhas_por_pagina = 10
         total_figuras = dados_db['total']
-        
         if total_figuras == 0:
             st.warning(f"Nenhuma figurinha cadastrada para a turma '{dados_db['turma']}'.")
             return
-            
         if 'pag_album' not in st.session_state: st.session_state['pag_album'] = 0
         total_paginas = (total_figuras // figurinhas_por_pagina) + (1 if total_figuras % figurinhas_por_pagina > 0 else 0)
-        
         c_prev, c_page, c_next = st.columns([1, 2, 1])
         with c_prev:
             if st.button("⬅️ PÁGINA ANTERIOR", use_container_width=True) and st.session_state['pag_album'] > 0:
-                st.session_state['pag_album'] -= 1
-                st.rerun()
+                st.session_state['pag_album'] -= 1; st.rerun()
         with c_page:
             progresso = len(dados_db['coladas']) / total_figuras if total_figuras > 0 else 0
             st.markdown(f"<div style='text-align: center; color: #004d23; font-family: Oswald; font-size: 20px;'>PÁGINA {st.session_state['pag_album'] + 1} DE {total_paginas}</div>", unsafe_allow_html=True)
             st.progress(progresso, text=f"Completado: {len(dados_db['coladas'])} de {total_figuras} da Turma {dados_db['turma']}")
         with c_next:
             if st.button("PRÓXIMA PÁGINA ➡️", use_container_width=True) and st.session_state['pag_album'] < (total_paginas - 1):
-                st.session_state['pag_album'] += 1
-                st.rerun()
-
-        textos_paginas = {
-            0: f"Bem-vindos ao Álbum da Copa CEIEF da Turma {dados_db['turma']}! O apito inicial foi dado, comece sua coleção rumo ao título!",
-            1: "⚽ CURIOSIDADE DA COPA: Sabia que o Brasil é a única seleção do planeta que participou de absolutamente todas as edições da Copa do Mundo?",
-            2: "🏆 MOMENTO HISTÓRICO: Pelé, o eterno Rei do Futebol, é o único jogador da história a vencer três Copas do Mundo (1958, 1962 e 1970).",
-            3: "🌍 VOCÊ SABIA? A Copa do Mundo de 2002 foi a primeira da história a ser sediada em dois países simultaneamente: Coreia do Sul e Japão."
-        }
+                st.session_state['pag_album'] += 1; st.rerun()
+        textos_paginas = {0: f"Bem-vindos ao Álbum da Copa CEIEF da Turma {dados_db['turma']}! O apito inicial foi dado, comece sua coleção rumo ao título!", 1: "⚽ CURIOSIDADE DA COPA: Sabia que o Brasil é a única seleção do planeta que participou de absolutamente todas as edições da Copa do Mundo?", 2: "🏆 MOMENTO HISTÓRICO: Pelé, o eterno Rei do Futebol, é o único jogador da história a vencer três Copas do Mundo.", 3: "🌍 VOCÊ SABIA? A Copa do Mundo de 2002 foi a primeira da história a ser sediada em dois países simultaneamente: Coreia do Sul e Japão."}
         texto_atual = textos_paginas.get(st.session_state['pag_album'], "Continue a abrir pacotinhos e a negociar com os colegas para completar sua coleção!")
-        
-        st.markdown(f"""
-            <div style='background-color: #fffdf0; padding: 15px; border-left: 6px solid #d4af37; border-radius: 8px; margin-top: 15px; margin-bottom: 25px; color: #333; font-size: 0.95rem; box-shadow: 2px 2px 10px rgba(0,0,0,0.05); line-height: 1.5;'>
-                📖 <i>\"{texto_atual}\"</i>
-            </div>
-        """, unsafe_allow_html=True)
-        
+        st.markdown(f"""<div style='background-color: #fffdf0; padding: 15px; border-left: 6px solid #d4af37; border-radius: 8px; margin-top: 15px; margin-bottom: 25px; color: #333; font-size: 0.95rem; box-shadow: 2px 2px 10px rgba(0,0,0,0.05); line-height: 1.5;'>📖 <i>\"{texto_atual}\"</i></div>""", unsafe_allow_html=True)
         inicio_idx = st.session_state['pag_album'] * figurinhas_por_pagina
         fim_idx = inicio_idx + figurinhas_por_pagina
         ids_da_pagina = dados_db['catalogo_ids'][inicio_idx:fim_idx]
-        
         if ids_da_pagina:
             res_figs = supabase.table("figurinhas").select("*").in_("id", ids_da_pagina).execute()
             map_figs = {f['id']: f for f in res_figs.data}
-
             for linha in range(0, len(ids_da_pagina), 5):
                 cols = st.columns(5)
                 for i, col in enumerate(cols):
                     if linha + i < len(ids_da_pagina):
                         f_id = ids_da_pagina[linha + i]
                         item = map_figs.get(f_id, {'nome': '???', 'cargo': '?', 'tipo': 'comum', 'foto_path': ''})
-                        f_nome = item.get('nome', '')
-                        f_cargo = item.get('cargo', '')
-                        f_tipo = item.get('tipo', 'comum')
-                        f_foto = item.get('foto_path', '')
+                        f_nome = item.get('nome', ''); f_cargo = item.get('cargo', ''); f_tipo = item.get('tipo', 'comum'); f_foto = item.get('foto_path', '')
                         classe_lendaria = "lendaria" if f_tipo == "lendaria" else ""
-                        
                         if f_foto and str(f_foto).startswith('http'): foto_html = f'<img src="{f_foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">'
                         else: foto_html = '<span style="font-size: 2rem;">📸</span>'
-                        
                         with col:
-                            if f_id in dados_db['coladas']:
-                                st.markdown(f"""
-                                    <div class="fig-wrapper"><div class="slot-preenchido {classe_lendaria}">
-                                    <div class="foto-area">{foto_html}</div><div class="foto-rodape">
-                                    <span class="rodape-num">Nº {f_id} - {f_cargo}</span><span class="rodape-nome">{f_nome}</span>
-                                    </div></div></div>""", unsafe_allow_html=True)
-                            else:
-                                st.markdown(f"""
-                                    <div class="fig-wrapper"><div class="slot-vazio"><div class="numero">{f_id}</div>
-                                    <div class="texto">Faltando</div></div></div>""", unsafe_allow_html=True)
-
+                            if f_id in dados_db['coladas']: st.markdown(f"""<div class="fig-wrapper"><div class="slot-preenchido {classe_lendaria}"><div class="foto-area">{foto_html}</div><div class="foto-rodape"><span class="rodape-num">Nº {f_id} - {f_cargo}</span><span class="rodape-nome">{f_nome}</span></div></div></div>""", unsafe_allow_html=True)
+                            else: st.markdown(f"""<div class="fig-wrapper"><div class="slot-vazio"><div class="numero">{f_id}</div><div class="texto">Faltando</div></div></div>""", unsafe_allow_html=True)
     with aba_pacotes:
         st.markdown(f"<h3 style='font-family: Poppins; color: #004d23;'>🎒 Possui <b>{dados_db['pacotes']}</b> pacotinhos fechados!</h3>", unsafe_allow_html=True)
         if dados_db['pacotes'] > 0:
             st.markdown('<div class="pacotinho-btn">', unsafe_allow_html=True)
             if st.button("💥 RASGAR PACOTINHO DA TURMA! 💥", use_container_width=True):
                 sorteio = processar_abertura_pacote_supa(estudante_ra, dados_db['catalogo_ids'])
-                if sorteio:
-                    st.session_state['ultimo_sorteio'] = sorteio
-                    st.rerun()
+                if sorteio: st.session_state['ultimo_sorteio'] = sorteio; st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            st.error("Os seus pacotinhos acabaram. Vá jogar uma partida na Arena de Jogos para treinar!")
-
+        else: st.error("Os seus pacotinhos acabaram. Vá jogar uma partida na Arena de Jogos para treinar!")
         if 'ultimo_sorteio' in st.session_state and st.session_state['ultimo_sorteio']:
-            st.write("---")
-            st.markdown("<h3 style='text-align:center; font-family: Oswald; color: #009c3b;'>✨ FIGURINHAS ENCONTRADAS: ✨</h3>", unsafe_allow_html=True)
+            st.write("---"); st.markdown("<h3 style='text-align:center; font-family: Oswald; color: #009c3b;'>✨ FIGURINHAS ENCONTRADAS: ✨</h3>", unsafe_allow_html=True)
             cols_novas = st.columns(5)
             res_sorteadas = supabase.table("figurinhas").select("*").in_("id", st.session_state['ultimo_sorteio']).execute()
             map_sorteadas = {f['id']: f for f in res_sorteadas.data}
-            
             for i, f_id in enumerate(st.session_state['ultimo_sorteio']):
                 fig_info = map_sorteadas.get(f_id, {})
-                f_nome = fig_info.get('nome', 'N/D')
-                f_tipo = fig_info.get('tipo', 'comum')
-                f_foto = fig_info.get('foto_path', '')
-                classe_lendaria = "lendaria" if f_tipo == "lendaria" else ""
-                delay = i * 0.15
-                
+                f_nome = fig_info.get('nome', 'N/D'); f_tipo = fig_info.get('tipo', 'comum'); f_foto = fig_info.get('foto_path', '')
+                classe_lendaria = "lendaria" if f_tipo == "lendaria" else ""; delay = i * 0.15
                 if f_foto and str(f_foto).startswith('http'): foto_html = f'<img src="{f_foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">'
                 else: foto_html = '<span style="font-size: 1.5rem;">📸</span>'
-                
                 with cols_novas[i]:
-                    st.markdown(f"""
-                        <div class="fig-wrapper anim-reveal" style="animation-delay: {delay}s; opacity: 0; margin-top: 15px;">
-                        <div class="slot-preenchido {classe_lendaria}"><div class="foto-area">{foto_html}</div>
-                        <div class="foto-rodape"><span class="rodape-num">Nº {f_id}</span><span class="rodape-nome">{f_nome}</span>
-                        </div></div></div>""", unsafe_allow_html=True)
-            
+                    st.markdown(f"""<div class="fig-wrapper anim-reveal" style="animation-delay: {delay}s; opacity: 0; margin-top: 15px;"><div class="slot-preenchido {classe_lendaria}"><div class="foto-area">{foto_html}</div><div class="foto-rodape"><span class="rodape-num">Nº {f_id}</span><span class="rodape-nome">{f_nome}</span></div></div></div>""", unsafe_allow_html=True)
             if st.button("Guardar tudo na coleção e continuar", use_container_width=True):
-                st.session_state['ultimo_sorteio'] = None
-                st.rerun()
-
+                st.session_state['ultimo_sorteio'] = None; st.rerun()
     with aba_trocas:
         st.markdown("### 🤝 Mercado de Transferências da Turma")
         res_cat = supabase.table("figurinhas").select("id, nome, tipo").in_("id", dados_db['catalogo_ids']).execute()
@@ -10687,13 +10574,8 @@ def render_modulo_album():
                 contagem = {x: dados_db['repetidas'].count(x) for x in set(dados_db['repetidas'])}
                 for f_id, qtd in contagem.items():
                     info = catalogo_map.get(f_id, {})
-                    f_nome = info.get('nome', 'ID Desconhecido')
-                    f_tipo = info.get('tipo', 'comum')
-                    tag = "✨ (LENDÁRIA!)" if f_tipo == "lendaria" else ""
-                    st.info(f"🟢 **Nº {f_id} - {f_nome}** {tag} — Tem {qtd} extra(s)")
-            else:
-                st.write("Não possui cartas repetidas para negociar de momento.")
-
+                    st.info(f"🟢 **Nº {f_id} - {info.get('nome', 'N/A')}** {'✨ (LENDÁRIA!)' if info.get('tipo') == 'lendaria' else ''} — Tem {qtd} extra(s)")
+            else: st.write("Não possui cartas repetidas para negociar de momento.")
         with col2:
             st.markdown("#### 📢 Publicar Oferta de Troca")
             if dados_db['repetidas']:
@@ -10703,45 +10585,22 @@ def render_modulo_album():
                     fig_desejada = st.selectbox("Qual quer receber?", faltantes, key="supa_des")
                     if st.button("Registrar Proposta no Mural", type="primary", use_container_width=True):
                         supabase.table("banca_trocas").insert({"estudante_ra": estudante_ra, "id_oferecida": fig_oferecida, "id_desejada": fig_desejada, "status": "ativo"}).execute()
-                        st.success("Proposta gravada com sucesso no mural de trocas!")
-                        time.sleep(1)
-                        st.rerun()
-                else:
-                    st.success("Álbum da turma completo!")
-            else:
-                st.warning("Consiga repetidas abrindo pacotes antes de criar propostas.")
-
-        st.write("---")
-        st.markdown("#### 📢 Mural de Anúncios Ativos na Escola")
+                        st.success("Proposta gravada!"); time.sleep(1); st.rerun()
+                else: st.success("Álbum da turma completo!")
+            else: st.warning("Consiga repetidas abrindo pacotes antes de criar propostas.")
+        st.write("---"); st.markdown("#### 📢 Mural de Anúncios Ativos na Escola")
         res_mural = supabase.table("banca_trocas").select("*").eq("status", "ativo").order("data_criacao", desc=True).execute()
-        anuncios = res_mural.data
-        if anuncios:
+        if res_mural.data:
             res_estudantes = supabase.table("estudantes").select("ra, nome").execute()
             estudantes_map = {e['ra']: e['nome'] for e in res_estudantes.data}
-            for anuncio in anuncios:
-                item_id = anuncio['id']
-                dono_ra = anuncio['estudante_ra']
-                dono_nome = estudantes_map.get(dono_ra, "Aluno(a)")
-                id_of = anuncio['id_oferecida']
-                id_des = anuncio['id_desejada']
-                
+            for anuncio in res_mural.data:
+                item_id = anuncio['id']; dono_ra = anuncio['estudante_ra']; dono_nome = estudantes_map.get(dono_ra, "Aluno(a)")
+                id_of = anuncio['id_oferecida']; id_des = anuncio['id_desejada']
                 if id_of in dados_db['catalogo_ids'] or id_des in dados_db['catalogo_ids']:
-                    info_of = catalogo_map.get(id_of, {})
-                    nome_of = info_of.get('nome', f'Figurinha {id_of}')
-                    tipo_of = info_of.get('tipo', 'comum')
+                    info_of = catalogo_map.get(id_of, {}); tipo_of = info_of.get('tipo', 'comum')
                     info_des = catalogo_map.get(id_des, {})
-                    nome_des = info_des.get('nome', f'Figurinha {id_des}')
-                    escala_ouro = tipo_of == "lendaria"
-                    border_color = "#d4af37" if escala_ouro else "#009c3b"
-                    bg_card = "#fffdf0" if escala_ouro else "#ffffff"
-                    
-                    st.markdown(f"""
-                        <div style='background-color: {bg_card}; padding: 15px; border-radius: 10px; border-left: 6px solid {border_color}; box-shadow: 2px 2px 6px rgba(0,0,0,0.05); margin-bottom: 10px;'>
-                            <strong style='color: #002776;'>{dono_nome}</strong> {"<span style='color:#b8860b;'>[LENDÁRIA]</span>" if escala_ouro else ""}<br>
-                            <span style='font-size:0.9rem; color:#444;'>Oferece a carta <b>Nº {id_of} ({nome_of})</b> em troca da <b>Nº {id_des} ({nome_des})</b></span>
-                        </div>
-                    """, unsafe_allow_html=True)
-                    
+                    escala_ouro = tipo_of == "lendaria"; border_color = "#d4af37" if escala_ouro else "#009c3b"; bg_card = "#fffdf0" if escala_ouro else "#ffffff"
+                    st.markdown(f"""<div style='background-color: {bg_card}; padding: 15px; border-radius: 10px; border-left: 6px solid {border_color}; box-shadow: 2px 2px 6px rgba(0,0,0,0.05); margin-bottom: 10px;'><strong style='color: #002776;'>{dono_nome}</strong> {"<span style='color:#b8860b;'>[LENDÁRIA]</span>" if escala_ouro else ""}<br><span style='font-size:0.9rem; color:#444;'>Oferece a carta <b>Nº {id_of} ({info_of.get('nome', '')})</b> em troca da <b>Nº {id_des} ({info_des.get('nome', '')})</b></span></div>""", unsafe_allow_html=True)
                     if dono_ra != estudante_ra:
                         if st.button(f"Aceitar Troca com {dono_nome} (Figurinha Nº {id_of})##{item_id}", use_container_width=True):
                             res_check = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", estudante_ra).eq("figurinha_id", id_des).execute()
@@ -10757,198 +10616,54 @@ def render_modulo_album():
                                 res_d2 = supabase.table("inventario_album").select("quantidade").eq("estudante_ra", dono_ra).eq("figurinha_id", id_des).execute()
                                 if res_d2.data: supabase.table("inventario_album").update({"quantidade": res_d2.data[0]['quantidade'] + 1}).eq("estudante_ra", dono_ra).eq("figurinha_id", id_des).execute()
                                 else: supabase.table("inventario_album").insert({"estudante_ra": dono_ra, "figurinha_id": id_des, "quantidade": 1}).execute()
-                                st.success("Troca realizada com sucesso! Verifique sua página do álbum.")
-                                time.sleep(1)
-                                st.rerun()
-                            else:
-                                st.error(f"Você não possui a figurinha Nº {id_des} sobrando no inventário para fechar essa troca.")
-        else:
-            st.info("Nenhum anúncio de troca em aberto.")
-
+                                st.success("Troca realizada com sucesso!"); time.sleep(1); st.rerun()
+                            else: st.error(f"Você não possui a figurinha Nº {id_des} sobrando no inventário para fechar essa troca.")
+        else: st.info("Nenhum anúncio de troca em aberto.")
     with aba_jogos:
         st.markdown("### 🏟️ Arena de Jogos e Desafios")
         st.write("Treine as suas habilidades cognitivas e reflexos nestes mini-jogos exclusivos!")
         st.write("---")
         jogo1, jogo2, jogo3, jogo4 = st.tabs(["📚 Quiz Escolar", "🧠 Memória 3D", "🧤 Treino de Goleiro", "⚽ Embaixadinha"])
-        
         with jogo1:
             st.markdown("#### 📚 Quiz de Interpretação e Sabedoria")
-            st.write("Leia os textos com atenção e mostre que você é um craque em conhecimentos gerais e interpretação!")
-            banco_perguntas = [
-                {"dif": "Fácil", "texto": "", "q": "Qual é a cor da camisa principal da Seleção Brasileira de Futebol?", "op": ["Azul", "Branca", "Amarela", "Verde"], "r": "Amarela"},
-                {"dif": "Fácil", "texto": "", "q": "Qual país é conhecido como o 'País do Futebol' e é o único a ser pentacampeão (ganhou 5 vezes) do mundo?", "op": ["Argentina", "Alemanha", "Brasil", "França"], "r": "Brasil"},
-                {"dif": "Fácil", "texto": "", "q": "No futebol, qual é o único jogador que pode usar as mãos para tocar na bola durante a partida (dentro da sua área)?", "op": ["O atacante", "O juiz", "O capitão do time", "O goleiro"], "r": "O goleiro"},
-                {"dif": "Média", "texto": "Em 1930, aconteceu a primeiríssima Copa do Mundo de Futebol da história! O torneio não teve eliminatórias, e apenas 13 países foram convidados de barco para jogar. A grande final foi entre Uruguai e Argentina.", "q": "Onde foi realizada a primeira Copa do Mundo de todas?", "op": ["Brasil", "Inglaterra", "Uruguai", "Espanha"], "r": "Uruguai"},
-                {"dif": "Média", "texto": "Toda Copa do Mundo tem uma mascote oficial, um personagem divertido que representa a cultura do país sede. Na Copa do Mundo de 2014, realizada aqui no Brasil, escolheram um animalzinho que se enrola todo para se proteger.", "q": "Qual animal foi a mascote da Copa no Brasil em 2014?", "op": ["Arara-Azul", "Onça-Pintada", "Tatu-bola", "Mico-Leão-Dourado"], "r": "Tatu-bola"},
-                {"dif": "Média", "texto": "Durante uma partida oficial de futebol, cada time pode ter apenas 11 jogadores ao mesmo tempo dentro do campo. Se um time perder muitos jogadores por cartão vermelho e ficar com menos de 7, o jogo precisa ser encerrado.", "q": "Quantos jogadores no TOTAL (juntando os dois times) começam uma partida de futebol?", "op": ["11 jogadores", "22 jogadores", "15 jogadores", "20 jogadores"], "r": "22 jogadores"},
-                {"dif": "Média", "texto": "O futebol feminino também tem o seu grande Mundial! A Copa do Mundo de Futebol Feminino atrai milhões de fãs. A seleção dos Estados Unidos é a equipe mais forte da história, tendo ganho o troféu quatro vezes.", "q": "Qual país é o maior campeão da Copa do Mundo de Futebol Feminino?", "op": ["Brasil", "Alemanha", "Estados Unidos", "Japão"], "r": "Estados Unidos"},
-                {"dif": "Difícil", "texto": "", "q": "A Copa do Mundo de Futebol, que reúne as melhores seleções do planeta, acontece de quanto em quanto tempo?", "op": ["A cada 2 anos", "A cada 4 anos", "Todos os anos", "A cada 5 anos"], "r": "A cada 4 anos"},
-                {"dif": "Difícil", "texto": "Marta Vieira da Silva é uma atleta brasileira considerada por muitos como a maior jogadora de futebol de todos os tempos. Pelo seu incrível talento, ela ganhou o prêmio de 'Melhor Jogadora do Mundo' da FIFA por incríveis 6 vezes!", "q": "Quantas vezes a brasileira Marta foi eleita a melhor do mundo?", "op": ["3 vezes", "5 vezes", "6 vezes", "8 vezes"], "r": "6 vezes"},
-                {"dif": "Difícil", "texto": "O Brasil encantou o mundo em 1958, na Suécia. Foi lá que um jovem de apenas 17 anos chamado Pelé brilhou, ajudando a Seleção Brasileira a ganhar o seu primeiro título mundial da história.", "q": "Em que ano o Brasil ganhou a Copa do Mundo pela primeira vez?", "op": ["1930", "1958", "1970", "1994"], "r": "1958"},
-                {"dif": "Difícil", "texto": "A taça da Copa do Mundo, aquele troféu brilhante que todos os capitães erguem, é muito pesada! Ela tem cerca de 6 quilos e é feita de ouro maciço 18 quilates. O desenho mostra duas figuras humanas segurando o planeta Terra.", "q": "Do que é feito o troféu oficial da Copa do Mundo?", "op": ["Bronze e Prata", "Ouro maciço", "Cristal", "Plástico dourado"], "r": "Ouro maciço"},
-                {"dif": "Difícil", "texto": "", "q": "O Rei Pelé tem um recorde mundial que até hoje ninguém conseguiu bater. Ele é o único jogador da história do futebol a conquistar...", "op": ["3 Copas do Mundo", "Mais de 2.000 gols", "O prêmio de melhor goleiro", "A Copa jogando sozinho"], "r": "3 Copas do Mundo"}
-            ]
-            if "quiz_pergunta_atual" not in st.session_state:
-                st.session_state["quiz_pergunta_atual"] = random.choice(banco_perguntas)
-                st.session_state["quiz_respondido"] = False
-            q = st.session_state["quiz_pergunta_atual"]
-            cor_dif = "#009c3b" if q['dif'] == "Fácil" else ("#d4af37" if q['dif'] == "Média" else "#8b0000")
+            st.write("Leia os textos com atenção e mostre que você é um craque em conhecimentos gerais!")
+            banco_perguntas = [{"dif": "Fácil", "texto": "", "q": "Qual é a cor da camisa principal da Seleção Brasileira de Futebol?", "op": ["Azul", "Branca", "Amarela", "Verde"], "r": "Amarela"}, {"dif": "Fácil", "texto": "", "q": "Qual país é conhecido como o 'País do Futebol' e é o único a ser pentacampeão?", "op": ["Argentina", "Alemanha", "Brasil", "França"], "r": "Brasil"}]
+            if "quiz_pergunta_atual" not in st.session_state: st.session_state["quiz_pergunta_atual"] = random.choice(banco_perguntas); st.session_state["quiz_respondido"] = False
+            q = st.session_state["quiz_pergunta_atual"]; cor_dif = "#009c3b" if q['dif'] == "Fácil" else ("#d4af37" if q['dif'] == "Média" else "#8b0000")
             st.markdown(f"<div style='margin-bottom: 15px;'><b>Nível do Desafio:</b> <span style='background-color:{cor_dif}; color:white; padding: 3px 10px; border-radius: 15px; font-size: 0.8rem;'>{q['dif']}</span></div>", unsafe_allow_html=True)
             if q.get('texto') != "": st.info(f"📖 **LEIA COM ATENÇÃO:**\n\n{q['texto']}")
             st.markdown(f"#### ❓ {q['q']}")
             resposta_quiz = st.radio("Selecione a sua resposta:", q['op'], index=None, key="radio_quiz_escolha")
             if st.button("✅ Confirmar Resposta", use_container_width=True):
                 if resposta_quiz:
-                    if resposta_quiz == q['r']:
-                        st.success("🎉 Golaço! Você acertou em cheio! Interpretação nota 10!")
-                        st.balloons()
+                    if resposta_quiz == q['r']: st.success("🎉 Golaço! Você acertou em cheio!"); st.balloons()
                     else: st.error(f"❌ Na trave! A resposta correta era: **{q['r']}**.")
                     st.session_state["quiz_respondido"] = True
                 else: st.warning("Tem de escolher uma opção antes de confirmar!")
             if st.session_state.get("quiz_respondido"):
                 st.write("---")
-                if st.button("🔄 Puxar Outra Pergunta", use_container_width=True, type="primary"):
-                    st.session_state["quiz_pergunta_atual"] = random.choice(banco_perguntas)
-                    st.session_state["quiz_respondido"] = False
-                    st.rerun()
-
+                if st.button("🔄 Puxar Outra Pergunta", use_container_width=True, type="primary"): st.session_state["quiz_pergunta_atual"] = random.choice(banco_perguntas); st.session_state["quiz_respondido"] = False; st.rerun()
         with jogo2:
             st.markdown("#### 🧠 Memória 3D dos Campeões")
-            codigo_html_memoria = """
-            <!DOCTYPE html><html><head><style>
-                @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');
-                body { font-family: 'Oswald', sans-serif; display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; align-items: center; padding: 20px; background: transparent; margin: 0; }
-                .card { width: 75px; height: 95px; perspective: 1000px; cursor: pointer; }
-                .card-inner { width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.2); border-radius: 8px;}
-                .card.open .card-inner { transform: rotateY(180deg); }
-                .card.match .card-inner { transform: rotateY(180deg) scale(1.05); box-shadow: 0 0 15px #d4af37; }
-                .card-front, .card-back { width: 100%; height: 100%; position: absolute; backface-visibility: hidden; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
-                .card-front { background: linear-gradient(135deg, #004d23, #009c3b); color: white; border: 2px solid #ffdf00; font-size: 1.8rem; }
-                .card-back { background: white; transform: rotateY(180deg); border: 2px solid #009c3b; }
-                #msg { width: 100%; text-align: center; color: #004d23; font-size: 1.8rem; display: none; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); margin-bottom: 10px;}
-            </style></head><body>
-            <div id="msg">🏆 ESPETACULAR! VOCÊ ENCONTROU TODOS OS PARES! 🏆</div>
-            <script>
-                const emojis = ['⚽','🏆','🏟️','🧤','👟','🇧🇷','🥅','⏱️'];
-                let cards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
-                let openCards = []; let matched = 0;
-                cards.forEach((e) => {
-                    let card = document.createElement('div'); card.className = 'card';
-                    let inner = document.createElement('div'); inner.className = 'card-inner';
-                    let front = document.createElement('div'); front.className = 'card-front'; front.innerText = '⚽';
-                    let back = document.createElement('div'); back.className = 'card-back'; back.innerText = e;
-                    inner.appendChild(front); inner.appendChild(back); card.appendChild(inner);
-                    card.onclick = function() {
-                        if(openCards.length < 2 && !this.classList.contains('open') && !this.classList.contains('match')){
-                            this.classList.add('open'); openCards.push({el: this, emoji: e});
-                            if(openCards.length === 2){
-                                setTimeout(() => {
-                                    if(openCards[0].emoji === openCards[1].emoji){
-                                        openCards[0].el.classList.add('match'); openCards[1].el.classList.add('match'); matched += 2;
-                                        if(matched === cards.length) document.getElementById('msg').style.display = 'block';
-                                    } else {
-                                        openCards[0].el.classList.remove('open'); openCards[1].el.classList.remove('open');
-                                    }
-                                    openCards = [];
-                                }, 800);
-                            }
-                        }
-                    };
-                    document.body.appendChild(card);
-                });
-            </script></body></html>
-            """
-            components.html(codigo_html_memoria, height=480)
-
+            components.html("""<!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body { font-family: 'Oswald', sans-serif; display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; align-items: center; padding: 20px; background: transparent; margin: 0; } .card { width: 75px; height: 95px; perspective: 1000px; cursor: pointer; } .card-inner { width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.2); border-radius: 8px;} .card.open .card-inner { transform: rotateY(180deg); } .card.match .card-inner { transform: rotateY(180deg) scale(1.05); box-shadow: 0 0 15px #d4af37; } .card-front, .card-back { width: 100%; height: 100%; position: absolute; backface-visibility: hidden; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; } .card-front { background: linear-gradient(135deg, #004d23, #009c3b); color: white; border: 2px solid #ffdf00; font-size: 1.8rem; } .card-back { background: white; transform: rotateY(180deg); border: 2px solid #009c3b; } #msg { width: 100%; text-align: center; color: #004d23; font-size: 1.8rem; display: none; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); margin-bottom: 10px;} </style></head><body> <div id="msg">🏆 ESPETACULAR! VOCÊ ENCONTROU TODOS OS PARES! 🏆</div> <script> const emojis = ['⚽','🏆','🏟️','🧤','👟','🇧🇷','🥅','⏱️']; let cards = [...emojis, ...emojis].sort(() => Math.random() - 0.5); let openCards = []; let matched = 0; cards.forEach((e) => { let card = document.createElement('div'); card.className = 'card'; let inner = document.createElement('div'); inner.className = 'card-inner'; let front = document.createElement('div'); front.className = 'card-front'; front.innerText = '⚽'; let back = document.createElement('div'); back.className = 'card-back'; back.innerText = e; inner.appendChild(front); inner.appendChild(back); card.appendChild(inner); card.onclick = function() { if(openCards.length < 2 && !this.classList.contains('open') && !this.classList.contains('match')){ this.classList.add('open'); openCards.push({el: this, emoji: e}); if(openCards.length === 2){ setTimeout(() => { if(openCards[0].emoji === openCards[1].emoji){ openCards[0].el.classList.add('match'); openCards[1].el.classList.add('match'); matched += 2; if(matched === cards.length) document.getElementById('msg').style.display = 'block'; } else { openCards[0].el.classList.remove('open'); openCards[1].el.classList.remove('open'); } openCards = []; }, 800); } } }; document.body.appendChild(card); }); </script></body></html>""", height=480)
         with jogo3:
             st.markdown("#### 🧤 Reflexo de Goleiro")
-            codigo_html_goleiro = """
-            <!DOCTYPE html><html><head><style>
-                @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');
-                body { font-family: 'Oswald', sans-serif; text-align: center; margin: 0; background-color: transparent; }
-                .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 350px; margin: 20px auto; }
-                .hole { height: 90px; background: rgba(0, 100, 0, 0.6); border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 50px; cursor: pointer; box-shadow: inset 0 5px 15px rgba(0,0,0,0.5); border: 2px solid #004d23; transition: background 0.2s;}
-                .hole:active { background: rgba(0, 150, 0, 0.8); }
-                .hole.active::after { content: '⚽'; animation: pop 0.2s ease-out; }
-                @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
-                .stats { font-size: 24px; color: #004d23; margin-top: 10px; }
-                button { font-family: 'Oswald', sans-serif; background: #d4af37; color: #002776; border: none; padding: 12px 25px; font-size: 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.1s;}
-                button:active { transform: scale(0.95); }
-            </style></head><body>
-            <div class="stats">DEFESAS: <span id="score">0</span> | TEMPO: <span id="time">15</span>s</div>
-            <button id="startBtn" onclick="startGame()">INICIAR TREINO</button>
-            <div class="grid" id="grid">
-                <div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div>
-                <div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div>
-                <div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div>
-            </div>
-            <script>
-                let score = 0; let lastHole; let timeUp = false; let timeLeft = 15;
-                const holes = document.querySelectorAll('.hole'); const scoreBoard = document.getElementById('score');
-                const timeBoard = document.getElementById('time'); const btn = document.getElementById('startBtn');
-                function randomHole() { const idx = Math.floor(Math.random() * holes.length); const hole = holes[idx]; if (hole === lastHole) return randomHole(); lastHole = hole; return hole; }
-                function showBall() { const time = Math.random() * (900 - 400) + 400; const hole = randomHole(); hole.classList.add('active'); setTimeout(() => { hole.classList.remove('active'); if (!timeUp) showBall(); }, time); }
-                function startGame() { scoreBoard.textContent = 0; timeBoard.textContent = 15; score = 0; timeUp = false; timeLeft = 15; btn.style.display = 'none'; showBall(); const countdown = setInterval(() => { timeLeft--; timeBoard.textContent = timeLeft; if(timeLeft <= 0) { clearInterval(countdown); timeUp = true; btn.style.display = 'inline-block'; btn.innerText = 'JOGAR NOVAMENTE'; } }, 1000); }
-                function defend(hole) { if(!hole.classList.contains('active')) return; score++; scoreBoard.textContent = score; hole.classList.remove('active'); }
-            </script></body></html>
-            """
-            components.html(codigo_html_goleiro, height=450)
-
+            components.html("""<!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body { font-family: 'Oswald', sans-serif; text-align: center; margin: 0; background-color: transparent; } .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 350px; margin: 20px auto; } .hole { height: 90px; background: rgba(0, 100, 0, 0.6); border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 50px; cursor: pointer; box-shadow: inset 0 5px 15px rgba(0,0,0,0.5); border: 2px solid #004d23; transition: background 0.2s;} .hole:active { background: rgba(0, 150, 0, 0.8); } .hole.active::after { content: '⚽'; animation: pop 0.2s ease-out; } @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } } .stats { font-size: 24px; color: #004d23; margin-top: 10px; } button { font-family: 'Oswald', sans-serif; background: #d4af37; color: #002776; border: none; padding: 12px 25px; font-size: 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.1s;} button:active { transform: scale(0.95); } </style></head><body> <div class="stats">DEFESAS: <span id="score">0</span> | TEMPO: <span id="time">15</span>s</div> <button id="startBtn" onclick="startGame()">INICIAR TREINO</button> <div class="grid" id="grid"> <div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div> <div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div> <div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div><div class="hole" onmousedown="defend(this)"></div> </div> <script> let score = 0; let lastHole; let timeUp = false; let timeLeft = 15; const holes = document.querySelectorAll('.hole'); const scoreBoard = document.getElementById('score'); const timeBoard = document.getElementById('time'); const btn = document.getElementById('startBtn'); function randomHole() { const idx = Math.floor(Math.random() * holes.length); const hole = holes[idx]; if (hole === lastHole) return randomHole(); lastHole = hole; return hole; } function showBall() { const time = Math.random() * (900 - 400) + 400; const hole = randomHole(); hole.classList.add('active'); setTimeout(() => { hole.classList.remove('active'); if (!timeUp) showBall(); }, time); } function startGame() { scoreBoard.textContent = 0; timeBoard.textContent = 15; score = 0; timeUp = false; timeLeft = 15; btn.style.display = 'none'; showBall(); const countdown = setInterval(() => { timeLeft--; timeBoard.textContent = timeLeft; if(timeLeft <= 0) { clearInterval(countdown); timeUp = true; btn.style.display = 'inline-block'; btn.innerText = 'JOGAR NOVAMENTE'; } }, 1000); } function defend(hole) { if(!hole.classList.contains('active')) return; score++; scoreBoard.textContent = score; hole.classList.remove('active'); } </script></body></html>""", height=450)
         with jogo4:
             st.markdown("#### ⚽ Rei da Embaixadinha")
-            codigo_html_embaixadinha = """
-            <!DOCTYPE html><html><head><style>
-                @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');
-                body { margin: 0; padding: 0; overflow: hidden; font-family: 'Oswald', sans-serif; }
-                #gameArea { width: 100%; height: 350px; background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 70%, #228B22 70%, #228B22 100%); position: relative; border-radius: 12px; box-shadow: inset 0 0 20px rgba(0,0,0,0.2); cursor: crosshair; }
-                #score { position: absolute; top: 15px; left: 20px; font-size: 28px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); z-index: 10; }
-                #ball { font-size: 60px; position: absolute; left: 50%; transform: translateX(-50%); cursor: pointer; user-select: none; z-index: 5; transition: transform 0.1s;}
-                #startBtn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; background: #ffdf00; color: #002776; border: none; border-radius: 8px; font-size: 24px; font-family: 'Oswald', sans-serif; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 20; font-weight: bold;}
-                #startBtn:active { transform: translate(-50%, -45%); box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-            </style></head><body>
-            <div id="gameArea">
-                <div id="score">Embaixadinhas: 0</div><div id="ball" style="top: 50px;">⚽</div><button id="startBtn">COMEÇAR</button>
-            </div>
-            <script>
-                const ball = document.getElementById('ball'); const scoreEl = document.getElementById('score'); const startBtn = document.getElementById('startBtn');
-                let y = 50; let vy = 0; let gravity = 0.6; let isPlaying = false; let score = 0; let animId; let rotation = 0;
-                function update() { if(!isPlaying) return; vy += gravity; y += vy; rotation += vy * 1.5; ball.style.transform = `translateX(-50%) rotate(${rotation}deg)`; if(y > 280) { isPlaying = false; startBtn.style.display = 'block'; startBtn.innerText = 'TENTAR DE NOVO'; ball.style.top = '280px'; return; } if(y < 0) { y = 0; vy = 0; } ball.style.top = y + 'px'; animId = requestAnimationFrame(update); }
-                function kick() { if(!isPlaying) return; vy = -12; score++; scoreEl.innerText = 'Embaixadinhas: ' + score; }
-                ball.onmousedown = kick; ball.ontouchstart = function(e) { e.preventDefault(); kick(); }
-                startBtn.onclick = function() { isPlaying = true; score = 0; scoreEl.innerText = 'Embaixadinhas: 0'; y = 20; vy = 0; rotation = 0; startBtn.style.display = 'none'; cancelAnimationFrame(animId); update(); }
-            </script></body></html>
-            """
-            components.html(codigo_html_embaixadinha, height=380)
-
+            components.html("""<!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body { margin: 0; padding: 0; overflow: hidden; font-family: 'Oswald', sans-serif; } #gameArea { width: 100%; height: 350px; background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 70%, #228B22 70%, #228B22 100%); position: relative; border-radius: 12px; box-shadow: inset 0 0 20px rgba(0,0,0,0.2); cursor: crosshair; } #score { position: absolute; top: 15px; left: 20px; font-size: 28px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); z-index: 10; } #ball { font-size: 60px; position: absolute; left: 50%; transform: translateX(-50%); cursor: pointer; user-select: none; z-index: 5; transition: transform 0.1s;} #startBtn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; background: #ffdf00; color: #002776; border: none; border-radius: 8px; font-size: 24px; font-family: 'Oswald', sans-serif; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 20; font-weight: bold;} #startBtn:active { transform: translate(-50%, -45%); box-shadow: 0 2px 5px rgba(0,0,0,0.3); } </style></head><body> <div id="gameArea"> <div id="score">Embaixadinhas: 0</div><div id="ball" style="top: 50px;">⚽</div><button id="startBtn">COMEÇAR</button> </div> <script> const ball = document.getElementById('ball'); const scoreEl = document.getElementById('score'); const startBtn = document.getElementById('startBtn'); let y = 50; let vy = 0; let gravity = 0.6; let isPlaying = false; let score = 0; let animId; let rotation = 0; function update() { if(!isPlaying) return; vy += gravity; y += vy; rotation += vy * 1.5; ball.style.transform = `translateX(-50%) rotate(${rotation}deg)`; if(y > 280) { isPlaying = false; startBtn.style.display = 'block'; startBtn.innerText = 'TENTAR DE NOVO'; ball.style.top = '280px'; return; } if(y < 0) { y = 0; vy = 0; } ball.style.top = y + 'px'; animId = requestAnimationFrame(update); } function kick() { if(!isPlaying) return; vy = -12; score++; scoreEl.innerText = 'Embaixadinhas: ' + score; } ball.onmousedown = kick; ball.ontouchstart = function(e) { e.preventDefault(); kick(); } startBtn.onclick = function() { isPlaying = true; score = 0; scoreEl.innerText = 'Embaixadinhas: 0'; y = 20; vy = 0; rotation = 0; startBtn.style.display = 'none'; cancelAnimationFrame(animId); update(); } </script></body></html>""", height=380)
     st.markdown('</div>', unsafe_allow_html=True)
 
 
-
-
-
-
-# ... (aqui terminam os seus outros códigos do sistema) ...
-
 # ==============================================================================
-# FUNÇÕES DO ÁLBUM E JOGOS (FICAM NO FINAL COMO VOCÊ PREFERE)
+# 2. GATILHO FINAL DO SISTEMA (ESSAS SÃO AS ÚLTIMAS LINHAS DE TODO O SEU ARQUIVO)
 # ==============================================================================
-# Cole aqui aquelas 3 funções gigantes:
-# def puxar_dados_album_estudante(ra): ...
-# def processar_abertura_pacote_supa(ra, catalogo_ids_permitidos): ...
-# def render_modulo_album(): ... 
-
-
-# ==============================================================================
-# AGORA SIM: OS GATILHOS FINAIS! (COLOQUE NAS ÚLTIMAS LINHAS DO FICHEIRO)
-# ==============================================================================
-# Como o Python já leu as funções acima, ele já sabe o que é o 'render_modulo_album()'
 if st.session_state.get('authenticated'):
     
-    # ---------------------------------------------------------
-    # GATILHO 1: SE FOR ALUNO LOGADO (ABRE TELA CHEIA)
-    # ---------------------------------------------------------
-    if st.session_state.get('user_role') == 'estudante':
-        # Esconde menu lateral
+    # 2.1 SE FOR ALUNO LOGADO (O Módulo dele agora é exclusivo, pula todo o resto!)
+    if st.session_state.get('modulo_atuacao') == "Álbum do Estudante":
+        
+        # Mágica CSS: Esconde a barra lateral inteira para parecer um App
         st.markdown("""
             <style>
                 [data-testid="stSidebar"] { display: none !important; }
@@ -10957,7 +10672,7 @@ if st.session_state.get('authenticated'):
             </style>
         """, unsafe_allow_html=True)
         
-        # Cabeçalho Superior
+        # Cabeçalho Superior do Aluno
         c_nome, c_sair = st.columns([3, 1])
         with c_nome:
             st.markdown(f"<h3 style='color: #004d23; font-family: Poppins; margin-bottom: 0;'>🎒 Olá, <b>{st.session_state.get('usuario_nome')}</b>!</h3>", unsafe_allow_html=True)
@@ -10970,17 +10685,16 @@ if st.session_state.get('authenticated'):
                 st.session_state.user_role = None
                 st.session_state.usuario_ra = None
                 st.session_state.usuario_nome = None
+                st.session_state.modulo_atuacao = None
                 st.rerun()
                 
         st.write("---")
         
-        # CHAMA O ÁLBUM
+        # Chama a função principal do álbum, que o Python já leu ali em cima!
         render_modulo_album()
         st.stop()
 
-    # ---------------------------------------------------------
-    # GATILHO 2: SE FOR O DIRETOR (TESTANDO PELO MENU)
-    # ---------------------------------------------------------
+    # 2.2 SE FOR O DIRETOR (Para você testar entrando no Ensino Regular)
     elif st.session_state.get('modulo_atuacao') == "🏫 Ensino Regular":
         if 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
             render_modulo_album()

@@ -10947,42 +10947,41 @@ def render_modulo_album():
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# GATILHOS DE EVENTOS JS (Para finalizar animação)
+# GATILHOS FINAIS DO SISTEMA (FICAM NA ÚLTIMA LINHA DO SEU ARQUIVO)
 # ==============================================================================
-# Capturar mensagens enviadas pelo componente HTML (como o fim da animação)
-# Isso requer lógica na página principal que gerencia o login/navegação,
-# mas aqui definimos o que acontece se o evento chegar.
-
-def gerenciar_eventos_html():
-    # Esta lógica depende de como o wrapper principal chama o módulo.
-    # Em um app single-page puro, usaríamos query_params ou um empty container.
-    # Exemplo hipotético de captura:
-    params = st.context.query_params
-    if "action" in params and params["action"] == "recarregar_album":
-        st.session_state['processando_abertura'] = False
-        st.session_state['figurinhas_para_animar'] = None
-        # Limpar param para não entrar em loop
-        st.context.query_params.clear() 
-        st.rerun()
-
-# ==============================================================================
-# EXECUÇÃO (Apenas para teste isolado, integre no seu app principal)
-# ==============================================================================
-if __name__ == "__main__":
-    # Simulação de login para teste
-    if 'authenticated' not in st.session_state:
-        st.session_state.authenticated = True
-        st.session_state.usuario_ra = 'RA-TESTE' # RA que existe no seu Supabase
-        st.session_state.usuario_nome = 'Aluno Teste'
+if st.session_state.get('authenticated'):
     
-    if st.session_state.authenticated:
-        # Tentar gerenciar eventos de recarregamento
-        # gerenciar_eventos_html() 
+    # GATILHO 1: ALUNO LOGADO (Oculta a Barra Lateral Mágica)
+    if st.session_state.get('modulo_atuacao') == "Álbum do Estudante":
         
-        # IMPORTANTE: No seu código principal, a conexão 'supabase' já deve existir.
-        # supabase = ... 
+        st.markdown("""
+            <style>
+                [data-testid="stSidebar"] { display: none !important; }
+                [data-testid="collapsedControl"] { display: none !important; }
+                .block-container { padding-top: 2rem !important; }
+            </style>
+        """, unsafe_allow_html=True)
         
-        # Para teste, o módulo assume que 'supabase' está disponível globalmente 
-        # ou no session_state como definido no início.
-
+        c_nome, c_sair = st.columns([3, 1])
+        with c_nome:
+            st.markdown(f"<h3 style='color: #004d23; font-family: Poppins; margin-bottom: 0;'>🎒 Olá, <b>{st.session_state.get('usuario_nome')}</b>!</h3>", unsafe_allow_html=True)
+            st.markdown(f"<span style='color: #666; font-size: 0.9rem;'>📌 R.A.: {st.session_state.get('usuario_ra')}</span>", unsafe_allow_html=True)
+            
+        with c_sair:
+            st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+            if st.button("🚪 Sair da Conta", type="primary", use_container_width=True):
+                st.session_state.authenticated = False
+                st.session_state.user_role = None
+                st.session_state.usuario_ra = None
+                st.session_state.usuario_nome = None
+                st.session_state.modulo_atuacao = None
+                st.rerun()
+                
+        st.write("---")
         render_modulo_album()
+        st.stop()
+
+    # GATILHO 2: DIRETOR (Para você testar pelo Ensino Regular)
+    elif st.session_state.get('modulo_atuacao') == "🏫 Ensino Regular":
+        if 'app_mode_regular' in locals() and app_mode_regular == "🏆 Álbum de Figurinhas":
+            render_modulo_album()

@@ -10664,7 +10664,7 @@ def render_modulo_album():
         else: st.info("Nenhum anúncio de troca em aberto.")
 
     # =========================================================================
-    # ARENA DE JOGOS: HTML PURO COM CÓDIGOS DE VALIDAÇÃO (100% CLOUD SAFE)
+    # ARENA DE JOGOS: CÓDIGOS DE VALIDAÇÃO (100% CLOUD SAFE, SEM ERROS F-STRING)
     # =========================================================================
     with aba_jogos:
         st.markdown("### 🏟️ Arena de Jogos")
@@ -10673,7 +10673,7 @@ def render_modulo_album():
         
         jogo1, jogo2, jogo3, jogo4, jogo5 = st.tabs(["🧠 Memória", "🏃 Pula Craque", "🧤 Goleiro", "🎯 Falta", "⚽ Embaixadinha"])
 
-        # ---------------- 1. JOGO DA MEMÓRIA INTELIGENTE ----------------
+        # ---------------- 1. JOGO DA MEMÓRIA ----------------
         with jogo1:
             html_memoria = """
             <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');body{font-family:'Oswald',sans-serif;text-align:center;margin:0;background:transparent;}#stats{font-size:20px;color:#004d23;margin-bottom:15px;}.grid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:400px;margin:0 auto;}.card{width:65px;height:85px;perspective:1000px;cursor:pointer;}.card-inner{width:100%;height:100%;transition:transform 0.5s;transform-style:preserve-3d;position:relative;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.2);}.card.open .card-inner{transform:rotateY(180deg);}.card.match .card-inner{transform:rotateY(180deg) scale(1.05);box-shadow:0 0 10px #d4af37;}.card-front,.card-back{width:100%;height:100%;position:absolute;backface-visibility:hidden;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem;}.card-front{background:linear-gradient(135deg,#004d23,#009c3b);border:2px solid #ffdf00;}.card-back{background:white;transform:rotateY(180deg);border:2px solid #009c3b;}button{margin-top:20px;padding:10px 20px;font-size:20px;background:#d4af37;color:#002776;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';font-weight:bold;}#gameOver{display:none;font-size:22px;color:#002776;margin-top:20px;background:#fffdf0;padding:15px;border-radius:10px;border:3px solid #d4af37;}</style>
@@ -10726,45 +10726,96 @@ def render_modulo_album():
             if c_m3.button("Salvar Recorde", use_container_width=True, key="btn_mem"):
                 if pts_m > 0 and cod_m == (pts_m * 3) + 45:
                     salvar_ranking(estudante_ra, estudante_nome, "memoria", pts_m, "4 Níveis Concluídos")
-                    st.success("✅ Código Válido! Salvo com sucesso no Mural!")
-                else: st.error("❌ Código de Segurança Inválido ou Pontuação não confere.")
+                    st.success("✅ Salvo com sucesso no Mural!")
+                else: st.error("❌ Código Inválido ou Pontuação incorreta.")
 
-        # ---------------- 2. SUPER PULA CRAQUE ----------------
+        # ---------------- 2. SUPER PULA CRAQUE (CORRIGIDO) ----------------
         with jogo2:
             html_pula = """
-            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');body{margin:0;font-family:'Oswald',sans-serif;user-select:none;overflow:hidden;background:transparent;}#game{width:100%;height:350px;background:linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 70%, #4CAF50 70%, #2E7D32 100%);position:relative;border-radius:12px;overflow:hidden;box-shadow:inset 0 0 20px rgba(0,0,0,0.2);cursor:pointer;}.cloud{position:absolute;font-size:40px;color:rgba(255,255,255,0.7);white-space:nowrap;}#player{position:absolute;bottom:105px;left:50px;font-size:55px;z-index:10; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3)); display:flex; align-items:center; justify-content:center;} .flip { transform: scaleX(-1); display: inline-block; margin-right: -10px;} #obstacle{position:absolute;bottom:105px;left:800px;font-size:45px;z-index:9; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));}#coin{position:absolute;bottom:200px;left:900px;font-size:35px;z-index:8;}#scoreBoard{position:absolute;top:15px;left:20px;font-size:28px;color:#002776;text-shadow:1px 1px 0px #fff;z-index:20;}#msg{display:none;flex-direction:column;justify-content:center;align-items:center;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);color:white;font-size:30px;z-index:30;text-shadow:2px 2px 5px #000;text-align:center;padding:20px;}button{margin-top:15px;padding:12px 25px;font-size:22px;background:#ffdf00;color:#002776;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';font-weight:bold;box-shadow:0 4px 10px rgba(0,0,0,0.5);}</style>
+            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap');body{margin:0;font-family:'Oswald',sans-serif;user-select:none;overflow:hidden;background:transparent;}#game{width:100%;height:350px;background:linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 70%, #4CAF50 70%, #2E7D32 100%);position:relative;border-radius:12px;overflow:hidden;box-shadow:inset 0 0 20px rgba(0,0,0,0.2);cursor:pointer;}.cloud{position:absolute;font-size:40px;color:rgba(255,255,255,0.7);white-space:nowrap;}#player{position:absolute;bottom:105px;left:50px;font-size:55px;z-index:10; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3)); display:flex; align-items:center; justify-content:center;} .flip { transform: scaleX(-1); display: inline-block; margin-right: -10px;} #obstacle{position:absolute;bottom:105px;left:800px;font-size:45px;z-index:9; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));}#coin{position:absolute;bottom:200px;left:900px;font-size:35px;z-index:8;}#scoreBoard{position:absolute;top:15px;left:20px;font-size:28px;color:#002776;text-shadow:1px 1px 0px #fff;z-index:20;}#msg{display:none;flex-direction:column;justify-content:center;align-items:center;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);color:white;font-size:30px;z-index:30;text-shadow:2px 2px 5px #000;text-align:center;padding:20px;box-sizing:border-box;}button{margin-top:15px;padding:12px 25px;font-size:22px;background:#ffdf00;color:#002776;border:none;border-radius:8px;cursor:pointer;font-family:'Oswald';font-weight:bold;box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:40; position:relative;}</style>
             </head><body>
             <div id="game"><div class="cloud" style="top:20px; left:100px; font-size:60px;">☁️</div><div class="cloud" style="top:50px; left:400px; font-size:40px;">☁️</div>
             <div id="scoreBoard">Pontos: <span id="score">0</span></div>
             <div id="player"><span class="flip">🏃‍♂️</span><span id="ballRoll">⚽</span></div>
             <div id="obstacle">🚧</div><div id="coin">🏆</div>
-            <div id="msg"><div id="gameOverText">SUPER PULA CRAQUE</div><button id="btnPlay" onclick="startGame(event)">JOGAR</button></div></div>
+            <div id="msg"><div id="gameOverText" style="margin-bottom:10px;">SUPER PULA CRAQUE</div><button id="btnPlay" onclick="startGame(event)">JOGAR</button></div></div>
             <script>
             const p=document.getElementById('player');const o=document.getElementById('obstacle');const c=document.getElementById('coin');
             const sEl=document.getElementById('score');const msg=document.getElementById('msg'); const btn = document.getElementById('btnPlay');
             const clouds=document.querySelectorAll('.cloud'); let isPlaying=false; let score=0; let frame=0;
-            let py=105; let vy=0; let gravity=0.45; let isJumping=false; let canDouble=false;
-            let ox=800; let speed=4.5; let cx=1000; let cy=200; let coinActive=true; let animId; let ballRot=0;
-            function jump(e){if(e)e.preventDefault();if(!isPlaying)return;if(!isJumping){vy=11;isJumping=true;canDouble=true;p.innerHTML="<span class='flip'>🤸‍♂️</span><span id='ballRoll'>⚽</span>";}else if(canDouble){vy=9;canDouble=false;p.innerHTML="<span class='flip'>🦸‍♂️</span><span id='ballRoll'>⚽</span>";}}
-            document.getElementById('game').addEventListener('mousedown', jump);document.getElementById('game').addEventListener('touchstart', jump, {passive:false});
-            function startGame(e){if(e)e.stopPropagation();isPlaying=true;msg.style.display='none';score=0;sEl.innerText=0;speed=4.5;ox=800;cx=1200;coinActive=true;py=105;vy=0;isJumping=false;canDouble=false;p.innerHTML="<span class='flip'>🏃‍♂️</span><span id='ballRoll'>⚽</span>";if(animId)cancelAnimationFrame(animId);loop();}
-            function loop(){if(!isPlaying)return;
-                vy-=gravity;py+=vy;if(py<=105){py=105;vy=0;if(isJumping){isJumping=false;canDouble=false;p.innerHTML=(frame%10<5)?"<span class='flip'>🏃‍♂️</span><span id='ballRoll'>⚽</span>":"<span class='flip'>🚶‍♂️</span><span id='ballRoll'>⚽</span>";}}
-                if(!isJumping) p.innerHTML=(frame%16<8)?"<span class='flip'>🏃‍♂️</span><span id='ballRoll'>⚽</span>":"<span class='flip'>🚶‍♂️</span><span id='ballRoll'>⚽</span>"; p.style.bottom=py+'px';
+            let py=105; let vy=0; let gravity=0.5; let isJumping=false; let canDouble=false;
+            let ox=800; let speed=4; let cx=1000; let cy=200; let coinActive=true; let animId; let ballRot=0;
+            
+            msg.style.display='flex';
+            
+            function jump(e){
+                if(e && e.target && e.target.closest && e.target.closest('button')) return;
+                if(e && e.cancelable) e.preventDefault();
+                if(!isPlaying) return;
+                if(!isJumping){
+                    vy=12;isJumping=true;canDouble=true;p.innerHTML="<span class='flip'>🤸‍♂️</span><span id='ballRoll'>⚽</span>";
+                }else if(canDouble){
+                    vy=10;canDouble=false;p.innerHTML="<span class='flip'>🦸‍♂️</span><span id='ballRoll'>⚽</span>";
+                }
+            }
+            document.getElementById('game').addEventListener('mousedown', jump);
+            document.getElementById('game').addEventListener('touchstart', jump, {passive:false});
+            
+            function startGame(e){
+                if(e)e.stopPropagation();
+                isPlaying=true;msg.style.display='none';score=0;sEl.innerText=0;speed=4;ox=800;cx=1200;coinActive=true;py=105;vy=0;isJumping=false;canDouble=false;p.innerHTML="<span class='flip'>🏃‍♂️</span><span id='ballRoll'>⚽</span>";
+                if(animId)cancelAnimationFrame(animId);
+                loop();
+            }
+            
+            function loop(){
+                if(!isPlaying)return;
+                vy-=gravity;py+=vy;
+                if(py<=105){
+                    py=105;vy=0;
+                    if(isJumping){
+                        isJumping=false;canDouble=false;
+                        p.innerHTML=(frame%10<5)?"<span class='flip'>🏃‍♂️</span><span id='ballRoll'>⚽</span>":"<span class='flip'>🚶‍♂️</span><span id='ballRoll'>⚽</span>";
+                    }
+                }
+                if(!isJumping) p.innerHTML=(frame%16<8)?"<span class='flip'>🏃‍♂️</span><span id='ballRoll'>⚽</span>":"<span class='flip'>🚶‍♂️</span><span id='ballRoll'>⚽</span>"; 
+                p.style.bottom=py+'px';
+                
                 let b=document.getElementById('ballRoll'); if(b){ ballRot+=speed*3; b.style.transform=`rotate(${ballRot}deg)`; }
-                ox-=speed;if(ox<-60){ox=600+Math.random()*400;let em=['🟥','🟨','🚧','🦵'];o.innerText=em[Math.floor(Math.random()*em.length)];speed+=0.04;} o.style.left=ox+'px';
-                cx-=speed*0.8;if(cx<-50){cx=800+Math.random()*800;cy=180+Math.random()*80;coinActive=true;c.style.display='block';} c.style.left=cx+'px'; c.style.bottom=cy+'px';
+                
+                ox-=speed;
+                if(ox<-60){
+                    ox=600+Math.random()*400;
+                    let em=['🟥','🟨','🚧','🦵'];
+                    o.innerText=em[Math.floor(Math.random()*em.length)];
+                    speed+=0.04;
+                } 
+                o.style.left=ox+'px';
+                
+                cx-=speed*0.8;
+                if(cx<-50){
+                    cx=800+Math.random()*800;cy=180+Math.random()*80;coinActive=true;c.style.display='block';
+                } 
+                c.style.left=cx+'px'; c.style.bottom=cy+'px';
+                
                 clouds[0].style.left=(parseInt(clouds[0].style.left||100)-1)+'px';if(parseInt(clouds[0].style.left)<-100)clouds[0].style.left='800px';
                 clouds[1].style.left=(parseInt(clouds[1].style.left||400)-0.5)+'px';if(parseInt(clouds[1].style.left)<-100)clouds[1].style.left='800px';
+                
                 let pRect={x:50,y:py,w:40,h:50}; let oRect={x:ox+15,y:105,w:30,h:40}; let cRect={x:cx,y:cy,w:30,h:30};
+                
                 if(pRect.x<oRect.x+oRect.w && pRect.x+pRect.w>oRect.x && pRect.y<oRect.y+oRect.h && pRect.y+pRect.h>oRect.y){gameOver();return;}
-                if(coinActive && pRect.x<cRect.x+cRect.w && pRect.x+pRect.w>cRect.x && pRect.y<cRect.y+cRect.h && pRect.y+pRect.h>cRect.y){score+=50;coinActive=false;c.style.display='none';sEl.innerText=score;}
-                if(frame%10===0){score+=1;sEl.innerText=score;} frame++; animId=requestAnimationFrame(loop);
+                if(coinActive && pRect.x<cRect.x+cRect.w && pRect.x+pRect.w>cRect.x && pRect.y<cRect.y+cRect.h && pRect.y+pRect.h>cRect.y){
+                    score+=50;coinActive=false;c.style.display='none';sEl.innerText=score;
+                }
+                if(frame%10===0){score+=1;sEl.innerText=score;} 
+                frame++; animId=requestAnimationFrame(loop);
             }
             function gameOver(){
-                isPlaying=false;p.innerHTML="<span class='flip'>😵</span>💥";msg.style.display='flex';
+                isPlaying=false;
+                p.innerHTML="<span class='flip'>😵</span>💥";
+                msg.style.display='flex';
                 let segCode = (score * 5) + 10;
-                msg.innerHTML=`FIM DE JOGO!<br><span style='color:#ffdf00;'>Pontos: ${score}</span><br><span style='color:red; font-size:24px;'>CÓDIGO SECRETO: ${segCode}</span><br><button onclick="startGame(event)">JOGAR NOVAMENTE</button>`;
+                msg.innerHTML=`<div style="font-size:35px; color:#ffdf00; margin-bottom:10px;">FIM DE JOGO!</div><div>Pontos: ${score}</div><div style='color:#ff4444; font-size:26px; margin: 15px 0;'>CÓDIGO SECRETO: <b>${segCode}</b></div><button onclick="startGame(event)">JOGAR NOVAMENTE</button>`;
             }
             </script></body></html>
             """
@@ -10775,16 +10826,28 @@ def render_modulo_album():
             if c_p3.button("Salvar Recorde", use_container_width=True, key="btn_pula"):
                 if pts_p > 0 and cod_p == (pts_p * 5) + 10:
                     salvar_ranking(estudante_ra, estudante_nome, "pula_craque", pts_p, "Tropeçou na corrida")
-                    st.success("✅ Código Válido! Salvo com sucesso no Mural!")
-                else: st.error("❌ Código de Segurança Inválido ou Pontuação não confere.")
+                    st.success("✅ Salvo com sucesso no Mural!")
+                else: st.error("❌ Código de Segurança Inválido ou Pontuação incorreta.")
 
-        # ---------------- 3. GOLEIRO ----------------
+        # ---------------- 3. GOLEIRO (CORRIGIDO) ----------------
         with jogo3:
             html_goleiro = """
-            <!DOCTYPE html><html><head><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); body { font-family: 'Oswald', sans-serif; text-align: center; margin: 0; background-color: transparent; } #gameContainer { position:relative; width:100%; height:420px; overflow:hidden;} .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 350px; margin: 20px auto; } .hole { height: 90px; background: rgba(0, 100, 0, 0.6); border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 50px; cursor: pointer; box-shadow: inset 0 5px 15px rgba(0,0,0,0.5); border: 2px solid #004d23; transition: background 0.2s;} .hole:active { background: rgba(0, 150, 0, 0.8); } .hole.active::after { content: '⚽'; animation: pop 0.2s ease-out; } @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } } .stats { font-size: 24px; color: #004d23; margin-top: 10px; } button { font-family: 'Oswald', sans-serif; background: #d4af37; color: #002776; border: none; padding: 12px 25px; font-size: 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.1s;} button:active { transform: scale(0.95); } #endMsg { display:none; background:#fffdf0; border: 4px solid #d4af37; padding: 20px; border-radius:10px; font-size: 24px; color: #002776; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 80%; max-width: 300px; } </style>
-            </head><body>
+            <!DOCTYPE html><html><head><style>
+            @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap'); 
+            body { font-family: 'Oswald', sans-serif; text-align: center; margin: 0; background-color: transparent; } 
+            #gameContainer { position:relative; width:100%; height:450px; overflow:hidden;} 
+            .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 350px; margin: 20px auto; } 
+            .hole { height: 90px; background: rgba(0, 100, 0, 0.6); border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 50px; cursor: pointer; box-shadow: inset 0 5px 15px rgba(0,0,0,0.5); border: 2px solid #004d23; transition: background 0.2s;} 
+            .hole:active { background: rgba(0, 150, 0, 0.8); } 
+            .hole.active::after { content: '⚽'; animation: pop 0.2s ease-out; } 
+            @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } } 
+            .stats { font-size: 24px; color: #004d23; margin-top: 10px; } 
+            button { font-family: 'Oswald', sans-serif; background: #d4af37; color: #002776; border: none; padding: 12px 25px; font-size: 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.1s;} 
+            button:active { transform: scale(0.95); } 
+            #endMsg { display:none; background:#fffdf0; border: 4px solid #d4af37; padding: 25px; border-radius:15px; font-size: 26px; color: #002776; margin: 40px auto; width: 85%; max-width: 350px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); text-align:center;} 
+            </style></head><body>
             <div id="gameContainer">
-                <div class="stats">DEFESAS: <span id="score">0</span> | TEMPO: <span id="time">15</span>s</div>
+                <div class="stats" id="statsBar">DEFESAS: <span id="score">0</span> | TEMPO: <span id="time">15</span>s</div>
                 <button id="startBtn" onclick="startGame()">INICIAR TREINO (15s)</button>
                 <div class="grid" id="grid">
                     <div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div><div class="hole" onmousedown="defend(this)" ontouchstart="defend(this)"></div>
@@ -10794,10 +10857,35 @@ def render_modulo_album():
                 <div id="endMsg"></div>
             </div>
             <script>
-                let score=0; let lastHole; let timeUp=false; let timeLeft=15; const holes=document.querySelectorAll('.hole'); const scoreBoard=document.getElementById('score'); const timeBoard=document.getElementById('time'); const btn=document.getElementById('startBtn'); const msg=document.getElementById('endMsg'); const grid=document.getElementById('grid');
+                let score=0; let lastHole; let timeUp=false; let timeLeft=15; 
+                const holes=document.querySelectorAll('.hole'); const scoreBoard=document.getElementById('score'); 
+                const timeBoard=document.getElementById('time'); const btn=document.getElementById('startBtn'); 
+                const msg=document.getElementById('endMsg'); const grid=document.getElementById('grid');
+                const statsBar=document.getElementById('statsBar');
+                
                 function randomHole() { const idx=Math.floor(Math.random()*holes.length); const hole=holes[idx]; if (hole===lastHole) return randomHole(); lastHole=hole; return hole; }
-                function showBall() { const time=Math.random()*(900-400)+400; const hole=randomHole(); hole.classList.add('active'); setTimeout(() => { hole.classList.remove('active'); if (!timeUp) showBall(); }, time); }
-                function startGame() { msg.style.display='none'; grid.style.display='grid'; scoreBoard.textContent=0; timeBoard.textContent=15; score=0; timeUp=false; timeLeft=15; btn.style.display='none'; showBall(); const countdown=setInterval(() => { timeLeft--; timeBoard.textContent=timeLeft; if(timeLeft<=0) { clearInterval(countdown); timeUp=true; btn.style.display='inline-block'; btn.innerText='JOGAR DE NOVO'; let segCode = (score * 8) + 22; grid.style.display='none'; msg.style.display='block'; msg.innerHTML=`O JOGO ACABOU!<br>Defesas: <b>${score}</b><br><span style='color:red;'>CÓDIGO: ${segCode}</span>`; } }, 1000); }
+                
+                function showBall() { 
+                    const time=Math.random()*(800-400)+400; 
+                    const hole=randomHole(); hole.classList.add('active'); 
+                    setTimeout(() => { hole.classList.remove('active'); if (!timeUp) showBall(); }, time); 
+                }
+                
+                function startGame() { 
+                    msg.style.display='none'; grid.style.display='grid'; statsBar.style.display='block';
+                    scoreBoard.textContent=0; timeBoard.textContent=15; score=0; timeUp=false; timeLeft=15; btn.style.display='none'; 
+                    showBall(); 
+                    const countdown=setInterval(() => { 
+                        timeLeft--; timeBoard.textContent=timeLeft; 
+                        if(timeLeft<=0) { 
+                            clearInterval(countdown); timeUp=true; 
+                            let segCode = (score * 8) + 22; 
+                            grid.style.display='none'; statsBar.style.display='none'; btn.style.display='none';
+                            msg.style.display='block'; 
+                            msg.innerHTML=`<div style="font-size:32px; color:#009c3b; margin-bottom:10px;">FIM DO TEMPO!</div><div>Defesas: <b>${score}</b></div><div style='color:#ff4444; font-size:26px; margin: 15px 0;'>CÓDIGO SECRETO:<br><b>${segCode}</b></div><button onclick="startGame()">JOGAR DE NOVO</button>`; 
+                        } 
+                    }, 1000); 
+                }
                 function defend(hole) { if(!hole.classList.contains('active')) return; score++; scoreBoard.textContent=score; hole.classList.remove('active'); }
             </script></body></html>
             """
@@ -10808,8 +10896,8 @@ def render_modulo_album():
             if c_g3.button("Salvar Recorde", use_container_width=True, key="btn_gol"):
                 if pts_g > 0 and cod_g == (pts_g * 8) + 22:
                     salvar_ranking(estudante_ra, estudante_nome, "goleiro", pts_g, "Em 15 segundos")
-                    st.success("✅ Código Válido! Salvo com sucesso no Mural!")
-                else: st.error("❌ Código de Segurança Inválido ou Pontuação não confere.")
+                    st.success("✅ Salvo com sucesso no Mural!")
+                else: st.error("❌ Código de Segurança Inválido ou Pontuação incorreta.")
 
         # ---------------- 4. FALTA PERFEITA ----------------
         with jogo4:
@@ -10820,8 +10908,8 @@ def render_modulo_album():
             <script>
             let tx=0; let d=1; let speed=3.5; let moving=true; let shots=0; let tScore=0;
             const tg=document.getElementById('target'); const bl=document.getElementById('ball'); const btn=document.getElementById('btn'); const msg=document.getElementById('msg'); const kfb=document.getElementById('kickFeedback');
-            function anim(){if(!moving)return; let w = window.innerWidth || 300; tx+=speed*d; if(tx>w-40||tx<0)d*=-1; tg.style.left=tx+'px'; requestAnimationFrame(anim); } anim();
-            function shoot(){ if(!moving)return; moving=false; bl.style.bottom='130px'; setTimeout(()=>{ let w=window.innerWidth||300; let center=w/2; let tCenter=tx+15; shots++;
+            function anim(){if(!moving)return; let w = 350; tx+=speed*d; if(tx>w-40||tx<0)d*=-1; tg.style.left=tx+'px'; requestAnimationFrame(anim); } anim();
+            function shoot(){ if(!moving)return; moving=false; bl.style.bottom='130px'; setTimeout(()=>{ let w=350; let center=w/2; let tCenter=tx+15; shots++;
                 if(Math.abs(tCenter-center)<35){ kfb.innerText="🎉 GOLAÇO!!! (+100)"; kfb.style.color="#00FF00"; tScore+=100; } else{ kfb.innerText="❌ NA TRAVE!"; kfb.style.color="red"; }
                 if(shots<5){ btn.innerText="CHUTE "+(shots+1)+"/5"; setTimeout(()=>{kfb.innerText=''; bl.style.bottom='20px'; moving=true; anim();}, 1500); } 
                 else{ let segCode = (tScore * 2) + 99; btn.innerText="JOGAR DE NOVO"; btn.setAttribute("onclick", "location.reload()"); msg.style.display="flex"; msg.innerHTML=`FIM DOS 5 CHUTES!<br><span style='color:#ffdf00;'>Total: ${tScore}</span><br><span style='color:red;'>CÓDIGO: ${segCode}</span>`; }
@@ -10835,8 +10923,8 @@ def render_modulo_album():
             if c_f3.button("Salvar Recorde", use_container_width=True, key="btn_falta"):
                 if pts_f > 0 and cod_f == (pts_f * 2) + 99:
                     salvar_ranking(estudante_ra, estudante_nome, "falta", pts_f, "Em 5 Chutes")
-                    st.success("✅ Código Válido! Salvo com sucesso no Mural!")
-                else: st.error("❌ Código de Segurança Inválido ou Pontuação não confere.")
+                    st.success("✅ Salvo com sucesso no Mural!")
+                else: st.error("❌ Código Inválido ou Pontuação incorreta.")
 
         # ---------------- 5. EMBAIXADINHA ----------------
         with jogo5:
@@ -10859,8 +10947,8 @@ def render_modulo_album():
             if c_e3.button("Salvar Recorde", use_container_width=True, key="btn_emb"):
                 if pts_e > 0 and cod_e == (pts_e * 6) + 33:
                     salvar_ranking(estudante_ra, estudante_nome, "embaixadinha", pts_e, "Deixou a bola cair")
-                    st.success("✅ Código Válido! Salvo com sucesso no Mural!")
-                else: st.error("❌ Código de Segurança Inválido ou Pontuação não confere.")
+                    st.success("✅ Salvo com sucesso no Mural!")
+                else: st.error("❌ Código Inválido ou Pontuação incorreta.")
 
     # =========================================================================
     # RANKING GERAL OFICIAL

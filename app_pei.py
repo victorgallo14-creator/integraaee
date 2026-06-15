@@ -10906,14 +10906,27 @@ def render_modulo_album():
             </head><body>
             <div id="game"><div id="goal"></div><div id="targetZone"></div><div id="target">🎯</div><div id="ball">⚽</div><button id="btn" onclick="shoot()">CHUTE 1/5</button><div id="kickFeedback"></div><div id="msg"></div></div>
             <script>
-            let tx=0; let d=1; let speed=3.5; let moving=true; let shots=0; let tScore=0;
+            let tx=0; let d=1; let speed=4; let moving=true; let shots=0; let tScore=0;
             const tg=document.getElementById('target'); const bl=document.getElementById('ball'); const btn=document.getElementById('btn'); const msg=document.getElementById('msg'); const kfb=document.getElementById('kickFeedback');
-            function anim(){if(!moving)return; let w = 350; tx+=speed*d; if(tx>w-40||tx<0)d*=-1; tg.style.left=tx+'px'; requestAnimationFrame(anim); } anim();
-            function shoot(){ if(!moving)return; moving=false; bl.style.bottom='130px'; setTimeout(()=>{ let w=350; let center=w/2; let tCenter=tx+15; shots++;
-                if(Math.abs(tCenter-center)<35){ kfb.innerText="🎉 GOLAÇO!!! (+100)"; kfb.style.color="#00FF00"; tScore+=100; } else{ kfb.innerText="❌ NA TRAVE!"; kfb.style.color="red"; }
-                if(shots<5){ btn.innerText="CHUTE "+(shots+1)+"/5"; setTimeout(()=>{kfb.innerText=''; bl.style.bottom='20px'; moving=true; anim();}, 1500); } 
-                else{ let segCode = (tScore * 2) + 99; btn.innerText="JOGAR DE NOVO"; btn.setAttribute("onclick", "location.reload()"); msg.style.display="flex"; msg.innerHTML=`FIM DOS 5 CHUTES!<br><span style='color:#ffdf00;'>Total: ${tScore}</span><br><span style='color:red;'>CÓDIGO: ${segCode}</span>`; }
-            },300); }
+            const gameDiv=document.getElementById('game');
+            function anim(){
+                if(!moving)return; 
+                let w = gameDiv.clientWidth || window.innerWidth || 350; 
+                tx+=speed*d; 
+                if(tx>w-40||tx<0)d*=-1; 
+                tg.style.left=tx+'px'; 
+                requestAnimationFrame(anim); 
+            } anim();
+            function shoot(){ 
+                if(!moving)return; moving=false; bl.style.bottom='130px'; 
+                setTimeout(()=>{ 
+                    let w=gameDiv.clientWidth || window.innerWidth || 350; 
+                    let center=w/2; let tCenter=tx+15; shots++;
+                    if(Math.abs(tCenter-center)<40){ kfb.innerText="🎉 GOLAÇO!!! (+100)"; kfb.style.color="#00FF00"; tScore+=100; } else{ kfb.innerText="❌ NA TRAVE!"; kfb.style.color="red"; }
+                    if(shots<5){ btn.innerText="CHUTE "+(shots+1)+"/5"; setTimeout(()=>{kfb.innerText=''; bl.style.bottom='20px'; moving=true; anim();}, 1500); } 
+                    else{ let segCode = (tScore * 2) + 99; btn.innerText="JOGAR DE NOVO"; btn.setAttribute("onclick", "location.reload()"); msg.style.display="flex"; msg.innerHTML=`FIM DOS 5 CHUTES!<br><span style='color:#ffdf00;'>Total: ${tScore}</span><br><span style='color:red;'>CÓDIGO: ${segCode}</span>`; }
+                },300); 
+            }
             </script></body></html>
             """
             components.html(html_falta, height=350)

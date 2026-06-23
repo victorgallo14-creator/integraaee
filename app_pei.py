@@ -5709,7 +5709,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 pdf.set_xy(0, 15)
                 pdf.set_font("Arial", "B", 12)
-                pdf.cell(210, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA \nSECRETARIA MUNICIPAL DE EDUCAÇÃO"), 0, 1, 'C')
+                pdf.cell(210, 6, clean_pdf_text("            PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
                 pdf.cell(210, 6, clean_pdf_text("SECRETARIA MUNICIPAL DE EDUCAÇÃO"), 0, 1, 'C')
                 pdf.ln(8)
                 pdf.set_font("Arial", "B", 14)

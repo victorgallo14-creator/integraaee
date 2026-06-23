@@ -1031,6 +1031,8 @@ if 'data_conduta' not in st.session_state:
     st.session_state.data_conduta = {}
 if 'data_avaliacao' not in st.session_state:
     st.session_state.data_avaliacao = {}
+if 'data_avaliacao2' not in st.session_state: # NOVA LINHA
+    st.session_state.data_avaliacao2 = {}     # NOVA LINHA
 if 'data_diario' not in st.session_state:
     st.session_state.data_diario = {}
 if 'data_pdi' not in st.session_state:
@@ -1054,11 +1056,13 @@ def carregar_dados_aluno():
     st.session_state.data_conduta = {}
     st.session_state.data_avaliacao = {}
     st.session_state.data_diario = {}
+    st.session_state.data_avaliacao2 = {}
     st.session_state.data_pdi = {
         'metas': [{'objetivo': '', 'prazo': '', 'estrategia': '', 'status': 'Pendente'} for _ in range(5)],
         'pdi_fortalezas': '', 'pdi_desafios': '', 'pdi_recursos': '', 'pdi_periodo': 'Trimestral', 'pdi_obs': ''
     }
     st.session_state.nome_original_salvamento = None
+
 
     if not selecao or selecao == "-- Novo Registro --":
         return
@@ -1096,6 +1100,8 @@ def carregar_dados_aluno():
                         st.session_state.data_conduta.update(dados)
                     elif dtype == "AVALIACAO":
                         st.session_state.data_avaliacao.update(dados)
+                    elif dtype == "AVALIACAO2": # NOVO BLOCO
+                        st.session_state.data_avaliacao2.update(dados)
                     elif dtype == "DIARIO":
                         st.session_state.data_diario.update(dados)
                     elif dtype == "PDI":
@@ -1746,6 +1752,7 @@ elif app_mode == "👥 Gestão de Alunos":
             "PDI", 
             "Protocolo de Conduta", 
             "Avaliação de Apoio", 
+            "Avaliação de Apoio 2.0", # <--- ADICIONE ESTA LINHA AQUI
             "Relatório de Acompanhamento", 
             "Declaração de Matrícula"
         ]
@@ -5521,7 +5528,228 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
                 else: st.info("Sem histórico.")
             else: st.info("Histórico vazio.")
-            
+
+
+# --- AVALIAÇÃO PEDAGÓGICA 2.0 ---
+    elif doc_mode == "Avaliação de Apoio 2.0":
+        st.markdown("""<div class="header-box"><div class="header-title">Avaliação Pedagógica para Apoio Escolar 2.0</div></div>""", unsafe_allow_html=True)
+        st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
+
+        tabs = st.tabs(["📝 Preenchimento e Emissão", "🕒 Histórico"])
+
+        if 'data_avaliacao2' not in st.session_state: st.session_state.data_avaliacao2 = {}
+        data_aval2 = st.session_state.data_avaliacao2
+        data_pei = st.session_state.data_pei
+        data_caso = st.session_state.data_case
+
+        with tabs[0]:
+            with st.form("form_avaliacao2") if not is_monitor else st.container():
+                st.subheader("Configuração da Avaliação 2.0")
+                if not is_monitor:
+                    if st.form_submit_button("🔄 Importar Dados Básicos (PEI/Estudo de Caso)"):
+                        if data_pei or data_caso:
+                            data_aval2['nome'] = data_pei.get('nome') or data_caso.get('nome', '')
+                            data_aval2['nasc'] = data_pei.get('nasc') or data_caso.get('d_nasc', '')
+                            data_aval2['ano_esc'] = data_pei.get('ano_esc') or data_caso.get('ano_esc', '')
+                            data_aval2['diagnostico'] = data_pei.get('defic_txt', '') or data_pei.get('neuro_txt', '')
+                            st.success("Dados importados com sucesso!")
+                            st.rerun()
+                        else:
+                            st.warning("Sem dados prévios para importar.")
+
+                st.markdown("### 1. Identificação")
+                c_nom, c_ano = st.columns([3, 1])
+                data_aval2['nome'] = c_nom.text_input("Estudante", value=data_aval2.get('nome', ''), disabled=True)
+                data_aval2['ano_esc'] = c_ano.text_input("Ano/Etapa", value=data_aval2.get('ano_esc', ''), disabled=is_monitor)
+                data_aval2['diagnostico'] = st.text_input("Diagnóstico (se houver)", value=data_aval2.get('diagnostico', ''), disabled=is_monitor)
+
+                st.divider()
+                st.markdown("### 2. Dimensões Avaliadas")
+                versao = st.radio("Selecione a Etapa de Ensino correspondente:", ["Creche", "Pré-escola e Ensino Fundamental"], index=0 if data_aval2.get('versao') == 'Creche' else 1, horizontal=True, disabled=is_monitor)
+                data_aval2['versao'] = versao
+
+                if versao == "Creche":
+                    st.info("Na educação infantil (creche), o cuidado integra o currículo. A avaliação considera descompassos significativos em relação ao esperado para a idade.")
+                    opcoes_0_3 = {
+                        "motor": ["Compatível com a idade", "Pequeno atraso", "Atraso moderado com necessidade de suporte eventual", "Atraso importante com necessidade de suporte constante"],
+                        "comunicacao": ["Interação típica para a idade", "Dificuldades leves", "Interação limitada", "Ausência significativa de interação funcional"],
+                        "regulacao": ["Regulação compatível com a idade", "Sensibilidade leve", "Crises frequentes e desproporcionais", "Crises intensas com risco"],
+                        "alimentacao": ["Cuidado típico da faixa etária", "Pequenas adaptações", "Procedimentos diferenciados frequentes", "Necessidade individualizada constante fora do padrão da turma"],
+                        "seguranca": ["Sem risco adicional", "Necessita de supervisão ampliada", "Risco frequente", "Risco grave e permanente"],
+                        "participacao": ["Participa das atividades compatíveis com idade", "Precisa de estimulação adicional", "Precisa de mediação frequente", "Não participa sem apoio integral"]
+                    }
+
+                    data_aval2['q1_motor'] = st.selectbox("2.1 Desenvolvimento Motor", opcoes_0_3["motor"], index=opcoes_0_3["motor"].index(data_aval2.get('q1_motor', opcoes_0_3["motor"][0])) if data_aval2.get('q1_motor') in opcoes_0_3["motor"] else 0, disabled=is_monitor)
+                    data_aval2['q2_comunicacao'] = st.selectbox("2.2 Comunicação e Interação", opcoes_0_3["comunicacao"], index=opcoes_0_3["comunicacao"].index(data_aval2.get('q2_comunicacao', opcoes_0_3["comunicacao"][0])) if data_aval2.get('q2_comunicacao') in opcoes_0_3["comunicacao"] else 0, disabled=is_monitor)
+                    data_aval2['q3_regulacao'] = st.selectbox("2.3 Regulação Sensorial/Comportamental", opcoes_0_3["regulacao"], index=opcoes_0_3["regulacao"].index(data_aval2.get('q3_regulacao', opcoes_0_3["regulacao"][0])) if data_aval2.get('q3_regulacao') in opcoes_0_3["regulacao"] else 0, disabled=is_monitor)
+                    data_aval2['q4_alimentacao'] = st.selectbox("2.4 Alimentação e Cuidados com higiene", opcoes_0_3["alimentacao"], index=opcoes_0_3["alimentacao"].index(data_aval2.get('q4_alimentacao', opcoes_0_3["alimentacao"][0])) if data_aval2.get('q4_alimentacao') in opcoes_0_3["alimentacao"] else 0, disabled=is_monitor)
+                    data_aval2['q5_seguranca'] = st.selectbox("2.5 Segurança Física", opcoes_0_3["seguranca"], index=opcoes_0_3["seguranca"].index(data_aval2.get('q5_seguranca', opcoes_0_3["seguranca"][0])) if data_aval2.get('q5_seguranca') in opcoes_0_3["seguranca"] else 0, disabled=is_monitor)
+                    data_aval2['q6_participacao'] = st.selectbox("2.6 Participação Pedagógica", opcoes_0_3["participacao"], index=opcoes_0_3["participacao"].index(data_aval2.get('q6_participacao', opcoes_0_3["participacao"][0])) if data_aval2.get('q6_participacao') in opcoes_0_3["participacao"] else 0, disabled=is_monitor)
+
+                    pts = [opcoes_0_3["motor"].index(data_aval2['q1_motor']), opcoes_0_3["comunicacao"].index(data_aval2['q2_comunicacao']), opcoes_0_3["regulacao"].index(data_aval2['q3_regulacao']), opcoes_0_3["alimentacao"].index(data_aval2['q4_alimentacao']), opcoes_0_3["seguranca"].index(data_aval2['q5_seguranca']), opcoes_0_3["participacao"].index(data_aval2['q6_participacao'])]
+                    pontuacao_total = sum(pts)
+
+                    if pontuacao_total <= 5: ind, desc = "Não há indicação de apoio contínuo", "O estudante apresenta autonomia e desenvolvimento compatível à idade. As ações da classe comum são suficientes."
+                    elif pontuacao_total <= 9: ind, desc = "Apoio intermitente", "O estudante apresenta dificuldade em algumas atividades e precisa do apoio pontual disponibilizado pelos educadores da turma."
+                    elif pontuacao_total <= 13: ind, desc = "Apoio parcial", "O estudante apresenta muitas dificuldades. Há necessidade de ampliação no número de educadores na turma, acrescidas de ações do AEE."
+                    else: ind, desc = "Apoio contínuo", "Existe comprometimento acentuado, necessitando da atuação de um monitor específico para apoio físico, visual e verbal, além do AEE."
+
+                else:
+                    st.info("Critérios para Indicação: Descompasso significativo e persistente; necessidade que extrapole o padrão da turma; risco permanente ou impossibilidade de participação.")
+                    opcoes_fund = {
+                        "comunicacao_mobilidade": ["Independente", "Mediação eventual", "Mediação frequente", "Dependência significativa"],
+                        "autocuidado": ["Independente", "Mediação eventual", "Ajuda parcial", "Dependência permanente"],
+                        "interacao": ["Adequada", "Dificuldades leves", "Mediação constante", "Isolamento grave ou conflitos recorrentes"],
+                        "regulacao": ["Adequada", "Oscilações leves", "Crises frequentes", "Risco à integridade"],
+                        "participacao": ["Participa com autonomia", "Participa com adaptações", "Necessita de mediação frequente", "Não participa sem apoio integral"]
+                    }
+
+                    data_aval2['q1_com'] = st.selectbox("Comunicação", opcoes_fund["comunicacao_mobilidade"], index=opcoes_fund["comunicacao_mobilidade"].index(data_aval2.get('q1_com', opcoes_fund["comunicacao_mobilidade"][0])) if data_aval2.get('q1_com') in opcoes_fund["comunicacao_mobilidade"] else 0, disabled=is_monitor)
+                    data_aval2['q2_mob'] = st.selectbox("Mobilidade", opcoes_fund["comunicacao_mobilidade"], index=opcoes_fund["comunicacao_mobilidade"].index(data_aval2.get('q2_mob', opcoes_fund["comunicacao_mobilidade"][0])) if data_aval2.get('q2_mob') in opcoes_fund["comunicacao_mobilidade"] else 0, disabled=is_monitor)
+                    data_aval2['q3_auto'] = st.selectbox("Autocuidado", opcoes_fund["autocuidado"], index=opcoes_fund["autocuidado"].index(data_aval2.get('q3_auto', opcoes_fund["autocuidado"][0])) if data_aval2.get('q3_auto') in opcoes_fund["autocuidado"] else 0, disabled=is_monitor)
+                    data_aval2['q4_int'] = st.selectbox("Interação Social", opcoes_fund["interacao"], index=opcoes_fund["interacao"].index(data_aval2.get('q4_int', opcoes_fund["interacao"][0])) if data_aval2.get('q4_int') in opcoes_fund["interacao"] else 0, disabled=is_monitor)
+                    data_aval2['q5_reg'] = st.selectbox("Autorregulação Comportamental", opcoes_fund["regulacao"], index=opcoes_fund["regulacao"].index(data_aval2.get('q5_reg', opcoes_fund["regulacao"][0])) if data_aval2.get('q5_reg') in opcoes_fund["regulacao"] else 0, disabled=is_monitor)
+                    data_aval2['q6_part'] = st.selectbox("Participação Pedagógica", opcoes_fund["participacao"], index=opcoes_fund["participacao"].index(data_aval2.get('q6_part', opcoes_fund["participacao"][0])) if data_aval2.get('q6_part') in opcoes_fund["participacao"] else 0, disabled=is_monitor)
+
+                    pts = [opcoes_fund["comunicacao_mobilidade"].index(data_aval2['q1_com']), opcoes_fund["comunicacao_mobilidade"].index(data_aval2['q2_mob']), opcoes_fund["autocuidado"].index(data_aval2['q3_auto']), opcoes_fund["interacao"].index(data_aval2['q4_int']), opcoes_fund["regulacao"].index(data_aval2['q5_reg']), opcoes_fund["participacao"].index(data_aval2['q6_part'])]
+                    pontuacao_total = sum(pts)
+
+                    if pontuacao_total <= 5: ind, desc = "Não há necessidade de apoio escolar", "Não há necessidade de atuação do monitor. As ações do coletivo são suficientes."
+                    elif pontuacao_total <= 9: ind, desc = "Apoio intermitente (Pouco Substancial)", "Ações dos docentes e AEE são suficientes. O monitor permanece fora da sala de aula para apoio apenas quando necessário."
+                    elif pontuacao_total <= 13: ind, desc = "Apoio parcial (Substancial)", "Ações pontuais do monitor são suficientes. O monitor permanece dentro da sala de aula prestando apoio a quem necessitar."
+                    else: ind, desc = "Apoio contínuo (Muito Substancial)", "Há necessidade da atuação de um único monitor específico para apoio nas ações de vida prática, interação e pedagógicas."
+
+                data_aval2['pontuacao_total'] = pontuacao_total
+                data_aval2['indicacao'] = ind
+
+                st.divider()
+                st.markdown("### 3. Conclusão e Parecer")
+                col_score, col_result = st.columns([1, 2])
+                col_score.metric("Pontuação Total", f"{pontuacao_total} / 18")
+                col_result.success(f"**Indicação:** {ind}\n\n{desc}")
+
+                data_aval2['parecer'] = st.text_area("4. Parecer Pedagógico (Contextualize as estratégias e, se houver necessidade, nomeie o monitor responsável)", value=data_aval2.get('parecer', ''), disabled=is_monitor, height=120)
+
+                c_resp1, c_resp2 = st.columns([2, 1])
+                data_aval2['responsaveis'] = c_resp1.text_input("5. Responsáveis pela Avaliação (Nomes e Cargos)", value=data_aval2.get('responsaveis', ''), disabled=is_monitor)
+                data_aval2['data_emissao'] = c_resp2.date_input("Data Emissão", value=date.today(), format="DD/MM/YYYY", disabled=is_monitor)
+
+                st.markdown("---")
+                c_sv, c_pd = st.columns(2)
+                if not is_monitor:
+                    if c_sv.form_submit_button("💾 Salvar Avaliação 2.0"):
+                        # Ensure string date conversion for Supabase
+                        if isinstance(data_aval2['data_emissao'], date):
+                            data_aval2['data_emissao'] = data_aval2['data_emissao'].strftime("%Y-%m-%d")
+                        save_student("AVALIACAO2", data_aval2.get('nome', 'aluno'), data_aval2, "Avaliação 2.0")
+
+                gen_pdf_aval2 = False
+                if is_monitor:
+                    if c_pd.button("👁️ Gerar PDF Avaliação 2.0"): gen_pdf_aval2 = True
+                else:
+                    if c_pd.form_submit_button("👁️ Gerar PDF Avaliação 2.0"): gen_pdf_aval2 = True
+
+                if gen_pdf_aval2:
+                    log_action(data_aval2.get('nome'), "Gerou PDF", "Avaliação de Apoio 2.0")
+                    pdf = OfficialPDF('P', 'mm', 'A4')
+                    pdf.add_page(); pdf.set_margins(15, 15, 15)
+
+                    if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)
+                    if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 170, 6, 25)
+
+                    pdf.set_xy(0, 15); pdf.set_font("Arial", "B", 12)
+                    pdf.cell(210, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
+                    pdf.cell(180, 6, clean_pdf_text("CEIEF RAFAEL AFFONSO LEITE"), 0, 1, 'C')
+                    pdf.ln(8)
+                    pdf.set_font("Arial", "B", 12)
+                    if versao == "Creche":
+                        pdf.cell(0, 10, clean_pdf_text("AVALIAÇÃO PEDAGÓGICA PARA APOIO ESCOLAR - CRECHE"), 0, 1, 'C')
+                    else:
+                        pdf.cell(0, 10, clean_pdf_text("AVALIAÇÃO PEDAGÓGICA PARA APOIO ESCOLAR - PRÉ-ESCOLA E FUNDAMENTAL"), 0, 1, 'C')
+                    pdf.ln(5)
+
+                    pdf.set_font("Arial", "B", 10); pdf.cell(20, 6, "Estudante:", 0, 0)
+                    pdf.set_font("Arial", "", 10); pdf.cell(100, 6, clean_pdf_text(data_aval2.get('nome', '')), "B", 0)
+                    pdf.set_font("Arial", "B", 10); pdf.cell(20, 6, "Ano/Etapa:", 0, 0)
+                    pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_aval2.get('ano_esc', '')), "B", 1)
+
+                    pdf.ln(2)
+                    pdf.set_font("Arial", "B", 10); pdf.cell(25, 6, "Diagnóstico:", 0, 0)
+                    pdf.set_font("Arial", "", 10); pdf.cell(0, 6, clean_pdf_text(data_aval2.get('diagnostico', 'Nenhum / Em investigação')), "B", 1)
+                    pdf.ln(8)
+
+                    pdf.set_fill_color(240, 240, 240); pdf.set_font("Arial", "B", 10)
+                    pdf.cell(0, 8, clean_pdf_text("DIMENSÕES AVALIADAS (Pontuação Total: " + str(pontuacao_total) + " / 18)"), 1, 1, 'L', True)
+                    
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.cell(80, 6, "Categoria", 1, 0, 'C')
+                    pdf.cell(0, 6, "Resultado / Observação", 1, 1, 'C')
+                    
+                    pdf.set_font("Arial", "", 9)
+                    if versao == "Creche":
+                        itens_print = [
+                            ("1. Desenvolvimento Motor", data_aval2.get('q1_motor', '')),
+                            ("2. Comunicação e Interação", data_aval2.get('q2_comunicacao', '')),
+                            ("3. Regulação Sensorial", data_aval2.get('q3_regulacao', '')),
+                            ("4. Alimentação e Higiene", data_aval2.get('q4_alimentacao', '')),
+                            ("5. Segurança Física", data_aval2.get('q5_seguranca', '')),
+                            ("6. Participação Pedagógica", data_aval2.get('q6_participacao', ''))
+                        ]
+                    else:
+                        itens_print = [
+                            ("1. Comunicação", data_aval2.get('q1_com', '')),
+                            ("2. Mobilidade", data_aval2.get('q2_mob', '')),
+                            ("3. Autocuidado", data_aval2.get('q3_auto', '')),
+                            ("4. Interação Social", data_aval2.get('q4_int', '')),
+                            ("5. Autorregulação Comp.", data_aval2.get('q5_reg', '')),
+                            ("6. Participação Pedagógica", data_aval2.get('q6_part', ''))
+                        ]
+                        
+                    for label, valor in itens_print:
+                        x, y = pdf.get_x(), pdf.get_y()
+                        pdf.cell(80, 6, clean_pdf_text(label), 1, 0, 'L')
+                        pdf.cell(0, 6, clean_pdf_text(valor), 1, 1, 'L')
+
+                    pdf.ln(5)
+                    pdf.set_font("Arial", "B", 10)
+                    pdf.cell(0, 8, clean_pdf_text("CONCLUSÃO E PARECER PEDAGÓGICO"), 1, 1, 'L', True)
+                    pdf.set_font("Arial", "B", 11)
+                    pdf.cell(0, 8, clean_pdf_text(f"INDICAÇÃO OBTIDA: {ind.upper()}"), 1, 1, 'C')
+                    pdf.set_font("Arial", "", 10)
+                    pdf.multi_cell(0, 6, clean_pdf_text(f"PARECER E ESTRATÉGIAS:\n{data_aval2.get('parecer', '')}"), border=1)
+
+                    pdf.ln(15)
+                    
+                    data_emissao_formatada = data_aval2.get('data_emissao', date.today())
+                    if isinstance(data_emissao_formatada, str):
+                        try: data_emissao_formatada = datetime.strptime(data_emissao_formatada, "%Y-%m-%d").strftime("%d/%m/%Y")
+                        except: pass
+                    else: data_emissao_formatada = data_emissao_formatada.strftime("%d/%m/%Y")
+                    
+                    pdf.cell(0, 6, clean_pdf_text(f"Limeira, {data_emissao_formatada}"), 0, 1, 'C')
+                    pdf.ln(15)
+                    pdf.cell(0, 6, "___________________________________________________________", 0, 1, 'C')
+                    pdf.cell(0, 6, clean_pdf_text(f"Responsáveis: {data_aval2.get('responsaveis', '')}"), 0, 1, 'C')
+
+                    st.session_state.pdf_bytes_aval2 = get_pdf_bytes(pdf)
+                    st.rerun()
+
+            if 'pdf_bytes_aval2' in st.session_state:
+                st.download_button("📥 BAIXAR PDF AVALIAÇÃO 2.0", st.session_state.pdf_bytes_aval2, f"Avaliacao2.0_{data_aval2.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+
+        with tabs[1]:
+            st.subheader("Histórico de Atividades")
+            df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
+            if not df_hist.empty and data_aval2.get('nome'):
+                student_hist = df_hist[df_hist["Aluno"] == data_aval2.get('nome')]
+                if not student_hist.empty:
+                    st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
+                else: st.info("Sem histórico para este aluno.")
+            else: st.info("Histórico vazio.")
+
+
+
+
 
      # --- RELATÓRIO DIÁRIO ---
     elif doc_mode == "Relatório de Acompanhamento":

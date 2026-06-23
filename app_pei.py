@@ -5532,6 +5532,135 @@ elif app_mode == "👥 Gestão de Alunos":
 
 
 
+elif doc_mode == "Avaliação de Apoio 2.0":
+        st.markdown("""<div class="header-box"><div class="header-title">Avaliação Pedagógica para Apoio Escolar 2.0</div></div>""", unsafe_allow_html=True)
+        
+        tabs = st.tabs(["📝 Preenchimento e Emissão", "🕒 Histórico"])
+
+        if 'data_avaliacao2' not in st.session_state: st.session_state.data_avaliacao2 = {}
+        data_aval2 = st.session_state.data_avaliacao2
+
+        with tabs[0]:
+            # --- IDENTIFICAÇÃO ---
+            st.subheader("1. Identificação")
+            c1, c2 = st.columns([3, 1])
+            data_aval2['nome'] = c1.text_input("Estudante", value=data_aval2.get('nome', st.session_state.get('aluno_selecionado', '')), disabled=True)
+            data_aval2['ano_esc'] = c2.text_input("Ano/Etapa", value=data_aval2.get('ano_esc', ''))
+            data_aval2['nasc'] = st.date_input("Data de Nascimento", value=data_aval2.get('nasc', date.today()))
+            data_aval2['diagnostico'] = st.text_input("Diagnóstico (se houver)", value=data_aval2.get('diagnostico', ''))
+            data_aval2['diagnostico_outra'] = st.text_input("Outros Diagnósticos:", value=data_aval2.get('diagnostico_outra', ''))
+            
+            st.divider()
+            versao = st.radio("Selecione a Etapa:", ["Creche", "Pré-escola e Ensino Fundamental"], index=0 if data_aval2.get('versao') == 'Creche' else 1, horizontal=True)
+            data_aval2['versao'] = versao
+
+            # --- AVALIAÇÃO DE DIMENSÕES ---
+            st.markdown("### 2. Dimensões Avaliadas")
+            opcoes = {
+                "Creche": {
+                    "Desenvolvimento Motor": ["Compatível com a idade", "Pequeno atraso", "Atraso moderado", "Atraso importante"],
+                    "Comunicação e Interação": ["Interação típica", "Dificuldades leves", "Interação limitada", "Ausência significativa"],
+                    "Regulação Sensorial": ["Regulação típica", "Sensibilidade leve", "Crises frequentes", "Crises intensas"],
+                    "Alimentação e Higiene": ["Cuidado típico", "Pequenas adaptações", "Procedimentos diferenciados", "Dependência constante"],
+                    "Segurança Física": ["Sem risco", "Supervisão ampliada", "Risco frequente", "Risco grave"],
+                    "Participação Pedagógica": ["Participa com autonomia", "Precisa estimulação", "Mediação frequente", "Não participa"]
+                },
+                "Fundamental": {
+                    "Comunicação": ["Independente", "Mediação eventual", "Mediação frequente", "Dependência significativa"],
+                    "Mobilidade": ["Independente", "Mediação eventual", "Mediação frequente", "Dependência significativa"],
+                    "Autocuidado": ["Independente", "Mediação eventual", "Ajuda parcial", "Dependência permanente"],
+                    "Interação Social": ["Adequada", "Dificuldades leves", "Mediação constante", "Isolamento grave"],
+                    "Autorregulação": ["Adequada", "Oscilações leves", "Crises frequentes", "Risco à integridade"],
+                    "Participação Pedagógica": ["Participa com autonomia", "Participa com adaptações", "Mediação frequente", "Não participa"]
+                }
+            }
+            
+            pontos = 0
+            dimensoes = opcoes["Creche"] if versao == "Creche" else opcoes["Fundamental"]
+            for label, list_opts in dimensoes.items():
+                val = st.selectbox(label, list_opts, index=list_opts.index(data_aval2.get(f"val_{label}", list_opts[0])) if data_aval2.get(f"val_{label}") in list_opts else 0)
+                data_aval2[f"val_{label}"] = val
+                pontos += list_opts.index(val)
+            
+            # --- CÁLCULO INDICADOR ---
+            if versao == "Creche":
+                if pontos <= 5: ind = "Não há indicação de apoio contínuo"
+                elif pontos <= 9: ind = "Apoio intermitente"
+                elif pontos <= 13: ind = "Apoio parcial"
+                else: ind = "Apoio contínuo (Muito Substancial)"
+            else:
+                if pontos <= 5: ind = "Não há necessidade de apoio escolar"
+                elif pontos <= 9: ind = "Apoio intermitente (Pouco Substancial)"
+                elif pontos <= 13: ind = "Apoio parcial (Substancial)"
+                else: ind = "Apoio contínuo (Muito Substancial)"
+
+            data_aval2['indicacao'] = ind
+            st.metric("Pontuação Total", f"{pontos} / 18")
+            st.success(f"**Resultado:** {ind}")
+
+            data_aval2['parecer'] = st.text_area("4. Parecer Pedagógico", value=data_aval2.get('parecer', ''))
+            
+            # --- GERAÇÃO PDF ---
+            if st.button("👁️ Gerar PDF Oficial"):
+                pdf = OfficialPDF('P', 'mm', 'A4')
+                pdf.add_page()
+                pdf.set_margins(15, 15, 15)
+                
+                # Cabeçalho
+                pdf.set_font("Arial", "B", 14)
+                pdf.cell(0, 8, "AVALIAÇÃO PEDAGÓGICA PARA APOIO ESCOLAR", 0, 1, 'C')
+                pdf.ln(5)
+                
+                # Imagens dos Pressupostos
+                if os.path.exists("image_42f14a.png"): pdf.image("image_42f14a.png", x=15, w=180)
+                pdf.ln(2)
+                if os.path.exists("image_42f187.png"): pdf.image("image_42f187.png", x=15, w=180)
+                
+                # Tabela de Resultados
+                pdf.ln(5)
+                draw_section_box(pdf, f"AVALIAÇÃO DAS DIMENSÕES (Total: {pontos}/18)")
+                pdf.set_font("Arial", "B", 9)
+                pdf.cell(90, 7, "Dimensão", 1, 0, 'C', True)
+                pdf.cell(90, 7, "Nível (0-3)", 1, 1, 'C', True)
+                
+                pdf.set_font("Arial", "", 8)
+                for lbl, list_opts in dimensoes.items():
+                    res = data_aval2.get(f"val_{lbl}", list_opts[0])
+                    pdf.cell(90, 7, f" {lbl}", 1)
+                    # Exibe a escala completa marcada
+                    escala_text = ""
+                    for i, op in enumerate(list_opts):
+                        escala_text += f"[{'X' if op == res else ' '}] {i} "
+                    pdf.cell(90, 7, escala_text, 1, 1, 'C')
+                
+                # Conclusão e Assinaturas
+                pdf.ln(5)
+                pdf.set_font("Arial", "B", 12)
+                pdf.cell(0, 10, f"RESULTADO: {ind.upper()}", 1, 1, 'C', True)
+                pdf.ln(2)
+                pdf.set_font("Arial", "", 10)
+                pdf.multi_cell(0, 6, f"Parecer: {data_aval2.get('parecer', '')}", 1, 'J')
+                
+                pdf.ln(10)
+                pdf.cell(0, 6, f"Limeira, {date.today().strftime('%d/%m/%Y')}", 0, 1, 'R')
+                pdf.ln(15)
+                pdf.line(20, pdf.get_y(), 90, pdf.get_y())
+                pdf.line(120, pdf.get_y(), 190, pdf.get_y())
+                
+                st.session_state.pdf_final = get_pdf_bytes(pdf)
+                st.rerun()
+
+            if 'pdf_final' in st.session_state:
+                st.download_button("📥 Baixar PDF Final", st.session_state.pdf_final, "Avaliacao_Apoio_2.pdf", use_container_width=True)
+
+ 
+
+
+
+
+
+    
+
      # --- RELATÓRIO DIÁRIO ---
     elif doc_mode == "Relatório de Acompanhamento":
         st.markdown("""<div class="header-box"><div class="header-title">Relatório Diário de Acompanhamento</div></div>""", unsafe_allow_html=True)

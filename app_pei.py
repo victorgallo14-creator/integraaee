@@ -5581,6 +5581,12 @@ elif app_mode == "👥 Gestão de Alunos":
                             deficiencias_formatadas.append(data_pei.get('aprend_txt'))
                         
                         data_aval2['diagnostico_outra'] = " / ".join(deficiencias_formatadas)
+                        
+                        # Importar professores automaticamente do PEI
+                        if data_pei.get('gestor'): data_aval2['resp_diretor'] = data_pei.get('gestor')
+                        if data_pei.get('prof_poli'): data_aval2['resp_poli'] = data_pei.get('prof_poli')
+                        if data_pei.get('prof_aee'): data_aval2['resp_aee'] = data_pei.get('prof_aee')
+                        
                         st.success("Dados importados com sucesso!")
                         time.sleep(1)
                         st.rerun()
@@ -5662,16 +5668,23 @@ elif app_mode == "👥 Gestão de Alunos":
 
             data_aval2['parecer'] = st.text_area("4. Parecer Pedagógico (Contextualize as estratégias e, se houver necessidade, nomeie o monitor responsável)", value=data_aval2.get('parecer', ''), disabled=is_monitor, height=120)
             
-            c_resp1, c_resp2 = st.columns([2, 1])
-            data_aval2['responsaveis'] = c_resp1.text_input("5. Responsáveis pela Avaliação (Nomes separados por vírgula)", value=data_aval2.get('responsaveis', ''), disabled=is_monitor)
+            st.divider()
+            st.markdown("### 4. Responsáveis pela Avaliação")
+            c_r1, c_r2 = st.columns(2)
+            data_aval2['resp_diretor'] = c_r1.text_input("Diretor(a) de Escola", value=data_aval2.get('resp_diretor', ''), disabled=is_monitor)
+            data_aval2['resp_poli'] = c_r2.text_input("Professor(a) Polivalente/Regente", value=data_aval2.get('resp_poli', ''), disabled=is_monitor)
             
+            c_r3, c_r4 = st.columns(2)
+            data_aval2['resp_aee'] = c_r3.text_input("Professor(a) AEE", value=data_aval2.get('resp_aee', ''), disabled=is_monitor)
+            data_aval2['resp_monitor'] = c_r4.text_input("Monitor(a) / Apoio Escolar (se houver)", value=data_aval2.get('resp_monitor', ''), disabled=is_monitor)
+
             d_val = data_aval2.get('data_emissao')
             if isinstance(d_val, str): 
                 try: d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
                 except: d_val = date.today()
             if not isinstance(d_val, date): d_val = date.today()
             
-            data_aval2['data_emissao'] = c_resp2.date_input("Data Emissão", value=d_val, format="DD/MM/YYYY", disabled=is_monitor)
+            data_aval2['data_emissao'] = st.date_input("Data de Emissão do Documento", value=d_val, format="DD/MM/YYYY", disabled=is_monitor)
 
             st.markdown("---")
             c_sv, c_pd = st.columns(2)
@@ -5739,7 +5752,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 # --- 2. DIAGNÓSTICO ---
                 draw_section_box(pdf, "2. DIAGNÓSTICO CLÍNICO")
                 pdf.set_font("Arial", "", 9)
-                pdf.cell(0, 6, clean_pdf_text("Assinale de acordo com o diagnóstico (se houver) do estudante:"), 0, 1)
+                pdf.cell(0, 6, clean_pdf_text("De acordo com o diagnóstico do estudante:"), 0, 1)
                 
                 selected_defs = data_aval2.get('defic_chk', [])
                 
@@ -5835,7 +5848,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 pdf.ln(4)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 6, clean_pdf_text(f"Dimensões Avaliadas (0 a 3 pontos cada). Pontuação Obtida: {pontos} de 18."), 0, 1)
+                pdf.cell(0, 6, clean_pdf_text("Dimensões Avaliadas (0 a 3 pontos cada)."), 0, 1)
                 pdf.ln(2)
 
                 # Renderizando as opções com X e (0, 1, 2, 3) 
@@ -5855,9 +5868,16 @@ elif app_mode == "👥 Gestão de Alunos":
                 for label, list_opts in opcoes.items():
                     print_q_card(label, f"val_{label}", list_opts)
 
+                # --- 4.1 BOX DE PONTUAÇÃO (DESTAQUE ANTES DA CONCLUSÃO) ---
+                if pdf.get_y() > 250: pdf.add_page()
+                pdf.ln(4)
+                pdf.set_fill_color(220, 220, 220)
+                pdf.set_font("Arial", "B", 12)
+                pdf.cell(180, 10, clean_pdf_text(f"PONTUAÇÃO OBTIDA: {pontos} de 18"), 1, 1, 'C', True)
+                pdf.ln(5)
+
                 # --- 5. RESULTADO FINAL E CONCLUSÃO ---
                 if pdf.get_y() > 220: pdf.add_page()
-                pdf.ln(5)
                 draw_section_box(pdf, "5. CONCLUSÃO TÉCNICA E PARECER PEDAGÓGICO")
 
                 pdf.set_fill_color(50, 50, 50)
@@ -5878,9 +5898,9 @@ elif app_mode == "👥 Gestão de Alunos":
                 if not parecer_texto.strip(): parecer_texto = "Nenhum apontamento adicional inserido."
                 pdf.multi_cell(0, 6, clean_pdf_text(parecer_texto), 1, 'J')
 
-                pdf.ln(12)
+                pdf.ln(10)
                 
-                # --- 6. ASSINATURAS E DATA ---
+                # --- 6. ASSINATURAS E DATA (NOVO LAYOUT) ---
                 data_emissao_formatada = data_aval2.get('data_emissao', date.today())
                 if isinstance(data_emissao_formatada, str):
                     try: data_emissao_formatada = datetime.strptime(data_emissao_formatada, "%Y-%m-%d").strftime("%d/%m/%Y")
@@ -5889,47 +5909,62 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 pdf.set_font("Arial", "", 10)
                 pdf.cell(0, 6, clean_pdf_text(f"Limeira, {data_emissao_formatada}"), 0, 1, 'R')
-                pdf.ln(10)
+                pdf.ln(6)
                 
                 pdf.set_font("Arial", "B", 9)
-                pdf.cell(0, 6, clean_pdf_text("6. Nome e assinatura dos responsáveis pela avaliação:"), 0, 1, 'L')
-                pdf.ln(8)
+                pdf.cell(0, 6, clean_pdf_text("6. Assinaturas dos responsáveis pela avaliação e ciência dos responsáveis:"), 0, 1, 'L')
+                pdf.ln(10)
                 
-                responsaveis = [r.strip() for r in data_aval2.get('responsaveis', '').split(',') if r.strip()]
+                # --- Primeira linha de assinaturas (Polivalente e AEE) ---
+                y_sig = pdf.get_y()
+                pdf.line(20, y_sig, 90, y_sig)
+                pdf.line(120, y_sig, 190, y_sig)
                 
-                def print_signature_line():
-                    pdf.cell(85, 5, "_________________________________________", 0, 0, 'C')
-
-                def print_signature_name(text):
-                    pdf.cell(85, 5, clean_pdf_text(text), 0, 0, 'C')
-
-                if not responsaveis:
-                    print_signature_line()
-                    print_signature_line()
-                    pdf.ln(5)
-                    print_signature_name("Equipe Pedagógica")
-                    print_signature_name("Gestão Escolar")
-                    pdf.ln(15)
+                pdf.set_font("Arial", "B", 9)
+                pdf.set_xy(20, y_sig + 2)
+                pdf.cell(70, 5, clean_pdf_text(data_aval2.get('resp_poli', '')), 0, 0, 'C')
+                pdf.set_xy(120, y_sig + 2)
+                pdf.cell(70, 5, clean_pdf_text(data_aval2.get('resp_aee', '')), 0, 1, 'C')
+                
+                pdf.set_font("Arial", "", 9)
+                pdf.set_x(20); pdf.cell(70, 4, "Professor(a) Polivalente/Regente", 0, 0, 'C')
+                pdf.set_x(120); pdf.cell(70, 4, "Professor(a) AEE", 0, 1, 'C')
+                
+                # --- Segunda linha de assinaturas (Diretor e Monitor/Se houver) ---
+                pdf.ln(15)
+                if pdf.get_y() > 270: pdf.add_page(); pdf.ln(10)
+                y_sig2 = pdf.get_y()
+                
+                has_monitor = data_aval2.get('resp_monitor', '').strip() != ''
+                
+                pdf.line(20, y_sig2, 90, y_sig2)
+                if has_monitor:
+                    pdf.line(120, y_sig2, 190, y_sig2)
+                
+                pdf.set_font("Arial", "B", 9)
+                pdf.set_xy(20, y_sig2 + 2)
+                pdf.cell(70, 5, clean_pdf_text(data_aval2.get('resp_diretor', '')), 0, 0, 'C')
+                if has_monitor:
+                    pdf.set_xy(120, y_sig2 + 2)
+                    pdf.cell(70, 5, clean_pdf_text(data_aval2.get('resp_monitor', '')), 0, 1, 'C')
                 else:
-                    for i in range(0, len(responsaveis), 2):
-                        if i + 1 < len(responsaveis):
-                            print_signature_line()
-                            print_signature_line()
-                            pdf.ln(5)
-                            print_signature_name(responsaveis[i])
-                            print_signature_name(responsaveis[i+1])
-                        else:
-                            pdf.set_x(15 + 42.5)
-                            pdf.cell(85, 5, "_________________________________________", 0, 1, 'C')
-                            pdf.set_x(15 + 42.5)
-                            pdf.cell(85, 5, clean_pdf_text(responsaveis[i]), 0, 1, 'C')
-                        pdf.ln(15)
+                    pdf.ln(5)
                 
-                pdf.set_font("Arial", "B", 9)
-                pdf.cell(0, 6, clean_pdf_text("7. Ciência dos responsáveis:"), 0, 1, 'L')
-                pdf.ln(10)
-                pdf.cell(0, 5, "_________________________________________________________", 0, 1, 'C')
-                pdf.cell(0, 5, "Assinatura do Responsável pelo Estudante", 0, 1, 'C')
+                pdf.set_font("Arial", "", 9)
+                pdf.set_x(20); pdf.cell(70, 4, "Diretor(a) de Escola", 0, 0, 'C')
+                if has_monitor:
+                    pdf.set_x(120); pdf.cell(70, 4, "Monitor(a) / Apoio Escolar", 0, 1, 'C')
+                else:
+                    pdf.ln(4)
+                
+                # --- Terceira linha de assinaturas (Pais) ---
+                pdf.ln(15)
+                if pdf.get_y() > 270: pdf.add_page(); pdf.ln(10)
+                y_sig3 = pdf.get_y()
+                pdf.line(55, y_sig3, 155, y_sig3)
+                pdf.set_font("Arial", "", 9)
+                pdf.set_xy(55, y_sig3 + 2)
+                pdf.cell(100, 5, "Assinatura do Responsável pelo Estudante", 0, 1, 'C')
 
                 st.session_state.pdf_bytes_aval2 = get_pdf_bytes(pdf)
                 st.rerun()

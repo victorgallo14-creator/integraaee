@@ -5532,6 +5532,24 @@ elif app_mode == "👥 Gestão de Alunos":
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ==============================================================================
+    # --- AVALIAÇÃO PEDAGÓGICA PARA APOIO ESCOLAR 2.0 ---
+    # ==============================================================================
     elif doc_mode == "Avaliação de Apoio 2.0":
         st.markdown("""<div class="header-box"><div class="header-title">Avaliação Pedagógica para Apoio Escolar 2.0</div></div>""", unsafe_allow_html=True)
         
@@ -5539,127 +5557,427 @@ elif app_mode == "👥 Gestão de Alunos":
 
         if 'data_avaliacao2' not in st.session_state: st.session_state.data_avaliacao2 = {}
         data_aval2 = st.session_state.data_avaliacao2
-
+        data_pei = st.session_state.data_pei
+        data_caso = st.session_state.data_case
+        
         with tabs[0]:
-            # --- IDENTIFICAÇÃO ---
-            st.subheader("1. Identificação")
-            c1, c2 = st.columns([3, 1])
-            data_aval2['nome'] = c1.text_input("Estudante", value=data_aval2.get('nome', st.session_state.get('aluno_selecionado', '')), disabled=True)
-            data_aval2['ano_esc'] = c2.text_input("Ano/Etapa", value=data_aval2.get('ano_esc', ''))
-            data_aval2['nasc'] = st.date_input("Data de Nascimento", value=data_aval2.get('nasc', date.today()))
-            data_aval2['diagnostico'] = st.text_input("Diagnóstico (se houver)", value=data_aval2.get('diagnostico', ''))
-            data_aval2['diagnostico_outra'] = st.text_input("Outros Diagnósticos:", value=data_aval2.get('diagnostico_outra', ''))
+            st.subheader("Configuração e Preenchimento")
             
+            # Botão Importar (Restrito para Gestão/Professores)
+            if not is_monitor:
+                if st.button("🔄 Importar Dados Básicos (PEI/Estudo de Caso)"):
+                    if data_pei or data_caso:
+                        data_aval2['nome'] = data_pei.get('nome') or data_caso.get('nome', '')
+                        data_aval2['nasc'] = data_pei.get('nasc') or data_caso.get('d_nasc', '')
+                        data_aval2['ano_esc'] = data_pei.get('ano_esc') or data_caso.get('ano_esc', '')
+                        
+                        diag_tipo = data_pei.get('diag_tipo', [])
+                        deficiencias_formatadas = []
+                        if "Deficiência" in diag_tipo and data_pei.get('defic_txt'):
+                            deficiencias_formatadas.append(data_pei.get('defic_txt'))
+                        if "Transtorno do Neurodesenvolvimento" in diag_tipo and data_pei.get('neuro_txt'):
+                            deficiencias_formatadas.append(data_pei.get('neuro_txt'))
+                        if "Transtornos Aprendizagem" in diag_tipo and data_pei.get('aprend_txt'):
+                            deficiencias_formatadas.append(data_pei.get('aprend_txt'))
+                        
+                        data_aval2['diagnostico_outra'] = " / ".join(deficiencias_formatadas)
+                        st.success("Dados importados com sucesso!")
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.warning("Sem dados prévios para importar.")
+
+            # --- 1. Identificação ---
+            st.markdown("### 1. Identificação")
+            c_nom, c_ano = st.columns([3, 1])
+            data_aval2['nome'] = c_nom.text_input("Estudante", value=data_aval2.get('nome', st.session_state.get('aluno_selecionado', '')), disabled=True)
+            data_aval2['ano_esc'] = c_ano.text_input("Ano/Etapa", value=data_aval2.get('ano_esc', ''), disabled=is_monitor)
+            
+            st.markdown("**Assinale o diagnóstico (se houver):**")
+            defs_opts = ["Deficiência auditiva/surdez", "Deficiência física", "Deficiência intelectual", "Deficiência múltipla", "Deficiência visual", "Transtorno do Espectro Autista", "Síndrome de Down", "Altas habilidades/Superdotação"]
+            
+            valores_salvos = data_aval2.get('defic_chk', [])
+            if not isinstance(valores_salvos, list): valores_salvos = []
+            valores_validos = [v for v in valores_salvos if v in defs_opts]
+            
+            data_aval2['defic_chk'] = st.multiselect("Selecione:", defs_opts, default=valores_validos, disabled=is_monitor)
+            data_aval2['diagnostico_outra'] = st.text_input("Outra (Diagnóstico):", value=data_aval2.get('diagnostico_outra', ''), disabled=is_monitor)
+
             st.divider()
-            versao = st.radio("Selecione a Etapa:", ["Creche", "Pré-escola e Ensino Fundamental"], index=0 if data_aval2.get('versao') == 'Creche' else 1, horizontal=True)
+            versao = st.radio("Selecione a Etapa:", ["Creche", "Pré-escola e Ensino Fundamental"], index=0 if data_aval2.get('versao') == 'Creche' else 1, horizontal=True, disabled=is_monitor)
             data_aval2['versao'] = versao
 
-            # --- AVALIAÇÃO DE DIMENSÕES ---
-            st.markdown("### 2. Dimensões Avaliadas")
-            opcoes = {
-                "Creche": {
-                    "Desenvolvimento Motor": ["Compatível com a idade", "Pequeno atraso", "Atraso moderado", "Atraso importante"],
-                    "Comunicação e Interação": ["Interação típica", "Dificuldades leves", "Interação limitada", "Ausência significativa"],
-                    "Regulação Sensorial": ["Regulação típica", "Sensibilidade leve", "Crises frequentes", "Crises intensas"],
-                    "Alimentação e Higiene": ["Cuidado típico", "Pequenas adaptações", "Procedimentos diferenciados", "Dependência constante"],
-                    "Segurança Física": ["Sem risco", "Supervisão ampliada", "Risco frequente", "Risco grave"],
-                    "Participação Pedagógica": ["Participa com autonomia", "Precisa estimulação", "Mediação frequente", "Não participa"]
-                },
-                "Fundamental": {
+            st.markdown("### 2. Dimensões Avaliadas (Cálculo Automático)")
+            
+            # --- Definição das Opções Conforme Marcos Legais ---
+            if versao == "Creche":
+                st.info("Na educação infantil (creche), o cuidado integra o currículo. A avaliação considera descompassos significativos em relação ao esperado para a idade.")
+                opcoes = {
+                    "2.1 Desenvolvimento Motor": ["Compatível com a idade", "Pequeno atraso", "Atraso moderado com necessidade de suporte eventual", "Atraso importante com necessidade de suporte constante"],
+                    "2.2 Comunicação e Interação": ["Interação típica para a idade", "Dificuldades leves", "Interação limitada", "Ausência significativa de interação funcional"],
+                    "2.3 Regulação Sensorial/Comportamental": ["Regulação compatível com a idade", "Sensibilidade leve", "Crises frequentes e desproporcionais", "Crises intensas com risco"],
+                    "2.4 Alimentação e Cuidados com higiene": ["Cuidado típico da faixa etária", "Pequenas adaptações", "Procedimentos diferenciados frequentes", "Necessidade individualizada constante fora do padrão da turma"],
+                    "2.5 Segurança Física": ["Sem risco adicional", "Necessita de supervisão ampliada", "Risco frequente", "Risco grave e permanente"],
+                    "2.6 Participação Pedagógica": ["Participa das atividades compatíveis com idade", "Precisa de estimulação adicional", "Precisa de mediação frequente", "Não participa sem apoio integral"]
+                }
+            else:
+                st.info("Critérios para Indicação: Descompasso significativo e persistente; necessidade que extrapole o padrão da turma; risco permanente ou impossibilidade de participação.")
+                opcoes = {
                     "Comunicação": ["Independente", "Mediação eventual", "Mediação frequente", "Dependência significativa"],
                     "Mobilidade": ["Independente", "Mediação eventual", "Mediação frequente", "Dependência significativa"],
                     "Autocuidado": ["Independente", "Mediação eventual", "Ajuda parcial", "Dependência permanente"],
-                    "Interação Social": ["Adequada", "Dificuldades leves", "Mediação constante", "Isolamento grave"],
-                    "Autorregulação": ["Adequada", "Oscilações leves", "Crises frequentes", "Risco à integridade"],
-                    "Participação Pedagógica": ["Participa com autonomia", "Participa com adaptações", "Mediação frequente", "Não participa"]
+                    "Interação Social": ["Adequada", "Dificuldades leves", "Mediação constante", "Isolamento grave ou conflitos recorrentes"],
+                    "Autorregulação Comportamental": ["Adequada", "Oscilações leves", "Crises frequentes", "Risco à integridade"],
+                    "Participação Pedagógica": ["Participa com autonomia", "Participa com adaptações", "Necessita de mediação frequente", "Não participa sem apoio integral"]
                 }
-            }
-            
+
+            # --- Renderização Dinâmica e Cálculo ---
             pontos = 0
-            dimensoes = opcoes["Creche"] if versao == "Creche" else opcoes["Fundamental"]
-            for label, list_opts in dimensoes.items():
-                val = st.selectbox(label, list_opts, index=list_opts.index(data_aval2.get(f"val_{label}", list_opts[0])) if data_aval2.get(f"val_{label}") in list_opts else 0)
-                data_aval2[f"val_{label}"] = val
+            for label, list_opts in opcoes.items():
+                key = f"val_{label}"
+                val = st.selectbox(label, list_opts, index=list_opts.index(data_aval2.get(key, list_opts[0])) if data_aval2.get(key) in list_opts else 0, disabled=is_monitor)
+                data_aval2[key] = val
                 pontos += list_opts.index(val)
             
-            # --- CÁLCULO INDICADOR ---
+            # --- Lógica de Indicação ---
             if versao == "Creche":
-                if pontos <= 5: ind = "Não há indicação de apoio contínuo"
-                elif pontos <= 9: ind = "Apoio intermitente"
-                elif pontos <= 13: ind = "Apoio parcial"
-                else: ind = "Apoio contínuo (Muito Substancial)"
+                if pontos <= 5: ind, desc = "Não há indicação de apoio contínuo", "O estudante apresenta autonomia e desenvolvimento compatível à idade cronológica. As ações disponibilizadas aos demais estudantes da classe comum são suficientes."
+                elif pontos <= 9: ind, desc = "Apoio intermitente", "O estudante apresenta dificuldade em algumas atividades e precisa do apoio pontual disponibilizado pelos educadores da turma."
+                elif pontos <= 13: ind, desc = "Apoio parcial", "O estudante apresenta muitas dificuldades no desenvolvimento global. Há necessidade de ampliação no número de educadores para além daquele preconizado para a turma possibilitando o apoio escolar nas atividades escolares e nas atividades de vida prática e diária, acrescidas de ações do atendimento educacional especializado (AEE)."
+                else: ind, desc = "Apoio contínuo", "Existe comprometimento acentuado na compreensão e/ou execução das atividades pedagógicas, necessitando da atuação de um monitor específico para o apoio físico, visual e verbal ao estudante, além de adaptações curriculares e metodológicas com ações do Atendimento Educacional Especializado."
             else:
-                if pontos <= 5: ind = "Não há necessidade de apoio escolar"
-                elif pontos <= 9: ind = "Apoio intermitente (Pouco Substancial)"
-                elif pontos <= 13: ind = "Apoio parcial (Substancial)"
-                else: ind = "Apoio contínuo (Muito Substancial)"
+                if pontos <= 5: ind, desc = "Não há necessidade de apoio escolar", "Não há necessidade de apoio além daquele dispensado ao coletivo da turma. Não há necessidade de atuação do monitor."
+                elif pontos <= 9: ind, desc = "Apoio intermitente (Pouco Substancial)", "O estudante apresenta dificuldades em relação ao desenvolvimento da aprendizagem. Flexibilizações metodológicas, ações de recuperação contínua e ajustes na rotina dispensados pelos docentes da classe comum e do AEE são suficientes. O monitor permanece fora da sala de aula para apoio quando necessário."
+                elif pontos <= 13: ind, desc = "Apoio parcial (Substancial)", "O estudante apresenta dificuldades em relação ao desenvolvimento da aprendizagem. Flexibilizações metodológicas e curriculares, ações de recuperação contínua, ajustes na rotina e ações pontuais do monitor são suficientes. O monitor permanece dentro da sala de aula para apoio aos estudantes que necessitarem."
+                else: ind, desc = "Apoio contínuo (Muito Substancial)", "Existe comprometimento acentuado na compreensão e/ou execução das atividades pedagógicas. Comportamento desafiador, auto e/ou heterolesivo. Além de adaptações curriculares e metodológicas e das ações do Atendimento Educacional Especializado, há necessidade da atuação de um monitor específico para o apoio nas ações de vida prática e diária, na interação social, comunicação e nas atividades pedagógicas. Há necessidade da atuação direta de um único monitor."
 
+            data_aval2['pontos'] = pontos
             data_aval2['indicacao'] = ind
-            st.metric("Pontuação Total", f"{pontos} / 18")
-            st.success(f"**Resultado:** {ind}")
-
-            data_aval2['parecer'] = st.text_area("4. Parecer Pedagógico", value=data_aval2.get('parecer', ''))
             
-            # --- GERAÇÃO PDF ---
-            if st.button("👁️ Gerar PDF Oficial"):
+            st.divider()
+            st.markdown("### 3. Conclusão e Parecer")
+            col_score, col_result = st.columns([1, 2])
+            col_score.metric("Pontuação Total", f"{pontos} / 18")
+            col_result.success(f"**Resultado Final:** {ind}\n\n{desc}")
+
+            data_aval2['parecer'] = st.text_area("4. Parecer Pedagógico (Contextualize as estratégias e, se houver necessidade, nomeie o monitor responsável)", value=data_aval2.get('parecer', ''), disabled=is_monitor, height=120)
+            
+            c_resp1, c_resp2 = st.columns([2, 1])
+            data_aval2['responsaveis'] = c_resp1.text_input("5. Responsáveis pela Avaliação (Nomes separados por vírgula)", value=data_aval2.get('responsaveis', ''), disabled=is_monitor)
+            
+            d_val = data_aval2.get('data_emissao')
+            if isinstance(d_val, str): 
+                try: d_val = datetime.strptime(d_val, '%Y-%m-%d').date()
+                except: d_val = date.today()
+            if not isinstance(d_val, date): d_val = date.today()
+            
+            data_aval2['data_emissao'] = c_resp2.date_input("Data Emissão", value=d_val, format="DD/MM/YYYY", disabled=is_monitor)
+
+            st.markdown("---")
+            c_sv, c_pd = st.columns(2)
+            
+            if not is_monitor:
+                if c_sv.button("💾 Salvar Avaliação 2.0", type="primary", use_container_width=True):
+                    if isinstance(data_aval2['data_emissao'], date): 
+                        data_aval2['data_emissao'] = data_aval2['data_emissao'].strftime("%Y-%m-%d")
+                    save_student("AVALIACAO2", data_aval2.get('nome', 'aluno'), data_aval2, "Final")
+
+            if c_pd.button("👁️ Gerar Documento Oficial PDF", use_container_width=True):
+                log_action(data_aval2.get('nome'), "Gerou PDF", "Avaliação de Apoio 2.0")
+                
                 pdf = OfficialPDF('P', 'mm', 'A4')
                 pdf.add_page()
                 pdf.set_margins(15, 15, 15)
-                
-                # Cabeçalho
-                pdf.set_font("Arial", "B", 14)
-                pdf.cell(0, 8, "AVALIAÇÃO PEDAGÓGICA PARA APOIO ESCOLAR", 0, 1, 'C')
-                pdf.ln(5)
-                
-                # Imagens dos Pressupostos
-                if os.path.exists("image_42f14a.png"): pdf.image("image_42f14a.png", x=15, w=180)
-                pdf.ln(2)
-                if os.path.exists("image_42f187.png"): pdf.image("image_42f187.png", x=15, w=180)
-                
-                # Tabela de Resultados
-                pdf.ln(5)
-                draw_section_box(pdf, f"AVALIAÇÃO DAS DIMENSÕES (Total: {pontos}/18)")
-                pdf.set_font("Arial", "B", 9)
-                pdf.cell(90, 7, "Dimensão", 1, 0, 'C', True)
-                pdf.cell(90, 7, "Nível (0-3)", 1, 1, 'C', True)
-                
-                pdf.set_font("Arial", "", 8)
-                for lbl, list_opts in dimensoes.items():
-                    res = data_aval2.get(f"val_{lbl}", list_opts[0])
-                    pdf.cell(90, 7, f" {lbl}", 1)
-                    # Exibe a escala completa marcada
-                    escala_text = ""
-                    for i, op in enumerate(list_opts):
-                        escala_text += f"[{'X' if op == res else ' '}] {i} "
-                    pdf.cell(90, 7, escala_text, 1, 1, 'C')
-                
-                # Conclusão e Assinaturas
-                pdf.ln(5)
+                pdf.set_auto_page_break(auto=True, margin=20)
+
+                # --- CABEÇALHO ---
+                if os.path.exists("logo_prefeitura.png"): pdf.image("logo_prefeitura.png", 15, 10, 25)
+                if os.path.exists("logo_escola.png"): pdf.image("logo_escola.png", 170, 6, 25)
+
+                pdf.set_xy(0, 15)
                 pdf.set_font("Arial", "B", 12)
-                pdf.cell(0, 10, f"RESULTADO: {ind.upper()}", 1, 1, 'C', True)
+                pdf.cell(210, 6, clean_pdf_text("PREFEITURA MUNICIPAL DE LIMEIRA"), 0, 1, 'C')
+                pdf.cell(210, 6, clean_pdf_text("SECRETARIA MUNICIPAL DE EDUCAÇÃO"), 0, 1, 'C')
+                pdf.ln(8)
+                pdf.set_font("Arial", "B", 14)
+                pdf.cell(0, 10, clean_pdf_text("AVALIAÇÃO PEDAGÓGICA PARA APOIO ESCOLAR"), 0, 1, 'C')
+                
+                pdf.set_font("Arial", "BU", 11)
+                pdf.set_text_color(80, 80, 80)
+                titulo_etapa = "Educação Infantil - Creche" if versao == "Creche" else "Educação Infantil / Pré-escola e Ensino Fundamental"
+                pdf.cell(0, 5, clean_pdf_text(titulo_etapa), 0, 1, 'C')
+                pdf.set_text_color(0, 0, 0)
+                
+                pdf.ln(5)
+
+                # Helper visual para blocos do PDF
+                def draw_section_box(pdf_obj, title):
+                    pdf_obj.set_fill_color(230, 230, 230)
+                    pdf_obj.set_font("Arial", "B", 10)
+                    pdf_obj.cell(0, 8, clean_pdf_text(f"  {title}"), border=1, ln=1, align='L', fill=True)
+                    pdf_obj.ln(1)
+
+                # --- 1. IDENTIFICAÇÃO ---
+                draw_section_box(pdf, "1. IDENTIFICAÇÃO DO ESTUDANTE")
+                pdf.set_font("Arial", "B", 10); pdf.cell(35, 7, "Unidade Escolar:", "LT", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 7, clean_pdf_text("CEIEF Rafael Affonso Leite"), "TR", 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(35, 7, "Estudante:", "L", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 7, clean_pdf_text(data_aval2.get('nome', '')), "R", 1)
+                
+                nasc_val = data_aval2.get('nasc', '')
+                if isinstance(nasc_val, str) and len(nasc_val) == 10 and nasc_val.count('-') == 2:
+                    try: nasc_val = datetime.strptime(nasc_val, "%Y-%m-%d").strftime("%d/%m/%Y")
+                    except: pass
+                elif isinstance(nasc_val, date):
+                    nasc_val = nasc_val.strftime("%d/%m/%Y")
+                    
+                idade_calc = data_caso.get('idade', data_pei.get('idade', ''))
+                
+                pdf.set_font("Arial", "B", 10); pdf.cell(35, 7, "Nascimento:", "LB", 0); pdf.set_font("Arial", "", 10); pdf.cell(60, 7, clean_pdf_text(nasc_val), "B", 0)
+                pdf.set_font("Arial", "B", 10); pdf.cell(15, 7, "Idade:", "B", 0); pdf.set_font("Arial", "", 10); pdf.cell(0, 7, clean_pdf_text(idade_calc), "RB", 1)
+                
+                pdf.ln(5)
+
+                # --- 2. DIAGNÓSTICO ---
+                draw_section_box(pdf, "2. DIAGNÓSTICO CLÍNICO")
+                pdf.set_font("Arial", "", 9)
+                pdf.cell(0, 6, clean_pdf_text("Assinale de acordo com o diagnóstico (se houver) do estudante:"), 0, 1)
+                
+                selected_defs = data_aval2.get('defic_chk', [])
+                
+                def prt_chk_grid(label1, label2):
+                    v1 = "X" if label1 in selected_defs else "  "
+                    v2 = "X" if label2 in selected_defs else "  "
+                    pdf.set_x(20)
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.cell(8, 5, f"( {v1} )", 0, 0, 'C')
+                    pdf.set_font("Arial", "", 9)
+                    pdf.cell(82, 5, clean_pdf_text(label1), 0, 0)
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.cell(8, 5, f"( {v2} )", 0, 0, 'C')
+                    pdf.set_font("Arial", "", 9)
+                    pdf.cell(82, 5, clean_pdf_text(label2), 0, 1)
+                
                 pdf.ln(2)
+                prt_chk_grid("Deficiência auditiva/surdez", "Deficiência física")
+                prt_chk_grid("Deficiência intelectual", "Deficiência múltipla")
+                prt_chk_grid("Deficiência visual", "Transtorno do Espectro Autista")
+                prt_chk_grid("Síndrome de Down", "Altas habilidades/Superdotação")
+                
+                pdf.ln(2)
+                pdf.set_x(20)
+                pdf.set_font("Arial", "B", 9)
+                pdf.cell(12, 6, "Outra: ", 0, 0)
+                pdf.set_font("Arial", "U", 9)
+                pdf.cell(0, 6, clean_pdf_text(data_aval2.get('diagnostico_outra', '____________________________________________________')), 0, 1)
+                pdf.ln(5)
+
+                # --- 3. PRESSUPOSTOS LEGAIS E NORMATIVOS ---
+                draw_section_box(pdf, "3. PRESSUPOSTOS LEGAIS E NORMATIVOS")
+                
+                textos_legais = [
+                    ("1- Lei nº 12.764/2012 institui a Política Nacional de Proteção dos Direitos da Pessoa com Transtorno do Espectro Autista e em seu artigo 3º indica:", 
+                     "§1º Em casos de comprovada necessidade, a pessoa com transtorno do espectro autista incluída nas classes comuns de ensino regular, nos termos do inciso IV do art. 2º, terá direito a acompanhante especializado."),
+                    ("2- Lei Nº 13.146/2015 institui a Lei Brasileira de Inclusão da Pessoa com Deficiência (Estatuto da Pessoa com Deficiência) que em seu art. 3º, inciso XIII, descreve as ações referentes ao apoio:",
+                     "Pessoa que exerce atividades de alimentação, higiene e locomoção do estudante com deficiência e atua em todas as atividades escolares nas quais se fizer necessária, em todos os níveis e modalidades de ensino, em instituições públicas e privadas, excluídas as técnicas ou os procedimentos identificados com profissões legalmente estabelecidas;"),
+                    ("3- Decreto nº 12.686/2025 institui a Política Nacional de Educação Especial Inclusiva e a Rede Nacional de Educação Especial Inclusiva e descreve em seu Art.14 – sobre a atuação do profissional de apoio escolar:",
+                     "I - na locomoção, no acesso e na participação dos estudantes em todos os espaços e atividades pedagógicas;\nII - na higiene e na alimentação, guardado o respeito ao corpo e à privacidade, ao tempo e às escolhas dos estudantes;\nIII - na interação social e na comunicação, a partir do reconhecimento das diferentes formas de expressão dos estudantes e da pluralidade dos meios e modos de comunicação; e\nIV - na utilização de eventuais tecnologias e recursos auxiliares desenvolvidos pelo AEE, de modo a favorecer o convívio entre pares e a livre expressão dos estudantes nas atividades e nos espaços escolares.\n§ 1º O profissional de apoio escolar atuará em todas as atividades escolares, e deverá reportar-se à equipe pedagógica, sempre que se fizer necessário.\n§ 2º A oferta do profissional de apoio escolar independerá de resultado de diagnóstico, laudo, relatório ou qualquer documento emitido por profissional de saúde."),
+                    ("4- Lei Ordinária nº 7.146/2025 institui as Diretrizes Municipais de Educação Especial para Pessoas com Transtorno do Espectro Autista (TEA) em Limeira e aborda em seu Art.10 sobre o acompanhante especializado:",
+                     "O Acompanhante Especializado atuará com os estudantes que apresentam necessidades substanciais de apoio ou muito substanciais envolvendo atividades de comunicação, interação social, cuidados pessoais, alimentação, higiene, locomoção e atividades escolares, tendo como premissa o desenvolvimento da autonomia do estudante. Parágrafo único. Para a identificação da necessidade de apoio escolar, além daquele dispensado ao coletivo da turma, e tomada de decisões quanto ao atendimento necessário, a escola deverá realizar com assessoramento técnico, avaliação do estudante o processo de ensino aprendizagem."),
+                    ("5- O Decreto Municipal 23, de 26 de janeiro de 2026, reafirma:",
+                     "SEÇÃO IV\nDos Serviços Disponibilizados para Apoio Escolar\nArt. 12. A Secretaria Municipal de Educação disponibilizará ao estudante, com necessidade de apoio substancial ou muito substancial, profissional de apoio escolar, que, atuará na sala de aula e demais espaços escolares sob orientação da equipe pedagógica da unidade escolar.\nParágrafo único. A oferta do profissional de apoio escolar será avaliada pela equipe pedagógica, por meio da avaliação pedagógica de necessidade de apoio e independerá de resultado de diagnóstico, laudo, relatório ou qualquer documento emitido por profissional de saúde.\nArt. 13. O profissional de apoio escolar, nos termos do disposto no Decreto Federal nº 12.686, de 20 de outubro de 2025, atuará nas atividades de comunicação e interação social; no auxílio necessário aos estudantes que não consigam realizar com autonomia e independência as atividades de cuidados pessoais, de alimentação, de higiene e de locomoção e, também, na mediação para superação das dificuldades relacionadas às atividades escolares.\nParágrafo único. Os serviços de apoio escolar poderão ser compartilhados entre os estudantes da mesma turma.\nArt. 14. A disponibilização de um profissional de apoio escolar se justifica quando a necessidade específica de um estudante não for atendida no contexto geral dos cuidados disponibilizados ao coletivo dos estudantes.\nArt. 15. O profissional de apoio escolar terá:\nI - formação inicial de, no mínimo, nível médio;\nII - formação continuada, com carga horária de, no mínimo, cento e oitenta horas, nos termos do disposto no art. 15 do Decreto Federal nº 12.686, de 20 de outubro de 2025.\nParágrafo único. O serviço de apoio escolar terá como objetivo a garantia do bem-estar no ambiente escolar e o desenvolvimento da autonomia do estudante.\nArt. 16. A Secretaria Municipal de Educação disponibilizará, aos profissionais da rede municipal de ensino, ações de formação continuada e de formação em serviço nas temáticas da Educação Especial.")
+                ]
+                
+                for main_text, sub_text in textos_legais:
+                    pdf.set_x(15)
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.multi_cell(180, 5, clean_pdf_text(main_text), 0, 'J')
+                    if sub_text:
+                        pdf.set_x(25)
+                        pdf.set_font("Arial", "", 9)
+                        pdf.multi_cell(170, 5, clean_pdf_text(sub_text), 0, 'J')
+                    pdf.ln(3)
+
+                pdf.ln(2)
+                pdf.set_fill_color(245, 245, 245)
+                pdf.set_font("Arial", "B", 9)
+                pdf.cell(180, 8, clean_pdf_text("Observação normativa: O diagnóstico clínico não gera direito automático ao apoio contínuo."), 1, 1, 'C', True)
+
+                # --- 4. DIMENSÕES AVALIADAS ---
+                if pdf.get_y() > 240: pdf.add_page()
+                pdf.ln(5)
+                draw_section_box(pdf, "4. AVALIAÇÃO PEDAGÓGICA (DIMENSÕES E HABILIDADES)")
+                
+                pdf.set_font("Arial", "", 9)
+                if versao == "Creche":
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.cell(0, 6, clean_pdf_text("1. Princípio Norteador"), 0, 1)
+                    pdf.set_font("Arial", "", 9)
+                    pdf.multi_cell(0, 5, clean_pdf_text("Na educação infantil, segmento creche, o cuidado integra o currículo. A dependência é característica do desenvolvimento típico. A avaliação considerará descompassos significativos em relação ao esperado para a faixa etária, conforme parâmetros da Organização Mundial da Saúde e da Sociedade Brasileira de Pediatria na definição dos marcos do desenvolvimento infantil."), 0, 'J')
+                    pdf.ln(3)
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.cell(0, 6, clean_pdf_text("1.1 Critérios para Indicação de Apoio Contínuo na Creche:"), 0, 1)
+                    pdf.set_font("Arial", "", 9)
+                    pdf.set_x(20)
+                    pdf.multi_cell(0, 5, clean_pdf_text("a. Descompasso significativo e persistente;\nb. Necessidade de cuidado que extrapole o padrão da turma;\nc. Risco permanente à integridade pessoal;\nd. Impossibilidade de participação nas experiências propostas mesmo com adaptações coletivas."), 0, 'L')
+                    pdf.ln(2)
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.multi_cell(0, 5, clean_pdf_text("IMPORTANTE: A necessidade de colo, troca, alimentação assistida ou supervisão constante é inerente a faixa etária de 0 a 3 anos e, por si só, não caracteriza necessidade de apoio escolar além daquele disponibilizado ao coletivo da turma."), 0, 'J')
+                else:
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.cell(0, 6, clean_pdf_text("Finalidade da Avaliação Pedagógica de Necessidade de Apoio"), 0, 1)
+                    pdf.set_font("Arial", "", 9)
+                    pdf.multi_cell(0, 5, clean_pdf_text("Avaliar a necessidade de Profissional de Apoio Escolar com base na funcionalidade do estudante no contexto educacional."), 0, 'J')
+                    pdf.ln(3)
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.cell(0, 6, clean_pdf_text("Critérios para Indicação de Apoio Contínuo:"), 0, 1)
+                    pdf.set_font("Arial", "", 9)
+                    pdf.set_x(20)
+                    pdf.multi_cell(0, 5, clean_pdf_text("- Descompasso significativo e persistente;\n- Necessidade de cuidado que extrapole o padrão da turma;\n- Risco permanente à integridade pessoal e de terceiros;\n- Impossibilidade de participação nas experiências propostas mesmo com adaptações coletivas."), 0, 'L')
+                
+                pdf.ln(4)
+                pdf.set_font("Arial", "B", 10)
+                pdf.cell(0, 6, clean_pdf_text(f"Dimensões Avaliadas (0 a 3 pontos cada). Pontuação Obtida: {pontos} de 18."), 0, 1)
+                pdf.ln(2)
+
+                # Renderizando as opções com X e (0, 1, 2, 3) 
+                def print_q_card(titulo, id_banco, dict_opcoes):
+                    if pdf.get_y() > 250: pdf.add_page()
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.cell(0, 6, clean_pdf_text(titulo), 0, 1)
+                    
+                    pdf.set_font("Arial", "", 9)
+                    resp = data_aval2.get(id_banco, dict_opcoes[0])
+                    for i, op in enumerate(dict_opcoes):
+                        chk = "X" if resp == op else " "
+                        pdf.set_x(20)
+                        pdf.cell(0, 5, clean_pdf_text(f"{i} ( {chk} ) {op}"), 0, 1)
+                    pdf.ln(2)
+
+                for label, list_opts in opcoes.items():
+                    print_q_card(label, f"val_{label}", list_opts)
+
+                # --- 5. RESULTADO FINAL E CONCLUSÃO ---
+                if pdf.get_y() > 220: pdf.add_page()
+                pdf.ln(5)
+                draw_section_box(pdf, "5. CONCLUSÃO TÉCNICA E PARECER PEDAGÓGICO")
+
+                pdf.set_fill_color(50, 50, 50)
+                pdf.set_text_color(255, 255, 255)
+                pdf.set_font("Arial", "B", 11)
+                pdf.cell(0, 10, clean_pdf_text(f" RESULTADO FINAL: {ind.upper()}"), 1, 1, 'C', True)
+                
+                pdf.set_fill_color(255, 255, 255)
+                pdf.set_text_color(0, 0, 0)
                 pdf.set_font("Arial", "", 10)
-                pdf.multi_cell(0, 6, f"Parecer: {data_aval2.get('parecer', '')}", 1, 'J')
+                pdf.multi_cell(0, 6, clean_pdf_text(f"Atuação/Fundamentação: {desc}"), 1, 'J')
+                pdf.ln(4)
+
+                pdf.set_font("Arial", "B", 10)
+                pdf.cell(0, 6, clean_pdf_text("Parecer Pedagógico Contextualizado:"), 0, 1)
+                pdf.set_font("Arial", "", 10)
+                parecer_texto = data_aval2.get('parecer', '')
+                if not parecer_texto.strip(): parecer_texto = "Nenhum apontamento adicional inserido."
+                pdf.multi_cell(0, 6, clean_pdf_text(parecer_texto), 1, 'J')
+
+                pdf.ln(12)
                 
+                # --- 6. ASSINATURAS E DATA ---
+                data_emissao_formatada = data_aval2.get('data_emissao', date.today())
+                if isinstance(data_emissao_formatada, str):
+                    try: data_emissao_formatada = datetime.strptime(data_emissao_formatada, "%Y-%m-%d").strftime("%d/%m/%Y")
+                    except: pass
+                else: data_emissao_formatada = data_emissao_formatada.strftime("%d/%m/%Y")
+                
+                pdf.set_font("Arial", "", 10)
+                pdf.cell(0, 6, clean_pdf_text(f"Limeira, {data_emissao_formatada}"), 0, 1, 'R')
                 pdf.ln(10)
-                pdf.cell(0, 6, f"Limeira, {date.today().strftime('%d/%m/%Y')}", 0, 1, 'R')
-                pdf.ln(15)
-                pdf.line(20, pdf.get_y(), 90, pdf.get_y())
-                pdf.line(120, pdf.get_y(), 190, pdf.get_y())
                 
-                st.session_state.pdf_final = get_pdf_bytes(pdf)
+                pdf.set_font("Arial", "B", 9)
+                pdf.cell(0, 6, clean_pdf_text("6. Nome e assinatura dos responsáveis pela avaliação:"), 0, 1, 'L')
+                pdf.ln(8)
+                
+                responsaveis = [r.strip() for r in data_aval2.get('responsaveis', '').split(',') if r.strip()]
+                
+                def print_signature_line():
+                    pdf.cell(85, 5, "_________________________________________", 0, 0, 'C')
+
+                def print_signature_name(text):
+                    pdf.cell(85, 5, clean_pdf_text(text), 0, 0, 'C')
+
+                if not responsaveis:
+                    print_signature_line()
+                    print_signature_line()
+                    pdf.ln(5)
+                    print_signature_name("Equipe Pedagógica")
+                    print_signature_name("Gestão Escolar")
+                    pdf.ln(15)
+                else:
+                    for i in range(0, len(responsaveis), 2):
+                        if i + 1 < len(responsaveis):
+                            print_signature_line()
+                            print_signature_line()
+                            pdf.ln(5)
+                            print_signature_name(responsaveis[i])
+                            print_signature_name(responsaveis[i+1])
+                        else:
+                            pdf.set_x(15 + 42.5)
+                            pdf.cell(85, 5, "_________________________________________", 0, 1, 'C')
+                            pdf.set_x(15 + 42.5)
+                            pdf.cell(85, 5, clean_pdf_text(responsaveis[i]), 0, 1, 'C')
+                        pdf.ln(15)
+                
+                pdf.set_font("Arial", "B", 9)
+                pdf.cell(0, 6, clean_pdf_text("7. Ciência dos responsáveis:"), 0, 1, 'L')
+                pdf.ln(10)
+                pdf.cell(0, 5, "_________________________________________________________", 0, 1, 'C')
+                pdf.cell(0, 5, "Assinatura do Responsável pelo Estudante", 0, 1, 'C')
+
+                st.session_state.pdf_bytes_aval2 = get_pdf_bytes(pdf)
                 st.rerun()
 
-            if 'pdf_final' in st.session_state:
-                st.download_button("📥 Baixar PDF Final", st.session_state.pdf_final, "Avaliacao_Apoio_2.pdf", use_container_width=True)
+            if 'pdf_bytes_aval2' in st.session_state:
+                st.download_button("📥 Baixar PDF Oficial", st.session_state.pdf_bytes_aval2, f"Avaliacao_Apoio_2_{data_aval2.get('nome','aluno')}.pdf", type="primary", use_container_width=True)
 
- 
+        with tabs[1]:
+            st.subheader("🕒 Histórico de Atividades")
+            df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
+            if not df_hist.empty and data_aval2.get('nome'):
+                student_hist = df_hist[df_hist["Aluno"] == data_aval2.get('nome')]
+                if not student_hist.empty:
+                    st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
+                else: st.info("Sem histórico para este aluno.")
+            else: st.info("Histórico vazio.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 
 
     
+ 
 
      # --- RELATÓRIO DIÁRIO ---
     elif doc_mode == "Relatório de Acompanhamento":

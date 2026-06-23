@@ -5532,7 +5532,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
 
 
-elif doc_mode == "Avaliação de Apoio 2.0":
+    elif doc_mode == "Avaliação de Apoio 2.0":
         st.markdown("""<div class="header-box"><div class="header-title">Avaliação Pedagógica para Apoio Escolar 2.0</div></div>""", unsafe_allow_html=True)
         
         tabs = st.tabs(["📝 Preenchimento e Emissão", "🕒 Histórico"])

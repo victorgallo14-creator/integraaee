@@ -8239,6 +8239,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
 # NOVO MÓDULO: CARÔMETRO INTERATIVO (VERSÃO CORRIGIDA E BLINDADA)
 # ==============================================================================
 elif app_mode and "Carômetro" in app_mode:
+
     st.markdown('<div class="header-box"><div class="header-title">🖼️ Carômetro de Estudantes</div></div>', unsafe_allow_html=True)
     st.markdown("Visualize todos os alunos. A foto atualizada aqui reflete em todos os documentos.")
     st.divider()
@@ -11585,7 +11586,7 @@ if st.session_state.get('authenticated'):
 # ==============================================================================
 # VIEW: DOWNLOAD EM LOTE (LEITURA DINÂMICA DE CÓDIGO)
 # ==============================================================================
-elif app_mode == "📦 Download em Lote":
+elif app_mode and "📦 Download em Lote" in app_mode:
     st.markdown('<div class="header-box"><div class="header-title">📦 Download em Lote Automático</div></div>', unsafe_allow_html=True)
     st.write("Exporte os documentos de vários estudantes simultaneamente. O sistema extrai dinamicamente a lógica de geração do próprio código.")
     

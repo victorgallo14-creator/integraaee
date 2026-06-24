@@ -2861,16 +2861,22 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.markdown(f"**{label}**")
                     c1, c2 = st.columns(2)
                     
-                    # Pega o valor salvo. Se não existir, retorna None (vazio)
-                    v_proc = data_pdi.get(f"{key_base}_proc", None)
-                    v_final = data_pdi.get(f"{key_base}_final", None)
+                    # Recupera o valor. Se for None ou string vazia, não seleciona nada.
+                    v_proc = data_pdi.get(f"{key_base}_proc")
+                    v_final = data_pdi.get(f"{key_base}_final")
                     
-                    # Calcula o índice da opção. Se for None, o radio fica desmarcado
+                    # O segredo é passar None para index se o valor não existir
                     idx_proc = options.index(v_proc) if v_proc in options else None
                     idx_final = options.index(v_final) if v_final in options else None
                     
-                    data_pdi[f"{key_base}_proc"] = c1.radio("Avaliação de Percurso", options, horizontal=True, key=f"p_{key_base}", index=idx_proc, disabled=is_monitor)
-                    data_pdi[f"{key_base}_final"] = c2.radio("Avaliação Final", options, horizontal=True, key=f"f_{key_base}", index=idx_final, disabled=is_monitor)
+                    data_pdi[f"{key_base}_proc"] = c1.radio(
+                        "Avaliação de Percurso", options, horizontal=True, 
+                        key=f"p_{key_base}", index=idx_proc, disabled=is_monitor
+                    )
+                    data_pdi[f"{key_base}_final"] = c2.radio(
+                        "Avaliação Final", options, horizontal=True, 
+                        key=f"f_{key_base}", index=idx_final, disabled=is_monitor
+                    )
                     st.divider()
 
                 st.subheader("3.3 DESENVOLVIMENTO COGNITIVO")

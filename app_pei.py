@@ -3,7 +3,7 @@ from datetime import datetime, date, timedelta, timezone
 from fpdf import FPDF
 import datetime as dt_module
 import io
-import os
+import os   
 import base64
 import urllib.request
 import json
@@ -2824,7 +2824,10 @@ elif app_mode == "👥 Gestão de Alunos":
                 st.info("O histórico está vazio ou aluno não selecionado.")
 
    
-    # --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
+
+
+
+# --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO SEMESTRAL) ---
     if doc_mode == "PDI":
         st.markdown(f"""<div class="header-box"><div class="header-title">PDI - Plano de Desenvolvimento Individual</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
@@ -2832,7 +2835,7 @@ elif app_mode == "👥 Gestão de Alunos":
         data_pdi = st.session_state.data_pdi
         data_case = st.session_state.get('data_case', {})
         
-        # --- DEFINIÇÃO DOS CHECKLISTS ESPECÍFICOS (ATUALIZADO) ---
+        # --- DEFINIÇÃO DOS CHECKLISTS ESPECÍFICOS ---
         checklist_options = {
             "sis_monetario": ["Não reconhece o sistema monetário.", "Reconhece o sistema monetário.", "Atribui poder de compra."],
             "brincar_funcional": ["Sim", "Não"],
@@ -2840,118 +2843,45 @@ elif app_mode == "👥 Gestão de Alunos":
             "brincar_criativa": ["Sim", "Não"],
             "brincar_funcoes": ["Sim", "Não"],
             "memoria_curto": [
-                "Não realiza jogo de memória.",
-                "Realiza jogo de memória com _____ peças.",
-                "Relembra sequência de até ______ cores.",
-                "Relembra sequência de até ______ números.",
-                "Relembra sequência de até ______ objetos.",
-                "Relembra sentenças simples.",
-                "Relembra sentenças complexas."
+                "Não realiza jogo de memória.", "Realiza jogo de memória com _____ peças.", 
+                "Relembra sequência de até ______ cores.", "Relembra sequência de até ______ números.", 
+                "Relembra sequência de até ______ objetos.", "Relembra sentenças simples.", "Relembra sentenças complexas."
             ],
-            "memoria_episodica": [
-                "Relembra fatos do cotidiano.",
-                "Necessita de ajuda para relembrar fatos do cotidiano.",
-                "Não relembra fatos do cotidiano."
-            ],
-            "memoria_semantica": [
-                "Relaciona o significado da palavra com o objeto.",
-                "Necessita de apoio para relacionar o significado da palavra com o objeto.",
-                "Não relaciona."
-            ],
-            "atencao_sustentada": [
-                "Mantém atenção por longo período de tempo.",
-                "Mantém atenção por longo período de tempo com apoio.",
-                "Não mantém atenção por longo período de tempo."
-            ],
-            "atencao_dividida": [
-                "Mantém atenção em dois estímulos diferentes.",
-                "Mantém atenção em dois estímulos diferentes em algumas situações.",
-                "Não mantém atenção em dois estímulos diferentes."
-            ],
-            "atencao_seletiva": [
-                "Mantém atenção na tarefa ignorando estímulos externos.",
-                "Mantém atenção na tarefa ignorando estímulos externos com apoio.",
-                "Não mantém atenção na tarefa com a presença de outros estímulos."
-            ],
-            "vm_desenho": [
-                "Não reproduz.",
-                "Reproduz diferente do modelo.",
-                "Reproduz semelhante ao modelo."
-            ],
+            "memoria_episodica": ["Relembra fatos do cotidiano.", "Necessita de ajuda para relembrar fatos do cotidiano.", "Não relembra fatos do cotidiano."],
+            "memoria_semantica": ["Relaciona o significado da palavra com o objeto.", "Necessita de apoio para relacionar o significado da palavra com o objeto.", "Não relaciona."],
+            "atencao_sustentada": ["Mantém atenção por longo período de tempo.", "Mantém atenção por longo período de tempo com apoio.", "Não mantém atenção por longo período de tempo."],
+            "atencao_dividida": ["Mantém atenção em dois estímulos diferentes.", "Mantém atenção em dois estímulos diferentes em algumas situações.", "Não mantém atenção em dois estímulos diferentes."],
+            "atencao_seletiva": ["Mantém atenção na tarefa ignorando estímulos externos.", "Mantém atenção na tarefa ignorando estímulos externos com apoio.", "Não mantém atenção na tarefa com a presença de outros estímulos."],
+            "vm_desenho": ["Não reproduz.", "Reproduz diferente do modelo.", "Reproduz semelhante ao modelo."],
             "vm_limite_folha": ["Sim", "Não", "Com apoio"],
             "vm_limite_pintura": ["Sim", "Não", "Com apoio"],
             "vm_rasgar": ["Sim", "Não", "Com apoio"],
-            "vm_tesoura": [
-                "Não realiza recorte com tesoura.",
-                "Utiliza tesoura com dificuldade.",
-                "Utiliza tesoura de modo satisfatório."
-            ],
+            "vm_tesoura": ["Não realiza recorte com tesoura.", "Utiliza tesoura com dificuldade.", "Utiliza tesoura de modo satisfatório."],
             "vm_cola": ["Não consegue.", "Usa muita cola.", "Adequado."],
-            "vm_encaixe": [
-                "Não realiza.",
-                "Realiza encaixe só com apoio.",
-                "Realiza encaixe simples.",
-                "Realiza encaixe mais complexos.",
-                "Outros: _____________________"
-            ],
-            "vm_reproducao": [
-                "Não reproduz.",
-                "Reproduz diferente do modelo.",
-                "Reproduz semelhante ao modelo."
-            ],
-            "vm_quebra_cabeca": [
-                "Não realiza.",
-                "Realiza por tentativa e erro.",
-                "Realiza por visualização."
-            ],
+            "vm_encaixe": ["Não realiza.", "Realiza encaixe só com apoio.", "Realiza encaixe simples.", "Realiza encaixe mais complexos.", "Outros: _____________________"],
+            "vm_reproducao": ["Não reproduz.", "Reproduz diferente do modelo.", "Reproduz semelhante ao modelo."],
+            "vm_quebra_cabeca": ["Não realiza.", "Realiza por tentativa e erro.", "Realiza por visualização."],
             "mf_punho": ["Não apresenta.", "Apresenta em alguns momentos.", "Apresenta satisfatoriamente."],
             "mf_pinca": ["Não apresenta.", "Apresenta em alguns momentos.", "Apresenta satisfatoriamente."],
             "mf_preensao": [
-                "Segura o lápis/pincel com autonomia.",
-                "Necessita de apoio para segurar o lápis/pincel.",
-                "Apresenta preensão palmar.",
-                "Apresenta preensão digital.",
-                "Manuseia massinha/argila.",
-                "Outros: _____________________"
+                "Segura o lápis/pincel com autonomia.", "Necessita de apoio para segurar o lápis/pincel.", 
+                "Apresenta preensão palmar.", "Apresenta preensão digital.", "Manuseia massinha/argila.", "Outros: _____________________"
             ],
             "mg_tronco_sentado": ["Sim", "Não"],
             "mg_tronco_pe": ["Sim", "Não"],
             "mg_postura_opts": ["Cabeça muito próxima à folha.", "Outros: _____________________"],
             "mg_mao_apoio": ["Não utiliza.", "Utiliza quando necessário.", "Outros: _____________________"],
             "mg_locomocao": [
-                "Atualmente acamado.",
-                "Faz uso de cadeira de rodas.",
-                "Possui prótese/órtese",
-                "Faz uso de andador.",
-                "Faz uso de bengala.",
-                "Se arrasta/engatinha.",
-                "Apresenta marcha com dificuldade.",
-                "Apresenta marcha adequada.",
-                "Outros: _____________________"
+                "Atualmente acamado.", "Faz uso de cadeira de rodas.", "Possui prótese/órtese", "Faz uso de andador.",
+                "Faz uso de bengala.", "Se arrasta/engatinha.", "Apresenta marcha com dificuldade.", "Apresenta marcha adequada.", "Outros: _____________________"
             ],
             "mg_equilibrio": [
-                "Anda sobre linha reta.",
-                "Anda sobre linha sinuosa.",
-                "Corre em linha reta.",
-                "Corre em linha sinuosa.",
-                "Equilibra-se em um pé só.",
-                "Realiza posição do avião.",
-                "Realiza saltos com os dois pés.",
-                "Realiza saltos com um pé só.",
-                "Lança bola com as mãos.",
-                "Chuta bola com os pés.",
-                "Necessita de apoio para subir escadas.",
-                "Sobe escadas com autonomia.",
-                "Outros: _____________________"
+                "Anda sobre linha reta.", "Anda sobre linha sinuosa.", "Corre em linha reta.", "Corre em linha sinuosa.",
+                "Equilibra-se em um pé só.", "Realiza posição do avião.", "Realiza saltos com os dois pés.", "Realiza saltos com um pé só.",
+                "Lança bola com as mãos.", "Chuta bola com os pés.", "Necessita de apoio para subir escadas.", "Sobe escadas com autonomia.", "Outros: _____________________"
             ],
             "ec_imagem": ["Sim", "Não"],
-            "ec_partes": [
-                "Não identifica ou nomeia as partes do corpo.",
-                "Só identifica partes gerais.",
-                "Só identifica e nomeia partes gerais.",
-                "Identifica partes gerais e específicas.",
-                "Identifica e nomeia partes gerais e específicas."
-            ],
+            "ec_partes": ["Não identifica ou nomeia as partes do corpo.", "Só identifica partes gerais.", "Só identifica e nomeia partes gerais.", "Identifica partes gerais e específicas.", "Identifica e nomeia partes gerais e específicas."],
             "ec_funcoes": ["Sim", "Não"],
             "ec_imitar": ["Sim", "Não"],
             "ec_desenho": ["Sim", "Não"],
@@ -2962,19 +2892,8 @@ elif app_mode == "👥 Gestão de Alunos":
             "avd_higiene": ["Usa sonda.", "Usa bolsa de colostomia.", "Usa fraldas.", "Necessita de apoio total.", "Necessita de apoio parcial.", "É independente."],
             "avd_objetos": ["Faz uso funcional.", "Necessita de apoio parcial.", "Necessita de total apoio."],
             "avd_locomocao": ["Se locomove com independência.", "Necessita de apoio para locomoção."],
-            "ps_interacao": [
-                "Adequada com as crianças.",
-                "Adequada com adultos.",
-                "Satisfatória.",
-                "Inadequada.",
-                "Outros: _____________________"
-            ],
-            "ps_iniciativa_dialogo": [
-                "Não.",
-                "Sim, mas reduzida.",
-                "Adequada.",
-                "Outros: _____________________"
-            ],
+            "ps_interacao": ["Adequada com as crianças.", "Adequada com adultos.", "Satisfatória.", "Inadequada.", "Outros: _____________________"],
+            "ps_iniciativa_dialogo": ["Não.", "Sim, mas reduzida.", "Adequada.", "Outros: _____________________"],
             "ps_iniciativa_ativ": ["Não.", "Sim, mas reduzida.", "Adequada."],
             "ps_comps": [
                 "Timidez", "Insegurança", "Agressividade", "Resistência", "Apatia", "Respeita regras e limites", "Chora facilmente", "Impulsividade",
@@ -2984,54 +2903,26 @@ elif app_mode == "👥 Gestão de Alunos":
             "vp_sim_nao": ["Sim", "Não"],
             "vp_niver": ["Sim", "Não", "Só o mês"],
             "ling_verbal": [
-                "Não faz uso de palavras para se comunicar.",
-                "Faz uso de palavras para se comunicar.",
-                "Apresenta trocas fonéticas orais.",
-                "Consegue expressar e explicar seus pensamentos ideias e desejos.",
-                "Faz relatos do cotidiano numa sequência lógica.",
-                "Estabelece diálogo com troca de turno.",
-                "Inventa frases ou histórias.",
-                "Descreve cenas com sentido.",
-                "Reconta histórias com sentido e sequência lógica.",
-                "Outros: _____________________"
+                "Não faz uso de palavras para se comunicar.", "Faz uso de palavras para se comunicar.", "Apresenta trocas fonéticas orais.",
+                "Consegue expressar e explicar seus pensamentos ideias e desejos.", "Faz relatos do cotidiano numa sequência lógica.",
+                "Estabelece diálogo com troca de turno.", "Inventa frases ou histórias.", "Descreve cenas com sentido.", "Reconta histórias com sentido e sequência lógica.", "Outros: _____________________"
             ],
             "ling_compreensiva": [
-                "Compreende e processa informações orais simples.",
-                "Compreende e processa informações orais complexas.",
-                "Não compreende e não processa informações orais.",
-                "Compreende informações textuais.",
-                "Compreende o contexto de uma história."
+                "Compreende e processa informações orais simples.", "Compreende e processa informações orais complexas.",
+                "Não compreende e não processa informações orais.", "Compreende informações textuais.", "Compreende o contexto de uma história."
             ],
             "ling_gestual": ["Utiliza apenas linguagem gestual.", "Utiliza linguagem gestual parcialmente.", "Não utiliza linguagem gestual."],
             "ling_ecolalia": ["Não fala de forma ecolálica.", "Apresenta ecolalia.", "Apresenta ecolalia em alguns momentos."],
             "ling_escrita": [
-                "Não escreve convencionalmente.",
-                "Não distingue desenho, letras e números",
-                "Distingue desenho, letras e números",
-                "Escreva letras de forma aleatórias.",
-                "Identifica e nomeia as letras.",
-                "Escreve seu nome.",
-                "Relaciona som/grafia.",
-                "Escreve apenas palavras canônicas.",
-                "Escreve palavras não-canônicas.",
-                "Apresenta dificuldades na segmentação.",
-                "Escreve frases simples.",
-                "Escreve textos simples.",
-                "Apresenta desorganização textual.",
-                "Apresenta trocas fonéticas."
+                "Não escreve convencionalmente.", "Não distingue desenho, letras e números", "Distingue desenho, letras e números",
+                "Escreva letras de forma aleatórias.", "Identifica e nomeia as letras.", "Escreve seu nome.", "Relaciona som/grafia.",
+                "Escreve apenas palavras canônicas.", "Escreve palavras não-canônicas.", "Apresenta dificuldades na segmentação.",
+                "Escreve frases simples.", "Escreve textos simples.", "Apresenta desorganização textual.", "Apresenta trocas fonéticas."
             ],
             "ling_leitura": [
-                "Não realiza leitura.",
-                "Domina sequência alfabética.",
-                "Identifica seu nome.",
-                "Realiza leitura apenas de palavras canônicas.",
-                "Realiza leitura de palavras canônicas e não-canônicas.",
-                "Realiza leitura de frases e textos com dificuldade.",
-                "Realiza leitura de frases e textos com fluência.",
-                "Não compreende o que lê.",
-                "Compreende o que lê com apoio.",
-                "Compreende o que lê.",
-                "Outros: _____________________"
+                "Não realiza leitura.", "Domina sequência alfabética.", "Identifica seu nome.", "Realiza leitura apenas de palavras canônicas.",
+                "Realiza leitura de palavras canônicas e não-canônicas.", "Realiza leitura de frases e textos com dificuldade.",
+                "Realiza leitura de frases e textos com fluência.", "Não compreende o que lê.", "Compreende o que lê com apoio.", "Compreende o que lê.", "Outros: _____________________"
             ],
             "libras_aparelho": ["OD", "OE"],
             "libras_implante": ["OD", "OE"],
@@ -3040,11 +2931,8 @@ elif app_mode == "👥 Gestão de Alunos":
             "braille_esc": ["Com autonomia.", "Com apoio.", "Com dificuldade."],
             "braille_leit": ["Com autonomia.", "Com apoio.", "Com dificuldade."],
             "com_alt": [
-                "Comunica-se através de apontamentos.",
-                "Comunica-se através do piscar dos olhos.",
-                "Comunica-se através de comunicação alternativa.",
-                "Compreende e processa informações através de comunicação alternativa.",
-                "Outros: _____________________"
+                "Comunica-se através de apontamentos.", "Comunica-se através do piscar dos olhos.", "Comunica-se através de comunicação alternativa.",
+                "Compreende e processa informações através de comunicação alternativa.", "Outros: _____________________"
             ]
         }
 
@@ -3100,45 +2988,53 @@ elif app_mode == "👥 Gestão de Alunos":
                 st.divider()
                 st.subheader("2.3 Organização do AEE")
                 
-                data_pdi['aee_tempo'] = st.text_input("Tempo de Atendimento", value=data_pdi.get('aee_tempo', '50 minutos'), disabled=is_monitor)
+                c_a1, c_a2 = st.columns(2)
                 
-                data_pdi['aee_tipo'] = st.radio("Local/Modalidade", ["Sala de Recursos Multifuncionais", "Trabalho Colaborativo", "Itinerante", "Domiciliar"], horizontal=True, disabled=is_monitor)
-                data_pdi['aee_comp'] = st.radio("Composição", ["Individual", "Grupal"], horizontal=True, disabled=is_monitor)
+                data_pdi['aee_tempo'] = c_a1.text_input("Tempo de Atendimento", value=data_pdi.get('aee_tempo', '50 minutos'), disabled=is_monitor)
+                freq_opts = ["1x", "2x", "3x", "4x ou mais"]
+                data_pdi['aee_freq'] = c_a2.selectbox("Frequência Semanal", freq_opts, index=freq_opts.index(data_pdi.get('aee_freq', '1x')) if data_pdi.get('aee_freq') in freq_opts else 0, disabled=is_monitor)
+                
+                data_pdi['aee_tipo'] = st.radio("Local/Modalidade", ["Sala de recursos", "Colaborativo"], horizontal=True, index=0 if data_pdi.get('aee_tipo') == "Sala de recursos" else 1, disabled=is_monitor)
+                data_pdi['aee_comp'] = st.radio("Composição", ["Individual", "Grupo"], horizontal=True, index=0 if data_pdi.get('aee_comp') == "Individual" else 1, disabled=is_monitor)
 
                 if st.form_submit_button("💾 Salvar Plano AEE"):
                     save_student("PDI", data_pdi.get('nome'), data_pdi, "Plano AEE")
 
-        # --- ABA 2: AVALIAÇÃO PEDAGÓGICA (CHECKLISTS) ---
+        # --- ABA 2: AVALIAÇÃO PEDAGÓGICA (SEMESTRAL) ---
         with tabs[1]:
-            st.header("3. Objetivos e Metas (Avaliação Pedagógica)")
-            st.caption("Preencha a situação do aluno: Diagnóstico (Multiseleção), Percurso (Texto) e Final (Texto).")
+            st.header("3. Objetivos da Ação Educativa (Desenvolvimento)")
+            st.caption("Preencha a situação do aluno para cada semestre selecionando as opções pertinentes e adicionando observações, se necessário.")
 
             def render_evolution_row(label, key_base, option_list):
-                """Helper para renderizar: Diag (Multiselect), Proc (Text), Final (Text)"""
+                """Renderiza as colunas de 1º e 2º Semestre (Multiselect + Texto)"""
                 st.markdown(f"**{label}**")
-                c1, c2, c3 = st.columns(3)
+                c1, c2 = st.columns(2)
                 
-                # Retrieve saved values
-                v_diag = data_pdi.get(f"{key_base}_diag", [])
-                if not isinstance(v_diag, list): v_diag = [] 
+                # Valores 1º Semestre
+                v_s1_opts = data_pdi.get(f"{key_base}_sem1_opts", [])
+                v_s1_opts = [x for x in v_s1_opts if x in option_list] if isinstance(v_s1_opts, list) else []
+                v_s1_obs = data_pdi.get(f"{key_base}_sem1_obs", "")
 
-                # Filter defaults to ensure they exist in option_list (avoids StreamlitAPIException on schema change)
-                v_diag = [x for x in v_diag if x in option_list]
+                # Valores 2º Semestre
+                v_s2_opts = data_pdi.get(f"{key_base}_sem2_opts", [])
+                v_s2_opts = [x for x in v_s2_opts if x in option_list] if isinstance(v_s2_opts, list) else []
+                v_s2_obs = data_pdi.get(f"{key_base}_sem2_obs", "")
 
-                v_proc = data_pdi.get(f"{key_base}_proc", "")
-                v_final = data_pdi.get(f"{key_base}_final", "")
-
-                data_pdi[f"{key_base}_diag"] = c1.multiselect("Resultados da Avaliação Diagnóstica", option_list, default=v_diag, key=f"d_{key_base}", disabled=is_monitor)
-                data_pdi[f"{key_base}_proc"] = c2.text_area("Resultados da Avaliação de Percurso", value=v_proc, key=f"p_{key_base}", height=120, disabled=is_monitor)
-                data_pdi[f"{key_base}_final"] = c3.text_area("Resultados da Avaliação Final", value=v_final, key=f"f_{key_base}", height=120, disabled=is_monitor)
+                with c1:
+                    data_pdi[f"{key_base}_sem1_opts"] = st.multiselect("1º Sem. (Opções)", option_list, default=v_s1_opts, key=f"s1o_{key_base}", disabled=is_monitor, label_visibility="collapsed")
+                    data_pdi[f"{key_base}_sem1_obs"] = st.text_area("1º Sem. (Observações)", value=v_s1_obs, key=f"s1b_{key_base}", height=68, disabled=is_monitor, placeholder="Observações 1º Semestre")
+                
+                with c2:
+                    data_pdi[f"{key_base}_sem2_opts"] = st.multiselect("2º Sem. (Opções)", option_list, default=v_s2_opts, key=f"s2o_{key_base}", disabled=is_monitor, label_visibility="collapsed")
+                    data_pdi[f"{key_base}_sem2_obs"] = st.text_area("2º Sem. (Observações)", value=v_s2_obs, key=f"s2b_{key_base}", height=68, disabled=is_monitor, placeholder="Observações 2º Semestre")
                 st.divider()
 
             def render_text_grid(label, key_base):
+                """Renderiza as colunas de 1º e 2º Semestre apenas com Texto Livre"""
                 st.markdown(f"**{label}**")
-                c1, c2, c3 = st.columns(3)
-                data_pdi[f"{key_base}_diag"] = c1.text_area("Resultados da Avaliação Diagnóstica", value=data_pdi.get(f"{key_base}_diag", ""), key=f"d_{key_base}", height=120, disabled=is_monitor)
-                data_pdi[f"{key_base}_proc"] = c2.text_area("Resultados da Avaliação de Percurso", value=data_pdi.get(f"{key_base}_proc", ""), key=f"p_{key_base}", height=120, disabled=is_monitor)
-                data_pdi[f"{key_base}_final"] = c3.text_area("Resultados da Avaliação Final", value=data_pdi.get(f"{key_base}_final", ""), key=f"f_{key_base}", height=120, disabled=is_monitor)
+                c1, c2 = st.columns(2)
+                data_pdi[f"{key_base}_sem1_obs"] = c1.text_area("1º Semestre", value=data_pdi.get(f"{key_base}_sem1_obs", ""), key=f"t1_{key_base}", height=80, disabled=is_monitor)
+                data_pdi[f"{key_base}_sem2_obs"] = c2.text_area("2º Semestre", value=data_pdi.get(f"{key_base}_sem2_obs", ""), key=f"t2_{key_base}", height=80, disabled=is_monitor)
                 st.divider()
 
             with st.form("pdi_avaliacao_form"):
@@ -3159,19 +3055,16 @@ elif app_mode == "👥 Gestão de Alunos":
                     render_evolution_row("Exploração", "brincar_explora", checklist_options["brincar_explora"])
                     render_evolution_row("Criação/Simbolismo", "brincar_criativa", checklist_options["brincar_criativa"])
                     render_evolution_row("Atribui funções", "brincar_funcoes", checklist_options["brincar_funcoes"])
-                    data_pdi['brincar_obs'] = st.text_input("Observações Brincar", value=data_pdi.get('brincar_obs',''), disabled=is_monitor)
 
                 with st.expander("3.1.5 e 3.1.6 Memória", expanded=False):
                     render_evolution_row("Curto Prazo", "mem_curto", checklist_options["memoria_curto"])
                     render_evolution_row("Longo Prazo - Episódica", "mem_episodica", checklist_options["memoria_episodica"])
                     render_evolution_row("Longo Prazo - Semântica", "mem_semantica", checklist_options["memoria_semantica"])
-                    data_pdi['memoria_obs'] = st.text_input("Observações Memória", value=data_pdi.get('memoria_obs',''), disabled=is_monitor)
 
                 with st.expander("3.1.7 Atenção", expanded=False):
                     render_evolution_row("Sustentada", "at_sust", checklist_options["atencao_sustentada"])
                     render_evolution_row("Dividida", "at_div", checklist_options["atencao_dividida"])
                     render_evolution_row("Seletiva", "at_sel", checklist_options["atencao_seletiva"])
-                    data_pdi['atencao_obs'] = st.text_input("Observações Atenção", value=data_pdi.get('atencao_obs',''), disabled=is_monitor)
 
                 with st.expander("3.1.8 Coordenação Viso-Motora", expanded=False):
                     render_evolution_row("Desenho", "vm_desenho", checklist_options["vm_desenho"])
@@ -3183,7 +3076,6 @@ elif app_mode == "👥 Gestão de Alunos":
                     render_evolution_row("Encaixes", "vm_encaixe", checklist_options["vm_encaixe"])
                     render_evolution_row("Reprodução Figuras", "vm_reproducao", checklist_options["vm_reproducao"])
                     render_evolution_row("Quebra-Cabeça", "vm_quebra_cabeca", checklist_options["vm_quebra_cabeca"])
-                    data_pdi['vm_obs'] = st.text_input("Observações Viso-Motora", value=data_pdi.get('vm_obs',''), disabled=is_monitor)
 
                 # 3.2 DESENVOLVIMENTO MOTOR
                 st.subheader("3.2 DESENVOLVIMENTO MOTOR")
@@ -3191,7 +3083,6 @@ elif app_mode == "👥 Gestão de Alunos":
                     render_evolution_row("Estabilidade Punho", "mf_punho", checklist_options["mf_punho"])
                     render_evolution_row("Pinça", "mf_pinca", checklist_options["mf_pinca"])
                     render_evolution_row("Preensão", "mf_preensao", checklist_options["mf_preensao"])
-                    data_pdi['mf_obs'] = st.text_input("Observações Motora Fina", value=data_pdi.get('mf_obs',''), disabled=is_monitor)
 
                 with st.expander("3.2.2 Coordenação Global", expanded=False):
                     render_evolution_row("Postura (Sentado)", "mg_sentado", checklist_options["mg_tronco_sentado"])
@@ -3200,7 +3091,6 @@ elif app_mode == "👥 Gestão de Alunos":
                     render_evolution_row("Mão de Apoio", "mg_mao_apoio", checklist_options["mg_mao_apoio"])
                     render_evolution_row("Locomoção", "mg_loc", checklist_options["mg_locomocao"])
                     render_evolution_row("Equilíbrio", "mg_eq", checklist_options["mg_equilibrio"])
-                    data_pdi['mg_obs'] = st.text_input("Observações Motor Global", value=data_pdi.get('mg_obs',''), disabled=is_monitor)
 
                 with st.expander("3.2.3 Esquema Corporal", expanded=False):
                     render_evolution_row("Imagem Corporal", "ec_img", checklist_options["ec_imagem"])
@@ -3211,14 +3101,12 @@ elif app_mode == "👥 Gestão de Alunos":
                     render_evolution_row("Dominância Lateral", "ec_lat", checklist_options["ec_dominancia"])
                     render_evolution_row("Identifica Lateralidade", "ec_id_lat", checklist_options["ec_identifica"])
                     render_evolution_row("Uso dois lados", "ec_dois", checklist_options["ec_dois_lados"])
-                    data_pdi['ec_obs'] = st.text_input("Observações Esquema Corporal", value=data_pdi.get('ec_obs',''), disabled=is_monitor)
 
                 with st.expander("3.2.4 Autonomia / AVD", expanded=False):
                     render_evolution_row("Alimentação", "avd_alim", checklist_options["avd_alimentacao"])
                     render_evolution_row("Higiene", "avd_hig", checklist_options["avd_higiene"])
                     render_evolution_row("Uso Objetos", "avd_obj", checklist_options["avd_objetos"])
                     render_evolution_row("Locomoção Escola", "avd_loc", checklist_options["avd_locomocao"])
-                    data_pdi['avd_obs'] = st.text_input("Observações AVD", value=data_pdi.get('avd_obs',''), disabled=is_monitor)
 
                 # 3.3 PESSOAL SOCIAL
                 st.subheader("3.3 FUNÇÃO PESSOAL E SOCIAL")
@@ -3228,12 +3116,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     render_evolution_row("Iniciativa Atividade", "ps_ini_a", checklist_options["ps_iniciativa_ativ"])
                     
                     st.markdown("**Comportamentos Apresentados:**")
-                    # Filter defaults for comps
-                    v_comps = data_pdi.get('ps_comps', [])
-                    if not isinstance(v_comps, list): v_comps = []
-                    v_comps = [x for x in v_comps if x in checklist_options["ps_comps"]]
-                    
-                    data_pdi['ps_comps'] = st.multiselect("Selecione:", checklist_options["ps_comps"], default=v_comps, disabled=is_monitor)
+                    render_evolution_row("Comportamentos", "ps_comps", checklist_options["ps_comps"])
                     
                     st.markdown("**Vida Prática:**")
                     render_evolution_row("Sabe Nome?", "vp_nome", checklist_options["vp_nome"])
@@ -3244,7 +3127,6 @@ elif app_mode == "👥 Gestão de Alunos":
                     render_evolution_row("Nomeia Escola?", "vp_escola", checklist_options["vp_sim_nao"])
                     render_evolution_row("Sabe Ano Escolar?", "vp_ano_esc", checklist_options["vp_sim_nao"])
                     render_evolution_row("Sabe Endereço?", "vp_end", checklist_options["vp_sim_nao"])
-                    data_pdi['vp_outros'] = st.text_input("Outros (Vida Prática)", value=data_pdi.get('vp_outros',''), disabled=is_monitor)
 
                 # 3.4 LINGUAGEM
                 st.subheader("3.4 LINGUAGEM")
@@ -3263,10 +3145,9 @@ elif app_mode == "👥 Gestão de Alunos":
                     render_evolution_row("Compreensão LIBRAS", "lib_comp", checklist_options["libras_compreende"])
                     render_evolution_row("Escrita Braille", "braille_esc", checklist_options["braille_esc"])
                     render_evolution_row("Leitura Braille", "braille_leit", checklist_options["braille_leit"])
-                    data_pdi['libras_outros'] = st.text_input("Outros (Libras/Braille)", value=data_pdi.get('libras_outros',''), disabled=is_monitor)
                     render_evolution_row("Com. Alternativa", "ca_uso", checklist_options["com_alt"])
 
-                if st.form_submit_button("💾 Salvar Avaliação Pedagógica"):
+                if st.form_submit_button("💾 Salvar Avaliação Semestral"):
                     save_student("PDI", data_pdi.get('nome'), data_pdi, "Avaliação Pedagógica")
 
         # --- ABA 3: OBJETIVOS E METAS (ITEM 4 - DETALHADO) ---
@@ -3309,11 +3190,11 @@ elif app_mode == "👥 Gestão de Alunos":
             st.divider()
             
             if st.button("👁️ GERAR PDI COMPLETO (PDF)"):
-                log_action(data_pdi.get('nome'), "Gerou PDF", "PDI Completo")
+                log_action(data_pdi.get('nome'), "Gerou PDF", "PDI Completo Semestral")
                 
                 pdf = OfficialPDF('P', 'mm', 'A4')
                 pdf.set_auto_page_break(auto=True, margin=15)
-                pdf.set_signature_footer(data_pdi.get('signatures', []), data_pdi.get('doc_uuid', ''))
+                # pdf.set_signature_footer(data_pdi.get('signatures', []), data_pdi.get('doc_uuid', ''))
                 
                 # --- CAPA PRINCIPAL ---
                 pdf.add_page()
@@ -3350,7 +3231,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 # ==========================================================
                 # INÍCIO DO CONTEÚDO DO ESTUDO DE CASO (INTEGRADO NO PDI)
                 # ==========================================================
-                data = data_case  # <--- ADICIONE ESTA LINHA AQUI!
+                data = data_case  
                 pdf.set_margins(15, 15, 15)
                 # --- 1.1 DADOS GERAIS ---
                 pdf.add_page()
@@ -3533,7 +3414,7 @@ elif app_mode == "👥 Gestão de Alunos":
                     (45, "OBSERVAÇÕES DA FAMÍLIA", "B", "C", True)
                 ], line_h=8, font_size=9, fill_color=(220, 220, 220))
                 
-                checklist_items = [
+                checklist_items_fam = [
                     "Relata fatos do dia a dia? Apresentando boa memória?",
                     "É organizado com seus pertences?",
                     "Aceita regras de forma tranquila?",
@@ -3548,12 +3429,8 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 pdf.set_font("Arial", "", 9)
                 
-                # CORREÇÃO 1: Adicionado o enumerate para ter acesso ao índice 'i'
-                for i, item in enumerate(checklist_items):
-                    
-                    # CORREÇÃO 2: Chave exata que foi usada no salvamento
+                for i, item in enumerate(checklist_items_fam):
                     key_base = f"itemcomport_{i}"
-                    
                     opt = data_case.get('checklist', {}).get(f"{key_base}_opt", "Não")
                     obs = data_case.get('checklist', {}).get(f"{key_base}_obs", "")
                     
@@ -3562,19 +3439,15 @@ elif app_mode == "👥 Gestão de Alunos":
                     cell_height = max(line_height, (int(num_lines) + 1) * line_height)
                     
                     x_start = pdf.get_x(); y_start = pdf.get_y()
-                    
                     pdf.multi_cell(110, line_height, clean_pdf_text(item), 1, 'L')
-                    
                     pdf.set_xy(x_start + 110, y_start)
                     pdf.cell(25, cell_height, clean_pdf_text(opt), 1, 0, 'C')
-                    
                     pdf.set_xy(x_start + 135, y_start)
-                    pdf.multi_cell(0, line_height, clean_pdf_text(obs), 1, 'L')
-                    
+                    pdf.multi_cell(45, line_height, clean_pdf_text(obs), 1, 'L')
                     pdf.set_xy(x_start, y_start + cell_height)
                 # ==========================================================
                 # FIM DO CONTEÚDO DO ESTUDO DE CASO
-                # RETOMADA DO PDI
+                # RETOMADA DO PDI ESTRUTURA SEMESTRAL
                 pdf.set_margins(10, 10, 10)
                 # ==========================================================
 
@@ -3590,7 +3463,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.cell(0, 10, clean_pdf_text("ATENDIMENTO EDUCACIONAL"), 0, 1, 'C')
                 pdf.cell(0, 10, clean_pdf_text("ESPECIALIZADO"), 0, 1, 'C')
 
-                # --- 1. AVALIAÇÃO PEDAGÓGICA DO ESTUDANTE (RENOMEADO E REESTRUTURADO) ---
+                # --- 1. AVALIAÇÃO PEDAGÓGICA DO ESTUDANTE ---
                 pdf.add_page()
                 pdf.section_title("AVALIAÇÃO PEDAGÓGICA DO ESTUDANTE", width=0)
                 pdf.ln(5)
@@ -3606,295 +3479,219 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 pdf.ln(5)
                 
-                # Column Headers for Text Evolution (1.3.1 - 1.3.2)
+                # Tabela Semestral de Desenvolvimento
+                w_col0 = 60
+                w_col1 = 65
+                w_col2 = 65
+
+                def print_semestral_evolution(title, key, is_text_only=False, opt_key=None):
+                    if is_text_only:
+                        s1 = data_pdi.get(f"{key}_sem1_obs", "")
+                        s2 = data_pdi.get(f"{key}_sem2_obs", "")
+                    else:
+                        real_opt_key = opt_key if opt_key else key
+                        possible_opts = checklist_options.get(real_opt_key, [])
+                        
+                        s1_opts = data_pdi.get(f"{key}_sem1_opts", [])
+                        s1_obs = data_pdi.get(f"{key}_sem1_obs", "")
+                        
+                        s1_list = []
+                        if possible_opts:
+                            for o in possible_opts:
+                                mark = "[X]" if o in s1_opts else "[ ]"
+                                s1_list.append(f"{mark} {o}")
+                        else:
+                            s1_list = [f"[X] {o}" for o in s1_opts]
+                            
+                        if s1_obs: s1_list.append(f"Obs: {s1_obs}")
+                        s1 = "\n".join(s1_list) if s1_list else "-"
+
+                        s2_opts = data_pdi.get(f"{key}_sem2_opts", [])
+                        s2_obs = data_pdi.get(f"{key}_sem2_obs", "")
+                        
+                        s2_list = []
+                        if possible_opts:
+                            for o in possible_opts:
+                                mark = "[X]" if o in s2_opts else "[ ]"
+                                s2_list.append(f"{mark} {o}")
+                        else:
+                            s2_list = [f"[X] {o}" for o in s2_opts]
+                            
+                        if s2_obs: s2_list.append(f"Obs: {s2_obs}")
+                        s2 = "\n".join(s2_list) if s2_list else "-"
+                        
+                    pdf.set_font("Arial", "", 8)
+                    
+                    def get_h(txt, w):
+                         if not txt: return 6
+                         lines = 0
+                         eff_w = w - 4 
+                         for line in txt.split('\n'):
+                             if not line:
+                                 lines += 1
+                                 continue
+                             w_line = pdf.get_string_width(line)
+                             if w_line > eff_w:
+                                 lines += int((w_line / eff_w) + 0.99)
+                             else:
+                                 lines += 1
+                         return max(6, lines * 4) + 4
+                    
+                    h_max = max(get_h(title, w_col0), get_h(s1, w_col1), get_h(s2, w_col2), 10)
+                    
+                    if pdf.get_y() + h_max + 8 > 270: 
+                        pdf.add_page()
+                        pdf.set_font("Arial", "B", 8)
+                        pdf.set_fill_color(220, 220, 220)
+                        pdf.cell(w_col0, 10, clean_pdf_text("DESENVOLVIMENTO"), 1, 0, 'C', True)
+                        pdf.cell(w_col1, 10, clean_pdf_text("1º SEMESTRE"), 1, 0, 'C', True)
+                        pdf.cell(w_col2, 10, clean_pdf_text("2º SEMESTRE"), 1, 1, 'C', True)
+
+                    y_start = pdf.get_y()
+                    
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.set_fill_color(240, 240, 240)
+                    pdf.set_xy(10, y_start)
+                    pdf.multi_cell(w_col0, 6, clean_pdf_text(title), 0, 'L', fill=True)
+                    
+                    pdf.set_font("Arial", "", 8)
+                    pdf.set_xy(10 + w_col0, y_start)
+                    pdf.multi_cell(w_col1, 4, clean_pdf_text(s1), 0, 'L')
+                    
+                    pdf.set_xy(10 + w_col0 + w_col1, y_start)
+                    pdf.multi_cell(w_col2, 4, clean_pdf_text(s2), 0, 'L')
+                    
+                    pdf.rect(10, y_start, w_col0, h_max)
+                    pdf.rect(10 + w_col0, y_start, w_col1, h_max)
+                    pdf.rect(10 + w_col0 + w_col1, y_start, w_col2, h_max)
+                    
+                    pdf.set_y(y_start + h_max)
+
+                # Cabeçalhos da Tabela
                 pdf.set_font("Arial", "B", 8)
                 pdf.set_fill_color(220, 220, 220)
-                w_col = (210 - 20) / 3 # Dynamic width for perfect fit
-                
-                def print_check_evolution(title, key, opt_key=None):
-                    # Logic to show all options with checkboxes
-                    real_opt_key = opt_key if opt_key else key
-                    possible_opts = checklist_options.get(real_opt_key, [])
-                    
-                    selected_opts = data_pdi.get(f"{key}_diag", [])
-                    if isinstance(selected_opts, str): selected_opts = [selected_opts]
-                    if not selected_opts: selected_opts = []
-
-                    if possible_opts:
-                        d_lines = []
-                        for opt in possible_opts:
-                            mark = "[X]" if opt in selected_opts else "[ ]"
-                            d_lines.append(f"{mark} {opt}")
-                        d_text = "\n".join(d_lines)
-                    else:
-                        d_text = "\n".join(selected_opts) if selected_opts else "-"
-                    
-                    p_text = data_pdi.get(f"{key}_proc", "")
-                    f_text = data_pdi.get(f"{key}_final", "")
-                    
-                    # Estimate height
-                    pdf.set_font("Arial", "", 8)
-                    
-                    # Calc height accurately based on wrapping
-                    def get_h(txt):
-                         if not txt: return 6
-                         lines = 0
-                         eff_w = w_col - 4 # Effective width with padding
-                         
-                         for line in txt.split('\n'):
-                             if not line:
-                                 lines += 1
-                                 continue
-                             # Calculate lines needed for this paragraph
-                             w_line = pdf.get_string_width(line)
-                             if w_line > eff_w:
-                                 # Ceiling division logic for positive integers
-                                 lines += int((w_line / eff_w) + 0.99)
-                             else:
-                                 lines += 1
-                         
-                         return max(6, lines * 4) + 4
-                    
-                    h_max = max(get_h(d_text), get_h(p_text), get_h(f_text), 10)
-                    
-                    if pdf.get_y() + h_max + 8 > 270: 
-                        pdf.add_page()
-                        # Reprint headers
-                        pdf.set_font("Arial", "B", 8)
-                        pdf.set_fill_color(220, 220, 220)
-                        pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Diagnóstica"), 1, 0, 'C', True)
-                        pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação de Percurso"), 1, 0, 'C', True)
-                        pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Final"), 1, 1, 'C', True)
-
-                    # Title Row
-                    pdf.set_font("Arial", "B", 9)
-                    pdf.set_fill_color(240, 240, 240)
-                    pdf.cell(0, 6, clean_pdf_text(title), 1, 1, 'L', True)
-                    
-                    y_start = pdf.get_y()
-                    pdf.set_font("Arial", "", 8)
-                    
-                    pdf.set_xy(10, y_start)
-                    pdf.multi_cell(w_col, 4, clean_pdf_text(d_text), 0, 'L')
-                    
-                    pdf.set_xy(10 + w_col, y_start)
-                    pdf.multi_cell(w_col, 4, clean_pdf_text(p_text), 0, 'L')
-                    
-                    pdf.set_xy(10 + 2*w_col, y_start)
-                    pdf.multi_cell(w_col, 4, clean_pdf_text(f_text), 0, 'L')
-                    
-                    # Borders
-                    pdf.rect(10, y_start, w_col, h_max)
-                    pdf.rect(10 + w_col, y_start, w_col, h_max)
-                    pdf.rect(10 + 2*w_col, y_start, w_col, h_max)
-                    
-                    pdf.set_y(y_start + h_max)
-
-                def print_text_evolution(title, key):
-                    d = data_pdi.get(f"{key}_diag", "")
-                    p = data_pdi.get(f"{key}_proc", "")
-                    f = data_pdi.get(f"{key}_final", "")
-                    
-                    pdf.set_font("Arial", "", 8)
-                    # Calc height accurately based on wrapping
-                    def get_h(txt):
-                         if not txt: return 6
-                         lines = 0
-                         eff_w = w_col - 4 # Effective width with padding
-                         
-                         for line in txt.split('\n'):
-                             if not line:
-                                 lines += 1
-                                 continue
-                             # Calculate lines needed for this paragraph
-                             w_line = pdf.get_string_width(line)
-                             if w_line > eff_w:
-                                 # Ceiling division logic for positive integers
-                                 lines += int((w_line / eff_w) + 0.99)
-                             else:
-                                 lines += 1
-                         
-                         return max(6, lines * 4) + 4
-                    
-                    h_max = max(get_h(d), get_h(p), get_h(f), 10)
-                    
-                    if pdf.get_y() + h_max + 8 > 270: 
-                        pdf.add_page()
-                        # Reprint headers
-                        pdf.set_font("Arial", "B", 8)
-                        pdf.set_fill_color(220, 220, 220)
-                        pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Diagnóstica"), 1, 0, 'C', True)
-                        pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação de Percurso"), 1, 0, 'C', True)
-                        pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Final"), 1, 1, 'C', True)
-
-                    # Title Row
-                    pdf.set_font("Arial", "B", 9)
-                    pdf.set_fill_color(240, 240, 240)
-                    pdf.cell(0, 6, clean_pdf_text(title), 1, 1, 'L', True)
-                    
-                    y_start = pdf.get_y()
-                    pdf.set_font("Arial", "", 8)
-                    
-                    pdf.set_xy(10, y_start)
-                    pdf.multi_cell(w_col, 4, clean_pdf_text(d), 0, 'L')
-                    
-                    pdf.set_xy(10 + w_col, y_start)
-                    pdf.multi_cell(w_col, 4, clean_pdf_text(p), 0, 'L')
-                    
-                    pdf.set_xy(10 + 2*w_col, y_start)
-                    pdf.multi_cell(w_col, 4, clean_pdf_text(f), 0, 'L')
-                    
-                    pdf.rect(10, y_start, w_col, h_max)
-                    pdf.rect(10 + w_col, y_start, w_col, h_max)
-                    pdf.rect(10 + 2*w_col, y_start, w_col, h_max)
-                    
-                    pdf.set_y(y_start + h_max)
-
-                def print_obs(key):
-                    obs = data_pdi.get(key, '')
-                    if obs:
-                        pdf.set_font("Arial", "", 9)
-                        pdf.multi_cell(0, 5, clean_pdf_text(f"OBSERVAÇÕES: {obs}"), 0, 'L')
-                        pdf.ln(2)
+                pdf.cell(w_col0, 10, clean_pdf_text("DESENVOLVIMENTO"), 1, 0, 'C', True)
+                pdf.cell(w_col1, 10, clean_pdf_text("1º SEMESTRE"), 1, 0, 'C', True)
+                pdf.cell(w_col2, 10, clean_pdf_text("2º SEMESTRE"), 1, 1, 'C', True)
 
                 # 1.3 Cognitivo
                 pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "1.3 DESENVOLVIMENTO COGNITIVO", 0, 1)
                 
-                # 1.3.1 & 1.3.2 (Text Tables)
-                pdf.set_font("Arial", "B", 8)
-                pdf.set_fill_color(220, 220, 220)
-                pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Diagnóstica"), 1, 0, 'C', True)
-                pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação de Percurso"), 1, 0, 'C', True)
-                pdf.cell(w_col, 10, clean_pdf_text("Resultados da Avaliação Final"), 1, 1, 'C', True)
-                
                 pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.1 PERCEPÇÃO", 0, 1)
                 items_perc = ["Visual", "Auditiva", "Tátil", "Espacial", "Temporal"]
-                for it in items_perc: print_text_evolution(it, f"cog_{it.lower()}")
+                for it in items_perc: print_semestral_evolution(it, f"cog_{it.lower()}", is_text_only=True)
                 
                 pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.2 RACIOCÍNIO LÓGICO", 0, 1)
                 items_rac = ["Correspondência", "Comparação", "Classificação", "Sequenciação", "Seriação", "Inclusão", "Conservação", "Resolução de Problemas"]
-                for it in items_rac: print_text_evolution(it, f"cog_{it.lower()}")
+                for it in items_rac: print_semestral_evolution(it, f"cog_{it.lower()}", is_text_only=True)
 
-                # 1.3.3 Checklists
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.3 SISTEMA MONETÁRIO", 0, 1)
-                print_check_evolution("Sistema Monetário", "sis_monetario", "sis_monetario")
+                print_semestral_evolution("Sistema Monetário", "sis_monetario", opt_key="sis_monetario")
                 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.4 CAPACIDADE DE BRINCAR", 0, 1)
-                print_check_evolution("Faz uso dos brinquedos de maneira funcional?", "brincar_funcional", "brincar_funcional")
-                print_check_evolution("Exploração dos brinquedos", "brincar_explora", "brincar_explora")
-                print_check_evolution("Estrutura brincadeira de forma criativa?", "brincar_criativa", "brincar_criativa")
-                print_check_evolution("Atribui diferentes funções aos objetos?", "brincar_funcoes", "brincar_funcoes")
-                print_obs('brincar_obs')
+                print_semestral_evolution("Faz uso funcional?", "brincar_funcional", opt_key="brincar_funcional")
+                print_semestral_evolution("Exploração", "brincar_explora", opt_key="brincar_explora")
+                print_semestral_evolution("Estrutura criativa?", "brincar_criativa", opt_key="brincar_criativa")
+                print_semestral_evolution("Atribui funções?", "brincar_funcoes", opt_key="brincar_funcoes")
 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.5 MEMÓRIA DE CURTO PRAZO", 0, 1)
-                print_check_evolution("Memória Curto Prazo", "mem_curto", "memoria_curto")
-                print_obs('memoria_obs')
+                print_semestral_evolution("Memória Curto Prazo", "mem_curto", opt_key="memoria_curto")
                 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.6 MEMÓRIA DE LONGO PRAZO", 0, 1)
-                print_check_evolution("Episódica", "mem_episodica", "memoria_episodica")
-                print_check_evolution("Semântica", "mem_semantica", "memoria_semantica")
+                print_semestral_evolution("Episódica", "mem_episodica", opt_key="memoria_episodica")
+                print_semestral_evolution("Semântica", "mem_semantica", opt_key="memoria_semantica")
                 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.7 ATENÇÃO", 0, 1)
-                print_check_evolution("Sustentada", "at_sust", "atencao_sustentada")
-                print_check_evolution("Dividida", "at_div", "atencao_dividida")
-                print_check_evolution("Seletiva", "at_sel", "atencao_seletiva")
-                print_obs('atencao_obs')
+                print_semestral_evolution("Sustentada", "at_sust", opt_key="atencao_sustentada")
+                print_semestral_evolution("Dividida", "at_div", opt_key="atencao_dividida")
+                print_semestral_evolution("Seletiva", "at_sel", opt_key="atencao_seletiva")
                 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.3.8 COORDENAÇÃO VISO-MOTORA", 0, 1)
-                print_check_evolution("Desenho", "vm_desenho", "vm_desenho")
-                print_check_evolution("Limites Folha", "vm_l_folha", "vm_limite_folha")
-                print_check_evolution("Limites Pintura", "vm_l_pint", "vm_limite_pintura")
-                print_check_evolution("Recorte (Rasgar)", "vm_rasgar", "vm_rasgar")
-                print_check_evolution("Uso Tesoura", "vm_tesoura", "vm_tesoura")
-                print_check_evolution("Uso Cola", "vm_cola", "vm_cola")
-                print_check_evolution("Encaixes", "vm_encaixe", "vm_encaixe")
-                print_check_evolution("Reprodução de Figuras", "vm_reproducao", "vm_reproducao")
-                print_check_evolution("Quebra-Cabeça", "vm_qc", "vm_quebra_cabeca")
-                print_obs('vm_obs')
+                print_semestral_evolution("Desenho", "vm_desenho", opt_key="vm_desenho")
+                print_semestral_evolution("Limites Folha", "vm_l_folha", opt_key="vm_limite_folha")
+                print_semestral_evolution("Limites Pintura", "vm_l_pint", opt_key="vm_limite_pintura")
+                print_semestral_evolution("Recorte (Rasgar)", "vm_rasgar", opt_key="vm_rasgar")
+                print_semestral_evolution("Uso Tesoura", "vm_tesoura", opt_key="vm_tesoura")
+                print_semestral_evolution("Uso Cola", "vm_cola", opt_key="vm_cola")
+                print_semestral_evolution("Encaixes", "vm_encaixe", opt_key="vm_encaixe")
+                print_semestral_evolution("Reprodução de Figuras", "vm_reproducao", opt_key="vm_reproducao")
+                print_semestral_evolution("Quebra-Cabeça", "vm_qc", opt_key="vm_quebra_cabeca")
 
                 # 1.4 Motor
                 pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "1.4 DESENVOLVIMENTO MOTOR", 0, 1)
                 pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.4.1 COORDENAÇÃO MOTORA FINA", 0, 1)
-                print_check_evolution("Estabilidade Punho", "mf_punho", "mf_punho")
-                print_check_evolution("Pinça", "mf_pinca", "mf_pinca")
-                print_check_evolution("Preensão", "mf_preensao", "mf_preensao")
-                print_obs('mf_obs')
+                print_semestral_evolution("Estabilidade Punho", "mf_punho", opt_key="mf_punho")
+                print_semestral_evolution("Pinça", "mf_pinca", opt_key="mf_pinca")
+                print_semestral_evolution("Preensão", "mf_preensao", opt_key="mf_preensao")
                 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.4.2 COORDENAÇÃO MOTORA GLOBAL", 0, 1)
-                print_check_evolution("Postura (Sentado)", "mg_sentado", "mg_tronco_sentado")
-                print_check_evolution("Postura (Pé)", "mg_pe", "mg_tronco_pe")
-                print_check_evolution("Outros (Postura)", "mg_postura_opts", "mg_postura_opts")
-                print_check_evolution("Mão de Apoio", "mg_mao_apoio", "mg_mao_apoio")
-                print_check_evolution("Locomoção", "mg_loc", "mg_locomocao")
-                print_check_evolution("Equilíbrio", "mg_eq", "mg_equilibrio")
-                print_obs('mg_obs')
+                print_semestral_evolution("Postura (Sentado)", "mg_sentado", opt_key="mg_tronco_sentado")
+                print_semestral_evolution("Postura (Pé)", "mg_pe", opt_key="mg_tronco_pe")
+                print_semestral_evolution("Outros (Postura)", "mg_postura_opts", opt_key="mg_postura_opts")
+                print_semestral_evolution("Mão de Apoio", "mg_mao_apoio", opt_key="mg_mao_apoio")
+                print_semestral_evolution("Locomoção", "mg_loc", opt_key="mg_locomocao")
+                print_semestral_evolution("Equilíbrio", "mg_eq", opt_key="mg_equilibrio")
                 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.4.3 ESQUEMA E IMAGEM CORPORAL", 0, 1)
-                print_check_evolution("Imagem Corporal", "ec_img", "ec_imagem")
-                print_check_evolution("Identificação Partes", "ec_partes", "ec_partes")
-                print_check_evolution("Funções Partes", "ec_func", "ec_funcoes")
-                print_check_evolution("Imitação", "ec_imit", "ec_imitar")
-                print_check_evolution("Desenho Humano", "ec_des", "ec_desenho")
-                print_check_evolution("Dominância Lateral", "ec_lat", "ec_dominancia")
-                print_check_evolution("Identifica Lateralidade", "ec_id_lat", "ec_identifica")
-                print_check_evolution("Uso dois lados", "ec_dois", "ec_dois_lados")
-                print_obs('ec_obs')
+                print_semestral_evolution("Imagem Corporal", "ec_img", opt_key="ec_imagem")
+                print_semestral_evolution("Identificação Partes", "ec_partes", opt_key="ec_partes")
+                print_semestral_evolution("Funções Partes", "ec_func", opt_key="ec_funcoes")
+                print_semestral_evolution("Imitação", "ec_imit", opt_key="ec_imitar")
+                print_semestral_evolution("Desenho Humano", "ec_des", opt_key="ec_desenho")
+                print_semestral_evolution("Dominância Lateral", "ec_lat", opt_key="ec_dominancia")
+                print_semestral_evolution("Identifica Lateralidade", "ec_id_lat", opt_key="ec_identifica")
+                print_semestral_evolution("Uso dois lados", "ec_dois", opt_key="ec_dois_lados")
                 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.4.4 AUTONOMIA / AVD", 0, 1)
-                print_check_evolution("Alimentação", "avd_alim", "avd_alimentacao")
-                print_check_evolution("Higiene", "avd_hig", "avd_higiene")
-                print_check_evolution("Uso Objetos", "avd_obj", "avd_objetos")
-                print_check_evolution("Locomoção Escola", "avd_loc", "avd_locomocao")
-                print_obs('avd_obs')
+                print_semestral_evolution("Alimentação", "avd_alim", opt_key="avd_alimentacao")
+                print_semestral_evolution("Higiene", "avd_hig", opt_key="avd_higiene")
+                print_semestral_evolution("Uso Objetos", "avd_obj", opt_key="avd_objetos")
+                print_semestral_evolution("Locomoção Escola", "avd_loc", opt_key="avd_locomocao")
 
                 # 1.5 Pessoal
                 pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "1.5 FUNÇÃO PESSOAL E SOCIAL", 0, 1)
-                print_check_evolution("1.5.1 Interação", "ps_int", "ps_interacao")
-                print_check_evolution("1.5.2 Iniciativa (Diálogo)", "ps_ini_d", "ps_iniciativa_dialogo")
-                print_check_evolution("1.5.2 Iniciativa (Atividade)", "ps_ini_a", "ps_iniciativa_ativ")
+                print_semestral_evolution("1.5.1 Interação", "ps_int", opt_key="ps_interacao")
+                print_semestral_evolution("1.5.2 Iniciativa (Diálogo)", "ps_ini_d", opt_key="ps_iniciativa_dialogo")
+                print_semestral_evolution("1.5.2 Iniciativa (Atividade)", "ps_ini_a", opt_key="ps_iniciativa_ativ")
                 
                 pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.5.3 Comportamentos Apresentados", 0, 1)
-                print_check_evolution("Comportamentos", "ps_comps", "ps_comps")
+                print_semestral_evolution("Comportamentos", "ps_comps", opt_key="ps_comps")
                 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.5.4 Vida Prática", 0, 1)
-                print_check_evolution("Sabe Nome", "vp_nome", "vp_nome")
-                print_check_evolution("Sabe Idade", "vp_idade", "vp_sim_nao")
-                print_check_evolution("Sabe Aniversário", "vp_niver", "vp_niver")
-                print_check_evolution("Nomeia Familiares", "vp_fam", "vp_sim_nao")
-                print_check_evolution("Nomeia Profs", "vp_prof", "vp_sim_nao")
-                print_check_evolution("Nomeia Escola", "vp_escola", "vp_sim_nao")
-                print_check_evolution("Sabe Ano Escolar", "vp_ano_esc", "vp_sim_nao")
-                print_check_evolution("Sabe Endereço", "vp_end", "vp_sim_nao")
-                print_obs('vp_outros')
+                print_semestral_evolution("Sabe Nome", "vp_nome", opt_key="vp_nome")
+                print_semestral_evolution("Sabe Idade", "vp_idade", opt_key="vp_sim_nao")
+                print_semestral_evolution("Sabe Aniversário", "vp_niver", opt_key="vp_niver")
+                print_semestral_evolution("Nomeia Familiares", "vp_fam", opt_key="vp_sim_nao")
+                print_semestral_evolution("Nomeia Profs", "vp_prof", opt_key="vp_sim_nao")
+                print_semestral_evolution("Nomeia Escola", "vp_escola", opt_key="vp_sim_nao")
+                print_semestral_evolution("Sabe Ano Escolar", "vp_ano_esc", opt_key="vp_sim_nao")
+                print_semestral_evolution("Sabe Endereço", "vp_end", opt_key="vp_sim_nao")
                 
                 # 1.6 Linguagem
                 pdf.ln(2); pdf.set_font("Arial", "B", 10); pdf.cell(0, 8, "1.6 LINGUAGEM", 0, 1)
-                print_check_evolution("1.6.1 Verbal", "ling_verb", "ling_verbal")
-                print_check_evolution("1.6.2 Compreensiva", "ling_comp", "ling_compreensiva")
-                print_check_evolution("1.6.3 Gestual", "ling_gest", "ling_gestual")
-                print_check_evolution("1.6.4 Ecolalia", "ling_eco", "ling_ecolalia")
-                print_check_evolution("1.6.5 Escrita", "ling_esc", "ling_escrita")
-                print_check_evolution("1.6.6 Leitura", "ling_leit", "ling_leitura")
+                print_semestral_evolution("1.6.1 Verbal", "ling_verb", opt_key="ling_verbal")
+                print_semestral_evolution("1.6.2 Compreensiva", "ling_comp", opt_key="ling_compreensiva")
+                print_semestral_evolution("1.6.3 Gestual", "ling_gest", opt_key="ling_gestual")
+                print_semestral_evolution("1.6.4 Ecolalia", "ling_eco", opt_key="ling_ecolalia")
+                print_semestral_evolution("1.6.5 Escrita", "ling_esc", opt_key="ling_escrita")
+                print_semestral_evolution("1.6.6 Leitura", "ling_leit", opt_key="ling_leitura")
                 
                 pdf.ln(2); pdf.set_font("Arial", "B", 9); pdf.cell(0, 6, "1.6.7 LIBRAS e 1.6.8 Comunicação Alternativa", 0, 1)
-                print_check_evolution("Aparelho Auditivo", "libras_aparelho", "libras_aparelho")
-                print_check_evolution("Implante Coclear", "libras_implante", "libras_implante")
-                print_check_evolution("Com. Libras", "libras_com", "libras_com")
-                print_check_evolution("Compreensão Libras", "libras_compreende", "libras_compreende")
-                print_check_evolution("Escrita Braille", "braille_esc", "braille_esc")
-                print_check_evolution("Leitura Braille", "braille_leit", "braille_leit")
-                print_obs('libras_outros')
-                print_check_evolution("Com. Alternativa", "com_alt", "com_alt")
+                print_semestral_evolution("Aparelho Auditivo", "libras_aparelho", opt_key="libras_aparelho")
+                print_semestral_evolution("Implante Coclear", "libras_implante", opt_key="libras_implante")
+                print_semestral_evolution("Com. Libras", "libras_com", opt_key="libras_com")
+                print_semestral_evolution("Compreensão Libras", "libras_compreende", opt_key="libras_compreende")
+                print_semestral_evolution("Escrita Braille", "braille_esc", opt_key="braille_esc")
+                print_semestral_evolution("Leitura Braille", "braille_leit", opt_key="braille_leit")
+                print_semestral_evolution("Com. Alternativa", "com_alt", opt_key="com_alt")
 
-                # --- 2. AÇÕES NECESSÁRIAS E ORGANIZAÇÃO (REFORMULADO) ---
+                # --- 2. AÇÕES NECESSÁRIAS E ORGANIZAÇÃO ---
                 pdf.add_page()
                 pdf.section_title("2. AÇÕES NECESSÁRIAS E ORGANIZAÇÃO", width=0)
                 pdf.ln(5)
 
-                # Actions Table
                 pdf.set_font("Arial", "B", 10)
                 pdf.set_fill_color(220, 220, 220)
-                # Scope col 50mm, Action col 140mm
                 col_s = 50
                 col_a = 190 - col_s
                 
@@ -3911,15 +3708,10 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.set_font("Arial", "", 10)
                 for scope, txt in actions_list:
                     txt = clean_pdf_text(txt)
-                    
-                    # Estimate height for multicell
-                    # Approx 65 chars per line for 140mm width with Arial 10
-                    # Just a safe estimate
                     s_width = pdf.get_string_width(txt)
                     lines = int(s_width / col_a) + 1 + txt.count('\n')
-                    h_row = max(8, lines * 5 + 4) # 5mm line height + padding
+                    h_row = max(8, lines * 5 + 4)
                     
-                    # Check page break
                     if pdf.get_y() + h_row > 270:
                         pdf.add_page()
                         pdf.set_font("Arial", "B", 10)
@@ -3931,33 +3723,28 @@ elif app_mode == "👥 Gestão de Alunos":
                     x = pdf.get_x()
                     y = pdf.get_y()
                     
-                    # Scope
                     pdf.set_font("Arial", "B", 10)
                     pdf.cell(col_s, h_row, clean_pdf_text(scope), 1, 0, 'C')
                     
-                    # Action
                     pdf.set_xy(x + col_s, y)
                     pdf.set_font("Arial", "", 10)
                     pdf.multi_cell(col_a, 5, txt, 0, 'L')
                     
-                    # Border around action
                     pdf.rect(x + col_s, y, col_a, h_row)
                     pdf.set_y(y + h_row)
 
                 pdf.ln(5)
-                # Organization
                 pdf.set_font("Arial", "B", 10)
                 pdf.set_fill_color(220, 220, 220)
                 pdf.cell(0, 8, clean_pdf_text("ORGANIZAÇÃO DO AEE"), 1, 1, 'L', True)
                 
                 pdf.set_font("Arial", "", 10)
-                # Simple table for organization
                 pdf.cell(50, 8, "Tempo de Atendimento:", 1, 0, 'L')
                 pdf.cell(0, 8, clean_pdf_text(data_pdi.get('aee_tempo', '')), 1, 1, 'L')
-                
+                pdf.cell(50, 8, clean_pdf_text("Frequência Semanal:"), 1, 0, 'L')
+                pdf.cell(0, 8, clean_pdf_text(data_pdi.get('aee_freq', '')), 1, 1, 'L')
                 pdf.cell(50, 8, "Modalidade:", 1, 0, 'L')
                 pdf.cell(0, 8, clean_pdf_text(data_pdi.get('aee_tipo', '')), 1, 1, 'L')
-                
                 pdf.cell(50, 8, clean_pdf_text("Composição:"), 1, 0, 'L')
                 pdf.cell(0, 8, clean_pdf_text(data_pdi.get('aee_comp', '')), 1, 1, 'L')
 
@@ -3968,13 +3755,13 @@ elif app_mode == "👥 Gestão de Alunos":
                 
                 for category, subcats in objectives_structure.items():
                     if pdf.get_y() > 250: pdf.add_page()
-                    pdf.set_fill_color(200, 200, 200) # Darker grey for category
+                    pdf.set_fill_color(200, 200, 200)
                     pdf.set_font("Arial", "B", 10)
                     pdf.cell(0, 8, clean_pdf_text(category), 1, 1, 'C', True)
                     
                     for subcat_name, items_list in subcats.items():
                         if subcat_name != "GERAL" and subcat_name != "OUTROS":
-                            pdf.set_fill_color(240, 240, 240) # Lighter grey for subcategory
+                            pdf.set_fill_color(240, 240, 240)
                             pdf.cell(0, 6, clean_pdf_text(subcat_name), 1, 1, 'C', True)
                         
                         for item in items_list:
@@ -3983,12 +3770,9 @@ elif app_mode == "👥 Gestão de Alunos":
                              item_key = f"goal_{category}_{subcat_name}_{item}".replace(" ", "_").lower()
                              content = data_pdi['goals_specific'].get(item_key, "")
                              
-                             # Render Row: Label | Content
-                             # Calculate dynamic height based on content width
                              label_w = 60
                              content_w = 190 - label_w 
                              
-                             # Accurate height estimation using FPDF string width
                              pdf.set_font("Arial", "", 9)
                              text_len = pdf.get_string_width(content)
                              lines = int(text_len / content_w) + 1
@@ -4002,29 +3786,22 @@ elif app_mode == "👥 Gestão de Alunos":
                              x_start = pdf.get_x()
                              y_start = pdf.get_y()
                              
-                             # Print Label
                              pdf.set_font("Arial", "B", 9)
                              pdf.cell(label_w, total_h, clean_pdf_text(item), 1, 0, 'L')
                              
-                             # Print Content
                              pdf.set_xy(x_start + label_w, y_start)
                              pdf.set_font("Arial", "", 9)
                              pdf.multi_cell(content_w, line_height, clean_pdf_text(content), 1, 'L')
                              
-                             # Draw border around content block to match height
                              pdf.rect(x_start + label_w, y_start, content_w, total_h)
-                             
-                             # Reset cursor
                              pdf.set_xy(x_start, y_start + total_h)
-
 
                 st.session_state.pdf_bytes_pdi = get_pdf_bytes(pdf)
                 st.rerun()
 
             if 'pdf_bytes_pdi' in st.session_state:
-                st.download_button("📥 BAIXAR PDI COMPLETO", st.session_state.pdf_bytes_pdi, f"PDI_{data_pdi.get('nome','aluno')}.pdf", "application/pdf", type="primary")
+                st.download_button("📥 BAIXAR PDI COMPLETO", st.session_state.pdf_bytes_pdi, f"PDI_{data_pdi.get('nome','aluno')}.pdf", "application/pdf", type="primary", use_container_width=True)
 
-        # --- ABA 5: HISTÓRICO ---
         with tabs[4]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
@@ -4034,6 +3811,12 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.dataframe(student_hist.iloc[::-1], use_container_width=True, hide_index=True)
                 else: st.info("Sem histórico.")
             else: st.info("Histórico vazio.")
+
+    
+
+
+
+    
 
 
     # ESTUDO DE CASO COM FORMULÁRIOS

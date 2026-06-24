@@ -3484,7 +3484,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 # 3.3 COGNITIVO
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "3.3 DESENVOLVIMENTO COGNITIVO - ATENÇÃO", 1, 1, 'L', True)
+                pdf.cell(0, 8, "3.3 DESENVOLVIMENTO COGNITIVO - ATENÇÃO", 1, 1, 'C', True)
                 print_linha_paisagem(pdf, "Concentrada", "atencao_conc")
                 print_linha_paisagem(pdf, "Sustentada", "atencao_sust")
                 print_linha_paisagem(pdf, "Seletiva", "atencao_sel")
@@ -3492,7 +3492,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "PERCEPÇÃO", 1, 1, 'L', True)
+                pdf.cell(0, 8, "PERCEPÇÃO", 1, 1, 'C', True)
                 print_linha_paisagem(pdf, "Memória Visual/Percepção de dif. e semelhanças", "perc_vis")
                 print_linha_paisagem(pdf, "Percepção e Discriminação Auditiva", "perc_aud")
                 print_linha_paisagem(pdf, "Percepção Tátil", "perc_tat")
@@ -3501,14 +3501,14 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "MEMÓRIA", 1, 1, 'L', True)
+                pdf.cell(0, 8, "MEMÓRIA", 1, 1, 'C', True)
                 print_linha_paisagem(pdf, "Curto Prazo", "mem_curto")
                 print_linha_paisagem(pdf, "Médio Prazo", "mem_medio")
                 print_linha_paisagem(pdf, "Longo Prazo", "mem_longo")
 
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "FUNÇÕES EXECUTIVAS", 1, 1, 'L', True)
+                pdf.cell(0, 8, "FUNÇÕES EXECUTIVAS", 1, 1, 'C', True)
                 print_linha_paisagem(pdf, "Controle Inibitório (inibição de impulsos)", "fe_inib")
                 print_linha_paisagem(pdf, "Memória de Trabalho (reter e manipular info)", "fe_trab")
                 print_linha_paisagem(pdf, "Flexibilidade Cognitiva (adaptação a mudanças)", "fe_flex")
@@ -3517,7 +3517,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 # LINGUAGEM
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "LINGUAGEM E COMUNICAÇÃO", 1, 1, 'L', True)
+                pdf.cell(0, 8, "LINGUAGEM E COMUNICAÇÃO", 1, 1, 'C', True)
                 
                 print_linha_paisagem(pdf, "Utiliza palavras para se comunicar?", "ling_palavras")
                 
@@ -3545,12 +3545,12 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_linha_paisagem(pdf, "Reconta história / relatos do cotidiano?", "ling_reconta")
 
                 pdf.set_fill_color(240, 240, 240); pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "Linguagem Compreensiva", 1, 1, 'L', True)
+                pdf.cell(0, 8, "LINGUAGEM COMPREENSIVA", 1, 1, 'C', True)
                 print_linha_paisagem(pdf, "Compreende informações orais simples?", "ling_comp_simp")
                 print_linha_paisagem(pdf, "Compreende informações orais complexas?", "ling_comp_comp")
 
                 pdf.set_fill_color(240, 240, 240); pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "Linguagem Escrita", 1, 1, 'L', True)
+                pdf.cell(0, 8, "LINGUAGEM ESCRITA", 1, 1, 'C', True)
                 
                 opts_escrita = [
                     "Não distingue desenho, letras e números.", "Identifica e nomeia as letras.", 
@@ -3567,7 +3567,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_linha_paisagem_multiline(pdf, "Apresenta organização textual?", str_org_p, str_org_f)
 
                 pdf.set_fill_color(240, 240, 240); pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "Leitura", 1, 1, 'L', True)
+                pdf.cell(0, 8, "LEITURA", 1, 1, 'C', True)
                 opts_leitura = [
                     "Não realiza leitura.", "Realiza leitura apenas de palavras canônicas.", 
                     "Realiza leitura de palavras canônicas e não-canônicas.", "Realiza leitura de frases e textos com dificuldade.", 
@@ -3590,7 +3590,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 # RACIOCÍNIO E DESENVOLVIMENTO MOTOR E OUTROS
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "RACIOCÍNIO E RESOLUÇÃO DE PROBLEMAS", 1, 1, 'L', True)
+                pdf.cell(0, 8, "RACIOCÍNIO E RESOLUÇÃO DE PROBLEMAS", 1, 1, 'C', True)
                 print_linha_paisagem(pdf, "a) Planeja, antecipa, argumenta?", "rac_plan")
                 print_linha_paisagem(pdf, "b) Compara, classifica, categoriza, sequencia, inferi?", "rac_comp")
                 print_linha_paisagem(pdf, "c) Conhece conceitos básicos do vocabulário matemático?", "rac_mat")
@@ -3598,7 +3598,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "3.4 DESENVOLVIMENTO MOTOR", 1, 1, 'L', True)
+                pdf.cell(0, 8, "3.4 DESENVOLVIMENTO MOTOR", 1, 1, 'C', True)
                 print_linha_paisagem(pdf, "Realiza os diversos tipos de locomoção?", "mot_loc")
                 print_linha_paisagem(pdf, "Manipula bola e outros objetos?", "mot_bola")
                 print_linha_paisagem(pdf, "Desenvolvimento esperado da lateralidade?", "mot_lat")
@@ -3607,7 +3607,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "3.5 HABILIDADES PESSOAIS E DE SOCIALIZAÇÃO", 1, 1, 'L', True)
+                pdf.cell(0, 8, "3.5 HABILIDADES PESSOAIS E DE SOCIALIZAÇÃO", 1, 1, 'C', True)
                 opts_hab = ["Com autonomia", "Com ajuda", "Não realiza"]
                 print_linha_paisagem(pdf, "Alimentação", "hab_alim", options=opts_hab)
                 print_linha_paisagem(pdf, "Higiene", "hab_hig", options=opts_hab)
@@ -3619,7 +3619,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "3.6 FUNÇÃO DO BRINCAR", 1, 1, 'L', True)
+                pdf.cell(0, 8, "3.6 FUNÇÃO DO BRINCAR", 1, 1, 'C', True)
                 opts_brincar = ["Sim", "Não", "Com modelo"]
                 print_linha_paisagem(pdf, "Uso dos brinquedos de maneira funcional?", "bri_func", options=opts_brincar)
                 print_linha_paisagem(pdf, "Explora os brinquedos espontaneamente?", "bri_explora", options=opts_brincar)

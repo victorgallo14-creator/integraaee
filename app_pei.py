@@ -3020,14 +3020,22 @@ elif app_mode == "👥 Gestão de Alunos":
                 def render_semestres(label, key_base):
                     st.markdown(f"**{label}**")
                     cs1, cs2 = st.columns(2)
-                    data_pdi[f"obj_{key_base}_1sem"] = cs1.text_area("1º Semestre", value=data_pdi.get(f"obj_{key_base}_1sem", ""), height=100)
-                    data_pdi[f"obj_{key_base}_2sem"] = cs2.text_area("2º Semestre", value=data_pdi.get(f"obj_{key_base}_2sem", ""), height=100)
+                    
+                    # Adicionado o parâmetro 'key' para garantir que cada text_area seja único
+                    data_pdi[f"obj_{key_base}_1sem"] = cs1.text_area(
+                        "1º Semestre", 
+                        value=data_pdi.get(f"obj_{key_base}_1sem", ""), 
+                        height=100,
+                        key=f"txt_1sem_{key_base}"
+                    )
+                    
+                    data_pdi[f"obj_{key_base}_2sem"] = cs2.text_area(
+                        "2º Semestre", 
+                        value=data_pdi.get(f"obj_{key_base}_2sem", ""), 
+                        height=100,
+                        key=f"txt_2sem_{key_base}"
+                    )
                     st.divider()
-
-                render_semestres("DESENVOLVIMENTO COGNITIVO", "cog")
-                render_semestres("DESENVOLVIMENTO MOTOR", "mot")
-                render_semestres("HABILIDADES PESSOAIS E DE SOCIALIZAÇÃO", "soc")
-                render_semestres("FUNÇÃO DO BRINCAR", "bri")
                 
                 if st.form_submit_button("💾 Salvar PAEE"):
                     save_student("PDI", data_pdi.get('nome'), data_pdi, "Plano AEE (PAEE)")

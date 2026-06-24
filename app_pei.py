@@ -2827,7 +2827,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
 
 
-# --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
+# --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO E UNIFICADO) ---
     if doc_mode == "PDI":
         st.markdown(f"""<div class="header-box"><div class="header-title">PDI - Plano de Desenvolvimento Individual</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
@@ -2835,7 +2835,7 @@ elif app_mode == "👥 Gestão de Alunos":
         data_pdi = st.session_state.data_pdi
         data_case = st.session_state.get('data_case', {})
         
-        # Estrutura para Objetivos Específicos (Mantida)
+        # Estrutura para Objetivos Específicos
         objectives_structure = {
             "DESENVOLVIMENTO COGNITIVO": {
                 "PERCEPÇÃO": ["Visual", "Auditiva", "Tátil", "Espacial / Lateralidade", "Temporal / Ritmo / Sequência lógica"],
@@ -2939,41 +2939,71 @@ elif app_mode == "👥 Gestão de Alunos":
                     render_percurso_final_row("Planejamento/Organização", "fe_plan")
 
                 st.subheader("LINGUAGEM E COMUNICAÇÃO")
-                with st.expander("Linguagem Oral, Escrita e Leitura", expanded=False):
-                    st.markdown("#### Oral")
+                
+                with st.expander("Linguagem e Comunicação Oral", expanded=False):
                     render_percurso_final_row("Utiliza palavras para se comunicar?", "ling_palavras")
                     
-                    c_p, c_f = st.columns(2)
-                    data_pdi['ling_gestos_proc'] = c_p.checkbox("Comunica-se por gestos (Percurso)", value=data_pdi.get('ling_gestos_proc', False))
-                    data_pdi['ling_aponte_proc'] = c_p.checkbox("Através de apontamentos (Percurso)", value=data_pdi.get('ling_aponte_proc', False))
-                    data_pdi['ling_libras_proc'] = c_p.radio("LIBRAS (Percurso)", ["Não", "Básico", "Fluente"], horizontal=True)
-                    
-                    data_pdi['ling_gestos_final'] = c_f.checkbox("Comunica-se por gestos (Final)", value=data_pdi.get('ling_gestos_final', False))
-                    data_pdi['ling_aponte_final'] = c_f.checkbox("Através de apontamentos (Final)", value=data_pdi.get('ling_aponte_final', False))
-                    data_pdi['ling_libras_final'] = c_f.radio("LIBRAS (Final)", ["Não", "Básico", "Fluente"], horizontal=True)
+                    st.markdown("**Outras formas de comunicação utilizadas:**")
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.markdown("*Avaliação de Percurso*")
+                        data_pdi['ling_gestos_p'] = st.checkbox("Comunica-se por gestos (Percurso)", value=data_pdi.get('ling_gestos_p', False))
+                        data_pdi['ling_aponta_p'] = st.checkbox("Através de apontamentos (Percurso)", value=data_pdi.get('ling_aponta_p', False))
+                        data_pdi['ling_pisca_p'] = st.checkbox("Piscar dos olhos (Percurso)", value=data_pdi.get('ling_pisca_p', False))
+                        data_pdi['ling_ca_p'] = st.text_input("Comunicação Alternativa. Qual? (Percurso)", value=data_pdi.get('ling_ca_p', ''))
+                        data_pdi['ling_libras_p'] = st.radio("LIBRAS (Percurso)", ["Não", "Básico", "Fluente"], horizontal=True)
+                        data_pdi['ling_outros_p'] = st.text_input("Outros (Percurso)", value=data_pdi.get('ling_outros_p', ''))
+                    with c2:
+                        st.markdown("*Avaliação Final*")
+                        data_pdi['ling_gestos_f'] = st.checkbox("Comunica-se por gestos (Final)", value=data_pdi.get('ling_gestos_f', False))
+                        data_pdi['ling_aponta_f'] = st.checkbox("Através de apontamentos (Final)", value=data_pdi.get('ling_aponta_f', False))
+                        data_pdi['ling_pisca_f'] = st.checkbox("Piscar dos olhos (Final)", value=data_pdi.get('ling_pisca_f', False))
+                        data_pdi['ling_ca_f'] = st.text_input("Comunicação Alternativa. Qual? (Final)", value=data_pdi.get('ling_ca_f', ''))
+                        data_pdi['ling_libras_f'] = st.radio("LIBRAS (Final)", ["Não", "Básico", "Fluente"], horizontal=True)
+                        data_pdi['ling_outros_f'] = st.text_input("Outros (Final)", value=data_pdi.get('ling_outros_f', ''))
                     st.divider()
 
                     render_percurso_final_row("Apresenta trocas fonéticas orais?", "ling_trocas")
                     render_percurso_final_row("Estabelece diálogo com troca de turno?", "ling_dialogo")
                     render_percurso_final_row("Inventa frases ou histórias?", "ling_inventa")
                     render_percurso_final_row("Descreve cenas com sentido?", "ling_descreve")
-                    
-                    st.markdown("#### Linguagem Escrita")
+                    render_percurso_final_row("Consegue expressar e explicar pensamentos, ideias e desejos?", "ling_expressa")
+                    render_percurso_final_row("Reconta história com sentido e/ou faz relatos numa sequência lógica?", "ling_reconta")
+
+                with st.expander("Linguagem Compreensiva", expanded=False):
+                    render_percurso_final_row("Compreende e processa informações orais simples?", "ling_comp_simp")
+                    render_percurso_final_row("Compreende e processa informações orais complexas?", "ling_comp_comp")
+
+                with st.expander("Linguagem Escrita", expanded=False):
                     opts_escrita = [
                         "Não distingue desenho, letras e números.", "Identifica e nomeia as letras.", 
                         "Escreve seu nome.", "Escreve letras de forma aleatória.", 
                         "Relaciona som/grafia.", "Escreve apenas palavras canônicas.", "Escreve palavras não-canônicas."
                     ]
                     render_percurso_final_row("Escreve convencionalmente?", "escrita_conv", options=opts_escrita)
-                    render_percurso_final_row("Apresenta organização textual?", "escrita_org", options=["Não escreve textos convencionais.", "Escreve frases simples.", "Escreve textos."])
+                    
+                    opts_org = ["Não escreve textos convencionais.", "Escreve frases simples.", "Escreve textos."]
+                    render_percurso_final_row("Apresenta organização textual?", "escrita_org", options=opts_org)
 
-                    st.markdown("#### Leitura")
+                with st.expander("Leitura", expanded=False):
                     opts_leitura = [
                         "Não realiza leitura.", "Realiza leitura apenas de palavras canônicas.", 
                         "Realiza leitura de palavras canônicas e não-canônicas.", "Realiza leitura de frases e textos com dificuldade.", 
                         "Realiza leitura de frases e textos com fluência.", "Compreende o que lê com apoio.", "Compreende o que lê com autonomia."
                     ]
                     render_percurso_final_row("Nível de Leitura", "leitura_nivel", options=opts_leitura)
+                    
+                    st.markdown("**Leitura em BRAILLE e Outros:**")
+                    c1, c2 = st.columns(2)
+                    opts_braille = ["Não utiliza", "Com autonomia.", "Com apoio.", "Com dificuldade."]
+                    with c1:
+                        data_pdi['braille_p'] = st.radio("BRAILLE (Percurso)", opts_braille)
+                        data_pdi['leitura_outros_p'] = st.text_input("Outros (Leitura - Percurso)", value=data_pdi.get('leitura_outros_p', ''))
+                    with c2:
+                        data_pdi['braille_f'] = st.radio("BRAILLE (Final)", opts_braille)
+                        data_pdi['leitura_outros_f'] = st.text_input("Outros (Leitura - Final)", value=data_pdi.get('leitura_outros_f', ''))
+                
+                data_pdi['ling_obs'] = st.text_area("Observações Gerais (Linguagem e Comunicação)", value=data_pdi.get('ling_obs', ''), disabled=is_monitor)
 
                 st.subheader("RACIOCÍNIO E OUTROS DOMÍNIOS")
                 with st.expander("Raciocínio e Resolução de Problemas", expanded=False):
@@ -3389,6 +3419,43 @@ elif app_mode == "👥 Gestão de Alunos":
                     pdf_obj.cell(col_percurso, h_row, clean_pdf_text(str_proc), 1, 0, 'L')
                     pdf_obj.cell(col_final, h_row, clean_pdf_text(str_final), 1, 1, 'L')
 
+                def print_linha_paisagem_multiline(pdf_obj, label, str_proc, str_final):
+                    """Imprime blocos complexos onde as opções precisam ser quebradas em várias linhas."""
+                    if pdf_obj.get_y() > 165:
+                        pdf_obj.add_page(orientation='L')
+                        print_tabela_cabecalho(pdf_obj)
+                        
+                    x_start = pdf_obj.get_x()
+                    y_start = pdf_obj.get_y()
+                    
+                    pdf_obj.set_font("Arial", "", 8)
+                    h_proc = (str_proc.count('\n') + 1) * 5 + 4
+                    h_final = (str_final.count('\n') + 1) * 5 + 4
+                    h_row = max(h_proc, h_final, 10)
+                    
+                    # Domínio
+                    pdf_obj.set_font("Arial", "B", 9)
+                    pdf_obj.multi_cell(col_dominio, 5, clean_pdf_text(label), 0, 'L')
+                    
+                    # Percurso
+                    pdf_obj.set_xy(x_start + col_dominio, y_start + 2)
+                    pdf_obj.set_font("Arial", "", 8)
+                    pdf_obj.multi_cell(col_percurso, 5, clean_pdf_text(str_proc), 0, 'L')
+                    
+                    # Final
+                    pdf_obj.set_xy(x_start + col_dominio + col_percurso, y_start + 2)
+                    pdf_obj.multi_cell(col_final, 5, clean_pdf_text(str_final), 0, 'L')
+                    
+                    # Bordas
+                    pdf_obj.rect(x_start, y_start, col_dominio, h_row)
+                    pdf_obj.rect(x_start + col_dominio, y_start, col_percurso, h_row)
+                    pdf_obj.rect(x_start + col_dominio + col_percurso, y_start, col_final, h_row)
+                    pdf_obj.set_xy(x_start, y_start + h_row)
+
+                def build_options_string(selected_val, options_list):
+                    """Auxiliar para gerar o texto multilinhas."""
+                    return "\n".join([f"(X) {opt}" if opt == selected_val else f"( ) {opt}" for opt in options_list])
+
                 print_tabela_cabecalho(pdf)
 
                 # 3.3 COGNITIVO
@@ -3428,34 +3495,76 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
                 pdf.cell(0, 8, "LINGUAGEM E COMUNICAÇÃO", 1, 1, 'L', True)
+                
                 print_linha_paisagem(pdf, "Utiliza palavras para se comunicar?", "ling_palavras")
                 
-                # Campos manuais para checkboxes de comunicação (Gestos, Apontamentos, Libras)
-                if pdf.get_y() > 175:
-                    pdf.add_page(orientation='L'); print_tabela_cabecalho(pdf)
-                x_start = pdf.get_x(); y_start = pdf.get_y()
-                pdf.set_font("Arial", "B", 9)
-                pdf.multi_cell(col_dominio, 8, "Outras Formas de Comunicação", 1, 'L')
-                y_end = pdf.get_y(); h_row = max(8, y_end - y_start)
-                pdf.set_xy(x_start + col_dominio, y_start)
-                pdf.set_font("Arial", "", 8)
-                str_c_p = f"Gestos: {'Sim' if data_pdi.get('ling_gestos_proc') else 'Não'} | Aponta: {'Sim' if data_pdi.get('ling_aponte_proc') else 'Não'} | LIBRAS: {data_pdi.get('ling_libras_proc', 'Não')}"
-                str_c_f = f"Gestos: {'Sim' if data_pdi.get('ling_gestos_final') else 'Não'} | Aponta: {'Sim' if data_pdi.get('ling_aponte_final') else 'Não'} | LIBRAS: {data_pdi.get('ling_libras_final', 'Não')}"
-                pdf.cell(col_percurso, h_row, clean_pdf_text(str_c_p), 1, 0, 'L')
-                pdf.cell(col_final, h_row, clean_pdf_text(str_c_f), 1, 1, 'L')
+                str_ca_p = f"(X) Gestos\n" if data_pdi.get('ling_gestos_p') else "( ) Gestos\n"
+                str_ca_p += f"(X) Apontamentos\n" if data_pdi.get('ling_aponta_p') else "( ) Apontamentos\n"
+                str_ca_p += f"(X) Piscar dos olhos\n" if data_pdi.get('ling_pisca_p') else "( ) Piscar dos olhos\n"
+                str_ca_p += f"Com. Alternativa: {data_pdi.get('ling_ca_p', '')}\n" if data_pdi.get('ling_ca_p') else "( ) Com. Alternativa\n"
+                str_ca_p += f"LIBRAS: {data_pdi.get('ling_libras_p', 'Não')}\n"
+                str_ca_p += f"Outros: {data_pdi.get('ling_outros_p', '')}"
+
+                str_ca_f = f"(X) Gestos\n" if data_pdi.get('ling_gestos_f') else "( ) Gestos\n"
+                str_ca_f += f"(X) Apontamentos\n" if data_pdi.get('ling_aponta_f') else "( ) Apontamentos\n"
+                str_ca_f += f"(X) Piscar dos olhos\n" if data_pdi.get('ling_pisca_f') else "( ) Piscar dos olhos\n"
+                str_ca_f += f"Com. Alternativa: {data_pdi.get('ling_ca_f', '')}\n" if data_pdi.get('ling_ca_f') else "( ) Com. Alternativa\n"
+                str_ca_f += f"LIBRAS: {data_pdi.get('ling_libras_f', 'Não')}\n"
+                str_ca_f += f"Outros: {data_pdi.get('ling_outros_f', '')}"
+
+                print_linha_paisagem_multiline(pdf, "Outras formas de comunicação / LIBRAS", str_ca_p, str_ca_f)
 
                 print_linha_paisagem(pdf, "Apresenta trocas fonéticas orais?", "ling_trocas")
                 print_linha_paisagem(pdf, "Estabelece diálogo com troca de turno?", "ling_dialogo")
                 print_linha_paisagem(pdf, "Inventa frases ou histórias?", "ling_inventa")
                 print_linha_paisagem(pdf, "Descreve cenas com sentido?", "ling_descreve")
+                print_linha_paisagem(pdf, "Consegue expressar pensamentos e desejos?", "ling_expressa")
+                print_linha_paisagem(pdf, "Reconta história / relatos do cotidiano?", "ling_reconta")
 
-                opts_escrita = ["Não distingue", "Nomeia letras", "Escreve nome", "Aleatória", "Som/grafia", "Canônicas", "Não-canônicas"]
-                print_linha_paisagem(pdf, "Escreve convencionalmente?", "escrita_conv", options=opts_escrita)
-                print_linha_paisagem(pdf, "Apresenta organização textual?", "escrita_org", options=["Não escreve textos", "Frases simples", "Textos"])
-                opts_leitura = ["Não lê", "Só canônicas", "Canônicas e não", "Com dificuldade", "Fluência", "Apoio", "Autonomia"]
-                print_linha_paisagem(pdf, "Nível de Leitura", "leitura_nivel", options=opts_leitura)
+                pdf.set_fill_color(240, 240, 240); pdf.set_font("Arial", "B", 10)
+                pdf.cell(0, 8, "Linguagem Compreensiva", 1, 1, 'L', True)
+                print_linha_paisagem(pdf, "Compreende informações orais simples?", "ling_comp_simp")
+                print_linha_paisagem(pdf, "Compreende informações orais complexas?", "ling_comp_comp")
 
-                # RACIOCÍNIO
+                pdf.set_fill_color(240, 240, 240); pdf.set_font("Arial", "B", 10)
+                pdf.cell(0, 8, "Linguagem Escrita", 1, 1, 'L', True)
+                
+                opts_escrita = [
+                    "Não distingue desenho, letras e números.", "Identifica e nomeia as letras.", 
+                    "Escreve seu nome.", "Escreve letras de forma aleatória.", 
+                    "Relaciona som/grafia.", "Escreve apenas palavras canônicas.", "Escreve palavras não-canônicas."
+                ]
+                str_escrita_p = build_options_string(data_pdi.get('escrita_conv_proc', ''), opts_escrita)
+                str_escrita_f = build_options_string(data_pdi.get('escrita_conv_final', ''), opts_escrita)
+                print_linha_paisagem_multiline(pdf, "Escreve convencionalmente?", str_escrita_p, str_escrita_f)
+
+                opts_org = ["Não escreve textos convencionais.", "Escreve frases simples.", "Escreve textos."]
+                str_org_p = build_options_string(data_pdi.get('escrita_org_proc', ''), opts_org)
+                str_org_f = build_options_string(data_pdi.get('escrita_org_final', ''), opts_org)
+                print_linha_paisagem_multiline(pdf, "Apresenta organização textual?", str_org_p, str_org_f)
+
+                pdf.set_fill_color(240, 240, 240); pdf.set_font("Arial", "B", 10)
+                pdf.cell(0, 8, "Leitura", 1, 1, 'L', True)
+                opts_leitura = [
+                    "Não realiza leitura.", "Realiza leitura apenas de palavras canônicas.", 
+                    "Realiza leitura de palavras canônicas e não-canônicas.", "Realiza leitura de frases e textos com dificuldade.", 
+                    "Realiza leitura de frases e textos com fluência.", "Compreende o que lê com apoio.", "Compreende o que lê com autonomia."
+                ]
+                str_leit_p = build_options_string(data_pdi.get('leitura_nivel_proc', ''), opts_leitura)
+                str_leit_f = build_options_string(data_pdi.get('leitura_nivel_final', ''), opts_leitura)
+                print_linha_paisagem_multiline(pdf, "Nível de Leitura", str_leit_p, str_leit_f)
+
+                opts_braille = ["Não utiliza", "Com autonomia.", "Com apoio.", "Com dificuldade."]
+                str_br_p = "BRAILLE:\n" + build_options_string(data_pdi.get('braille_p', ''), opts_braille) + f"\nOutros: {data_pdi.get('leitura_outros_p', '')}"
+                str_br_f = "BRAILLE:\n" + build_options_string(data_pdi.get('braille_f', ''), opts_braille) + f"\nOutros: {data_pdi.get('leitura_outros_f', '')}"
+                print_linha_paisagem_multiline(pdf, "Leitura em BRAILLE / Outros", str_br_p, str_br_f)
+                
+                if data_pdi.get('ling_obs'):
+                    if pdf.get_y() > 175: pdf.add_page(orientation='L')
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.multi_cell(0, 8, clean_pdf_text(f"Observações: {data_pdi.get('ling_obs')}"), 1, 'L')
+
+                # RACIOCÍNIO E DESENVOLVIMENTO MOTOR E OUTROS
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
                 pdf.cell(0, 8, "RACIOCÍNIO E RESOLUÇÃO DE PROBLEMAS", 1, 1, 'L', True)
@@ -3464,7 +3573,6 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_linha_paisagem(pdf, "c) Conhece conceitos básicos do vocabulário matemático?", "rac_mat")
                 print_linha_paisagem(pdf, "d) Tem capacidade de conclusões lógicas?", "rac_log")
 
-                # DESENVOLVIMENTO MOTOR
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
                 pdf.cell(0, 8, "3.4 DESENVOLVIMENTO MOTOR", 1, 1, 'L', True)
@@ -3474,7 +3582,6 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_linha_paisagem(pdf, "Capacidades físicas (equilíbrio, força, flex)?", "mot_fis")
                 print_linha_paisagem(pdf, "Preensão trípode e rotação de punho?", "mot_preensao")
 
-                # HABILIDADES PESSOAIS
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
                 pdf.cell(0, 8, "3.5 HABILIDADES PESSOAIS E DE SOCIALIZAÇÃO", 1, 1, 'L', True)
@@ -3487,7 +3594,6 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_linha_paisagem(pdf, "Interage com os colegas?", "soc_col")
                 print_linha_paisagem(pdf, "Tem tolerância a frustração?", "soc_frust")
 
-                # BRINCAR
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
                 pdf.cell(0, 8, "3.6 FUNÇÃO DO BRINCAR", 1, 1, 'L', True)
@@ -3507,7 +3613,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.set_font("Arial", "B", 10)
                 pdf.set_fill_color(220, 220, 220)
                 col_s = 50
-                col_a = 277 - col_s # Ajustado para Landscape
+                col_a = 277 - col_s 
                 
                 pdf.cell(col_s, 8, clean_pdf_text("ÂMBITO"), 1, 0, 'C', True)
                 pdf.cell(col_a, 8, clean_pdf_text("AÇÃO"), 1, 1, 'C', True)

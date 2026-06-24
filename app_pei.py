@@ -2861,11 +2861,16 @@ elif app_mode == "👥 Gestão de Alunos":
                     st.markdown(f"**{label}**")
                     c1, c2 = st.columns(2)
                     
-                    v_proc = data_pdi.get(f"{key_base}_proc", options[0])
-                    v_final = data_pdi.get(f"{key_base}_final", options[0])
+                    # Pega o valor salvo. Se não existir, retorna None (vazio)
+                    v_proc = data_pdi.get(f"{key_base}_proc", None)
+                    v_final = data_pdi.get(f"{key_base}_final", None)
                     
-                    data_pdi[f"{key_base}_proc"] = c1.radio("Avaliação de Percurso", options, horizontal=True, key=f"p_{key_base}", index=options.index(v_proc) if v_proc in options else 0, disabled=is_monitor)
-                    data_pdi[f"{key_base}_final"] = c2.radio("Avaliação Final", options, horizontal=True, key=f"f_{key_base}", index=options.index(v_final) if v_final in options else 0, disabled=is_monitor)
+                    # Calcula o índice da opção. Se for None, o radio fica desmarcado
+                    idx_proc = options.index(v_proc) if v_proc in options else None
+                    idx_final = options.index(v_final) if v_final in options else None
+                    
+                    data_pdi[f"{key_base}_proc"] = c1.radio("Avaliação de Percurso", options, horizontal=True, key=f"p_{key_base}", index=idx_proc, disabled=is_monitor)
+                    data_pdi[f"{key_base}_final"] = c2.radio("Avaliação Final", options, horizontal=True, key=f"f_{key_base}", index=idx_final, disabled=is_monitor)
                     st.divider()
 
                 st.subheader("3.3 DESENVOLVIMENTO COGNITIVO")
@@ -2908,7 +2913,12 @@ elif app_mode == "👥 Gestão de Alunos":
                         data_pdi['ling_aponta_p'] = st.checkbox("Através de apontamentos (Percurso)", value=data_pdi.get('ling_aponta_p', False))
                         data_pdi['ling_pisca_p'] = st.checkbox("Piscar dos olhos (Percurso)", value=data_pdi.get('ling_pisca_p', False))
                         data_pdi['ling_ca_p'] = st.text_input("Comunicação Alternativa. Qual? (Percurso)", value=data_pdi.get('ling_ca_p', ''))
-                        data_pdi['ling_libras_p'] = st.radio("LIBRAS (Percurso)", ["Não", "Básico", "Fluente"], horizontal=True)
+                        
+                        opts_lib = ["Não", "Básico", "Fluente"]
+                        v_lib_p = data_pdi.get('ling_libras_p', None)
+                        idx_lib_p = opts_lib.index(v_lib_p) if v_lib_p in opts_lib else None
+                        data_pdi['ling_libras_p'] = st.radio("LIBRAS (Percurso)", opts_lib, horizontal=True, index=idx_lib_p)
+                        
                         data_pdi['ling_outros_p'] = st.text_input("Outros (Percurso)", value=data_pdi.get('ling_outros_p', ''))
                     with c2:
                         st.markdown("*Avaliação Final*")
@@ -2916,7 +2926,11 @@ elif app_mode == "👥 Gestão de Alunos":
                         data_pdi['ling_aponta_f'] = st.checkbox("Através de apontamentos (Final)", value=data_pdi.get('ling_aponta_f', False))
                         data_pdi['ling_pisca_f'] = st.checkbox("Piscar dos olhos (Final)", value=data_pdi.get('ling_pisca_f', False))
                         data_pdi['ling_ca_f'] = st.text_input("Comunicação Alternativa. Qual? (Final)", value=data_pdi.get('ling_ca_f', ''))
-                        data_pdi['ling_libras_f'] = st.radio("LIBRAS (Final)", ["Não", "Básico", "Fluente"], horizontal=True)
+                        
+                        v_lib_f = data_pdi.get('ling_libras_f', None)
+                        idx_lib_f = opts_lib.index(v_lib_f) if v_lib_f in opts_lib else None
+                        data_pdi['ling_libras_f'] = st.radio("LIBRAS (Final)", opts_lib, horizontal=True, index=idx_lib_f)
+                        
                         data_pdi['ling_outros_f'] = st.text_input("Outros (Final)", value=data_pdi.get('ling_outros_f', ''))
                     st.divider()
 
@@ -2954,10 +2968,14 @@ elif app_mode == "👥 Gestão de Alunos":
                     c1, c2 = st.columns(2)
                     opts_braille = ["Não utiliza", "Com autonomia.", "Com apoio.", "Com dificuldade."]
                     with c1:
-                        data_pdi['braille_p'] = st.radio("BRAILLE (Percurso)", opts_braille)
+                        v_br_p = data_pdi.get('braille_p', None)
+                        idx_br_p = opts_braille.index(v_br_p) if v_br_p in opts_braille else None
+                        data_pdi['braille_p'] = st.radio("BRAILLE (Percurso)", opts_braille, index=idx_br_p)
                         data_pdi['leitura_outros_p'] = st.text_input("Outros (Leitura - Percurso)", value=data_pdi.get('leitura_outros_p', ''))
                     with c2:
-                        data_pdi['braille_f'] = st.radio("BRAILLE (Final)", opts_braille)
+                        v_br_f = data_pdi.get('braille_f', None)
+                        idx_br_f = opts_braille.index(v_br_f) if v_br_f in opts_braille else None
+                        data_pdi['braille_f'] = st.radio("BRAILLE (Final)", opts_braille, index=idx_br_f)
                         data_pdi['leitura_outros_f'] = st.text_input("Outros (Leitura - Final)", value=data_pdi.get('leitura_outros_f', ''))
                 
                 data_pdi['ling_obs'] = st.text_area("Observações Gerais (Linguagem e Comunicação)", value=data_pdi.get('ling_obs', ''), disabled=is_monitor)

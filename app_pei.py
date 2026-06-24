@@ -11586,7 +11586,7 @@ if st.session_state.get('authenticated'):
 # ==============================================================================
 # VIEW: DOWNLOAD EM LOTE (LEITURA DINÂMICA DE CÓDIGO)
 # ==============================================================================
-elif app_mode and "📦 Download em Lote" in app_mode:
+if app_mode == "📦 Download em Lote":
     st.markdown('<div class="header-box"><div class="header-title">📦 Download em Lote Automático</div></div>', unsafe_allow_html=True)
     st.write("Exporte os documentos de vários estudantes simultaneamente. O sistema extrai dinamicamente a lógica de geração do próprio código.")
     

@@ -2839,7 +2839,7 @@ elif app_mode == "👥 Gestão de Alunos":
         tabs = st.tabs([
             "Item 3: Avaliação Pedagógica",
             "Item 4: PAEE",
-            "Assinaturas"
+            "Assinaturas",
             "PDF Final",
             "Histórico"
         ])

@@ -3017,6 +3017,9 @@ elif app_mode == "👥 Gestão de Alunos":
                 st.divider()
                 st.subheader("4.2 Objetivos da ação educativa")
                 
+                st.divider()
+                st.subheader("4.2 Objetivos da ação educativa")
+                
                 def render_semestres(label, key_base):
                     st.markdown(f"**{label}**")
                     cs1, cs2 = st.columns(2)
@@ -3036,6 +3039,13 @@ elif app_mode == "👥 Gestão de Alunos":
                         key=f"txt_2sem_{key_base}"
                     )
                     st.divider()
+
+                # ---- COLOQUE ESTAS 4 LINHAS AQUI ----
+                render_semestres("DESENVOLVIMENTO COGNITIVO", "cog")
+                render_semestres("DESENVOLVIMENTO MOTOR", "mot")
+                render_semestres("HABILIDADES PESSOAIS E DE SOCIALIZAÇÃO", "soc")
+                render_semestres("FUNÇÃO DO BRINCAR", "bri")
+                # -------------------------------------
                 
                 if st.form_submit_button("💾 Salvar PAEE"):
                     save_student("PDI", data_pdi.get('nome'), data_pdi, "Plano AEE (PAEE)")

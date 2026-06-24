@@ -11655,4 +11655,4 @@ if app_mode == "📦 Download em Lote":
                             
                     if not codigo_pdf_dinamico:
                         st.error(f"⚠️ O sistema não conseguiu encontrar a lógica de desenho dinâmico para: {tipo_doc_lote}.")
-                    else:V
+                    else:

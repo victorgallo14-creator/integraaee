@@ -1749,7 +1749,7 @@ elif app_mode == "👥 Gestão de Alunos":
             "Estudo de Caso", 
             "PEI - Ensino Fundamental", 
             "PEI - Educação Infantil", 
-            "PDI", 
+            "PDI - Pré Escola e Ens. Fundamental", 
             "Protocolo de Conduta", 
             "Avaliação de Apoio", 
             "Avaliação de Apoio 2.0", # <--- ADICIONE ESTA LINHA AQUI
@@ -2828,7 +2828,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
 
 # --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
-    if doc_mode == "PDI":
+    if doc_mode == "PDI - Pré Escola e Ens. Fundamental":
         st.markdown(f"""<div class="header-box"><div class="header-title">PDI - Plano de Desenvolvimento Individual</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
 

@@ -11609,71 +11609,79 @@ if app_mode == "📦 Download em Lote":
             if not alunos_selecionados:
                 st.error("Selecione pelo menos um estudante.")
             else:
-                with st.spinner("Lendo o próprio código fonte e gerando PDFs..."):
+                with st.spinner("Lendo o código fonte e gerando PDFs..."):
                     import textwrap
+                    import re
                     
-                    # 1. Abre e lê a si próprio (o arquivo app_pei.py atual)
+                    # 1. Abre e lê a si próprio (o arquivo atual)
                     with open(__file__, "r", encoding="utf-8") as f:
                         codigo_fonte = f.read()
                     
                     codigo_pdf_dinamico = ""
                     
-                    # 2. Dicionário de Marcadores: Onde a mágica do PDF "começa" e "termina" em cada tela
-                    marcadores = {
-                        "PEI": ("pdf = OfficialPDF('L', 'mm', 'A4')", "get_pdf_bytes(pdf)"),
-                        "CASO": ("def calc_lines(pdf, text, w):", "get_pdf_bytes(pdf)"),
-                        "AVALIACAO": ("def check_page_break(pdf, required_height=30):", "get_pdf_bytes(pdf)"),
-                        "PDI": ("pdf = OfficialPDF('P', 'mm', 'A4')\n                pdf.set_auto_page_break", "get_pdf_bytes(pdf)"),
-                        "CONDUTA": ("pdf = OfficialPDF('P', 'mm', 'A4')", "get_pdf_bytes(pdf)"),
-                        "DIARIO": ("pdf = OfficialPDF('P', 'mm', 'A4')", "get_pdf_bytes(pdf)")
+                    # 2. Mapeamento de onde o código de cada tela fica no seu arquivo
+                    map_doc_mode = {
+                        "PEI": "PEI",
+                        "CASO": "Estudo de Caso",
+                        "AVALIACAO": "Avaliação de Apoio", 
+                        "PDI": "PDI - Pré Escola e Ens. Fundamental",
+                        "CONDUTA": "Protocolo de Conduta",
+                        "DIARIO": "Relatório de Acompanhamento"
                     }
                     
-                    if tipo_doc_lote in marcadores:
-                        inicio_txt, fim_txt = marcadores[tipo_doc_lote]
+                    doc_target = map_doc_mode.get(tipo_doc_lote, "PEI")
+                    
+                    # Localiza a "âncora" exata de onde a tela começa
+                    ancora_match = re.search(rf'doc_mode\s*==\s*"{doc_target}"', codigo_fonte)
+                    ancora = ancora_match.start() if ancora_match else 0
+                    codigo_busca = codigo_fonte[ancora:]
+                    
+                    # 3. MÁGICA: Usa Regex para encontrar o bloco FPDF independente de aspas ou quebras
+                    padrao_pdf = r"(pdf\s*=\s*OfficialPDF.*?get_pdf_bytes\s*\(\s*[a-zA-Z0-9_]+\s*\))"
+                    match_pdf = re.search(padrao_pdf, codigo_busca, re.DOTALL)
+                    
+                    if match_pdf:
+                        start_idx = match_pdf.start(1)
+                        end_idx = match_pdf.end(1)
                         
-                        # Define uma âncora de busca baseada no tipo para não confundir os códigos
-                        ancora = codigo_fonte.find(f'doc_mode == "{tipo_doc_lote}"') if tipo_doc_lote != "PEI" else codigo_fonte.find('doc_mode == "PEI"')
-                        if ancora == -1: ancora = 0
+                        # 4. CAPTURA A LINHA INTEIRA: Evita o erro de Invalid Syntax garantindo os espaços corretos
+                        inicio_linha = codigo_busca.rfind('\n', 0, start_idx)
+                        fim_linha = codigo_busca.find('\n', end_idx)
+                        if inicio_linha == -1: inicio_linha = 0
+                        if fim_linha == -1: fim_linha = len(codigo_busca)
                         
-                        inicio = codigo_fonte.find(inicio_txt, ancora)
-                        fim = codigo_fonte.find(fim_txt, inicio)
-                        
-                        if inicio != -1 and fim != -1:
-                            # Recorta apenas a parte do desenho do PDF
-                            codigo_cru = codigo_fonte[inicio:fim]
-                            # Remove as indentações excessivas geradas pelos vários `if/else` e `with tabs` do seu layout
-                            codigo_pdf_dinamico = textwrap.dedent(codigo_cru)
+                        codigo_cru = codigo_busca[inicio_linha:fim_linha]
+                        codigo_pdf_dinamico = textwrap.dedent(codigo_cru)
                             
                     if not codigo_pdf_dinamico:
-                        st.error(f"⚠️ O sistema não conseguiu encontrar os blocos de desenho dinâmico para: {tipo_doc_lote}. Verifique os marcadores.")
+                        st.error(f"⚠️ O sistema não conseguiu encontrar a lógica de desenho dinâmico para: {tipo_doc_lote}.")
                     else:
-                        # 3. Execução das rotinas para preencher o ZIP
+                        # 5. Executa o código e gera o ZIP
                         zip_buffer = io.BytesIO()
                         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                             for aluno_nome in alunos_selecionados:
                                 row = df_db[(df_db['nome'] == aluno_nome) & (df_db['tipo_doc'] == tipo_doc_lote)].iloc[0]
                                 dados_aluno = json.loads(row['dados_json'])
                                 
-                                # Como o seu código original espera encontrar uma variável chamada "data", "data_case" ou "data_pdi"...
-                                # Nós injetamos ela artificialmente para ele não "quebrar"
+                                # Simula as variáveis exatas que a sua tela pede
                                 env_local = {
                                     'data': dados_aluno,
                                     'data_case': dados_aluno,
                                     'data_aval': dados_aluno,
+                                    'data_aval2': dados_aluno,
                                     'data_pdi': dados_aluno,
                                     'data_conduta': dados_aluno,
                                     'data_diario': dados_aluno,
                                     'pei_level': dados_aluno.get('modelo_pei_salvo', 'Fundamental'),
-                                    'mes_sel': datetime.now().month, # Variável simulada se for diário
-                                    'ano_sel': datetime.now().year,  # Variável simulada se for diário
-                                    'logs_mensais': dados_aluno.get('logs', {}) # Variável simulada
+                                    'mes_sel': datetime.now().strftime("%B"), 
+                                    'ano_sel': datetime.now().year,
+                                    'logs_mensais': dados_aluno.get('logs', {})
                                 }
                                 
                                 try:
-                                    # Executa a mágica! Roda as linhas de código FPDF do seu próprio arquivo string.
+                                    # Roda as linhas e injeta no ZIP!
                                     exec(codigo_pdf_dinamico, globals(), env_local)
                                     
-                                    # Captura o PDF final das variáveis locais geradas pelo 'exec'
                                     pdf_gerado = env_local['pdf']
                                     pdf_bytes = get_pdf_bytes(pdf_gerado)
                                     
@@ -11682,7 +11690,7 @@ if app_mode == "📦 Download em Lote":
                                 except Exception as e:
                                     st.error(f"Erro ao processar documento de {aluno_nome}: {e}")
                                     
-                        st.success("✅ Arquivo ZIP gerado com sucesso lendo o próprio arquivo.")
+                        st.success("✅ Arquivo ZIP gerado com sucesso!")
                         st.download_button(
                             label="📥 Baixar Arquivo ZIP",
                             data=zip_buffer.getvalue(),

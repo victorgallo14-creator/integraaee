@@ -11665,6 +11665,7 @@ if app_mode == "📦 Download em Lote":
                                 
                                 # Simula as variáveis exatas que a sua tela pede
                                 env_local = {
+                                    'pdf': None, # Inicializa a variável que o seu código vai preencher
                                     'data': dados_aluno,
                                     'data_case': dados_aluno,
                                     'data_aval': dados_aluno,
@@ -11679,22 +11680,18 @@ if app_mode == "📦 Download em Lote":
                                 }
                                 
                                 try:
-                                    # Roda as linhas e injeta no ZIP!
+                                    # Executa o bloco extraído do seu próprio código
                                     exec(codigo_pdf_dinamico, globals(), env_local)
                                     
-                                    pdf_gerado = env_local['pdf']
-                                    pdf_bytes = get_pdf_bytes(pdf_gerado)
+                                    # 2. Agora verificamos se o 'pdf' foi populado pelo código executado
+                                    pdf_gerado = env_local.get('pdf')
                                     
-                                    nome_arquivo = f"{tipo_doc_lote}_{aluno_nome.replace(' ', '_')}.pdf"
-                                    zip_file.writestr(nome_arquivo, pdf_bytes)
+                                    if pdf_gerado is not None:
+                                        pdf_bytes = get_pdf_bytes(pdf_gerado)
+                                        nome_arquivo = f"{tipo_doc_lote}_{aluno_nome.replace(' ', '_')}.pdf"
+                                        zip_file.writestr(nome_arquivo, pdf_bytes)
+                                    else:
+                                        st.error(f"Erro: O código gerado não criou o objeto 'pdf' para {aluno_nome}.")
+                                        
                                 except Exception as e:
                                     st.error(f"Erro ao processar documento de {aluno_nome}: {e}")
-                                    
-                        st.success("✅ Arquivo ZIP gerado com sucesso!")
-                        st.download_button(
-                            label="📥 Baixar Arquivo ZIP",
-                            data=zip_buffer.getvalue(),
-                            file_name=f"Lote_{tipo_doc_lote}_{datetime.now().strftime('%d%m%Y')}.zip",
-                            mime="application/zip",
-                            use_container_width=True
-                        )

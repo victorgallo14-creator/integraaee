@@ -3720,11 +3720,54 @@ elif app_mode == "👥 Gestão de Alunos":
                     
                     pdf.set_xy(x_start, y_start + h_row)
 
-                # Assinatura física final da página
+                # ==========================================================
+                # BLOCO VISUAL DE ASSINATURAS NO FINAL DO DOCUMENTO
+                # ==========================================================
+                # Verifica o espaço na página (se estiver muito no fim, joga pra próxima)
+                if pdf.get_y() > 150: 
+                    pdf.add_page(orientation='L')
+                    
                 pdf.ln(15)
-                pdf.set_font("Arial", "", 10)
-                pdf.cell(0, 10, "Assinatura docente:_______________________________________________________    Data: ___/___/___", 0, 1, 'L')
-
+                pdf.set_font("Arial", "B", 11)
+                pdf.cell(0, 8, "REGISTRO DE ASSINATURAS", 0, 1, 'L')
+                
+                signatures = data_pdi.get('signatures', [])
+                if signatures:
+                    pdf.set_font("Arial", "", 10)
+                    pdf.cell(0, 6, clean_pdf_text("Este documento foi assinado digitalmente no sistema Integra pelos seguintes profissionais:"), 0, 1, 'L')
+                    pdf.ln(5)
+                    
+                    for sig in signatures:
+                        x_start = pdf.get_x()
+                        
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(15, 6, "Nome:", 0, 0, 'L')
+                        pdf.set_font("Arial", "", 10)
+                        pdf.cell(100, 6, clean_pdf_text(sig.get('name', '')), 0, 0, 'L')
+                        
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(15, 6, "Cargo:", 0, 0, 'L')
+                        pdf.set_font("Arial", "", 10)
+                        pdf.cell(80, 6, clean_pdf_text(sig.get('role', '')), 0, 0, 'L')
+                        
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(12, 6, "Data:", 0, 0, 'L')
+                        pdf.set_font("Arial", "", 10)
+                        pdf.cell(0, 6, clean_pdf_text(sig.get('date', '')), 0, 1, 'L')
+                        
+                        pdf.ln(2) # Espaço entre as assinaturas
+                else:
+                    # Se ninguém assinou no sistema, deixa a linha física
+                    pdf.set_font("Arial", "", 10)
+                    pdf.cell(0, 6, clean_pdf_text("Nenhuma assinatura digital foi registrada neste documento até o momento da geração."), 0, 1, 'L')
+                    pdf.ln(20)
+                    
+                    # Linhas para assinatura manual de Prof. AEE e Gestor/Coordenação
+                    pdf.cell(120, 6, "___________________________________________________", 0, 0, 'L')
+                    pdf.cell(0, 6, "___________________________________________________", 0, 1, 'L')
+                    pdf.cell(120, 6, "Professor(a) AEE", 0, 0, 'L')
+                    pdf.cell(0, 6, "Coordenação / Gestão Escolar", 0, 1, 'L')
+                
                 # ==========================================================
                 # FINALIZAÇÃO PDF
                 # ==========================================================

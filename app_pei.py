@@ -11583,65 +11583,109 @@ if st.session_state.get('authenticated'):
 
 
 # ==============================================================================
-# VIEW: DOWNLOAD EM LOTE
+# VIEW: DOWNLOAD EM LOTE (LEITURA DINÂMICA DE CÓDIGO)
 # ==============================================================================
 elif app_mode == "📦 Download em Lote":
-    st.markdown('<div class="header-box"><div class="header-title">📦 Download em Lote de Documentos</div></div>', unsafe_allow_html=True)
-    st.write("Exporte os documentos de vários estudantes simultaneamente em um arquivo ZIP.")
+    st.markdown('<div class="header-box"><div class="header-title">📦 Download em Lote Automático</div></div>', unsafe_allow_html=True)
+    st.write("Exporte os documentos de vários estudantes simultaneamente. O sistema extrai dinamicamente a lógica de geração do próprio código.")
     
     df_db = load_db()
     
     if df_db.empty:
         st.warning("Nenhum dado encontrado no banco.")
     else:
-        # 1. Filtros
         col1, col2 = st.columns(2)
-        tipo_doc_lote = col1.selectbox("Qual documento deseja baixar?", ["PEI", "CASO", "AVALIACAO"])
+        tipo_doc_lote = col1.selectbox("Qual documento deseja baixar em lote?", ["PEI", "CASO", "AVALIACAO", "PDI", "CONDUTA", "DIARIO"])
         
-        # Filtra apenas os alunos que têm o documento selecionado como "Concluído" (Opcional, pode remover o filtro de status se quiser baixar todos)
+        # Filtra os estudantes disponíveis para o tipo de documento selecionado
         alunos_disponiveis = []
         for idx, row in df_db[df_db['tipo_doc'] == tipo_doc_lote].iterrows():
-            try:
-                d = json.loads(row['dados_json'])
-                if d.get('status_elaboracao') == "Concluído" or tipo_doc_lote != "PEI":
-                    alunos_disponiveis.append(row['nome'])
-            except: pass
+            alunos_disponiveis.append(row['nome'])
             
-        alunos_selecionados = col2.multiselect("Selecione os Estudantes:", sorted(alunos_disponiveis))
+        alunos_selecionados = col2.multiselect("Selecione os Estudantes:", sorted(list(set(alunos_disponiveis))))
         
-        # 2. Ação de Gerar ZIP
-        if st.button("🛠️ Preparar Arquivo ZIP", type="primary"):
+        if st.button("🛠️ Iniciar Processamento e Gerar ZIP", type="primary"):
             if not alunos_selecionados:
                 st.error("Selecione pelo menos um estudante.")
             else:
-                with st.spinner("Gerando PDFs... Isso pode levar alguns segundos."):
-                    # Cria um arquivo ZIP na memória
-                    zip_buffer = io.BytesIO()
+                with st.spinner("Lendo o próprio código fonte e gerando PDFs..."):
+                    import textwrap
                     
-                    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                        for aluno_nome in alunos_selecionados:
-                            # Pega os dados do banco para este aluno e documento
-                            row = df_db[(df_db['nome'] == aluno_nome) & (df_db['tipo_doc'] == tipo_doc_lote)].iloc[0]
-                            dados_aluno = json.loads(row['dados_json'])
+                    # 1. Abre e lê a si próprio (o arquivo app_pei.py atual)
+                    with open(__file__, "r", encoding="utf-8") as f:
+                        codigo_fonte = f.read()
+                    
+                    codigo_pdf_dinamico = ""
+                    
+                    # 2. Dicionário de Marcadores: Onde a mágica do PDF "começa" e "termina" em cada tela
+                    marcadores = {
+                        "PEI": ("pdf = OfficialPDF('L', 'mm', 'A4')", "get_pdf_bytes(pdf)"),
+                        "CASO": ("def calc_lines(pdf, text, w):", "get_pdf_bytes(pdf)"),
+                        "AVALIACAO": ("def check_page_break(pdf, required_height=30):", "get_pdf_bytes(pdf)"),
+                        "PDI": ("pdf = OfficialPDF('P', 'mm', 'A4')\n                pdf.set_auto_page_break", "get_pdf_bytes(pdf)"),
+                        "CONDUTA": ("pdf = OfficialPDF('P', 'mm', 'A4')", "get_pdf_bytes(pdf)"),
+                        "DIARIO": ("pdf = OfficialPDF('P', 'mm', 'A4')", "get_pdf_bytes(pdf)")
+                    }
+                    
+                    if tipo_doc_lote in marcadores:
+                        inicio_txt, fim_txt = marcadores[tipo_doc_lote]
+                        
+                        # Define uma âncora de busca baseada no tipo para não confundir os códigos
+                        ancora = codigo_fonte.find(f'doc_mode == "{tipo_doc_lote}"') if tipo_doc_lote != "PEI" else codigo_fonte.find('doc_mode == "PEI"')
+                        if ancora == -1: ancora = 0
+                        
+                        inicio = codigo_fonte.find(inicio_txt, ancora)
+                        fim = codigo_fonte.find(fim_txt, inicio)
+                        
+                        if inicio != -1 and fim != -1:
+                            # Recorta apenas a parte do desenho do PDF
+                            codigo_cru = codigo_fonte[inicio:fim]
+                            # Remove as indentações excessivas geradas pelos vários `if/else` e `with tabs` do seu layout
+                            codigo_pdf_dinamico = textwrap.dedent(codigo_cru)
                             
-                            # Gera o PDF usando sua função
-                            try:
-                                if tipo_doc_lote == "PEI":
-                                    pdf_bytes = gerar_pdf_pei_em_memoria(dados_aluno)
-                                    nome_arquivo = f"PEI_{aluno_nome.replace(' ', '_')}.pdf"
-                                # Adicione 'elif' aqui se criar funções para "CASO" ou "AVALIACAO"
+                    if not codigo_pdf_dinamico:
+                        st.error(f"⚠️ O sistema não conseguiu encontrar os blocos de desenho dinâmico para: {tipo_doc_lote}. Verifique os marcadores.")
+                    else:
+                        # 3. Execução das rotinas para preencher o ZIP
+                        zip_buffer = io.BytesIO()
+                        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                            for aluno_nome in alunos_selecionados:
+                                row = df_db[(df_db['nome'] == aluno_nome) & (df_db['tipo_doc'] == tipo_doc_lote)].iloc[0]
+                                dados_aluno = json.loads(row['dados_json'])
                                 
-                                # Salva o PDF dentro do ZIP
-                                zip_file.writestr(nome_arquivo, pdf_bytes)
-                            except Exception as e:
-                                st.error(f"Erro ao gerar documento de {aluno_nome}: {e}")
+                                # Como o seu código original espera encontrar uma variável chamada "data", "data_case" ou "data_pdi"...
+                                # Nós injetamos ela artificialmente para ele não "quebrar"
+                                env_local = {
+                                    'data': dados_aluno,
+                                    'data_case': dados_aluno,
+                                    'data_aval': dados_aluno,
+                                    'data_pdi': dados_aluno,
+                                    'data_conduta': dados_aluno,
+                                    'data_diario': dados_aluno,
+                                    'pei_level': dados_aluno.get('modelo_pei_salvo', 'Fundamental'),
+                                    'mes_sel': datetime.now().month, # Variável simulada se for diário
+                                    'ano_sel': datetime.now().year,  # Variável simulada se for diário
+                                    'logs_mensais': dados_aluno.get('logs', {}) # Variável simulada
+                                }
                                 
-                    # Prepara o botão de download
-                    st.success("✅ Arquivo ZIP gerado com sucesso!")
-                    st.download_button(
-                        label="📥 Baixar Arquivo ZIP",
-                        data=zip_buffer.getvalue(),
-                        file_name=f"Documentos_{tipo_doc_lote}_{datetime.now().strftime('%d%m%Y')}.zip",
-                        mime="application/zip",
-                        use_container_width=True
-                    )
+                                try:
+                                    # Executa a mágica! Roda as linhas de código FPDF do seu próprio arquivo string.
+                                    exec(codigo_pdf_dinamico, globals(), env_local)
+                                    
+                                    # Captura o PDF final das variáveis locais geradas pelo 'exec'
+                                    pdf_gerado = env_local['pdf']
+                                    pdf_bytes = get_pdf_bytes(pdf_gerado)
+                                    
+                                    nome_arquivo = f"{tipo_doc_lote}_{aluno_nome.replace(' ', '_')}.pdf"
+                                    zip_file.writestr(nome_arquivo, pdf_bytes)
+                                except Exception as e:
+                                    st.error(f"Erro ao processar documento de {aluno_nome}: {e}")
+                                    
+                        st.success("✅ Arquivo ZIP gerado com sucesso lendo o próprio arquivo.")
+                        st.download_button(
+                            label="📥 Baixar Arquivo ZIP",
+                            data=zip_buffer.getvalue(),
+                            file_name=f"Lote_{tipo_doc_lote}_{datetime.now().strftime('%d%m%Y')}.zip",
+                            mime="application/zip",
+                            use_container_width=True
+                        )

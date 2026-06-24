@@ -1218,7 +1218,7 @@ with st.sidebar:
         # ADICIONADA A CHAVE: key="nav_especial"
         app_mode = st.radio(
             "Navegação", 
-            ["📊 Painel de Gestão", "👥 Gestão de Alunos", "🖼️ Carômetro"], 
+            ["📊 Painel de Gestão", "👥 Gestão de Alunos", "🖼️ Carômetro", "📦 Download em Lote"], 
             label_visibility="collapsed",
             key="nav_especial"
         )
@@ -11580,3 +11580,68 @@ if st.session_state.get('authenticated'):
 
 
     
+
+
+# ==============================================================================
+# VIEW: DOWNLOAD EM LOTE
+# ==============================================================================
+elif app_mode == "📦 Download em Lote":
+    st.markdown('<div class="header-box"><div class="header-title">📦 Download em Lote de Documentos</div></div>', unsafe_allow_html=True)
+    st.write("Exporte os documentos de vários estudantes simultaneamente em um arquivo ZIP.")
+    
+    df_db = load_db()
+    
+    if df_db.empty:
+        st.warning("Nenhum dado encontrado no banco.")
+    else:
+        # 1. Filtros
+        col1, col2 = st.columns(2)
+        tipo_doc_lote = col1.selectbox("Qual documento deseja baixar?", ["PEI", "CASO", "AVALIACAO"])
+        
+        # Filtra apenas os alunos que têm o documento selecionado como "Concluído" (Opcional, pode remover o filtro de status se quiser baixar todos)
+        alunos_disponiveis = []
+        for idx, row in df_db[df_db['tipo_doc'] == tipo_doc_lote].iterrows():
+            try:
+                d = json.loads(row['dados_json'])
+                if d.get('status_elaboracao') == "Concluído" or tipo_doc_lote != "PEI":
+                    alunos_disponiveis.append(row['nome'])
+            except: pass
+            
+        alunos_selecionados = col2.multiselect("Selecione os Estudantes:", sorted(alunos_disponiveis))
+        
+        # 2. Ação de Gerar ZIP
+        if st.button("🛠️ Preparar Arquivo ZIP", type="primary"):
+            if not alunos_selecionados:
+                st.error("Selecione pelo menos um estudante.")
+            else:
+                with st.spinner("Gerando PDFs... Isso pode levar alguns segundos."):
+                    # Cria um arquivo ZIP na memória
+                    zip_buffer = io.BytesIO()
+                    
+                    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                        for aluno_nome in alunos_selecionados:
+                            # Pega os dados do banco para este aluno e documento
+                            row = df_db[(df_db['nome'] == aluno_nome) & (df_db['tipo_doc'] == tipo_doc_lote)].iloc[0]
+                            dados_aluno = json.loads(row['dados_json'])
+                            
+                            # Gera o PDF usando sua função
+                            try:
+                                if tipo_doc_lote == "PEI":
+                                    pdf_bytes = gerar_pdf_pei_em_memoria(dados_aluno)
+                                    nome_arquivo = f"PEI_{aluno_nome.replace(' ', '_')}.pdf"
+                                # Adicione 'elif' aqui se criar funções para "CASO" ou "AVALIACAO"
+                                
+                                # Salva o PDF dentro do ZIP
+                                zip_file.writestr(nome_arquivo, pdf_bytes)
+                            except Exception as e:
+                                st.error(f"Erro ao gerar documento de {aluno_nome}: {e}")
+                                
+                    # Prepara o botão de download
+                    st.success("✅ Arquivo ZIP gerado com sucesso!")
+                    st.download_button(
+                        label="📥 Baixar Arquivo ZIP",
+                        data=zip_buffer.getvalue(),
+                        file_name=f"Documentos_{tipo_doc_lote}_{datetime.now().strftime('%d%m%Y')}.zip",
+                        mime="application/zip",
+                        use_container_width=True
+                    )

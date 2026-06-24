@@ -11655,43 +11655,4 @@ if app_mode == "📦 Download em Lote":
                             
                     if not codigo_pdf_dinamico:
                         st.error(f"⚠️ O sistema não conseguiu encontrar a lógica de desenho dinâmico para: {tipo_doc_lote}.")
-                    else:
-                        # 5. Executa o código e gera o ZIP
-                        zip_buffer = io.BytesIO()
-                        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                            for aluno_nome in alunos_selecionados:
-                                row = df_db[(df_db['nome'] == aluno_nome) & (df_db['tipo_doc'] == tipo_doc_lote)].iloc[0]
-                                dados_aluno = json.loads(row['dados_json'])
-                                
-                                # Simula as variáveis exatas que a sua tela pede
-                                env_local = {
-                                    'pdf': None, # Inicializa a variável que o seu código vai preencher
-                                    'data': dados_aluno,
-                                    'data_case': dados_aluno,
-                                    'data_aval': dados_aluno,
-                                    'data_aval2': dados_aluno,
-                                    'data_pdi': dados_aluno,
-                                    'data_conduta': dados_aluno,
-                                    'data_diario': dados_aluno,
-                                    'pei_level': dados_aluno.get('modelo_pei_salvo', 'Fundamental'),
-                                    'mes_sel': datetime.now().strftime("%B"), 
-                                    'ano_sel': datetime.now().year,
-                                    'logs_mensais': dados_aluno.get('logs', {})
-                                }
-                                
-                                try:
-                                    # Executa o bloco extraído do seu próprio código
-                                    exec(codigo_pdf_dinamico, globals(), env_local)
-                                    
-                                    # 2. Agora verificamos se o 'pdf' foi populado pelo código executado
-                                    pdf_gerado = env_local.get('pdf')
-                                    
-                                    if pdf_gerado is not None:
-                                        pdf_bytes = get_pdf_bytes(pdf_gerado)
-                                        nome_arquivo = f"{tipo_doc_lote}_{aluno_nome.replace(' ', '_')}.pdf"
-                                        zip_file.writestr(nome_arquivo, pdf_bytes)
-                                    else:
-                                        st.error(f"Erro: O código gerado não criou o objeto 'pdf' para {aluno_nome}.")
-                                        
-                                except Exception as e:
-                                    st.error(f"Erro ao processar documento de {aluno_nome}: {e}")
+                    else:V

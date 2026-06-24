@@ -2839,6 +2839,7 @@ elif app_mode == "👥 Gestão de Alunos":
         tabs = st.tabs([
             "Item 3: Avaliação Pedagógica",
             "Item 4: PAEE",
+            "Assinaturas"
             "PDF Final",
             "Histórico"
         ])
@@ -3050,30 +3051,65 @@ elif app_mode == "👥 Gestão de Alunos":
                 if st.form_submit_button("💾 Salvar PAEE"):
                     save_student("PDI", data_pdi.get('nome'), data_pdi, "Plano AEE (PAEE)")
 
-
-        # --- ABA 3: PDF ---
+# --- ABA 3: ASSINATURAS (NOVA) ---
         with tabs[2]:
-            st.subheader("Finalização")
+            st.subheader("Assinaturas Digitais")
+            st.caption(f"Código Único do Documento: {data_pdi.get('doc_uuid', 'Não gerado ainda')}")
             
-            # Assinaturas
+            # Identify required signers based on content (Puxando do data_case)
+            required_roles = []
+            if data_case.get('prof_poli'): required_roles.append({'role': 'Prof. Polivalente', 'name': data_case['prof_poli']})
+            if data_case.get('prof_aee'): required_roles.append({'role': 'Prof. AEE', 'name': data_case['prof_aee']})
+            if data_case.get('prof_arte'): required_roles.append({'role': 'Prof. Arte', 'name': data_case['prof_arte']})
+            if data_case.get('prof_ef'): required_roles.append({'role': 'Prof. Ed. Física', 'name': data_case['prof_ef']})
+            if data_case.get('prof_tec'): required_roles.append({'role': 'Prof. Tecnologia', 'name': data_case['prof_tec']})
+            if data_case.get('gestor'): required_roles.append({'role': 'Gestor Escolar', 'name': data_case['gestor']})
+            if data_case.get('coord'): required_roles.append({'role': 'Coordenação', 'name': data_case['coord']})
+            
+            # Show list of signatories
+            if required_roles:
+                st.markdown("##### Profissionais Citados no Documento")
+                for r in required_roles:
+                    st.write(f"- **{r['role']}:** {r['name']}")
+            else:
+                st.info("Nenhum profissional identificado automaticamente nos campos.")
+
+            st.divider()
+            
+            # Current Signatures
             current_signatures = data_pdi.get('signatures', [])
             if current_signatures:
-                st.success(f"Assinado por: {', '.join([s['name'] for s in current_signatures])}")
+                st.success("✅ Documento assinado por:")
+                for sig in current_signatures:
+                    st.write(f"✍️ **{sig['name']}** ({sig.get('role', 'Profissional')}) em {sig['date']}")
+            else:
+                st.warning("Nenhuma assinatura registrada.")
+
+            st.divider()
+
+            # Ação de assinar
+            opcoes_cargos = ["Professor AEE", "Prof. Polivalente", "Gestão Escolar", "Coordenação Pedagógica", "Outro"]
+            cargo_selecionado = st.selectbox("Assinar como:", opcoes_cargos)
             
-            if st.button("🖊️ Assinar como Prof. AEE"):
-                new_sig = {"name": st.session_state.get('usuario_nome',''), "date": datetime.now().strftime("%d/%m/%Y"), "role": "Professor AEE"}
+            if st.button("🖊️ Assinar Digitalmente"):
+                new_sig = {"name": st.session_state.get('usuario_nome',''), "date": datetime.now().strftime("%d/%m/%Y"), "role": cargo_selecionado}
                 if 'signatures' not in data_pdi: data_pdi['signatures'] = []
                 data_pdi['signatures'].append(new_sig)
                 save_student("PDI", data_pdi.get('nome'), data_pdi, "Assinatura")
                 st.rerun()
-            
-            st.divider()
+
+        # --- ABA 4: PDF ---
+        with tabs[3]:
+            st.subheader("Geração do Documento")
+            st.info("O rodapé de cada página no PDF trará a validação das assinaturas digitais, garantindo a autenticidade.")
             
             if st.button("👁️ GERAR PDI COMPLETO (PDF)"):
                 log_action(data_pdi.get('nome'), "Gerou PDF", "PDI Completo")
                 
                 pdf = OfficialPDF('P', 'mm', 'A4')
                 pdf.set_auto_page_break(auto=True, margin=15)
+                
+                # A mágica da assinatura de rodapé
                 pdf.set_signature_footer(data_pdi.get('signatures', []), data_pdi.get('doc_uuid', ''))
                 
                 # --- CAPA PRINCIPAL ---

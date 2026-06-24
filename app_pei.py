@@ -2827,79 +2827,35 @@ elif app_mode == "👥 Gestão de Alunos":
 
 
 
-# --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO E UNIFICADO) ---
+# --- PDI - PLANO DE DESENVOLVIMENTO INDIVIDUAL (ATUALIZADO) ---
     if doc_mode == "PDI":
         st.markdown(f"""<div class="header-box"><div class="header-title">PDI - Plano de Desenvolvimento Individual</div></div>""", unsafe_allow_html=True)
         st.markdown("""<style>div[data-testid="stFormSubmitButton"] > button {width: 100%; background-color: #dcfce7; color: #166534; border: 1px solid #166534;}</style>""", unsafe_allow_html=True)
 
         data_pdi = st.session_state.data_pdi
         data_case = st.session_state.get('data_case', {})
-        
-        # Estrutura para Objetivos Específicos
-        objectives_structure = {
-            "DESENVOLVIMENTO COGNITIVO": {
-                "PERCEPÇÃO": ["Visual", "Auditiva", "Tátil", "Espacial / Lateralidade", "Temporal / Ritmo / Sequência lógica"],
-                "RACIOCÍNIO LÓGICO": ["Correspondência", "Comparação", "Classificação", "Sequenciação", "Seriação", "Inclusão", "Conservação", "Resolução de situações-problema"],
-                "OUTROS": ["Sistema Monetário", "Capacidade de Brincar", "Memória", "Atenção"]
-            },
-            "DESENVOLVIMENTO MOTOR": {
-                "COORDENAÇÃO MOTORA FINA": ["Estabilidade de punho", "Movimento de pinça", "Preensão"],
-                "COORDENAÇÃO MOTORA GLOBAL": ["Postura", "Mão de apoio", "Locomoção", "Equilíbrio"],
-                "COORDENAÇÃO VISO-MOTORA": ["Desenho", "Limites da folha e desenho", "Recorte", "Uso de cola", "Encaixes", "Reprodução de figuras", "Quebra-cabeça"],
-                "ESQUEMA CORPORAL": ["Imagem corporal", "Partes do corpo e funções", "Lateralidade"],
-                "AVD": ["Alimentação", "Higiene", "Uso funcional dos objetos", "Locomoção na escola"]
-            },
-            "FUNÇÃO PESSOAL E SOCIAL": {
-                "GERAL": ["Interação", "Iniciativa", "Comportamento", "Vida Prática"]
-            },
-            "LINGUAGEM": {
-                "GERAL": ["Verbal", "Compreensiva", "Gestual", "Ecolalia", "Escrita", "Leitura", "Libras / Braille / CA"]
-            }
-        }
 
-        # Tabs de Navegação
+        # Tabs de Navegação (Reestruturadas para o novo PAEE)
         tabs = st.tabs([
-            "Item 2: Plano AEE",
             "Item 3: Avaliação Pedagógica",
-            "Item 4: Objetivos a Atingir",
+            "Item 4: PAEE",
             "PDF Final",
             "Histórico"
         ])
         
         st.info("ℹ️ Os dados de **Identificação**, **Família**, **Histórico** e **Avaliação Geral** são importados automaticamente do módulo **Estudo de Caso** (Item 1).")
 
-        # --- ABA 1: PLANO AEE ---
+        # --- ABA 1: AVALIAÇÃO PEDAGÓGICA ---
         with tabs[0]:
-            with st.form("pdi_plano_aee"):
-                st.header("2. Plano de AEE & Ações Necessárias")
-                
-                st.subheader("2.1 Avaliação Pedagógica Inicial")
-                data_pdi['potencialidades'] = st.text_area("Potencialidades do Estudante", value=data_pdi.get('potencialidades', ''), disabled=is_monitor)
-                data_pdi['areas_interesse'] = st.text_area("Áreas de Interesse", value=data_pdi.get('areas_interesse', ''), disabled=is_monitor)
-                
-                st.divider()
-                st.subheader("2.2 Ações Necessárias")
-                data_pdi['acao_escola'] = st.text_area("Âmbito Escola", value=data_pdi.get('acao_escola', ''), disabled=is_monitor)
-                data_pdi['acao_sala'] = st.text_area("Âmbito Sala de Aula", value=data_pdi.get('acao_sala', ''), disabled=is_monitor)
-                data_pdi['acao_familia'] = st.text_area("Âmbito Família", value=data_pdi.get('acao_familia', ''), disabled=is_monitor)
-                data_pdi['acao_saude'] = st.text_area("Âmbito Saúde", value=data_pdi.get('acao_saude', ''), disabled=is_monitor)
-
-                st.divider()
-                st.subheader("2.3 Organização do AEE")
-                
-                data_pdi['aee_tempo'] = st.text_input("Tempo de Atendimento", value=data_pdi.get('aee_tempo', '50 minutos'), disabled=is_monitor)
-                
-                data_pdi['aee_tipo'] = st.radio("Local/Modalidade", ["Sala de Recursos Multifuncionais", "Trabalho Colaborativo", "Itinerante", "Domiciliar"], horizontal=True, disabled=is_monitor)
-                data_pdi['aee_comp'] = st.radio("Composição", ["Individual", "Grupal"], horizontal=True, disabled=is_monitor)
-
-                if st.form_submit_button("💾 Salvar Plano AEE"):
-                    save_student("PDI", data_pdi.get('nome'), data_pdi, "Plano AEE")
-
-        # --- ABA 2: AVALIAÇÃO PEDAGÓGICA (NOVO MODELO) ---
-        with tabs[1]:
             st.header("3. Avaliação Pedagógica")
             
             with st.form("pdi_avaliacao_form"):
+                
+                st.subheader("3.1 Potencialidades e 3.2 Áreas de Interesse")
+                data_pdi['potencialidades'] = st.text_area("3.1 Potencialidades do Estudante", value=data_pdi.get('potencialidades', ''), disabled=is_monitor)
+                data_pdi['areas_interesse'] = st.text_area("3.2 Áreas de Interesse", value=data_pdi.get('areas_interesse', ''), disabled=is_monitor)
+                st.divider()
+
                 def render_percurso_final_row(label, key_base, options=["Sim", "Não", "Parcialmente"]):
                     st.markdown(f"**{label}**")
                     c1, c2 = st.columns(2)
@@ -3042,29 +2998,43 @@ elif app_mode == "👥 Gestão de Alunos":
                 if st.form_submit_button("💾 Salvar Avaliação Pedagógica"):
                     save_student("PDI", data_pdi.get('nome'), data_pdi, "Avaliação Pedagógica")
 
-        # --- ABA 3: OBJETIVOS E METAS (ITEM 4 - DETALHADO) ---
-        with tabs[2]:
-            st.header("4. Objetivos a serem Atingidos")
-            st.info("Descreva os objetivos específicos para cada área de desenvolvimento.")
+        # --- ABA 2: PAEE (NOVA) ---
+        with tabs[1]:
+            st.header("4. Plano de Atendimento Educacional Especializado (PAEE)")
             
-            with st.form("pdi_objetivos_detalhado"):
-                if 'goals_specific' not in data_pdi: data_pdi['goals_specific'] = {}
+            with st.form("pdi_paee_form"):
+                st.subheader("4.1 Organização do AEE")
+                
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.markdown("**Sala de Recursos**")
+                    data_pdi['paee_freq_sr'] = st.radio("Frequência Semanal", ["Não realiza", "1x", "2x", "3x", "4x ou mais"], horizontal=True)
+                    data_pdi['paee_atend_sr'] = st.radio("Atendimento", ["Individual", "Grupo"], horizontal=True)
+                with c2:
+                    st.markdown("**Colaborativo**")
+                    data_pdi['paee_freq_colab'] = st.radio("Frequência Semanal (Colab.)", ["Não realiza", "1x", "2x", "3x", "4x ou mais"], horizontal=True)
 
-                for category, subcats in objectives_structure.items():
-                    with st.expander(f"📍 {category}", expanded=False):
-                        for subcat_name, items_list in subcats.items():
-                            st.markdown(f"**{subcat_name}**")
-                            for item in items_list:
-                                item_key = f"goal_{category}_{subcat_name}_{item}".replace(" ", "_").lower()
-                                val = data_pdi['goals_specific'].get(item_key, "")
-                                data_pdi['goals_specific'][item_key] = st.text_input(f"{item}:", value=val, disabled=is_monitor)
-                            st.divider()
+                st.divider()
+                st.subheader("4.2 Objetivos da ação educativa")
+                
+                def render_semestres(label, key_base):
+                    st.markdown(f"**{label}**")
+                    cs1, cs2 = st.columns(2)
+                    data_pdi[f"obj_{key_base}_1sem"] = cs1.text_area("1º Semestre", value=data_pdi.get(f"obj_{key_base}_1sem", ""), height=100)
+                    data_pdi[f"obj_{key_base}_2sem"] = cs2.text_area("2º Semestre", value=data_pdi.get(f"obj_{key_base}_2sem", ""), height=100)
+                    st.divider()
 
-                if st.form_submit_button("💾 Salvar Objetivos"):
-                    save_student("PDI", data_pdi.get('nome'), data_pdi, "Objetivos Detalhados")
+                render_semestres("DESENVOLVIMENTO COGNITIVO", "cog")
+                render_semestres("DESENVOLVIMENTO MOTOR", "mot")
+                render_semestres("HABILIDADES PESSOAIS E DE SOCIALIZAÇÃO", "soc")
+                render_semestres("FUNÇÃO DO BRINCAR", "bri")
+                
+                if st.form_submit_button("💾 Salvar PAEE"):
+                    save_student("PDI", data_pdi.get('nome'), data_pdi, "Plano AEE (PAEE)")
 
-        # --- ABA 4: PDF ---
-        with tabs[3]:
+
+        # --- ABA 3: PDF ---
+        with tabs[2]:
             st.subheader("Finalização")
             
             # Assinaturas
@@ -3121,7 +3091,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.cell(0, 10, "ESTUDO DE CASO", 0, 1, 'C')
 
                 # ==========================================================
-                # INÍCIO DO CONTEÚDO DO ESTUDO DE CASO (INTEGRADO NO PDI)
+                # INÍCIO DO CONTEÚDO DO ESTUDO DE CASO
                 # ==========================================================
                 data = data_case  
                 pdf.set_margins(15, 15, 15)
@@ -3360,17 +3330,17 @@ elif app_mode == "👥 Gestão de Alunos":
                 pdf.cell(0, 10, clean_pdf_text("ATENDIMENTO EDUCACIONAL"), 0, 1, 'C')
                 pdf.cell(0, 10, clean_pdf_text("ESPECIALIZADO"), 0, 1, 'C')
 
-                # --- 1. AVALIAÇÃO PEDAGÓGICA DO ESTUDANTE ---
+                # --- 3. AVALIAÇÃO PEDAGÓGICA DO ESTUDANTE ---
                 pdf.add_page()
-                pdf.section_title("AVALIAÇÃO PEDAGÓGICA DO ESTUDANTE", width=0)
+                pdf.section_title("3. AVALIAÇÃO PEDAGÓGICA DO ESTUDANTE", width=0)
                 pdf.ln(5)
                 
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "1.1 POTENCIALIDADES:", 0, 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "3.1 POTENCIALIDADES:", 0, 1)
                 pdf.set_font("Arial", "", 10)
                 pdf.multi_cell(0, 5, clean_pdf_text(data_pdi.get('potencialidades', '')), 1)
 
                 pdf.ln(5)
-                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "1.2 ÁREAS DE INTERESSE:", 0, 1)
+                pdf.set_font("Arial", "B", 10); pdf.cell(0, 6, "3.2 ÁREAS DE INTERESSE:", 0, 1)
                 pdf.set_font("Arial", "", 10)
                 pdf.multi_cell(0, 5, clean_pdf_text(data_pdi.get('areas_interesse', '')), 1)
 
@@ -3402,7 +3372,6 @@ elif app_mode == "👥 Gestão de Alunos":
                     str_proc = "  ".join([f"(X) {opt}" if opt == v_proc else f"( ) {opt}" for opt in options])
                     str_final = "  ".join([f"(X) {opt}" if opt == v_final else f"( ) {opt}" for opt in options])
 
-                    # Controle de quebra de página em Landscape (Y max ~185mm)
                     if pdf_obj.get_y() > 175:
                         pdf_obj.add_page(orientation='L')
                         print_tabela_cabecalho(pdf_obj)
@@ -3461,7 +3430,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 # 3.3 COGNITIVO
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "3.3 DESENVOLVIMENTO COGNITIVO - ATENÇÃO", 1, 1, 'C', True)
+                pdf.cell(0, 8, "3.3 DESENVOLVIMENTO COGNITIVO - ATENÇÃO", 1, 1, 'L', True)
                 print_linha_paisagem(pdf, "Concentrada", "atencao_conc")
                 print_linha_paisagem(pdf, "Sustentada", "atencao_sust")
                 print_linha_paisagem(pdf, "Seletiva", "atencao_sel")
@@ -3469,7 +3438,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "PERCEPÇÃO", 1, 1, 'C', True)
+                pdf.cell(0, 8, "PERCEPÇÃO", 1, 1, 'L', True)
                 print_linha_paisagem(pdf, "Memória Visual/Percepção de dif. e semelhanças", "perc_vis")
                 print_linha_paisagem(pdf, "Percepção e Discriminação Auditiva", "perc_aud")
                 print_linha_paisagem(pdf, "Percepção Tátil", "perc_tat")
@@ -3478,14 +3447,14 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "MEMÓRIA", 1, 1, 'C', True)
+                pdf.cell(0, 8, "MEMÓRIA", 1, 1, 'L', True)
                 print_linha_paisagem(pdf, "Curto Prazo", "mem_curto")
                 print_linha_paisagem(pdf, "Médio Prazo", "mem_medio")
                 print_linha_paisagem(pdf, "Longo Prazo", "mem_longo")
 
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "FUNÇÕES EXECUTIVAS", 1, 1, 'C', True)
+                pdf.cell(0, 8, "FUNÇÕES EXECUTIVAS", 1, 1, 'L', True)
                 print_linha_paisagem(pdf, "Controle Inibitório (inibição de impulsos)", "fe_inib")
                 print_linha_paisagem(pdf, "Memória de Trabalho (reter e manipular info)", "fe_trab")
                 print_linha_paisagem(pdf, "Flexibilidade Cognitiva (adaptação a mudanças)", "fe_flex")
@@ -3494,7 +3463,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 # LINGUAGEM
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "LINGUAGEM E COMUNICAÇÃO", 1, 1, 'C', True)
+                pdf.cell(0, 8, "LINGUAGEM E COMUNICAÇÃO", 1, 1, 'L', True)
                 
                 print_linha_paisagem(pdf, "Utiliza palavras para se comunicar?", "ling_palavras")
                 
@@ -3522,12 +3491,12 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_linha_paisagem(pdf, "Reconta história / relatos do cotidiano?", "ling_reconta")
 
                 pdf.set_fill_color(240, 240, 240); pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "LINGUAGEM COMPREENSIVA", 1, 1, 'C', True)
+                pdf.cell(0, 8, "Linguagem Compreensiva", 1, 1, 'L', True)
                 print_linha_paisagem(pdf, "Compreende informações orais simples?", "ling_comp_simp")
                 print_linha_paisagem(pdf, "Compreende informações orais complexas?", "ling_comp_comp")
 
                 pdf.set_fill_color(240, 240, 240); pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "LINGUAGEM ESCRITA", 1, 1, 'C', True)
+                pdf.cell(0, 8, "Linguagem Escrita", 1, 1, 'L', True)
                 
                 opts_escrita = [
                     "Não distingue desenho, letras e números.", "Identifica e nomeia as letras.", 
@@ -3544,7 +3513,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 print_linha_paisagem_multiline(pdf, "Apresenta organização textual?", str_org_p, str_org_f)
 
                 pdf.set_fill_color(240, 240, 240); pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "LEITURA", 1, 1, 'C', True)
+                pdf.cell(0, 8, "Leitura", 1, 1, 'L', True)
                 opts_leitura = [
                     "Não realiza leitura.", "Realiza leitura apenas de palavras canônicas.", 
                     "Realiza leitura de palavras canônicas e não-canônicas.", "Realiza leitura de frases e textos com dificuldade.", 
@@ -3567,7 +3536,7 @@ elif app_mode == "👥 Gestão de Alunos":
                 # RACIOCÍNIO E DESENVOLVIMENTO MOTOR E OUTROS
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "RACIOCÍNIO E RESOLUÇÃO DE PROBLEMAS", 1, 1, 'C', True)
+                pdf.cell(0, 8, "RACIOCÍNIO E RESOLUÇÃO DE PROBLEMAS", 1, 1, 'L', True)
                 print_linha_paisagem(pdf, "a) Planeja, antecipa, argumenta?", "rac_plan")
                 print_linha_paisagem(pdf, "b) Compara, classifica, categoriza, sequencia, inferi?", "rac_comp")
                 print_linha_paisagem(pdf, "c) Conhece conceitos básicos do vocabulário matemático?", "rac_mat")
@@ -3575,7 +3544,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "3.4 DESENVOLVIMENTO MOTOR", 1, 1, 'C', True)
+                pdf.cell(0, 8, "3.4 DESENVOLVIMENTO MOTOR", 1, 1, 'L', True)
                 print_linha_paisagem(pdf, "Realiza os diversos tipos de locomoção?", "mot_loc")
                 print_linha_paisagem(pdf, "Manipula bola e outros objetos?", "mot_bola")
                 print_linha_paisagem(pdf, "Desenvolvimento esperado da lateralidade?", "mot_lat")
@@ -3584,7 +3553,7 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "3.5 HABILIDADES PESSOAIS E DE SOCIALIZAÇÃO", 1, 1, 'C', True)
+                pdf.cell(0, 8, "3.5 HABILIDADES PESSOAIS E DE SOCIALIZAÇÃO", 1, 1, 'L', True)
                 opts_hab = ["Com autonomia", "Com ajuda", "Não realiza"]
                 print_linha_paisagem(pdf, "Alimentação", "hab_alim", options=opts_hab)
                 print_linha_paisagem(pdf, "Higiene", "hab_hig", options=opts_hab)
@@ -3596,136 +3565,123 @@ elif app_mode == "👥 Gestão de Alunos":
 
                 pdf.set_fill_color(240, 240, 240)
                 pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 8, "3.6 FUNÇÃO DO BRINCAR", 1, 1, 'C', True)
+                pdf.cell(0, 8, "3.6 FUNÇÃO DO BRINCAR", 1, 1, 'L', True)
                 opts_brincar = ["Sim", "Não", "Com modelo"]
                 print_linha_paisagem(pdf, "Uso dos brinquedos de maneira funcional?", "bri_func", options=opts_brincar)
                 print_linha_paisagem(pdf, "Explora os brinquedos espontaneamente?", "bri_explora", options=opts_brincar)
                 print_linha_paisagem(pdf, "Utiliza objetos atribuindo diferentes funções?", "bri_dif", options=opts_brincar)
                 print_linha_paisagem(pdf, "Estrutura uma brincadeira de forma criativa?", "bri_cria", options=opts_brincar)
 
-                # --- 2. AÇÕES NECESSÁRIAS E ORGANIZAÇÃO (LANDSCAPE) ---
+                # ==========================================================
+                # NOVO ITEM 4 - PAEE E OBJETIVOS DE AÇÃO EDUCATIVA
+                # ==========================================================
                 if pdf.get_y() > 160: pdf.add_page(orientation='L')
                 pdf.ln(10)
                 pdf.set_font("Arial", "B", 12)
-                pdf.cell(0, 10, "AÇÕES NECESSÁRIAS E ORGANIZAÇÃO", 0, 1, 'C')
-                pdf.ln(5)
-
+                pdf.cell(0, 10, "4. PLANO DE ATENDIMENTO EDUCACIONAL ESPECIALIZADO (PAEE)", 0, 1, 'C')
+                
+                # 4.1 ORGANIZAÇÃO DO AEE
                 pdf.set_font("Arial", "B", 10)
+                pdf.cell(0, 8, "4.1 ORGANIZAÇÃO DO AEE", 0, 1, 'L')
+                
+                pdf.set_font("Arial", "B", 9)
+                pdf.set_fill_color(240, 240, 240)
+                pdf.cell(138, 8, "Sala de Recursos", 1, 0, 'C', True)
+                pdf.cell(139, 8, "Colaborativo", 1, 1, 'C', True)
+                
+                pdf.set_font("Arial", "", 9)
+                freq_rec = data_pdi.get('paee_freq_sr', '')
+                atend_rec = data_pdi.get('paee_atend_sr', '')
+                freq_colab = data_pdi.get('paee_freq_colab', '')
+                
+                opts_freq = ["Não realiza", "1x", "2x", "3x", "4x ou mais"]
+                opts_atend = ["Individual", "Grupo"]
+                
+                str_freq_rec = "Frequência: " + "  ".join([f"(X) {o}" if o == freq_rec else f"( ) {o}" for o in opts_freq])
+                str_atend_rec = "Atendimento: " + "  ".join([f"(X) {o}" if o == atend_rec else f"( ) {o}" for o in opts_atend])
+                str_freq_colab = "Frequência: " + "  ".join([f"(X) {o}" if o == freq_colab else f"( ) {o}" for o in opts_freq])
+                
+                pdf.cell(138, 8, clean_pdf_text(str_freq_rec), 'LR', 0, 'L')
+                pdf.cell(139, 8, clean_pdf_text(str_freq_colab), 'LR', 1, 'L')
+                pdf.cell(138, 8, clean_pdf_text(str_atend_rec), 'LRB', 0, 'L')
+                pdf.cell(139, 8, "", 'LRB', 1, 'L')
+                
+                # 4.2 OBJETIVOS DA AÇÃO EDUCATIVA
+                pdf.ln(5)
+                pdf.set_font("Arial", "B", 10)
+                pdf.cell(0, 8, "4.2 Objetivos da ação educativa", 0, 1, 'L')
+                
+                col_dom = 57
+                col_sem = 110
                 pdf.set_fill_color(220, 220, 220)
-                col_s = 50
-                col_a = 277 - col_s 
+                pdf.cell(col_dom, 8, "Domínios", 1, 0, 'C', True)
+                pdf.cell(col_sem, 8, "1º SEMESTRE", 1, 0, 'C', True)
+                pdf.cell(col_sem, 8, "2º SEMESTRE", 1, 1, 'C', True)
                 
-                pdf.cell(col_s, 8, clean_pdf_text("ÂMBITO"), 1, 0, 'C', True)
-                pdf.cell(col_a, 8, clean_pdf_text("AÇÃO"), 1, 1, 'C', True)
-                
-                actions_list = [
-                    ("ESCOLA", data_pdi.get('acao_escola', '')),
-                    ("SALA DE AULA", data_pdi.get('acao_sala', '')),
-                    ("FAMÍLIA", data_pdi.get('acao_familia', '')),
-                    ("SAÚDE", data_pdi.get('acao_saude', ''))
+                domains = [
+                    ("DESENVOLVIMENTO COGNITIVO", "cog"),
+                    ("DESENVOLVIMENTO MOTOR", "mot"),
+                    ("HABILIDADES PESSOAIS E DE SOCIALIZAÇÃO", "soc"),
+                    ("FUNÇÃO DO BRINCAR", "bri")
                 ]
                 
-                pdf.set_font("Arial", "", 10)
-                for scope, txt in actions_list:
-                    txt = clean_pdf_text(txt)
-                    s_width = pdf.get_string_width(txt)
-                    lines = int(s_width / col_a) + 1 + txt.count('\n')
-                    h_row = max(8, lines * 5 + 4) 
+                for dom_label, key in domains:
+                    val1 = data_pdi.get(f"obj_{key}_1sem", "")
+                    val2 = data_pdi.get(f"obj_{key}_2sem", "")
                     
-                    if pdf.get_y() + h_row > 185:
+                    pdf.set_font("Arial", "", 9)
+                    
+                    w1 = pdf.get_string_width(clean_pdf_text(val1))
+                    w2 = pdf.get_string_width(clean_pdf_text(val2))
+                    
+                    lines1 = max(1, int(w1 / (col_sem - 4)) + 1) + val1.count('\n')
+                    lines2 = max(1, int(w2 / (col_sem - 4)) + 1) + val2.count('\n')
+                    
+                    h_row = max(12, lines1 * 5 + 4, lines2 * 5 + 4)
+                    
+                    if pdf.get_y() + h_row > 180:
                         pdf.add_page(orientation='L')
-                        pdf.set_font("Arial", "B", 10)
                         pdf.set_fill_color(220, 220, 220)
-                        pdf.cell(col_s, 8, clean_pdf_text("ÂMBITO"), 1, 0, 'C', True)
-                        pdf.cell(col_a, 8, clean_pdf_text("AÇÃO"), 1, 1, 'C', True)
-                        pdf.set_font("Arial", "", 10)
-                    
-                    x = pdf.get_x()
-                    y = pdf.get_y()
-                    
-                    pdf.set_font("Arial", "B", 10)
-                    pdf.cell(col_s, h_row, clean_pdf_text(scope), 1, 0, 'C')
-                    
-                    pdf.set_xy(x + col_s, y)
-                    pdf.set_font("Arial", "", 10)
-                    pdf.multi_cell(col_a, 5, txt, 0, 'L')
-                    
-                    pdf.rect(x + col_s, y, col_a, h_row)
-                    pdf.set_y(y + h_row)
-
-                pdf.ln(5)
-                pdf.set_font("Arial", "B", 10)
-                pdf.set_fill_color(220, 220, 220)
-                pdf.cell(0, 8, clean_pdf_text("ORGANIZAÇÃO DO AEE"), 1, 1, 'L', True)
-                
-                pdf.set_font("Arial", "", 10)
-                pdf.cell(50, 8, "Tempo de Atendimento:", 1, 0, 'L')
-                pdf.cell(227, 8, clean_pdf_text(data_pdi.get('aee_tempo', '')), 1, 1, 'L')
-                
-                pdf.cell(50, 8, "Modalidade:", 1, 0, 'L')
-                pdf.cell(227, 8, clean_pdf_text(data_pdi.get('aee_tipo', '')), 1, 1, 'L')
-                
-                pdf.cell(50, 8, clean_pdf_text("Composição:"), 1, 0, 'L')
-                pdf.cell(227, 8, clean_pdf_text(data_pdi.get('aee_comp', '')), 1, 1, 'L')
-
-                # --- 4. OBJETIVOS (LANDSCAPE) ---
-                if pdf.get_y() > 160: pdf.add_page(orientation='L')
-                pdf.ln(10)
-                pdf.set_font("Arial", "B", 12)
-                pdf.cell(0, 10, "4. OBJETIVOS A SEREM ATINGIDOS", 0, 1, 'C')
-                pdf.ln(5)
-                
-                label_w = 70
-                content_w = 277 - label_w 
-
-                for category, subcats in objectives_structure.items():
-                    if pdf.get_y() > 175: pdf.add_page(orientation='L')
-                    pdf.set_fill_color(200, 200, 200) 
-                    pdf.set_font("Arial", "B", 10)
-                    pdf.cell(0, 8, clean_pdf_text(category), 1, 1, 'C', True)
-                    
-                    for subcat_name, items_list in subcats.items():
-                        if subcat_name != "GERAL" and subcat_name != "OUTROS":
-                            pdf.set_fill_color(240, 240, 240) 
-                            pdf.cell(0, 6, clean_pdf_text(subcat_name), 1, 1, 'C', True)
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(col_dom, 8, "Domínios", 1, 0, 'C', True)
+                        pdf.cell(col_sem, 8, "1º SEMESTRE", 1, 0, 'C', True)
+                        pdf.cell(col_sem, 8, "2º SEMESTRE", 1, 1, 'C', True)
                         
-                        for item in items_list:
-                             if pdf.get_y() > 175: pdf.add_page(orientation='L')
-                             
-                             item_key = f"goal_{category}_{subcat_name}_{item}".replace(" ", "_").lower()
-                             content = data_pdi['goals_specific'].get(item_key, "")
-                             
-                             pdf.set_font("Arial", "", 9)
-                             text_len = pdf.get_string_width(content)
-                             lines = int(text_len / content_w) + 1
-                             lines += content.count('\n')
-                             line_height = 5
-                             total_h = max(8, lines * line_height)
-                             
-                             if pdf.get_y() + total_h > 185: 
-                                 pdf.add_page(orientation='L')
-                             
-                             x_start = pdf.get_x()
-                             y_start = pdf.get_y()
-                             
-                             pdf.set_font("Arial", "B", 9)
-                             pdf.cell(label_w, total_h, clean_pdf_text(item), 1, 0, 'L')
-                             
-                             pdf.set_xy(x_start + label_w, y_start)
-                             pdf.set_font("Arial", "", 9)
-                             pdf.multi_cell(content_w, line_height, clean_pdf_text(content), 1, 'L')
-                             
-                             pdf.rect(x_start + label_w, y_start, content_w, total_h)
-                             pdf.set_xy(x_start, y_start + total_h)
+                    x_start = pdf.get_x()
+                    y_start = pdf.get_y()
+                    
+                    pdf.set_font("Arial", "B", 9)
+                    pdf.multi_cell(col_dom, 6, clean_pdf_text(dom_label), 0, 'C')
+                    
+                    pdf.set_xy(x_start + col_dom, y_start + 2)
+                    pdf.set_font("Arial", "", 9)
+                    pdf.multi_cell(col_sem, 5, clean_pdf_text(val1), 0, 'L')
+                    
+                    pdf.set_xy(x_start + col_dom + col_sem, y_start + 2)
+                    pdf.multi_cell(col_sem, 5, clean_pdf_text(val2), 0, 'L')
+                    
+                    pdf.rect(x_start, y_start, col_dom, h_row)
+                    pdf.rect(x_start + col_dom, y_start, col_sem, h_row)
+                    pdf.rect(x_start + col_dom + col_sem, y_start, col_sem, h_row)
+                    
+                    pdf.set_xy(x_start, y_start + h_row)
 
+                # Assinatura física final da página
+                pdf.ln(15)
+                pdf.set_font("Arial", "", 10)
+                pdf.cell(0, 10, "Assinatura docente:_______________________________________________________    Data: ___/___/___", 0, 1, 'L')
+
+                # ==========================================================
+                # FINALIZAÇÃO PDF
+                # ==========================================================
                 st.session_state.pdf_bytes_pdi = get_pdf_bytes(pdf)
                 st.rerun()
 
             if 'pdf_bytes_pdi' in st.session_state:
                 st.download_button("📥 BAIXAR PDI COMPLETO", st.session_state.pdf_bytes_pdi, f"PDI_{data_pdi.get('nome','aluno')}.pdf", "application/pdf", type="primary")
 
-        # --- ABA 5: HISTÓRICO ---
-        with tabs[4]:
+        # --- ABA 4: HISTÓRICO ---
+        with tabs[3]:
             st.subheader("Histórico de Atividades")
             df_hist = safe_read("Historico", ["Data_Hora", "Aluno", "Usuario", "Acao", "Detalhes"])
             if not df_hist.empty and data_pdi.get('nome'):

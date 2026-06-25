@@ -1218,7 +1218,7 @@ with st.sidebar:
         # ADICIONADA A CHAVE: key="nav_especial"
         app_mode = st.radio(
             "Navegação", 
-            ["📊 Painel de Gestão", "👥 Gestão de Alunos", "🖼️ Carômetro", "📦 Download em Lote"], 
+            ["📊 Painel de Gestão", "👥 Gestão de Alunos", "🖼️ Carômetro"], 
             label_visibility="collapsed",
             key="nav_especial"
         )
@@ -11583,56 +11583,3 @@ if st.session_state.get('authenticated'):
     
 
 
-# ==============================================================================
-# VIEW: DOWNLOAD EM LOTE (VERSÃO ESTÁVEL)
-# ==============================================================================
-if app_mode == "📦 Download em Lote":
-    st.markdown('<div class="header-box"><div class="header-title">📦 Download em Lote Automático</div></div>', unsafe_allow_html=True)
-    
-    df_db = load_db()
-    
-    if df_db.empty:
-        st.warning("Nenhum dado encontrado no banco.")
-    else:
-        col1, col2 = st.columns(2)
-        tipo_doc_lote = col1.selectbox("Documento:", ["PEI", "CASO", "AVALIACAO", "PDI", "CONDUTA", "DIARIO"])
-        
-        # Filtra alunos válidos
-        alunos_disponiveis = [row['nome'] for _, row in df_db[df_db['tipo_doc'] == tipo_doc_lote].iterrows()]
-        alunos_selecionados = col2.multiselect("Selecione os Estudantes:", sorted(list(set(alunos_disponiveis))))
-        
-        if st.button("🛠️ Iniciar Processamento", type="primary"):
-            if not alunos_selecionados:
-                st.error("Selecione alunos.")
-            else:
-                zip_buffer = io.BytesIO()
-                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                    for aluno_nome in alunos_selecionados:
-                        try:
-                            # 1. Recupera dados
-                            row = df_db[(df_db['nome'] == aluno_nome) & (df_db['tipo_doc'] == tipo_doc_lote)].iloc[0]
-                            data = json.loads(row['dados_json'])
-                            
-                            # 2. Instancia o PDF (Reaproveitando a classe oficial)
-                            pdf = OfficialPDF('L' if tipo_doc_lote == "PEI" else 'P', 'mm', 'A4')
-                            pdf.add_page()
-                            
-                            # 3. Chama a lógica de preenchimento que você já tem no sistema
-                            # IMPORTANTE: Se você tiver funções de preenchimento (ex: gerar_conteudo_pei), chame-as aqui.
-                            # Caso contrário, certifique-se que o código abaixo reflete sua lógica real de desenho.
-                            
-                            # Exemplo: chamar a função que você usa nos botões de download individuais
-                            # Se você desenha o PDF dentro de funções, chame-as aqui passando o objeto 'pdf' e 'data'
-                            if tipo_doc_lote == "PEI":
-                                # Exemplo: preencher_pei(pdf, data)
-                                pdf.cell(0, 10, f"PEI de {aluno_nome}", ln=True)
-                            
-                            # 4. Finaliza
-                            pdf_bytes = pdf.output(dest='S').encode('latin-1') if isinstance(pdf.output(dest='S'), str) else pdf.output(dest='S')
-                            zip_file.writestr(f"{tipo_doc_lote}_{aluno_nome.replace(' ', '_')}.pdf", pdf_bytes)
-                            
-                        except Exception as e:
-                            st.error(f"Erro em {aluno_nome}: {e}")
-                            
-                st.success("✅ ZIP gerado!")
-                st.download_button("📥 Baixar ZIP", zip_buffer.getvalue(), "lote.zip", "application/zip")

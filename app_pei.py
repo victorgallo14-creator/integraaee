@@ -3056,8 +3056,6 @@ elif app_mode == "👥 Gestão de Alunos":
                     idx_freq_colab = opcoes_freq.index(val_freq_colab) if val_freq_colab in opcoes_freq else 0
                     data_pdi['paee_freq_colab'] = st.radio("Frequência Semanal (Colab.)", opcoes_freq, index=idx_freq_colab, horizontal=True)
         
-                st.divider()
-                st.subheader("4.2 Objetivos da ação educativa")
                 
                 st.divider()
                 # Nota: Você colocou o subheader 4.2 duas vezes no seu código, mantive a sua estrutura abaixo.

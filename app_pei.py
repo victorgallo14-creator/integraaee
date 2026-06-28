@@ -3027,22 +3027,40 @@ elif app_mode == "👥 Gestão de Alunos":
         with tabs[1]:
             st.header("4. Plano de Atendimento Educacional Especializado (PAEE)")
             
+            # 1. Definindo as listas de opções
+            opcoes_freq = ["Não realiza", "1x", "2x", "3x", "4x ou mais"]
+            opcoes_atend = ["Individual", "Grupo"]
+            
             with st.form("pdi_paee_form"):
                 st.subheader("4.1 Organização do AEE")
                 
                 c1, c2 = st.columns(2)
                 with c1:
                     st.markdown("**Sala de Recursos**")
-                    data_pdi['paee_freq_sr'] = st.radio("Frequência Semanal", ["Não realiza", "1x", "2x", "3x", "4x ou mais"], horizontal=True)
-                    data_pdi['paee_atend_sr'] = st.radio("Atendimento", ["Individual", "Grupo"], horizontal=True)
+                    
+                    # Lógica para Frequência Semanal
+                    val_freq_sr = data_pdi.get('paee_freq_sr')
+                    idx_freq_sr = opcoes_freq.index(val_freq_sr) if val_freq_sr in opcoes_freq else 0
+                    data_pdi['paee_freq_sr'] = st.radio("Frequência Semanal", opcoes_freq, index=idx_freq_sr, horizontal=True)
+                    
+                    # Lógica para Atendimento
+                    val_atend_sr = data_pdi.get('paee_atend_sr')
+                    idx_atend_sr = opcoes_atend.index(val_atend_sr) if val_atend_sr in opcoes_atend else 0
+                    data_pdi['paee_atend_sr'] = st.radio("Atendimento", opcoes_atend, index=idx_atend_sr, horizontal=True)
+                    
                 with c2:
                     st.markdown("**Colaborativo**")
-                    data_pdi['paee_freq_colab'] = st.radio("Frequência Semanal (Colab.)", ["Não realiza", "1x", "2x", "3x", "4x ou mais"], horizontal=True)
-
+                    
+                    # Lógica para Frequência Semanal (Colab.)
+                    val_freq_colab = data_pdi.get('paee_freq_colab')
+                    idx_freq_colab = opcoes_freq.index(val_freq_colab) if val_freq_colab in opcoes_freq else 0
+                    data_pdi['paee_freq_colab'] = st.radio("Frequência Semanal (Colab.)", opcoes_freq, index=idx_freq_colab, horizontal=True)
+        
                 st.divider()
                 st.subheader("4.2 Objetivos da ação educativa")
                 
                 st.divider()
+                # Nota: Você colocou o subheader 4.2 duas vezes no seu código, mantive a sua estrutura abaixo.
                 st.subheader("4.2 Objetivos da ação educativa")
                 
                 def render_semestres(label, key_base):

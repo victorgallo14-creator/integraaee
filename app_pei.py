@@ -1254,7 +1254,7 @@ with st.sidebar:
         st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
         app_mode_adm = st.radio(
             "Navegação", 
-            ["📦 Almoxarifado Escolar", "🏷️ Patrimônio e Inventário", "🖨️ Emissão de Boletins"], 
+            ["🏷️ Patrimônio e Inventário", "📦 Almoxarifado Escolar", "🖨️ Emissão de Boletins"], 
             label_visibility="collapsed",
             key="nav_adm"
         )

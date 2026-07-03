@@ -11911,7 +11911,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                         )
 
 # ==================================================================
-            # 2. GERADOR DE RELATÓRIO CONAM (46 LINHAS + ESTADO/LOCAL)
+            # 2. GERADOR DE RELATÓRIO CONAM (46 LINHAS + ESTADO/LOCAL + RODAPÉ)
             # ==================================================================
             with sub_tab_relatorio:
                 st.markdown("Gere a listagem de conferência oficial para assinatura, seguindo o formato do sistema da Prefeitura.")
@@ -11937,7 +11937,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                         self.set_text_color(0, 0, 0)
                         self.set_draw_color(0, 0, 0)
                         
-                        # Cabeçalho Superior
                         self.cell(138, 4, "CN-SIP", 0, 0, 'L')
                         self.cell(138, 4, "CONAM", 0, 1, 'R')
 
@@ -11951,7 +11950,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                         self.line(10, self.get_y(), 287, self.get_y())
                         self.ln(2)
 
-                        # Setor e Responsável
                         self.set_x(70)
                         setor_str = f"01671 SMED - CEIEF RAFAEL AFFONSO LEITE - {self.setor_nome}" if self.setor_nome != "Todos os Ambientes" else "01671 SMED - CEIEF RAFAEL AFFONSO LEITE"
                         self.cell(0, 4, f"Setor       : {setor_str}", 0, 1, 'L')
@@ -11963,7 +11961,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                         self.line(10, self.get_y(), 287, self.get_y())
                         self.ln(1)
 
-                        # Títulos das Colunas
                         self.set_x(12)
                         self.cell(30, 4, "No. CHAPA", 0, 0, 'L')
                         self.cell(83, 4, "DESCRICAO", 0, 0, 'L')
@@ -11976,64 +11973,99 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
 
                 if st.button("👁️ Gerar Relatório CONAM", type="primary"):
                     df_rel = df_patrimonio.copy()
+                    
+                    # Correção do Bug de Visibilidade (Ordenação):
+                    # Força a ordenação numérica pelo tombo para que itens recém-cadastrados com local não fiquem escondidos no final da lista
+                    df_rel['codigo_num'] = pd.to_numeric(df_rel['codigo'], errors='coerce')
+                    df_rel = df_rel.sort_values(by=['codigo_num', 'codigo'])
+                    
                     if local_rel != "Todos os Ambientes":
                         df_rel = df_rel[df_rel['localizacao'] == local_rel]
                     
                     if df_rel.empty:
                         st.warning("Nenhum bem encontrado para este filtro.")
                     else:
-                        with st.spinner("Desenhando relatório matricial..."):
+                        with st.spinner("Desenhando relatório matricial e contabilizando os setores..."):
                             pdf = RelatorioConamPDF(local_rel, resp_rel)
                             pdf.add_page()
                             
-                            # Configurações do Corpo da Tabela ajustadas para caberem 46 itens
                             pdf.set_font('Courier', '', 8)
-                            row_height = 3.4 # Altura milimétrica reduzida para caber exatamente 46 linhas
+                            row_height = 3.4
                             linhas_na_pagina = 0
                             
                             for i, row in df_rel.iterrows():
-                                # Controle estrito de 46 linhas por página
                                 if linhas_na_pagina >= 46:
-                                    pdf.line(10, pdf.get_y(), 287, pdf.get_y()) # Fecha a tabela
-                                    pdf.add_page()                              # Pula a página (o header entra automático)
-                                    pdf.set_font('Courier', '', 8)              # Restaura a fonte do corpo
+                                    pdf.line(10, pdf.get_y(), 287, pdf.get_y())
+                                    pdf.add_page()
+                                    pdf.set_font('Courier', '', 8)
                                     linhas_na_pagina = 0
                                     
                                 y = pdf.get_y()
                                 
-                                # Linhas verticais
-                                pdf.line(10, y, 10, y + row_height)        # Borda Esquerda
-                                pdf.line(125, y, 125, y + row_height)      # Separa Descrição e Observação
-                                pdf.line(195, y, 195, y + row_height)      # Separa Observação e Assinatura/Visto
-                                pdf.line(287, y, 287, y + row_height)      # Borda Direita
+                                pdf.line(10, y, 10, y + row_height)
+                                pdf.line(125, y, 125, y + row_height)
+                                pdf.line(195, y, 195, y + row_height)
+                                pdf.line(287, y, 287, y + row_height)
                                 
-                                # 1. CHAPA
                                 chapa = str(row['codigo']).zfill(10)
                                 pdf.set_xy(11, y + 0.2)
                                 pdf.cell(25, 3, chapa, 0, 0)
                                 
-                                # 2. DESCRIÇÃO
                                 desc = clean_pdf_text(str(row['nome'])).upper()
                                 if len(desc) > 55: desc = desc[:52] + "..."
                                 pdf.set_xy(38, y + 0.2)
                                 pdf.cell(85, 3, desc, 0, 0)
                                 
-                                # 3. OBSERVAÇÃO (Estado e Localização integrados)
-                                estado = row.get('estado', '')
-                                loc = row.get('localizacao', '')
-                                obs_text = clean_pdf_text(f"{estado} - {loc}").upper()
+                                # Observação combinada (Estado + Localização) tratando valores vazios
+                                estado = str(row.get('estado', '')).strip()
+                                if estado in ['None', 'nan']: estado = ""
+                                
+                                loc = str(row.get('localizacao', '')).strip()
+                                if loc in ['None', 'nan']: loc = ""
+                                
+                                obs_parts = [p for p in [estado, loc] if p]
+                                obs_text = clean_pdf_text(" - ".join(obs_parts)).upper()
+                                
                                 if len(obs_text) > 42: obs_text = obs_text[:39] + "..."
                                 
                                 pdf.set_xy(127, y + 0.2)
                                 pdf.cell(66, 3, obs_text, 0, 0)
                                 
-                                # Move o Y para a próxima linha e incrementa o contador
                                 pdf.set_y(y + row_height)
                                 linhas_na_pagina += 1
                                 
-                            # Fecha a tabela na última página
                             pdf.line(10, pdf.get_y(), 287, pdf.get_y())
 
+                            # ==========================================
+                            # RODAPÉ DE RESUMO DE CONTAGEM (CONAM)
+                            # ==========================================
+                            # Verifica se tem espaço para imprimir o rodapé, senão cria uma nova página
+                            if pdf.get_y() > 185:
+                                pdf.add_page()
+                                
+                            total_moveis = len(df_rel)
+                            
+                            # Calcula setores únicos reais listados
+                            setores_unicos = df_rel['localizacao'].dropna().apply(lambda x: str(x).strip()).unique()
+                            setores_unicos = [s for s in setores_unicos if s not in ["", "None", "nan"]]
+                            total_setores = len(setores_unicos) if len(setores_unicos) > 0 else 1
+                            
+                            str_moveis = str(total_moveis).rjust(4)
+                            str_setores = str(total_setores).zfill(4)
+                            
+                            pdf.set_font('Courier', '', 9)
+                            pdf.ln(2)
+                            pdf.cell(0, 4, f"    {str_moveis} Movel(is)  deste Setor mostrado(s).", 0, 1, 'L')
+                            pdf.ln(1)
+                            
+                            pdf.line(10, pdf.get_y(), 287, pdf.get_y())
+                            pdf.ln(1)
+                            
+                            pdf.cell(0, 4, f"    {str_setores} Setor(es) mostrado(s).", 0, 1, 'L')
+                            pdf.ln(1)
+                            
+                            pdf.line(10, pdf.get_y(), 287, pdf.get_y())
+                            
                             st.session_state.pdf_conam = get_pdf_bytes(pdf)
                         
                 if 'pdf_conam' in st.session_state:

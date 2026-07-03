@@ -11910,12 +11910,11 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                             type="primary"
                         )
 
-
-            # ==================================================================
-            # 2. GERADOR DE RELATÓRIO CONAM
+# ==================================================================
+            # 2. GERADOR DE RELATÓRIO CONAM (46 LINHAS + ESTADO/LOCAL)
             # ==================================================================
             with sub_tab_relatorio:
-                st.markdown("Gere a listagem de conferência oficial para assinatura, seguindo exatamente o formato do sistema da Prefeitura.")
+                st.markdown("Gere a listagem de conferência oficial para assinatura, seguindo o formato do sistema da Prefeitura.")
                 
                 c_rel1, c_rel2 = st.columns(2)
                 locais_rel = [loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""]
@@ -11987,16 +11986,18 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                             pdf = RelatorioConamPDF(local_rel, resp_rel)
                             pdf.add_page()
                             
-                            # Configurações do Corpo da Tabela
-                            pdf.set_font('Courier', '', 9)
-                            row_height = 4.5
+                            # Configurações do Corpo da Tabela ajustadas para caberem 46 itens
+                            pdf.set_font('Courier', '', 8)
+                            row_height = 3.4 # Altura milimétrica reduzida para caber exatamente 46 linhas
+                            linhas_na_pagina = 0
                             
                             for i, row in df_rel.iterrows():
-                                if pdf.get_y() > 195:
-                                    # Fecha a tabela atual antes de quebrar a página
-                                    pdf.line(10, pdf.get_y(), 287, pdf.get_y())
-                                    pdf.add_page()
-                                    pdf.set_font('Courier', '', 9)
+                                # Controle estrito de 46 linhas por página
+                                if linhas_na_pagina >= 46:
+                                    pdf.line(10, pdf.get_y(), 287, pdf.get_y()) # Fecha a tabela
+                                    pdf.add_page()                              # Pula a página (o header entra automático)
+                                    pdf.set_font('Courier', '', 8)              # Restaura a fonte do corpo
+                                    linhas_na_pagina = 0
                                     
                                 y = pdf.get_y()
                                 
@@ -12006,20 +12007,29 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                                 pdf.line(195, y, 195, y + row_height)      # Separa Observação e Assinatura/Visto
                                 pdf.line(287, y, 287, y + row_height)      # Borda Direita
                                 
-                                # Preenchimento do Tombo (Com zeros à esquerda) e Descrição
+                                # 1. CHAPA
                                 chapa = str(row['codigo']).zfill(10)
+                                pdf.set_xy(11, y + 0.2)
+                                pdf.cell(25, 3, chapa, 0, 0)
+                                
+                                # 2. DESCRIÇÃO
                                 desc = clean_pdf_text(str(row['nome'])).upper()
-                                if len(desc) > 52: desc = desc[:49] + "..."
+                                if len(desc) > 55: desc = desc[:52] + "..."
+                                pdf.set_xy(38, y + 0.2)
+                                pdf.cell(85, 3, desc, 0, 0)
                                 
-                                pdf.set_xy(11, y + 0.5)
-                                pdf.cell(25, 4, chapa, 0, 0)
-                                pdf.set_xy(38, y + 0.5)
-                                pdf.cell(85, 4, desc, 0, 0)
+                                # 3. OBSERVAÇÃO (Estado e Localização integrados)
+                                estado = row.get('estado', '')
+                                loc = row.get('localizacao', '')
+                                obs_text = clean_pdf_text(f"{estado} - {loc}").upper()
+                                if len(obs_text) > 42: obs_text = obs_text[:39] + "..."
                                 
-                                # Linha tracejada/sólida para anotação manual
-                                pdf.line(127, y + 3.5, 193, y + 3.5)
+                                pdf.set_xy(127, y + 0.2)
+                                pdf.cell(66, 3, obs_text, 0, 0)
                                 
+                                # Move o Y para a próxima linha e incrementa o contador
                                 pdf.set_y(y + row_height)
+                                linhas_na_pagina += 1
                                 
                             # Fecha a tabela na última página
                             pdf.line(10, pdf.get_y(), 287, pdf.get_y())

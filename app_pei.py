@@ -11782,146 +11782,255 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                 else:
                     st.error("Preencha os campos obrigatórios (Código e Nome).")
 
-# --- ABA 3: GERAÇÃO DE ETIQUETAS QR CODE ---
-    with tab_etiquetas:
-        st.subheader("🖨️ Gerador de Etiquetas QR Code (PDF)")
-        st.markdown("Escolha se deseja imprimir as etiquetas de um ambiente inteiro ou selecionar os itens manualmente.")
+# --- ABA 3: IMPRESSÕES (ETIQUETAS E RELATÓRIOS CONAM) ---
+    tab_impressoes = tab_etiquetas # Renomeando a aba logicamente
+    with tab_impressoes:
+        st.subheader("🖨️ Central de Impressão")
+        
+        # Sub-abas para separar Etiquetas e Relatório
+        sub_tab_etiquetas, sub_tab_relatorio = st.tabs(["🏷️ Etiquetas QR Code", "📑 Relatório de Inventário (CONAM)"])
         
         if not df_patrimonio.empty:
             
-            # --- FUNÇÃO GERADORA DE PDF ---
-            def gerar_pdf_etiquetas(df_bens):
-                pdf = FPDF('P', 'mm', 'A4')
-                pdf.set_auto_page_break(auto=False)
-                pdf.add_page()
+            # ==================================================================
+            # 1. GERADOR DE ETIQUETAS QR CODE
+            # ==================================================================
+            with sub_tab_etiquetas:
+                st.markdown("Escolha se deseja imprimir as etiquetas de um ambiente inteiro ou selecionar os itens manualmente.")
                 
-                # Configurações da Grade (4 colunas x 5 linhas = 20 etiquetas por página A4)
-                cols = 4
-                rows = 5
-                margin_x = 10
-                margin_y = 15
-                label_w = 45
-                label_h = 52
-                space_x = 3
-                space_y = 3
-                
-                idx = 0
-                
-                # Barra de progresso visual para o usuário
-                progress_text = "Gerando QR Codes e montando o PDF..."
-                my_bar = st.progress(0, text=progress_text)
-                total_itens = len(df_bens)
-                
-                for i, (_, bem) in enumerate(df_bens.iterrows()):
-                    if idx >= cols * rows:
-                        pdf.add_page()
-                        idx = 0
+                def gerar_pdf_etiquetas(df_bens):
+                    pdf = FPDF('P', 'mm', 'A4')
+                    pdf.set_auto_page_break(auto=False)
+                    pdf.add_page()
+                    
+                    cols, rows = 4, 5
+                    margin_x, margin_y = 10, 15
+                    label_w, label_h = 45, 52
+                    space_x, space_y = 3, 3
+                    
+                    idx = 0
+                    progress_text = "Gerando QR Codes e montando o PDF..."
+                    my_bar = st.progress(0, text=progress_text)
+                    total_itens = len(df_bens)
+                    
+                    for i, (_, bem) in enumerate(df_bens.iterrows()):
+                        if idx >= cols * rows:
+                            pdf.add_page()
+                            idx = 0
+                            
+                        col = idx % cols
+                        row = idx // cols
                         
-                    col = idx % cols
-                    row = idx // cols
-                    
-                    x = margin_x + col * (label_w + space_x)
-                    y = margin_y + row * (label_h + space_y)
-                    
-                    # Desenha a caixa da etiqueta (Borda)
-                    pdf.set_draw_color(200, 200, 200)
-                    pdf.rect(x, y, label_w, label_h)
-                    
-                    # Cabeçalho da Etiqueta
-                    pdf.set_xy(x, y + 3)
-                    pdf.set_font("Arial", "B", 6)
-                    pdf.set_text_color(0, 0, 0)
-                    pdf.cell(label_w, 3, "CEIEF RAFAEL AFFONSO LEITE", align='C')
-                    
-                    pdf.set_xy(x, y + 6)
-                    pdf.set_font("Arial", "", 5)
-                    pdf.cell(label_w, 3, "INVENTÁRIO / PATRIMÔNIO", align='C')
-                    
-                    # Gera e insere o QR Code
-                    qr_size = 26
-                    qr_x = x + (label_w - qr_size) / 2
-                    qr_y = y + 11
-                    
-                    qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={bem['codigo']}"
-                    
-                    try:
-                        req = urllib.request.Request(qr_url, headers={'User-Agent': 'Mozilla/5.0'})
-                        with urllib.request.urlopen(req) as response:
-                            img_data = response.read()
+                        x = margin_x + col * (label_w + space_x)
+                        y = margin_y + row * (label_h + space_y)
                         
-                        # Salva temporariamente para o FPDF conseguir ler
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
-                            tmp_file.write(img_data)
-                            tmp_path = tmp_file.name
+                        pdf.set_draw_color(200, 200, 200)
+                        pdf.rect(x, y, label_w, label_h)
                         
-                        pdf.image(tmp_path, x=qr_x, y=qr_y, w=qr_size, h=qr_size)
-                        os.unlink(tmp_path) # Apaga o arquivo temporário
-                    except Exception:
-                        pdf.set_xy(x, qr_y + 10)
-                        pdf.set_font("Arial", "B", 8)
-                        pdf.cell(label_w, 5, "[ERRO QR]", align='C')
-                    
-                    # Imprime o Código (Tombo)
-                    pdf.set_xy(x, qr_y + qr_size + 2)
-                    pdf.set_font("Arial", "B", 9)
-                    pdf.cell(label_w, 5, str(bem['codigo']), align='C')
-                    
-                    # Imprime o Nome/Descrição (Tratando textos longos)
-                    nome = clean_pdf_text(str(bem['nome']))
-                    if len(nome) > 35: 
-                        nome = nome[:32] + "..."
+                        pdf.set_xy(x, y + 3)
+                        pdf.set_font("Arial", "B", 6)
+                        pdf.set_text_color(0, 0, 0)
+                        pdf.cell(label_w, 3, "CEIEF RAFAEL AFFONSO LEITE", align='C')
                         
-                    pdf.set_xy(x + 2, qr_y + qr_size + 7)
-                    pdf.set_font("Arial", "", 6)
-                    pdf.multi_cell(label_w - 4, 3, nome, align='C')
+                        pdf.set_xy(x, y + 6)
+                        pdf.set_font("Arial", "", 5)
+                        pdf.cell(label_w, 3, "INVENTÁRIO / PATRIMÔNIO", align='C')
+                        
+                        qr_size = 26
+                        qr_x = x + (label_w - qr_size) / 2
+                        qr_y = y + 11
+                        
+                        qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={bem['codigo']}"
+                        
+                        try:
+                            req = urllib.request.Request(qr_url, headers={'User-Agent': 'Mozilla/5.0'})
+                            with urllib.request.urlopen(req) as response:
+                                img_data = response.read()
+                            
+                            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                                tmp_file.write(img_data)
+                                tmp_path = tmp_file.name
+                            
+                            pdf.image(tmp_path, x=qr_x, y=qr_y, w=qr_size, h=qr_size)
+                            os.unlink(tmp_path)
+                        except Exception:
+                            pdf.set_xy(x, qr_y + 10)
+                            pdf.set_font("Arial", "B", 8)
+                            pdf.cell(label_w, 5, "[ERRO QR]", align='C')
+                        
+                        pdf.set_xy(x, qr_y + qr_size + 2)
+                        pdf.set_font("Arial", "B", 9)
+                        pdf.cell(label_w, 5, str(bem['codigo']), align='C')
+                        
+                        nome = clean_pdf_text(str(bem['nome']))
+                        if len(nome) > 35: nome = nome[:32] + "..."
+                            
+                        pdf.set_xy(x + 2, qr_y + qr_size + 7)
+                        pdf.set_font("Arial", "", 6)
+                        pdf.multi_cell(label_w - 4, 3, nome, align='C')
+                        
+                        idx += 1
+                        my_bar.progress((i + 1) / total_itens, text=progress_text)
                     
-                    idx += 1
-                    my_bar.progress((i + 1) / total_itens, text=progress_text)
-                
-                my_bar.empty() # Limpa a barra quando termina
-                return get_pdf_bytes(pdf)
-            # ----------------------------------------------------
+                    my_bar.empty()
+                    return get_pdf_bytes(pdf)
 
-            modo_impressao = st.radio("Método de Impressão:", ["📍 Por Ambiente / Localização", "✍️ Seleção Manual de Itens"], horizontal=True)
-            
-            df_para_imprimir = pd.DataFrame()
-            
-            if modo_impressao == "📍 Por Ambiente / Localização":
-                # Puxa os locais únicos que foram cadastrados
-                locais_disponiveis = [loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""]
+                modo_impressao = st.radio("Método de Impressão:", ["📍 Por Ambiente / Localização", "✍️ Seleção Manual de Itens"], horizontal=True)
+                df_para_imprimir = pd.DataFrame()
                 
-                if locais_disponiveis:
-                    local_sel = st.selectbox("Selecione o Ambiente:", ["-- Escolha o Ambiente --"] + sorted(locais_disponiveis))
-                    
-                    if local_sel != "-- Escolha o Ambiente --":
-                        df_para_imprimir = df_patrimonio[df_patrimonio['localizacao'] == local_sel]
-                        st.info(f"Foram encontrados **{len(df_para_imprimir)}** bens cadastrados neste ambiente.")
+                if modo_impressao == "📍 Por Ambiente / Localização":
+                    locais_disponiveis = [loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""]
+                    if locais_disponiveis:
+                        local_sel = st.selectbox("Selecione o Ambiente:", ["-- Escolha o Ambiente --"] + sorted(locais_disponiveis))
+                        if local_sel != "-- Escolha o Ambiente --":
+                            df_para_imprimir = df_patrimonio[df_patrimonio['localizacao'] == local_sel]
+                            st.info(f"Foram encontrados **{len(df_para_imprimir)}** bens cadastrados neste ambiente.")
+                    else:
+                        st.warning("Nenhum ambiente foi registrado nos cadastros de patrimônio ainda.")
                 else:
-                    st.warning("Nenhum ambiente foi registrado nos cadastros de patrimônio ainda.")
-                    
-            else:
-                opcoes_bens = df_patrimonio.apply(lambda row: f"{row['codigo']} - {row['nome']}", axis=1).tolist()
-                bens_selecionados = st.multiselect("Selecione os itens para impressão:", opcoes_bens)
-                
-                if bens_selecionados:
-                    # Filtra o DataFrame original baseado no código escolhido (pega a primeira parte da string)
-                    codigos_selecionados = [item.split(" - ")[0] for item in bens_selecionados]
-                    df_para_imprimir = df_patrimonio[df_patrimonio['codigo'].isin(codigos_selecionados)]
+                    opcoes_bens = df_patrimonio.apply(lambda row: f"{row['codigo']} - {row['nome']}", axis=1).tolist()
+                    bens_selecionados = st.multiselect("Selecione os itens para impressão:", opcoes_bens)
+                    if bens_selecionados:
+                        codigos_selecionados = [item.split(" - ")[0] for item in bens_selecionados]
+                        df_para_imprimir = df_patrimonio[df_patrimonio['codigo'].isin(codigos_selecionados)]
 
-            # Se houver itens selecionados (por ambiente ou manual), exibe o botão de PDF
-            if not df_para_imprimir.empty:
-                st.markdown("---")
-                if st.button("👁️ Gerar PDF de Etiquetas", type="primary"):
-                    with st.spinner("Conectando à API e gerando etiquetas... Isso pode levar alguns segundos."):
-                        pdf_bytes = gerar_pdf_etiquetas(df_para_imprimir)
-                        st.session_state.pdf_etiquetas = pdf_bytes
+                if not df_para_imprimir.empty:
+                    st.markdown("---")
+                    if st.button("👁️ Gerar PDF de Etiquetas", type="primary"):
+                        with st.spinner("Gerando etiquetas... Isso pode levar alguns segundos."):
+                            st.session_state.pdf_etiquetas = gerar_pdf_etiquetas(df_para_imprimir)
+                    
+                    if 'pdf_etiquetas' in st.session_state:
+                        st.download_button(
+                            label="📥 Baixar Folha de Etiquetas (PDF)", 
+                            data=st.session_state.pdf_etiquetas, 
+                            file_name=f"Etiquetas_Patrimonio_{datetime.now().strftime('%d%m%Y_%H%M')}.pdf", 
+                            mime="application/pdf", 
+                            use_container_width=True,
+                            type="primary"
+                        )
+
+
+            # ==================================================================
+            # 2. GERADOR DE RELATÓRIO CONAM
+            # ==================================================================
+            with sub_tab_relatorio:
+                st.markdown("Gere a listagem de conferência oficial para assinatura, seguindo exatamente o formato do sistema da Prefeitura.")
                 
-                if 'pdf_etiquetas' in st.session_state:
-                    nome_arquivo = f"Etiquetas_Patrimonio_{datetime.now().strftime('%d%m%Y_%H%M')}.pdf"
+                c_rel1, c_rel2 = st.columns(2)
+                locais_rel = [loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""]
+                
+                local_rel = c_rel1.selectbox("Filtrar por Setor/Ambiente:", ["Todos os Ambientes"] + sorted(locais_rel))
+                resp_padrao = st.session_state.get('usuario_nome', '').upper()
+                resp_rel = c_rel2.text_input("Responsável pelo Setor:", value=resp_padrao)
+
+                class RelatorioConamPDF(FPDF):
+                    def __init__(self, setor_nome, responsavel):
+                        super().__init__('L', 'mm', 'A4')
+                        self.set_margins(10, 10, 10)
+                        self.set_auto_page_break(auto=False)
+                        self.setor_nome = setor_nome
+                        self.responsavel = responsavel
+                        self.data_hoje = datetime.now().strftime("%d/%m/%Y")
+
+                    def header(self):
+                        self.set_font('Courier', '', 9)
+                        self.set_text_color(0, 0, 0)
+                        self.set_draw_color(0, 0, 0)
+                        
+                        # Cabeçalho Superior
+                        self.cell(138, 4, "CN-SIP", 0, 0, 'L')
+                        self.cell(138, 4, "CONAM", 0, 1, 'R')
+
+                        self.cell(0, 4, "Prefeitura Municipal de Limeira", 0, 1, 'C')
+                        self.cell(0, 4, "Relatorio de Moveis por Setor 01671 SMED - CEIEF RAFAEL AFFONSO LEITE", 0, 1, 'C')
+                        self.cell(0, 4, f"Selecao : Bens INCORPORADOS              de           a {self.data_hoje}", 0, 1, 'C')
+
+                        self.cell(138, 4, f"DATA {self.data_hoje}", 0, 0, 'L')
+                        self.cell(138, 4, f"PAGINA      {self.page_no()}", 0, 1, 'R')
+
+                        self.line(10, self.get_y(), 287, self.get_y())
+                        self.ln(2)
+
+                        # Setor e Responsável
+                        self.set_x(70)
+                        setor_str = f"01671 SMED - CEIEF RAFAEL AFFONSO LEITE - {self.setor_nome}" if self.setor_nome != "Todos os Ambientes" else "01671 SMED - CEIEF RAFAEL AFFONSO LEITE"
+                        self.cell(0, 4, f"Setor       : {setor_str}", 0, 1, 'L')
+                        
+                        self.set_x(70)
+                        self.cell(0, 4, f"Responsavel : {self.responsavel.upper()}", 0, 1, 'L')
+                        self.ln(2)
+
+                        self.line(10, self.get_y(), 287, self.get_y())
+                        self.ln(1)
+
+                        # Títulos das Colunas
+                        self.set_x(12)
+                        self.cell(30, 4, "No. CHAPA", 0, 0, 'L')
+                        self.cell(83, 4, "DESCRICAO", 0, 0, 'L')
+                        self.set_x(155)
+                        self.cell(0, 4, "OBSERVACAO", 0, 1, 'L')
+
+                        self.line(10, self.get_y(), 287, self.get_y())
+                        self.ln(1)
+                        self.line(10, self.get_y(), 287, self.get_y())
+
+                if st.button("👁️ Gerar Relatório CONAM", type="primary"):
+                    df_rel = df_patrimonio.copy()
+                    if local_rel != "Todos os Ambientes":
+                        df_rel = df_rel[df_rel['localizacao'] == local_rel]
+                    
+                    if df_rel.empty:
+                        st.warning("Nenhum bem encontrado para este filtro.")
+                    else:
+                        with st.spinner("Desenhando relatório matricial..."):
+                            pdf = RelatorioConamPDF(local_rel, resp_rel)
+                            pdf.add_page()
+                            
+                            # Configurações do Corpo da Tabela
+                            pdf.set_font('Courier', '', 9)
+                            row_height = 4.5
+                            
+                            for i, row in df_rel.iterrows():
+                                if pdf.get_y() > 195:
+                                    # Fecha a tabela atual antes de quebrar a página
+                                    pdf.line(10, pdf.get_y(), 287, pdf.get_y())
+                                    pdf.add_page()
+                                    pdf.set_font('Courier', '', 9)
+                                    
+                                y = pdf.get_y()
+                                
+                                # Linhas verticais
+                                pdf.line(10, y, 10, y + row_height)        # Borda Esquerda
+                                pdf.line(125, y, 125, y + row_height)      # Separa Descrição e Observação
+                                pdf.line(195, y, 195, y + row_height)      # Separa Observação e Assinatura/Visto
+                                pdf.line(287, y, 287, y + row_height)      # Borda Direita
+                                
+                                # Preenchimento do Tombo (Com zeros à esquerda) e Descrição
+                                chapa = str(row['codigo']).zfill(10)
+                                desc = clean_pdf_text(str(row['nome'])).upper()
+                                if len(desc) > 52: desc = desc[:49] + "..."
+                                
+                                pdf.set_xy(11, y + 0.5)
+                                pdf.cell(25, 4, chapa, 0, 0)
+                                pdf.set_xy(38, y + 0.5)
+                                pdf.cell(85, 4, desc, 0, 0)
+                                
+                                # Linha tracejada/sólida para anotação manual
+                                pdf.line(127, y + 3.5, 193, y + 3.5)
+                                
+                                pdf.set_y(y + row_height)
+                                
+                            # Fecha a tabela na última página
+                            pdf.line(10, pdf.get_y(), 287, pdf.get_y())
+
+                            st.session_state.pdf_conam = get_pdf_bytes(pdf)
+                        
+                if 'pdf_conam' in st.session_state:
                     st.download_button(
-                        label="📥 Baixar Folha de Etiquetas (PDF)", 
-                        data=st.session_state.pdf_etiquetas, 
-                        file_name=nome_arquivo, 
+                        label="📥 Baixar Relatório CONAM (PDF)", 
+                        data=st.session_state.pdf_conam, 
+                        file_name=f"Relatorio_CONAM_{datetime.now().strftime('%Y%m%d')}.pdf", 
                         mime="application/pdf", 
                         use_container_width=True,
                         type="primary"

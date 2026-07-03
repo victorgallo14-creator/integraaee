@@ -1254,7 +1254,7 @@ with st.sidebar:
         st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
         app_mode_adm = st.radio(
             "Navegação", 
-            ["📦 Almoxarifado Escolar", "🖨️ Emissão de Boletins"], 
+            ["📦 Almoxarifado Escolar", "🏷️ Patrimônio e Inventário", "🖨️ Emissão de Boletins"], 
             label_visibility="collapsed",
             key="nav_adm"
         )
@@ -11596,6 +11596,179 @@ if st.session_state.get('authenticated'):
             render_modulo_album()
 
 
+
+
+
+
+
+# ==============================================================================
+# MÓDULO: ADMINISTRATIVO (PATRIMÔNIO E INVENTÁRIO)
+# ==============================================================================
+elif app_mode_adm == "🏷️ Patrimônio e Inventário":
+    st.markdown('<div class="header-box"><div class="header-title">🏷️ Gestão de Patrimônio e Inventário</div></div>', unsafe_allow_html=True)
     
+    if st.button("⬅️ Voltar ao Menu Inicial", key="voltar_patrimonio"):
+        st.session_state.modulo_atuacao = None
+        st.rerun()
+
+    # Leitura da tabela no Supabase
+    df_patrimonio = safe_read("Patrimonio", ["id", "codigo", "nome", "localizacao", "estado", "conferido", "ultima_conferencia", "foto_base64", "observacao"])
+
+    tab_conferencia, tab_cadastro, tab_etiquetas = st.tabs(["✅ Conferência & Busca", "➕ Cadastrar Bem", "🖨️ Gerar QR Codes"])
+
+    # --- ABA 1: CONFERÊNCIA E BUSCA ---
+    with tab_conferencia:
+        st.subheader("Localizar e Conferir Patrimônio")
+        st.info("💡 Posicione o cursor no campo abaixo e use um leitor de QR Code/Código de Barras, ou digite o tombo manualmente e aperte Enter.")
+        
+        # O leitor de QR Code funciona "digitando" o código aqui automaticamente
+        codigo_busca = st.text_input("🔍 Código do Bem (Tombo):", placeholder="Ex: 123456", key="busca_patrimonio")
+        
+        if codigo_busca:
+            bem_encontrado = df_patrimonio[df_patrimonio['codigo'] == codigo_busca]
+            
+            if not bem_encontrado.empty:
+                bem = bem_encontrado.iloc[0]
+                st.success(f"Bem localizado: **{bem['nome']}**")
+                
+                with st.form(f"form_conf_{bem['id']}"):
+                    st.markdown("### Atualizar Status do Inventário")
+                    
+                    c1, c2 = st.columns(2)
+                    nova_loc = c1.text_input("Localização Atual", value=bem.get('localizacao', ''))
+                    
+                    opcoes_estado = ["Novo", "Bom", "Regular", "Ruim", "Inservível/Sucata", "Em Manutenção"]
+                    idx_est = opcoes_estado.index(bem.get('estado', 'Bom')) if bem.get('estado') in opcoes_estado else 1
+                    novo_estado = c2.selectbox("Estado de Conservação", opcoes_estado, index=idx_est)
+                    
+                    obs = st.text_area("Observações (Avarias, Transferências, etc.)", value=bem.get('observacao', ''))
+                    
+                    st.markdown("---")
+                    st.markdown("**Registro Fotográfico**")
+                    c_img, c_up = st.columns([1, 2])
+                    
+                    # Exibe a foto atual se existir
+                    if bem.get('foto_base64') and pd.notnull(bem['foto_base64']) and bem['foto_base64'] != "":
+                        try:
+                            c_img.image(base64.b64decode(bem['foto_base64']), use_container_width=True)
+                        except:
+                            c_img.warning("Erro ao carregar imagem.")
+                    else:
+                        c_img.info("📸 Sem foto registrada.")
+                        
+                    nova_foto = c_up.file_uploader("Atualizar Foto (Tirar foto com o celular ou enviar arquivo)", type=["jpg", "png", "jpeg"])
+                    
+                    st.markdown("---")
+                    conferido = st.checkbox("✅ Marcar item como CONFERIDO E VISTADO nesta data", value=True)
+                    
+                    if st.form_submit_button("💾 Salvar Conferência", type="primary", use_container_width=True):
+                        dados_update = {
+                            "localizacao": nova_loc,
+                            "estado": novo_estado,
+                            "observacao": obs,
+                            "conferido": conferido,
+                            "ultima_conferencia": datetime.now().strftime("%d/%m/%Y %H:%M")
+                        }
+                        
+                        # Processamento da imagem em Base64
+                        if nova_foto:
+                            try:
+                                img = Image.open(nova_foto)
+                                if img.mode != 'RGB': img = img.convert('RGB')
+                                img.thumbnail((500, 500)) # Reduz o tamanho para não pesar o banco
+                                buf = io.BytesIO()
+                                img.save(buf, format="JPEG", quality=80)
+                                dados_update['foto_base64'] = base64.b64encode(buf.getvalue()).decode()
+                            except Exception as e:
+                                st.error(f"Erro ao processar a foto: {e}")
+                                
+                        try:
+                            supabase.table("Patrimonio").update(dados_update).eq("id", bem['id']).execute()
+                            st.success("✅ Inventário atualizado com sucesso!")
+                            time.sleep(1)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao salvar no banco: {e}")
+            else:
+                st.warning("⚠️ Código não encontrado no sistema. Vá para a aba 'Cadastrar Bem'.")
+
+    # --- ABA 2: CADASTRO MANUAL ---
+    with tab_cadastro:
+        st.subheader("Adicionar Novo Patrimônio")
+        with st.form("form_novo_patrimonio", clear_on_submit=True):
+            col_t, col_n = st.columns([1, 2])
+            n_codigo = col_t.text_input("Código / Tombo *", placeholder="Ex: 98765")
+            n_nome = col_n.text_input("Nome/Descrição do Bem *", placeholder="Ex: Mesa de Escritório MDF")
+            
+            col_l, col_e = st.columns(2)
+            n_local = col_l.text_input("Localização", placeholder="Ex: Sala da Direção")
+            n_estado = col_e.selectbox("Estado", ["Novo", "Bom", "Regular", "Ruim"])
+            
+            n_foto = st.file_uploader("Foto Inicial (Opcional)", type=["jpg", "png", "jpeg"])
+            
+            if st.form_submit_button("➕ Cadastrar Bem", type="primary", use_container_width=True):
+                if n_codigo and n_nome:
+                    foto_b64 = ""
+                    if n_foto:
+                        img = Image.open(n_foto)
+                        if img.mode != 'RGB': img = img.convert('RGB')
+                        img.thumbnail((500, 500))
+                        buf = io.BytesIO()
+                        img.save(buf, format="JPEG", quality=80)
+                        foto_b64 = base64.b64encode(buf.getvalue()).decode()
+
+                    novo_item = {
+                        "id": str(uuid.uuid4()),
+                        "codigo": n_codigo,
+                        "nome": n_nome,
+                        "localizacao": n_local,
+                        "estado": n_estado,
+                        "conferido": False,
+                        "foto_base64": foto_b64,
+                        "ultima_conferencia": "Nunca conferido",
+                        "observacao": ""
+                    }
+                    try:
+                        supabase.table("Patrimonio").insert(novo_item).execute()
+                        st.success("✅ Bem cadastrado com sucesso!")
+                        time.sleep(1)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Erro ao cadastrar: {e}")
+                else:
+                    st.error("Preencha os campos obrigatórios (Código e Nome).")
+
+    # --- ABA 3: GERAÇÃO DE ETIQUETAS QR CODE ---
+    with tab_etiquetas:
+        st.subheader("🖨️ Gerador de Etiquetas QR Code")
+        st.markdown("Selecione os bens para os quais deseja imprimir as etiquetas. O QR Code gerado trará o código do bem para facilitar a leitura.")
+        
+        if not df_patrimonio.empty:
+            # Cria uma lista de exibição para facilitar a seleção
+            opcoes_bens = df_patrimonio.apply(lambda row: f"{row['codigo']} - {row['nome']}", axis=1).tolist()
+            bens_selecionados = st.multiselect("Selecione os itens para impressão:", opcoes_bens)
+            
+            if bens_selecionados:
+                st.markdown("---")
+                st.markdown("### Pré-visualização das Etiquetas")
+                
+                # Exibe em colunas para simular uma folha de impressão
+                cols_qr = st.columns(4)
+                for i, selecao in enumerate(bens_selecionados):
+                    codigo_item = selecao.split(" - ")[0]
+                    nome_item = selecao.split(" - ")[1]
+                    
+                    with cols_qr[i % 4]:
+                        with st.container(border=True):
+                            st.markdown(f"<div style='text-align: center; font-size: 12px; font-weight: bold;'>CEIEF RAFAEL AFFONSO LEITE</div>", unsafe_allow_html=True)
+                            # Usamos a API gratuita do QRServer para gerar a imagem na hora
+                            qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={codigo_item}"
+                            st.markdown(f"<div style='text-align: center; margin: 10px 0;'><img src='{qr_url}' width='120'></div>", unsafe_allow_html=True)
+                            st.markdown(f"<div style='text-align: center; font-size: 14px; font-weight: bold;'>{codigo_item}</div>", unsafe_allow_html=True)
+                            st.markdown(f"<div style='text-align: center; font-size: 10px; color: gray; height: 30px; overflow: hidden;'>{nome_item}</div>", unsafe_allow_html=True)
+                
+                st.info("💡 Para imprimir, utilize o atalho de impressão do seu navegador (Ctrl+P) ou salve a página como PDF.")
+        else:
+            st.info("Nenhum bem cadastrado no inventário ainda.")
 
 

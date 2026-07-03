@@ -11602,6 +11602,21 @@ if st.session_state.get('authenticated'):
 
 
 # ==============================================================================
+# IMPORTANTE: Adicione as 3 linhas abaixo na primeira linha do seu arquivo,
+# junto com os outros "import", caso ainda não as tenha.
+# ==============================================================================
+import cv2
+import numpy as np
+from PIL import Image
+import io
+import base64
+import uuid
+import time
+from datetime import datetime
+
+# ... (Seu código existente até chegar no bloco do Módulo Administrativo) ...
+
+# ==============================================================================
 # MÓDULO: ADMINISTRATIVO (PATRIMÔNIO E INVENTÁRIO)
 # ==============================================================================
 if app_mode_adm == "🏷️ Patrimônio e Inventário":
@@ -11619,11 +11634,39 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
     # --- ABA 1: CONFERÊNCIA E BUSCA ---
     with tab_conferencia:
         st.subheader("Localizar e Conferir Patrimônio")
-        st.info("💡 Posicione o cursor no campo abaixo e use um leitor de QR Code/Código de Barras, ou digite o tombo manualmente e aperte Enter.")
         
-        # O leitor de QR Code funciona "digitando" o código aqui automaticamente
-        codigo_busca = st.text_input("🔍 Código do Bem (Tombo):", placeholder="Ex: 123456", key="busca_patrimonio")
+        # O usuário escolhe se quer digitar ou usar a câmera
+        metodo_busca = st.radio("Método de Leitura:", ["Câmera do Celular", "Digitar / Leitor USB"], horizontal=True)
         
+        codigo_busca = ""
+        
+        if metodo_busca == "Digitar / Leitor USB":
+            st.info("💡 Digite o tombo manualmente ou use um leitor de código de barras físico.")
+            codigo_busca = st.text_input("🔍 Código do Bem (Tombo):", placeholder="Ex: 123456", key="busca_patrimonio")
+            
+        else:
+            st.info("💡 Tire uma foto nítida do QR Code da etiqueta.")
+            foto_qr = st.camera_input("📷 Aponte a câmera para a etiqueta")
+            
+            if foto_qr:
+                try:
+                    # Converte a imagem do Streamlit para o formato que o OpenCV entende
+                    file_bytes = np.asarray(bytearray(foto_qr.read()), dtype=np.uint8)
+                    img = cv2.imdecode(file_bytes, 1)
+                    
+                    # Chama o detector nativo de QR Code do OpenCV
+                    detector = cv2.QRCodeDetector()
+                    data, bbox, _ = detector.detectAndDecode(img)
+                    
+                    if data:
+                        codigo_busca = data
+                        st.success(f"✅ QR Code lido com sucesso: **{codigo_busca}**")
+                    else:
+                        st.error("❌ Não foi possível ler o QR Code. Tente centralizar a etiqueta e melhorar o foco.")
+                except Exception as e:
+                    st.error(f"Erro ao processar a imagem: {e}")
+
+        # Se o código foi digitado ou lido pela câmera, a lógica flui normalmente:
         if codigo_busca:
             bem_encontrado = df_patrimonio[df_patrimonio['codigo'] == codigo_busca]
             
@@ -11647,7 +11690,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     st.markdown("**Registro Fotográfico**")
                     c_img, c_up = st.columns([1, 2])
                     
-                    # Exibe a foto atual se existir
                     if bem.get('foto_base64') and pd.notnull(bem['foto_base64']) and bem['foto_base64'] != "":
                         try:
                             c_img.image(base64.b64decode(bem['foto_base64']), use_container_width=True)
@@ -11656,7 +11698,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     else:
                         c_img.info("📸 Sem foto registrada.")
                         
-                    nova_foto = c_up.file_uploader("Atualizar Foto (Tirar foto com o celular ou enviar arquivo)", type=["jpg", "png", "jpeg"])
+                    nova_foto = c_up.file_uploader("Atualizar Foto", type=["jpg", "png", "jpeg"])
                     
                     st.markdown("---")
                     conferido = st.checkbox("✅ Marcar item como CONFERIDO E VISTADO nesta data", value=True)
@@ -11670,12 +11712,11 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                             "ultima_conferencia": datetime.now().strftime("%d/%m/%Y %H:%M")
                         }
                         
-                        # Processamento da imagem em Base64
                         if nova_foto:
                             try:
                                 img = Image.open(nova_foto)
                                 if img.mode != 'RGB': img = img.convert('RGB')
-                                img.thumbnail((500, 500)) # Reduz o tamanho para não pesar o banco
+                                img.thumbnail((500, 500))
                                 buf = io.BytesIO()
                                 img.save(buf, format="JPEG", quality=80)
                                 dados_update['foto_base64'] = base64.b64encode(buf.getvalue()).decode()
@@ -11710,12 +11751,15 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                 if n_codigo and n_nome:
                     foto_b64 = ""
                     if n_foto:
-                        img = Image.open(n_foto)
-                        if img.mode != 'RGB': img = img.convert('RGB')
-                        img.thumbnail((500, 500))
-                        buf = io.BytesIO()
-                        img.save(buf, format="JPEG", quality=80)
-                        foto_b64 = base64.b64encode(buf.getvalue()).decode()
+                        try:
+                            img = Image.open(n_foto)
+                            if img.mode != 'RGB': img = img.convert('RGB')
+                            img.thumbnail((500, 500))
+                            buf = io.BytesIO()
+                            img.save(buf, format="JPEG", quality=80)
+                            foto_b64 = base64.b64encode(buf.getvalue()).decode()
+                        except Exception as e:
+                            st.error(f"Erro ao processar imagem: {e}")
 
                     novo_item = {
                         "id": str(uuid.uuid4()),
@@ -11734,17 +11778,17 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                         time.sleep(1)
                         st.rerun()
                     except Exception as e:
-                        st.error(f"Erro ao cadastrar: {e}")
+                        st.error(f"Erro ao cadastrar: Verifique se este tombo já não existe no banco. Erro: {e}")
                 else:
                     st.error("Preencha os campos obrigatórios (Código e Nome).")
 
     # --- ABA 3: GERAÇÃO DE ETIQUETAS QR CODE ---
     with tab_etiquetas:
         st.subheader("🖨️ Gerador de Etiquetas QR Code")
-        st.markdown("Selecione os bens para os quais deseja imprimir as etiquetas. O QR Code gerado trará o código do bem para facilitar a leitura.")
+        st.markdown("Selecione os bens para os quais deseja imprimir as etiquetas. O QR Code gerado trará o código do bem para facilitar a leitura na hora da conferência.")
         
         if not df_patrimonio.empty:
-            # Cria uma lista de exibição para facilitar a seleção
+            # Cria uma lista de exibição combinando código e nome
             opcoes_bens = df_patrimonio.apply(lambda row: f"{row['codigo']} - {row['nome']}", axis=1).tolist()
             bens_selecionados = st.multiselect("Selecione os itens para impressão:", opcoes_bens)
             
@@ -11761,7 +11805,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     with cols_qr[i % 4]:
                         with st.container(border=True):
                             st.markdown(f"<div style='text-align: center; font-size: 12px; font-weight: bold;'>CEIEF RAFAEL AFFONSO LEITE</div>", unsafe_allow_html=True)
-                            # Usamos a API gratuita do QRServer para gerar a imagem na hora
+                            # Geração via API gratuita (simples e não pesa o sistema)
                             qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={codigo_item}"
                             st.markdown(f"<div style='text-align: center; margin: 10px 0;'><img src='{qr_url}' width='120'></div>", unsafe_allow_html=True)
                             st.markdown(f"<div style='text-align: center; font-size: 14px; font-weight: bold;'>{codigo_item}</div>", unsafe_allow_html=True)
@@ -11770,5 +11814,3 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                 st.info("💡 Para imprimir, utilize o atalho de impressão do seu navegador (Ctrl+P) ou salve a página como PDF.")
         else:
             st.info("Nenhum bem cadastrado no inventário ainda.")
-
-

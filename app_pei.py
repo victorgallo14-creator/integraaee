@@ -11604,7 +11604,7 @@ if st.session_state.get('authenticated'):
 # ==============================================================================
 # MÓDULO: ADMINISTRATIVO (PATRIMÔNIO E INVENTÁRIO)
 # ==============================================================================
-elif app_mode_adm == "🏷️ Patrimônio e Inventário":
+if app_mode_adm == "🏷️ Patrimônio e Inventário":
     st.markdown('<div class="header-box"><div class="header-title">🏷️ Gestão de Patrimônio e Inventário</div></div>', unsafe_allow_html=True)
     
     if st.button("⬅️ Voltar ao Menu Inicial", key="voltar_patrimonio"):

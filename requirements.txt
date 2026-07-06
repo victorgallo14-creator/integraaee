@@ -12,3 +12,4 @@ google-auth
 pdfplumber
 opencv-python-headless
 pytesseract
+Pillow

@@ -11617,36 +11617,47 @@ from datetime import datetime
 # ... (Seu código existente até chegar no bloco do Módulo Administrativo) ...
 
 # ==============================================================================
-# MÓDULO: ADMINISTRATIVO (PATRIMÔNIO E INVENTÁRIO)
+# MÓDULO: ADMINISTRATIVO (PATRIMÔNIO E INVENTÁRIO) - OTIMIZADO PARA MOBILE
 # ==============================================================================
 if app_mode_adm == "🏷️ Patrimônio e Inventário":
-    st.markdown('<div class="header-box"><div class="header-title">🏷️ Gestão de Patrimônio e Inventário</div></div>', unsafe_allow_html=True)
+    # Adicionando CSS para melhorar a usabilidade no celular (aumenta a área de toque)
+    st.markdown("""
+        <style>
+        .stButton>button { min-height: 3.2rem; font-weight: bold; font-size: 16px; }
+        .stTextInput>div>div>input { min-height: 3rem; font-size: 16px; }
+        .stSelectbox>div>div>div { min-height: 3rem; font-size: 16px; }
+        .stCameraInput { margin-bottom: 1rem; }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="header-box"><div class="header-title">🏷️ Gestão de Patrimônio</div></div>', unsafe_allow_html=True)
     
-    if st.button("⬅️ Voltar ao Menu Inicial", key="voltar_patrimonio"):
+    if st.button("⬅️ Voltar ao Menu Inicial", key="voltar_patrimonio", use_container_width=True):
         st.session_state.modulo_atuacao = None
         st.rerun()
 
     # Leitura da tabela no Supabase
     df_patrimonio = safe_read("Patrimonio", ["id", "codigo", "nome", "localizacao", "estado", "conferido", "ultima_conferencia", "foto_base64", "observacao"])
 
-    tab_conferencia, tab_cadastro, tab_etiquetas = st.tabs(["✅ Conferência & Busca", "➕ Cadastrar Bem", "🖨️ Gerar QR Codes"])
+    # Nomes das abas curtos para evitar quebra de tela no celular
+    tab_conferencia, tab_cadastro, tab_etiquetas = st.tabs(["✅ Conferir", "➕ Cadastrar", "🖨️ Imprimir"])
 
     # --- ABA 1: CONFERÊNCIA E BUSCA ---
     with tab_conferencia:
-        st.subheader("Localizar e Conferir Patrimônio")
+        st.subheader("Localizar Patrimônio")
         
-        # O usuário escolhe se quer digitar ou usar a câmera
-        metodo_busca = st.radio("Método de Leitura:", ["Câmera do Celular", "Digitar / Leitor USB"], horizontal=True)
+        # Selectbox ocupa menos espaço que rádio horizontal em telas pequenas
+        metodo_busca = st.selectbox("Método de Leitura:", ["Câmera do Celular", "Digitar / Leitor USB"])
         
         codigo_busca = ""
         
         if metodo_busca == "Digitar / Leitor USB":
-            st.info("💡 Digite o tombo manualmente ou use um leitor de código de barras físico.")
+            st.info("💡 Digite o tombo manualmente ou use um leitor USB.")
             codigo_busca = st.text_input("🔍 Código do Bem (Tombo):", placeholder="Ex: 123456", key="busca_patrimonio")
             
         else:
-            st.info("💡 Tire uma foto nítida do QR Code da etiqueta.")
-            foto_qr = st.camera_input("📷 Aponte a câmera para a etiqueta")
+            st.info("💡 Tire uma foto nítida do QR Code.")
+            foto_qr = st.camera_input("📷 Aponte a câmera")
             
             if foto_qr:
                 try:
@@ -11660,13 +11671,13 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     
                     if data:
                         codigo_busca = data
-                        st.success(f"✅ QR Code lido com sucesso: **{codigo_busca}**")
+                        st.success(f"✅ QR Code lido: **{codigo_busca}**")
                     else:
-                        st.error("❌ Não foi possível ler o QR Code. Tente centralizar a etiqueta e melhorar o foco.")
+                        st.error("❌ Não foi possível ler o QR. Centralize a etiqueta e melhore o foco.")
                 except Exception as e:
                     st.error(f"Erro ao processar a imagem: {e}")
 
-        # Se o código foi digitado ou lido pela câmera, a lógica flui normalmente:
+        # Se o código foi digitado ou lido pela câmera:
         if codigo_busca:
             bem_encontrado = df_patrimonio[df_patrimonio['codigo'] == codigo_busca]
             
@@ -11677,32 +11688,33 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                 with st.form(f"form_conf_{bem['id']}"):
                     st.markdown("### Atualizar Status do Inventário")
                     
-                    c1, c2 = st.columns(2)
-                    nova_loc = c1.text_input("Localização Atual", value=bem.get('localizacao', ''))
+                    # Layout totalmente vertical para não espremer os campos no celular
+                    nova_loc = st.text_input("Localização Atual", value=bem.get('localizacao', ''))
                     
                     opcoes_estado = ["Novo", "Bom", "Regular", "Ruim", "Inservível/Sucata", "Em Manutenção"]
                     idx_est = opcoes_estado.index(bem.get('estado', 'Bom')) if bem.get('estado') in opcoes_estado else 1
-                    novo_estado = c2.selectbox("Estado de Conservação", opcoes_estado, index=idx_est)
+                    novo_estado = st.selectbox("Estado de Conservação", opcoes_estado, index=idx_est)
                     
                     obs = st.text_area("Observações (Avarias, Transferências, etc.)", value=bem.get('observacao', ''))
                     
                     st.markdown("---")
                     st.markdown("**Registro Fotográfico**")
-                    c_img, c_up = st.columns([1, 2])
                     
+                    # Layout vertical para fotos (imagem acima, uploader abaixo)
                     if bem.get('foto_base64') and pd.notnull(bem['foto_base64']) and bem['foto_base64'] != "":
                         try:
-                            c_img.image(base64.b64decode(bem['foto_base64']), use_container_width=True)
+                            st.image(base64.b64decode(bem['foto_base64']), use_container_width=True)
                         except:
-                            c_img.warning("Erro ao carregar imagem.")
+                            st.warning("Erro ao carregar imagem.")
                     else:
-                        c_img.info("📸 Sem foto registrada.")
+                        st.info("📸 Sem foto registrada.")
                         
-                    nova_foto = c_up.file_uploader("Atualizar Foto", type=["jpg", "png", "jpeg"])
+                    nova_foto = st.file_uploader("Atualizar Foto", type=["jpg", "png", "jpeg"])
                     
                     st.markdown("---")
-                    conferido = st.checkbox("✅ Marcar item como CONFERIDO E VISTADO nesta data", value=True)
+                    conferido = st.checkbox("✅ Marcar como CONFERIDO E VISTADO nesta data", value=True)
                     
+                    # Botão em largura total
                     if st.form_submit_button("💾 Salvar Conferência", type="primary", use_container_width=True):
                         dados_update = {
                             "localizacao": nova_loc,
@@ -11731,20 +11743,18 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                         except Exception as e:
                             st.error(f"Erro ao salvar no banco: {e}")
             else:
-                st.warning("⚠️ Código não encontrado no sistema. Vá para a aba 'Cadastrar Bem'.")
+                st.warning("⚠️ Código não encontrado no sistema. Vá para a aba 'Cadastrar'.")
 
     # --- ABA 2: CADASTRO MANUAL ---
     with tab_cadastro:
         st.subheader("Adicionar Novo Patrimônio")
         with st.form("form_novo_patrimonio", clear_on_submit=True):
-            col_t, col_n = st.columns([1, 2])
-            n_codigo = col_t.text_input("Código / Tombo *", placeholder="Ex: 98765")
-            n_nome = col_n.text_input("Nome/Descrição do Bem *", placeholder="Ex: Mesa de Escritório MDF")
             
-            col_l, col_e = st.columns(2)
-            n_local = col_l.text_input("Localização", placeholder="Ex: Sala da Direção")
-            n_estado = col_e.selectbox("Estado", ["Novo", "Bom", "Regular", "Ruim"])
-            
+            # Layout vertical, muito melhor para digitação no teclado do celular
+            n_codigo = st.text_input("Código / Tombo *", placeholder="Ex: 98765")
+            n_nome = st.text_input("Nome/Descrição do Bem *", placeholder="Ex: Mesa de Escritório MDF")
+            n_local = st.text_input("Localização", placeholder="Ex: Sala da Direção")
+            n_estado = st.selectbox("Estado", ["Novo", "Bom", "Regular", "Ruim"])
             n_foto = st.file_uploader("Foto Inicial (Opcional)", type=["jpg", "png", "jpeg"])
             
             if st.form_submit_button("➕ Cadastrar Bem", type="primary", use_container_width=True):
@@ -11778,17 +11788,16 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                         time.sleep(1)
                         st.rerun()
                     except Exception as e:
-                        st.error(f"Erro ao cadastrar: Verifique se este tombo já não existe no banco. Erro: {e}")
+                        st.error(f"Erro ao cadastrar: Verifique se este tombo já não existe. Erro: {e}")
                 else:
                     st.error("Preencha os campos obrigatórios (Código e Nome).")
 
-# --- ABA 3: IMPRESSÕES (ETIQUETAS E RELATÓRIOS CONAM) ---
-    tab_impressoes = tab_etiquetas # Renomeando a aba logicamente
-    with tab_impressoes:
+    # --- ABA 3: IMPRESSÕES (ETIQUETAS E RELATÓRIOS CONAM) ---
+    with tab_etiquetas:
         st.subheader("🖨️ Central de Impressão")
         
-        # Sub-abas para separar Etiquetas e Relatório
-        sub_tab_etiquetas, sub_tab_relatorio = st.tabs(["🏷️ Etiquetas QR Code", "📑 Relatório de Inventário (CONAM)"])
+        # Sub-abas encurtadas
+        sub_tab_etiquetas, sub_tab_relatorio = st.tabs(["🏷️ Etiquetas", "📑 Relatório"])
         
         if not df_patrimonio.empty:
             
@@ -11796,8 +11805,9 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
             # 1. GERADOR DE ETIQUETAS QR CODE
             # ==================================================================
             with sub_tab_etiquetas:
-                st.markdown("Escolha se deseja imprimir as etiquetas de um ambiente inteiro ou selecionar os itens manualmente.")
+                st.markdown("Escolha se deseja imprimir as etiquetas de um ambiente inteiro ou itens manuais.")
                 
+                # Função de gerar PDF de etiquetas mantida 100% como a original
                 def gerar_pdf_etiquetas(df_bens):
                     pdf = FPDF('P', 'mm', 'A4')
                     pdf.set_auto_page_break(auto=False)
@@ -11875,34 +11885,35 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     my_bar.empty()
                     return get_pdf_bytes(pdf)
 
-                modo_impressao = st.radio("Método de Impressão:", ["📍 Por Ambiente / Localização", "✍️ Seleção Manual de Itens"], horizontal=True)
+                # Radio Layout Vertical para mobile
+                modo_impressao = st.radio("Método de Seleção:", ["📍 Por Ambiente", "✍️ Seleção Manual"])
                 df_para_imprimir = pd.DataFrame()
                 
-                if modo_impressao == "📍 Por Ambiente / Localização":
+                if modo_impressao == "📍 Por Ambiente":
                     locais_disponiveis = [loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""]
                     if locais_disponiveis:
                         local_sel = st.selectbox("Selecione o Ambiente:", ["-- Escolha o Ambiente --"] + sorted(locais_disponiveis))
                         if local_sel != "-- Escolha o Ambiente --":
                             df_para_imprimir = df_patrimonio[df_patrimonio['localizacao'] == local_sel]
-                            st.info(f"Foram encontrados **{len(df_para_imprimir)}** bens cadastrados neste ambiente.")
+                            st.info(f"Foram encontrados **{len(df_para_imprimir)}** bens.")
                     else:
-                        st.warning("Nenhum ambiente foi registrado nos cadastros de patrimônio ainda.")
+                        st.warning("Nenhum ambiente foi registrado ainda.")
                 else:
                     opcoes_bens = df_patrimonio.apply(lambda row: f"{row['codigo']} - {row['nome']}", axis=1).tolist()
-                    bens_selecionados = st.multiselect("Selecione os itens para impressão:", opcoes_bens)
+                    bens_selecionados = st.multiselect("Selecione os itens:", opcoes_bens)
                     if bens_selecionados:
                         codigos_selecionados = [item.split(" - ")[0] for item in bens_selecionados]
                         df_para_imprimir = df_patrimonio[df_patrimonio['codigo'].isin(codigos_selecionados)]
 
                 if not df_para_imprimir.empty:
                     st.markdown("---")
-                    if st.button("👁️ Gerar PDF de Etiquetas", type="primary"):
-                        with st.spinner("Gerando etiquetas... Isso pode levar alguns segundos."):
+                    if st.button("👁️ Gerar PDF de Etiquetas", type="primary", use_container_width=True):
+                        with st.spinner("Gerando etiquetas..."):
                             st.session_state.pdf_etiquetas = gerar_pdf_etiquetas(df_para_imprimir)
                     
                     if 'pdf_etiquetas' in st.session_state:
                         st.download_button(
-                            label="📥 Baixar Folha de Etiquetas (PDF)", 
+                            label="📥 Baixar Etiquetas (PDF)", 
                             data=st.session_state.pdf_etiquetas, 
                             file_name=f"Etiquetas_Patrimonio_{datetime.now().strftime('%d%m%Y_%H%M')}.pdf", 
                             mime="application/pdf", 
@@ -11910,19 +11921,20 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                             type="primary"
                         )
 
-# ==================================================================
-            # 2. GERADOR DE RELATÓRIO CONAM (46 LINHAS + ESTADO/LOCAL + RODAPÉ)
+            # ==================================================================
+            # 2. GERADOR DE RELATÓRIO CONAM
             # ==================================================================
             with sub_tab_relatorio:
-                st.markdown("Gere a listagem de conferência oficial para assinatura, seguindo o formato do sistema da Prefeitura.")
+                st.markdown("Listagem oficial para assinatura, padrão CONAM.")
                 
-                c_rel1, c_rel2 = st.columns(2)
+                # Layout vertical para seletores do relatório
                 locais_rel = [loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""]
+                local_rel = st.selectbox("Filtrar por Setor/Ambiente:", ["Todos os Ambientes"] + sorted(locais_rel))
                 
-                local_rel = c_rel1.selectbox("Filtrar por Setor/Ambiente:", ["Todos os Ambientes"] + sorted(locais_rel))
                 resp_padrao = st.session_state.get('usuario_nome', '').upper()
-                resp_rel = c_rel2.text_input("Responsável pelo Setor:", value=resp_padrao)
+                resp_rel = st.text_input("Responsável pelo Setor:", value=resp_padrao)
 
+                # Classe mantida idêntica à sua lógica original
                 class RelatorioConamPDF(FPDF):
                     def __init__(self, setor_nome, responsavel):
                         super().__init__('L', 'mm', 'A4')
@@ -11942,7 +11954,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
 
                         self.cell(0, 4, "Prefeitura Municipal de Limeira", 0, 1, 'C')
                         self.cell(0, 4, "Relatorio de Moveis por Setor 01671 SMED - CEIEF RAFAEL AFFONSO LEITE", 0, 1, 'C')
-                        self.cell(0, 4, f"Selecao : Bens INCORPORADOS              de           a {self.data_hoje}", 0, 1, 'C')
+                        self.cell(0, 4, f"Selecao : Bens INCORPORADOS             de            a {self.data_hoje}", 0, 1, 'C')
 
                         self.cell(138, 4, f"DATA {self.data_hoje}", 0, 0, 'L')
                         self.cell(138, 4, f"PAGINA      {self.page_no()}", 0, 1, 'R')
@@ -11971,11 +11983,9 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                         self.ln(1)
                         self.line(10, self.get_y(), 287, self.get_y())
 
-                if st.button("👁️ Gerar Relatório CONAM", type="primary"):
+                if st.button("👁️ Gerar Relatório CONAM", type="primary", use_container_width=True):
                     df_rel = df_patrimonio.copy()
                     
-                    # Correção do Bug de Visibilidade (Ordenação):
-                    # Força a ordenação numérica pelo tombo para que itens recém-cadastrados com local não fiquem escondidos no final da lista
                     df_rel['codigo_num'] = pd.to_numeric(df_rel['codigo'], errors='coerce')
                     df_rel = df_rel.sort_values(by=['codigo_num', 'codigo'])
                     
@@ -11985,7 +11995,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     if df_rel.empty:
                         st.warning("Nenhum bem encontrado para este filtro.")
                     else:
-                        with st.spinner("Desenhando relatório matricial e contabilizando os setores..."):
+                        with st.spinner("Desenhando relatório matricial..."):
                             pdf = RelatorioConamPDF(local_rel, resp_rel)
                             pdf.add_page()
                             
@@ -12016,7 +12026,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                                 pdf.set_xy(38, y + 0.2)
                                 pdf.cell(85, 3, desc, 0, 0)
                                 
-                                # Observação combinada (Estado + Localização) tratando valores vazios
                                 estado = str(row.get('estado', '')).strip()
                                 if estado in ['None', 'nan']: estado = ""
                                 
@@ -12036,16 +12045,11 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                                 
                             pdf.line(10, pdf.get_y(), 287, pdf.get_y())
 
-                            # ==========================================
-                            # RODAPÉ DE RESUMO DE CONTAGEM (CONAM)
-                            # ==========================================
-                            # Verifica se tem espaço para imprimir o rodapé, senão cria uma nova página
+                            # RODAPÉ DE CONTAGEM
                             if pdf.get_y() > 185:
                                 pdf.add_page()
                                 
                             total_moveis = len(df_rel)
-                            
-                            # Calcula setores únicos reais listados
                             setores_unicos = df_rel['localizacao'].dropna().apply(lambda x: str(x).strip()).unique()
                             setores_unicos = [s for s in setores_unicos if s not in ["", "None", "nan"]]
                             total_setores = len(setores_unicos) if len(setores_unicos) > 0 else 1
@@ -12070,7 +12074,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                         
                 if 'pdf_conam' in st.session_state:
                     st.download_button(
-                        label="📥 Baixar Relatório CONAM (PDF)", 
+                        label="📥 Baixar Relatório (PDF)", 
                         data=st.session_state.pdf_conam, 
                         file_name=f"Relatorio_CONAM_{datetime.now().strftime('%Y%m%d')}.pdf", 
                         mime="application/pdf", 

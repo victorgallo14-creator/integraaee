@@ -11615,6 +11615,7 @@ import time
 from datetime import datetime
 import pytesseract
 from PIL import Image
+import re  # Biblioteca para filtrar textos
 
 # ... (Seu código existente até chegar no bloco do Módulo Administrativo) ...
 
@@ -11662,27 +11663,36 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
             st.info("💡 Digite o tombo manualmente ou use um leitor USB.")
             codigo_busca = st.text_input("🔍 Código do Bem (Tombo):", placeholder="Ex: 123456", key="busca_patrimonio")
             
-        elif metodo_busca == "Câmera (QR Code)":
-            st.info("💡 Tire uma foto nítida do QR Code.")
-            foto_qr = st.camera_input("📷 Aponte a câmera")
+        elif metodo_busca == "Câmera (Ler Plaquinha - OCR)":
+            st.info("💡 Foque bem no número da placa. Evite reflexos de luz.")
+            foto_placa = st.camera_input("📷 Aponte a câmera para o Número")
             
-            if foto_qr:
-                try:
-                    # Converte a imagem do Streamlit para o formato que o OpenCV entende
-                    file_bytes = np.asarray(bytearray(foto_qr.read()), dtype=np.uint8)
-                    img = cv2.imdecode(file_bytes, 1)
-                    
-                    # Chama o detector nativo de QR Code do OpenCV
-                    detector = cv2.QRCodeDetector()
-                    data, bbox, _ = detector.detectAndDecode(img)
-                    
-                    if data:
-                        codigo_busca = data
-                        st.success(f"✅ QR Code lido: **{codigo_busca}**")
-                    else:
-                        st.error("❌ Não foi possível ler o QR. Centralize a etiqueta e melhore o foco.")
-                except Exception as e:
-                    st.error(f"Erro ao processar a imagem: {e}")
+            if foto_placa:
+                with st.spinner("Analisando imagem..."):
+                    try:
+                        img_placa = Image.open(foto_placa)
+                        
+                        # --psm 6 diz ao Tesseract para ler a imagem como um bloco de texto (várias linhas)
+                        # Removemos o whitelist para ele não se confundir tentando ler letras como números
+                        config_tesseract = r'--psm 6'
+                        
+                        texto_bruto = pytesseract.image_to_string(img_placa, config=config_tesseract)
+                        
+                        # Usa Regex para encontrar todas as sequências de números no texto que ele leu
+                        numeros_encontrados = re.findall(r'\d+', texto_bruto)
+                        
+                        if numeros_encontrados:
+                            # Pega a sequência numérica mais longa encontrada (ex: ignora um '1' aleatório e pega o '167310')
+                            texto_extraido = max(numeros_encontrados, key=len)
+                            
+                            st.success("✅ Número detectado!")
+                            codigo_busca = st.text_input("🔍 Confirme o código lido:", value=texto_extraido, key="confirma_ocr")
+                        else:
+                            st.error("❌ Nenhum número detectado. Tente focar apenas na placa.")
+                            # Descomente a linha abaixo se quiser ver o que o Tesseract está lendo de errado
+                            # st.write(f"O que o robô leu: {texto_bruto}")
+                    except Exception as e:
+                        st.error(f"Erro no leitor de placa: {e}")
 
         elif metodo_busca == "Câmera (Ler Plaquinha - OCR)":
             st.info("💡 Foque bem no número da placa. Evite reflexos de luz.")

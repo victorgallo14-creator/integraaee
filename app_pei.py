@@ -11623,7 +11623,6 @@ import re  # Biblioteca para filtrar textos
 # MÓDULO: ADMINISTRATIVO (PATRIMÔNIO E INVENTÁRIO) - OTIMIZADO PARA MOBILE
 # ==============================================================================
 if app_mode_adm == "🏷️ Patrimônio e Inventário":
-    # Adicionando CSS para melhorar a usabilidade no celular (aumenta a área de toque)
     st.markdown("""
         <style>
         .stButton>button { min-height: 3.2rem; font-weight: bold; font-size: 16px; }
@@ -11645,31 +11644,28 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
     # Nomes das abas curtos para evitar quebra de tela no celular
     tab_conferencia, tab_cadastro, tab_etiquetas = st.tabs(["✅ Conferir", "➕ Cadastrar", "🖨️ Imprimir"])
 
-    # --- ABA 1: CONFERÊNCIA E BUSCA ---
+    # 1. Lista de locais organizada
+    LOCAIS_ESCOLA = sorted([
+        "ALMOXARIFADO", "ARQUIVO MORTO", "BANHEIROS ADM", "BANHEIROS ALUNOS",
+        "BANHEIROS FUNC.", "BANHEIROS PROF", "BIBLIOTECA", "CORREDOR FUNDAMENTAL",
+        "CORREDOR INFANTIL", "COZINHA DOS PROFESSORES", "COZINHA FUND.", "HALL DE ENTRADA",
+        "INFORMÁTICA", "LAVANDERIA", "QUADRA", "REFEITÓRIO BERÇÁRIO", "REFEITÓRIO FUND",
+        "REFEITÓRIO INFANTIL", "SALA 09", "SALA 1", "SALA 10", "SALA 11", "SALA 12",
+        "SALA 13", "SALA 14", "SALA 15", "SALA 16", "SALA 17", "SALA 18", "SALA 2",
+        "SALA 3", "SALA 4", "SALA 5", "SALA 6", "SALA 7", "SALA 8", "SALA BILINGUE",
+        "SALA DA COORDENAÇÃO", "SALA DA DIREÇÃO", "SALA DE CAFÉ", "SALA DE ED. FISICA",
+        "SALA DE RECURSOS 1", "SALA DOS PROFESSORES", "SALA RECURSOS 2", "SECRETARIA"
+    ])
 
+    if "local_trabalho_atual" not in st.session_state:
+        st.session_state.local_trabalho_atual = LOCAIS_ESCOLA[0]
+
+    # ==================================================================
+    # --- ABA 1: CONFERÊNCIA E BUSCA ---
+    # ==================================================================
     with tab_conferencia:
         
-        # 1. Lista de locais organizados em ordem alfabética
-        LOCAIS_ESCOLA = sorted([
-            "ALMOXARIFADO", "ARQUIVO MORTO", "BANHEIROS ADM", "BANHEIROS ALUNOS",
-            "BANHEIROS FUNC.", "BANHEIROS PROF", "BIBLIOTECA", "CORREDOR FUNDAMENTAL",
-            "CORREDOR INFANTIL", "COZINHA DOS PROFESSORES", "COZINHA FUND.", "HALL DE ENTRADA",
-            "INFORMÁTICA", "LAVANDERIA", "QUADRA", "REFEITÓRIO BERÇÁRIO", "REFEITÓRIO FUND",
-            "REFEITÓRIO INFANTIL", "SALA 09", "SALA 1", "SALA 10", "SALA 11", "SALA 12",
-            "SALA 13", "SALA 14", "SALA 15", "SALA 16", "SALA 17", "SALA 18", "SALA 2",
-            "SALA 3", "SALA 4", "SALA 5", "SALA 6", "SALA 7", "SALA 8", "SALA BILINGUE",
-            "SALA DA COORDENAÇÃO", "SALA DA DIREÇÃO", "SALA DE CAFÉ", "SALA DE ED. FISICA",
-            "SALA DE RECURSOS 1", "SALA DOS PROFESSORES", "SALA RECURSOS 2", "SECRETARIA"
-        ])
-
-        # Inicializa o local padrão na sessão, se não existir
-        if "local_trabalho_atual" not in st.session_state:
-            st.session_state.local_trabalho_atual = LOCAIS_ESCOLA[0]
-
-        # 2. Configuração do ambiente atual (Batch mode)
         st.markdown("### 📍 Em qual ambiente você está agora?")
-        
-        # Atualiza a sessão toda vez que o usuário muda essa caixa
         st.session_state.local_trabalho_atual = st.selectbox(
             "Selecione para aplicar a todas as conferências:", 
             LOCAIS_ESCOLA,
@@ -11679,7 +11675,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
         st.markdown("---")
         st.subheader("🔍 Localizar Patrimônio")
         
-        # Selectbox atualizado com a opção de OCR (Plaquinha)
         metodo_busca = st.selectbox("Método de Leitura:", [
             "Câmera (QR Code)", 
             "Câmera (Ler Plaquinha - OCR)", 
@@ -11722,7 +11717,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                         config_tesseract = r'--psm 6'
                         texto_bruto = pytesseract.image_to_string(img_placa, config=config_tesseract)
                         
-                        # Extrai apenas a sequência numérica usando Regex
                         numeros_encontrados = re.findall(r'\d+', texto_bruto)
                         
                         if numeros_encontrados:
@@ -11734,7 +11728,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     except Exception as e:
                         st.error(f"Erro no leitor de placa: {e}")
 
-        # Se o código foi digitado ou lido/confirmado pela câmera (QR ou OCR):
         if codigo_busca:
             bem_encontrado = df_patrimonio[df_patrimonio['codigo'] == codigo_busca]
             
@@ -11745,7 +11738,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                 with st.form(f"form_conf_{bem['id']}"):
                     st.markdown("### Atualizar Status do Inventário")
                     
-                    # 3. A mágica acontece aqui: A localização pré-carregada vem do "ambiente atual" que você setou lá em cima
                     idx_loc_atual = LOCAIS_ESCOLA.index(st.session_state.local_trabalho_atual)
                     nova_loc = st.selectbox("Localização Atual do Bem", LOCAIS_ESCOLA, index=idx_loc_atual)
                     
@@ -11801,15 +11793,20 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
             else:
                 st.warning("⚠️ Código não encontrado no sistema. Vá para a aba 'Cadastrar'.")
 
+    # ==================================================================
     # --- ABA 2: CADASTRO MANUAL ---
+    # ==================================================================
     with tab_cadastro:
         st.subheader("Adicionar Novo Patrimônio")
         with st.form("form_novo_patrimonio", clear_on_submit=True):
             
-            # Layout vertical, muito melhor para digitação no teclado do celular
             n_codigo = st.text_input("Código / Tombo *", placeholder="Ex: 98765")
             n_nome = st.text_input("Nome/Descrição do Bem *", placeholder="Ex: Mesa de Escritório MDF")
-            n_local = st.text_input("Localização", placeholder="Ex: Sala da Direção")
+            
+            # Carrega a localização global para o cadastro também
+            idx_loc_atual = LOCAIS_ESCOLA.index(st.session_state.local_trabalho_atual)
+            n_local = st.selectbox("Localização", LOCAIS_ESCOLA, index=idx_loc_atual)
+            
             n_estado = st.selectbox("Estado", ["Novo", "Bom", "Regular", "Ruim"])
             n_foto = st.file_uploader("Foto Inicial (Opcional)", type=["jpg", "png", "jpeg"])
             
@@ -11848,22 +11845,19 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                 else:
                     st.error("Preencha os campos obrigatórios (Código e Nome).")
 
+    # ==================================================================
     # --- ABA 3: IMPRESSÕES (ETIQUETAS E RELATÓRIOS CONAM) ---
+    # ==================================================================
     with tab_etiquetas:
         st.subheader("🖨️ Central de Impressão")
         
-        # Sub-abas encurtadas
         sub_tab_etiquetas, sub_tab_relatorio = st.tabs(["🏷️ Etiquetas", "📑 Relatório"])
         
         if not df_patrimonio.empty:
             
-            # ==================================================================
-            # 1. GERADOR DE ETIQUETAS QR CODE
-            # ==================================================================
             with sub_tab_etiquetas:
                 st.markdown("Escolha se deseja imprimir as etiquetas de um ambiente inteiro ou itens manuais.")
                 
-                # Função de gerar PDF de etiquetas mantida 100% como a original
                 def gerar_pdf_etiquetas(df_bens):
                     pdf = FPDF('P', 'mm', 'A4')
                     pdf.set_auto_page_break(auto=False)
@@ -11941,7 +11935,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     my_bar.empty()
                     return get_pdf_bytes(pdf)
 
-                # Radio Layout Vertical para mobile
                 modo_impressao = st.radio("Método de Seleção:", ["📍 Por Ambiente", "✍️ Seleção Manual"])
                 df_para_imprimir = pd.DataFrame()
                 
@@ -11977,20 +11970,15 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                             type="primary"
                         )
 
-            # ==================================================================
-            # 2. GERADOR DE RELATÓRIO CONAM
-            # ==================================================================
             with sub_tab_relatorio:
                 st.markdown("Listagem oficial para assinatura, padrão CONAM.")
                 
-                # Layout vertical para seletores do relatório
                 locais_rel = [loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""]
                 local_rel = st.selectbox("Filtrar por Setor/Ambiente:", ["Todos os Ambientes"] + sorted(locais_rel))
                 
                 resp_padrao = st.session_state.get('usuario_nome', '').upper()
                 resp_rel = st.text_input("Responsável pelo Setor:", value=resp_padrao)
 
-                # Classe mantida idêntica à sua lógica original
                 class RelatorioConamPDF(FPDF):
                     def __init__(self, setor_nome, responsavel):
                         super().__init__('L', 'mm', 'A4')
@@ -12101,7 +12089,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                                 
                             pdf.line(10, pdf.get_y(), 287, pdf.get_y())
 
-                            # RODAPÉ DE CONTAGEM
                             if pdf.get_y() > 185:
                                 pdf.add_page()
                                 

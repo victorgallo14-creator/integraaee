@@ -11676,8 +11676,8 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
         st.subheader("🔍 Localizar Patrimônio")
         
         metodo_busca = st.selectbox("Método de Leitura:", [
+            "Câmera (Ler Plaquinha - OCR)",
             "Câmera (QR Code)", 
-            "Câmera (Ler Plaquinha - OCR)", 
             "Digitar / Leitor USB"
         ])
         

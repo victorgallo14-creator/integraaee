@@ -11646,11 +11646,40 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
     tab_conferencia, tab_cadastro, tab_etiquetas = st.tabs(["✅ Conferir", "➕ Cadastrar", "🖨️ Imprimir"])
 
     # --- ABA 1: CONFERÊNCIA E BUSCA ---
-    # --- ABA 1: CONFERÊNCIA E BUSCA ---
+
     with tab_conferencia:
-        st.subheader("Localizar Patrimônio")
         
-        # Selectbox com a nova opção de OCR para ler plaquinhas numéricas
+        # 1. Lista de locais organizados em ordem alfabética
+        LOCAIS_ESCOLA = sorted([
+            "ALMOXARIFADO", "ARQUIVO MORTO", "BANHEIROS ADM", "BANHEIROS ALUNOS",
+            "BANHEIROS FUNC.", "BANHEIROS PROF", "BIBLIOTECA", "CORREDOR FUNDAMENTAL",
+            "CORREDOR INFANTIL", "COZINHA DOS PROFESSORES", "COZINHA FUND.", "HALL DE ENTRADA",
+            "INFORMÁTICA", "LAVANDERIA", "QUADRA", "REFEITÓRIO BERÇÁRIO", "REFEITÓRIO FUND",
+            "REFEITÓRIO INFANTIL", "SALA 09", "SALA 1", "SALA 10", "SALA 11", "SALA 12",
+            "SALA 13", "SALA 14", "SALA 15", "SALA 16", "SALA 17", "SALA 18", "SALA 2",
+            "SALA 3", "SALA 4", "SALA 5", "SALA 6", "SALA 7", "SALA 8", "SALA BILINGUE",
+            "SALA DA COORDENAÇÃO", "SALA DA DIREÇÃO", "SALA DE CAFÉ", "SALA DE ED. FISICA",
+            "SALA DE RECURSOS 1", "SALA DOS PROFESSORES", "SALA RECURSOS 2", "SECRETARIA"
+        ])
+
+        # Inicializa o local padrão na sessão, se não existir
+        if "local_trabalho_atual" not in st.session_state:
+            st.session_state.local_trabalho_atual = LOCAIS_ESCOLA[0]
+
+        # 2. Configuração do ambiente atual (Batch mode)
+        st.markdown("### 📍 Em qual ambiente você está agora?")
+        
+        # Atualiza a sessão toda vez que o usuário muda essa caixa
+        st.session_state.local_trabalho_atual = st.selectbox(
+            "Selecione para aplicar a todas as conferências:", 
+            LOCAIS_ESCOLA,
+            index=LOCAIS_ESCOLA.index(st.session_state.local_trabalho_atual)
+        )
+        
+        st.markdown("---")
+        st.subheader("🔍 Localizar Patrimônio")
+        
+        # Selectbox atualizado com a opção de OCR (Plaquinha)
         metodo_busca = st.selectbox("Método de Leitura:", [
             "Câmera (QR Code)", 
             "Câmera (Ler Plaquinha - OCR)", 
@@ -11661,8 +11690,27 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
         
         if metodo_busca == "Digitar / Leitor USB":
             st.info("💡 Digite o tombo manualmente ou use um leitor USB.")
-            codigo_busca = st.text_input("🔍 Código do Bem (Tombo):", placeholder="Ex: 123456", key="busca_patrimonio")
+            codigo_busca = st.text_input("Código do Bem (Tombo):", placeholder="Ex: 123456", key="busca_patrimonio")
             
+        elif metodo_busca == "Câmera (QR Code)":
+            st.info("💡 Tire uma foto nítida do QR Code.")
+            foto_qr = st.camera_input("📷 Aponte a câmera para o QR Code")
+            
+            if foto_qr:
+                try:
+                    file_bytes = np.asarray(bytearray(foto_qr.read()), dtype=np.uint8)
+                    img = cv2.imdecode(file_bytes, 1)
+                    detector = cv2.QRCodeDetector()
+                    data, bbox, _ = detector.detectAndDecode(img)
+                    
+                    if data:
+                        codigo_busca = data
+                        st.success(f"✅ QR Code lido: **{codigo_busca}**")
+                    else:
+                        st.error("❌ Não foi possível ler o QR. Centralize a etiqueta e melhore o foco.")
+                except Exception as e:
+                    st.error(f"Erro ao processar a imagem: {e}")
+                    
         elif metodo_busca == "Câmera (Ler Plaquinha - OCR)":
             st.info("💡 Foque bem no número da placa. Evite reflexos de luz.")
             foto_placa = st.camera_input("📷 Aponte a câmera para o Número")
@@ -11671,56 +11719,22 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                 with st.spinner("Analisando imagem..."):
                     try:
                         img_placa = Image.open(foto_placa)
-                        
-                        # --psm 6 diz ao Tesseract para ler a imagem como um bloco de texto (várias linhas)
-                        # Removemos o whitelist para ele não se confundir tentando ler letras como números
                         config_tesseract = r'--psm 6'
-                        
                         texto_bruto = pytesseract.image_to_string(img_placa, config=config_tesseract)
                         
-                        # Usa Regex para encontrar todas as sequências de números no texto que ele leu
+                        # Extrai apenas a sequência numérica usando Regex
                         numeros_encontrados = re.findall(r'\d+', texto_bruto)
                         
                         if numeros_encontrados:
-                            # Pega a sequência numérica mais longa encontrada (ex: ignora um '1' aleatório e pega o '167310')
                             texto_extraido = max(numeros_encontrados, key=len)
-                            
                             st.success("✅ Número detectado!")
                             codigo_busca = st.text_input("🔍 Confirme o código lido:", value=texto_extraido, key="confirma_ocr")
                         else:
                             st.error("❌ Nenhum número detectado. Tente focar apenas na placa.")
-                            # Descomente a linha abaixo se quiser ver o que o Tesseract está lendo de errado
-                            # st.write(f"O que o robô leu: {texto_bruto}")
                     except Exception as e:
                         st.error(f"Erro no leitor de placa: {e}")
 
-        elif metodo_busca == "Câmera (Ler Plaquinha - OCR)":
-            st.info("💡 Foque bem no número da placa. Evite reflexos de luz.")
-            foto_placa = st.camera_input("📷 Aponte a câmera para o Número")
-            
-            if foto_placa:
-                with st.spinner("Analisando imagem..."):
-                    try:
-                        # Abre a imagem com o PIL
-                        img_placa = Image.open(foto_placa)
-                        
-                        # Configuração do Tesseract: 
-                        # --psm 7 (Assume que é uma única linha de texto)
-                        # tessedit_char_whitelist (Força a ler APENAS números)
-                        config_tesseract = r'--psm 7 -c tessedit_char_whitelist=0123456789'
-                        
-                        texto_extraido = pytesseract.image_to_string(img_placa, config=config_tesseract).strip()
-                        
-                        if texto_extraido:
-                            st.success("✅ Número detectado!")
-                            # Colocamos no text_input para o usuário poder corrigir se o OCR errar algum dígito
-                            codigo_busca = st.text_input("Confirme o código lido:", value=texto_extraido)
-                        else:
-                            st.error("❌ Nenhum número detectado. Tente chegar mais perto ou melhorar a luz.")
-                    except Exception as e:
-                        st.error(f"Erro no leitor de placa: {e}")
-
-        # Se o código foi digitado, lido pelo QR ou lido/confirmado pelo OCR:
+        # Se o código foi digitado ou lido/confirmado pela câmera (QR ou OCR):
         if codigo_busca:
             bem_encontrado = df_patrimonio[df_patrimonio['codigo'] == codigo_busca]
             
@@ -11731,8 +11745,9 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                 with st.form(f"form_conf_{bem['id']}"):
                     st.markdown("### Atualizar Status do Inventário")
                     
-                    # Layout totalmente vertical para não espremer os campos no celular
-                    nova_loc = st.text_input("Localização Atual", value=bem.get('localizacao', ''))
+                    # 3. A mágica acontece aqui: A localização pré-carregada vem do "ambiente atual" que você setou lá em cima
+                    idx_loc_atual = LOCAIS_ESCOLA.index(st.session_state.local_trabalho_atual)
+                    nova_loc = st.selectbox("Localização Atual do Bem", LOCAIS_ESCOLA, index=idx_loc_atual)
                     
                     opcoes_estado = ["Novo", "Bom", "Regular", "Ruim", "Inservível/Sucata", "Em Manutenção"]
                     idx_est = opcoes_estado.index(bem.get('estado', 'Bom')) if bem.get('estado') in opcoes_estado else 1
@@ -11743,7 +11758,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     st.markdown("---")
                     st.markdown("**Registro Fotográfico**")
                     
-                    # Layout vertical para fotos (imagem acima, uploader abaixo)
                     if bem.get('foto_base64') and pd.notnull(bem['foto_base64']) and bem['foto_base64'] != "":
                         try:
                             st.image(base64.b64decode(bem['foto_base64']), use_container_width=True)
@@ -11757,7 +11771,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     st.markdown("---")
                     conferido = st.checkbox("✅ Marcar como CONFERIDO E VISTADO nesta data", value=True)
                     
-                    # Botão em largura total
                     if st.form_submit_button("💾 Salvar Conferência", type="primary", use_container_width=True):
                         dados_update = {
                             "localizacao": nova_loc,

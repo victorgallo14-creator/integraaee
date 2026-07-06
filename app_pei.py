@@ -11663,7 +11663,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
     # ==================================================================
     # --- ABA 1: CONFERÊNCIA E BUSCA ---
     # ==================================================================
-    with tab_conferencia:
+    with tab_conferencia: # ⬅️ ALINHAMENTO AQUI (Deve ter 4 espaços a partir da margem)
         
         st.markdown("### 📍 Em qual ambiente você está agora?")
         st.session_state.local_trabalho_atual = st.selectbox(
@@ -11796,14 +11796,13 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
     # ==================================================================
     # --- ABA 2: CADASTRO MANUAL ---
     # ==================================================================
-    with tab_cadastro:
+    with tab_cadastro: # ⬅️ ALINHAMENTO AQUI (Deve estar na EXATA mesma reta do 'with tab_conferencia:')
         st.subheader("Adicionar Novo Patrimônio")
         with st.form("form_novo_patrimonio", clear_on_submit=True):
             
             n_codigo = st.text_input("Código / Tombo *", placeholder="Ex: 98765")
             n_nome = st.text_input("Nome/Descrição do Bem *", placeholder="Ex: Mesa de Escritório MDF")
             
-            # Carrega a localização global para o cadastro também
             idx_loc_atual = LOCAIS_ESCOLA.index(st.session_state.local_trabalho_atual)
             n_local = st.selectbox("Localização", LOCAIS_ESCOLA, index=idx_loc_atual)
             
@@ -11848,7 +11847,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
     # ==================================================================
     # --- ABA 3: IMPRESSÕES (ETIQUETAS E RELATÓRIOS CONAM) ---
     # ==================================================================
-    with tab_etiquetas:
+    with tab_etiquetas: # ⬅️ ALINHAMENTO AQUI (Deve estar na EXATA mesma reta dos outros 'with')
         st.subheader("🖨️ Central de Impressão")
         
         sub_tab_etiquetas, sub_tab_relatorio = st.tabs(["🏷️ Etiquetas", "📑 Relatório"])

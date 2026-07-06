@@ -11613,6 +11613,8 @@ import base64
 import uuid
 import time
 from datetime import datetime
+import pytesseract
+from PIL import Image
 
 # ... (Seu código existente até chegar no bloco do Módulo Administrativo) ...
 
@@ -11643,11 +11645,16 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
     tab_conferencia, tab_cadastro, tab_etiquetas = st.tabs(["✅ Conferir", "➕ Cadastrar", "🖨️ Imprimir"])
 
     # --- ABA 1: CONFERÊNCIA E BUSCA ---
+    # --- ABA 1: CONFERÊNCIA E BUSCA ---
     with tab_conferencia:
         st.subheader("Localizar Patrimônio")
         
-        # Selectbox ocupa menos espaço que rádio horizontal em telas pequenas
-        metodo_busca = st.selectbox("Método de Leitura:", ["Câmera do Celular", "Digitar / Leitor USB"])
+        # Selectbox com a nova opção de OCR para ler plaquinhas numéricas
+        metodo_busca = st.selectbox("Método de Leitura:", [
+            "Câmera (QR Code)", 
+            "Câmera (Ler Plaquinha - OCR)", 
+            "Digitar / Leitor USB"
+        ])
         
         codigo_busca = ""
         
@@ -11655,7 +11662,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
             st.info("💡 Digite o tombo manualmente ou use um leitor USB.")
             codigo_busca = st.text_input("🔍 Código do Bem (Tombo):", placeholder="Ex: 123456", key="busca_patrimonio")
             
-        else:
+        elif metodo_busca == "Câmera (QR Code)":
             st.info("💡 Tire uma foto nítida do QR Code.")
             foto_qr = st.camera_input("📷 Aponte a câmera")
             
@@ -11677,7 +11684,33 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                 except Exception as e:
                     st.error(f"Erro ao processar a imagem: {e}")
 
-        # Se o código foi digitado ou lido pela câmera:
+        elif metodo_busca == "Câmera (Ler Plaquinha - OCR)":
+            st.info("💡 Foque bem no número da placa. Evite reflexos de luz.")
+            foto_placa = st.camera_input("📷 Aponte a câmera para o Número")
+            
+            if foto_placa:
+                with st.spinner("Analisando imagem..."):
+                    try:
+                        # Abre a imagem com o PIL
+                        img_placa = Image.open(foto_placa)
+                        
+                        # Configuração do Tesseract: 
+                        # --psm 7 (Assume que é uma única linha de texto)
+                        # tessedit_char_whitelist (Força a ler APENAS números)
+                        config_tesseract = r'--psm 7 -c tessedit_char_whitelist=0123456789'
+                        
+                        texto_extraido = pytesseract.image_to_string(img_placa, config=config_tesseract).strip()
+                        
+                        if texto_extraido:
+                            st.success("✅ Número detectado!")
+                            # Colocamos no text_input para o usuário poder corrigir se o OCR errar algum dígito
+                            codigo_busca = st.text_input("Confirme o código lido:", value=texto_extraido)
+                        else:
+                            st.error("❌ Nenhum número detectado. Tente chegar mais perto ou melhorar a luz.")
+                    except Exception as e:
+                        st.error(f"Erro no leitor de placa: {e}")
+
+        # Se o código foi digitado, lido pelo QR ou lido/confirmado pelo OCR:
         if codigo_busca:
             bem_encontrado = df_patrimonio[df_patrimonio['codigo'] == codigo_busca]
             

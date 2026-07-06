@@ -11,4 +11,4 @@ gspread-dataframe
 google-auth
 pdfplumber
 opencv-python-headless
-pip install pytesseract
+pytesseract

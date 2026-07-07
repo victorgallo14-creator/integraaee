@@ -12317,3 +12317,5 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                                         mime="application/pdf", 
                                         use_container_width=True
                                     )
+                    else:
+                        st.write("Aguardando seleção de itens.")

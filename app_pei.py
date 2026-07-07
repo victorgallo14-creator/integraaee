@@ -12198,128 +12198,128 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                             use_container_width=True
                         )
 
+            # ==================================================================
+            # --- NOVA OPÇÃO: RELATÓRIO FOTOGRÁFICO ---
+            # ==================================================================
+            elif sub_aba == "📸 Relatório Fotográfico por Setor":
+                col_foto_1, col_foto_2 = st.columns([1, 1], gap="large")
+                
+                with col_foto_1:
+                    st.markdown("#### Filtros do Catálogo Visual")
+                    st.write("Gera um arquivo PDF contendo as fotos e os dados detalhados de cada bem.")
+                    
+                    locais_foto = [loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""]
+                    local_foto_selecionado = st.selectbox("Selecione o Ambiente:", ["Todos os Ambientes"] + sorted(locais_foto), key="sel_foto")
+                
+                with col_foto_2:
+                    st.markdown("#### Geração do Arquivo")
+                    if st.button("⚙️ Processar Relatório Fotográfico", type="primary", use_container_width=True):
+                        df_foto = df_patrimonio.copy()
+                        
+                        # Ordenar para ficar organizado
+                        df_foto['codigo_num'] = pd.to_numeric(df_foto['codigo'], errors='coerce')
+                        df_foto = df_foto.sort_values(by=['localizacao', 'codigo_num', 'codigo'])
+                        
+                        if local_foto_selecionado != "Todos os Ambientes":
+                            df_foto = df_foto[df_foto['localizacao'] == local_foto_selecionado]
+                            
+                        if df_foto.empty:
+                            st.warning("Nenhum bem encontrado para este ambiente.")
+                        else:
+                            with st.spinner("Extraindo fotos e montando o catálogo... Isso pode levar alguns segundos."):
+                                pdf = FPDF('P', 'mm', 'A4')
+                                pdf.set_auto_page_break(auto=True, margin=15)
+                                pdf.add_page()
+                                
+                                # Cabeçalho do Relatório
+                                pdf.set_font("Arial", "B", 14)
+                                pdf.cell(0, 10, "CATÁLOGO FOTOGRÁFICO DE PATRIMÔNIO", ln=True, align='C')
+                                pdf.set_font("Arial", "", 10)
+                                titulo_local = local_foto_selecionado if local_foto_selecionado != "Todos os Ambientes" else "Geral (Todos os Ambientes)"
+                                pdf.cell(0, 6, f"Ambiente: {titulo_local}", ln=True, align='C')
+                                pdf.cell(0, 6, f"Data de Emissão: {datetime.now().strftime('%d/%m/%Y')}", ln=True, align='C')
+                                pdf.ln(10)
+                                
+                                import tempfile
+                                import os
+                                
+                                for i, row in df_foto.iterrows():
+                                    # Tratamento de textos
+                                    codigo = str(row['codigo'])
+                                    nome = str(row.get('nome', '')).encode('latin-1', 'replace').decode('latin-1')
+                                    estado = str(row.get('estado', 'Não informado'))
+                                    loc = str(row.get('localizacao', 'Não informado')).encode('latin-1', 'replace').decode('latin-1')
+                                    obs = str(row.get('observacao', '')).encode('latin-1', 'replace').decode('latin-1')
+                                    if obs in ['None', 'nan', '']: obs = "Nenhuma."
+                                    
+                                    # Posicionamento Y atual (para não quebrar bloco no meio da página)
+                                    if pdf.get_y() > 220:
+                                        pdf.add_page()
+                                    
+                                    y_inicial_bloco = pdf.get_y()
+                                    
+                                    # Imagem à esquerda
+                                    if row.get('foto_base64') and pd.notnull(row['foto_base64']) and str(row['foto_base64']).strip() != "":
+                                        try:
+                                            img_data = base64.b64decode(row['foto_base64'])
+                                            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+                                                tmp_file.write(img_data)
+                                                tmp_path = tmp_file.name
+                                            
+                                            pdf.image(tmp_path, x=10, y=y_inicial_bloco, w=50)
+                                            os.unlink(tmp_path)
+                                        except Exception:
+                                            pdf.set_xy(10, y_inicial_bloco + 20)
+                                            pdf.set_font("Arial", "I", 8)
+                                            pdf.cell(50, 5, "[ERRO NA IMAGEM]", align='C')
+                                    else:
+                                        pdf.set_xy(10, y_inicial_bloco + 20)
+                                        pdf.set_font("Arial", "I", 8)
+                                        pdf.cell(50, 5, "[SEM FOTO]", border=1, align='C')
+                                    
+                                    # Textos à direita da imagem
+                                    pdf.set_xy(65, y_inicial_bloco)
+                                    
+                                    pdf.set_font("Arial", "B", 11)
+                                    pdf.multi_cell(0, 5, f"{codigo} - {nome}")
+                                    
+                                    pdf.set_xy(65, pdf.get_y() + 2)
+                                    pdf.set_font("Arial", "B", 9)
+                                    pdf.cell(20, 5, "Local:")
+                                    pdf.set_font("Arial", "", 9)
+                                    pdf.cell(0, 5, loc, ln=True)
+                                    
+                                    pdf.set_xy(65, pdf.get_y())
+                                    pdf.set_font("Arial", "B", 9)
+                                    pdf.cell(20, 5, "Estado:")
+                                    pdf.set_font("Arial", "", 9)
+                                    pdf.cell(0, 5, estado, ln=True)
+                                    
+                                    pdf.set_xy(65, pdf.get_y())
+                                    pdf.set_font("Arial", "B", 9)
+                                    pdf.cell(20, 5, "Obs:")
+                                    pdf.set_font("Arial", "", 9)
+                                    pdf.multi_cell(0, 5, obs)
+                                    
+                                    # Avançar Y para o próximo item
+                                    novo_y = max(pdf.get_y(), y_inicial_bloco + 55)
+                                    pdf.set_y(novo_y)
+                                    pdf.set_draw_color(200, 200, 200)
+                                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                                    pdf.ln(5)
+                                    
+                                # Salva o PDF no session_state
+                                st.session_state.pdf_foto_final = get_pdf_bytes(pdf)
+                                
+                        if 'pdf_foto_final' in st.session_state:
+                            st.success("Catálogo gerado com sucesso!")
+                            st.download_button(
+                                label="📥 Baixar Catálogo Fotográfico (PDF)", 
+                                data=st.session_state.pdf_foto_final, 
+                                file_name=f"Catalogo_Fotos_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf", 
+                                mime="application/pdf", 
+                                use_container_width=True
+                            )
+
         else:
             st.info("Nenhum bem cadastrado no inventário ainda para gerar relatórios.")
-            
-            
-                elif sub_aba == "📸 Relatório Fotográfico por Setor":
-                            col_foto_1, col_foto_2 = st.columns([1, 1], gap="large")
-                            
-                            with col_foto_1:
-                                st.markdown("#### Filtros do Catálogo Visual")
-                                st.write("Gera um arquivo PDF contendo as fotos e os dados detalhados de cada bem.")
-                                
-                                locais_foto = [loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""]
-                                local_foto_selecionado = st.selectbox("Selecione o Ambiente:", ["Todos os Ambientes"] + sorted(locais_foto), key="sel_foto")
-                            
-                            with col_foto_2:
-                                st.markdown("#### Geração do Arquivo")
-                                if st.button("⚙️ Processar Relatório Fotográfico", type="primary", use_container_width=True):
-                                    df_foto = df_patrimonio.copy()
-                                    
-                                    # Ordenar para ficar organizado
-                                    df_foto['codigo_num'] = pd.to_numeric(df_foto['codigo'], errors='coerce')
-                                    df_foto = df_foto.sort_values(by=['localizacao', 'codigo_num', 'codigo'])
-                                    
-                                    if local_foto_selecionado != "Todos os Ambientes":
-                                        df_foto = df_foto[df_foto['localizacao'] == local_foto_selecionado]
-                                        
-                                    if df_foto.empty:
-                                        st.warning("Nenhum bem encontrado para este ambiente.")
-                                    else:
-                                        with st.spinner("Extraindo fotos e montando o catálogo... Isso pode levar alguns segundos."):
-                                            pdf = FPDF('P', 'mm', 'A4')
-                                            pdf.set_auto_page_break(auto=True, margin=15)
-                                            pdf.add_page()
-                                            
-                                            # Cabeçalho do Relatório
-                                            pdf.set_font("Arial", "B", 14)
-                                            pdf.cell(0, 10, "CATÁLOGO FOTOGRÁFICO DE PATRIMÔNIO", ln=True, align='C')
-                                            pdf.set_font("Arial", "", 10)
-                                            titulo_local = local_foto_selecionado if local_foto_selecionado != "Todos os Ambientes" else "Geral (Todos os Ambientes)"
-                                            pdf.cell(0, 6, f"Ambiente: {titulo_local}", ln=True, align='C')
-                                            pdf.cell(0, 6, f"Data de Emissão: {datetime.now().strftime('%d/%m/%Y')}", ln=True, align='C')
-                                            pdf.ln(10)
-                                            
-                                            import tempfile
-                                            import os
-                                            
-                                            for i, row in df_foto.iterrows():
-                                                # Tratamento de textos
-                                                codigo = str(row['codigo'])
-                                                nome = str(row.get('nome', '')).encode('latin-1', 'replace').decode('latin-1')
-                                                estado = str(row.get('estado', 'Não informado'))
-                                                loc = str(row.get('localizacao', 'Não informado')).encode('latin-1', 'replace').decode('latin-1')
-                                                obs = str(row.get('observacao', '')).encode('latin-1', 'replace').decode('latin-1')
-                                                if obs in ['None', 'nan', '']: obs = "Nenhuma."
-                                                
-                                                # Posicionamento Y atual (para não quebrar bloco no meio da página)
-                                                if pdf.get_y() > 220:
-                                                    pdf.add_page()
-                                                
-                                                y_inicial_bloco = pdf.get_y()
-                                                
-                                                # Imagem à esquerda
-                                                if row.get('foto_base64') and pd.notnull(row['foto_base64']) and str(row['foto_base64']).strip() != "":
-                                                    try:
-                                                        img_data = base64.b64decode(row['foto_base64'])
-                                                        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
-                                                            tmp_file.write(img_data)
-                                                            tmp_path = tmp_file.name
-                                                        
-                                                        pdf.image(tmp_path, x=10, y=y_inicial_bloco, w=50)
-                                                        os.unlink(tmp_path)
-                                                    except Exception:
-                                                        pdf.set_xy(10, y_inicial_bloco + 20)
-                                                        pdf.set_font("Arial", "I", 8)
-                                                        pdf.cell(50, 5, "[ERRO NA IMAGEM]", align='C')
-                                                else:
-                                                    pdf.set_xy(10, y_inicial_bloco + 20)
-                                                    pdf.set_font("Arial", "I", 8)
-                                                    pdf.cell(50, 5, "[SEM FOTO]", border=1, align='C')
-                                                
-                                                # Textos à direita da imagem
-                                                pdf.set_xy(65, y_inicial_bloco)
-                                                
-                                                pdf.set_font("Arial", "B", 11)
-                                                pdf.multi_cell(0, 5, f"{codigo} - {nome}")
-                                                
-                                                pdf.set_xy(65, pdf.get_y() + 2)
-                                                pdf.set_font("Arial", "B", 9)
-                                                pdf.cell(20, 5, "Local:")
-                                                pdf.set_font("Arial", "", 9)
-                                                pdf.cell(0, 5, loc, ln=True)
-                                                
-                                                pdf.set_xy(65, pdf.get_y())
-                                                pdf.set_font("Arial", "B", 9)
-                                                pdf.cell(20, 5, "Estado:")
-                                                pdf.set_font("Arial", "", 9)
-                                                pdf.cell(0, 5, estado, ln=True)
-                                                
-                                                pdf.set_xy(65, pdf.get_y())
-                                                pdf.set_font("Arial", "B", 9)
-                                                pdf.cell(20, 5, "Obs:")
-                                                pdf.set_font("Arial", "", 9)
-                                                pdf.multi_cell(0, 5, obs)
-                                                
-                                                # Avançar Y para o próximo item
-                                                novo_y = max(pdf.get_y(), y_inicial_bloco + 55)
-                                                pdf.set_y(novo_y)
-                                                pdf.set_draw_color(200, 200, 200)
-                                                pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                                                pdf.ln(5)
-                                                
-                                            # Salva o PDF no session_state
-                                            st.session_state.pdf_foto_final = get_pdf_bytes(pdf)
-                                            
-                                    if 'pdf_foto_final' in st.session_state:
-                                        st.success("Catálogo gerado com sucesso!")
-                                        st.download_button(
-                                            label="📥 Baixar Catálogo Fotográfico (PDF)", 
-                                            data=st.session_state.pdf_foto_final, 
-                                            file_name=f"Catalogo_Fotos_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf", 
-                                            mime="application/pdf", 
-                                            use_container_width=True
-                                        )
-                        else:
-                            st.write("Aguardando seleção de itens.")

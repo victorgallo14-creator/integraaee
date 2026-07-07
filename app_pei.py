@@ -15,7 +15,7 @@ import time
 import uuid
 import threading
 import random
-import time""
+import time
 import zipfile
 import io
 from dados_curriculo import CURRICULO_DB

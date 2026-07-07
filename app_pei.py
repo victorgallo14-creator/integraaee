@@ -11624,7 +11624,7 @@ import re  # Biblioteca para filtrar textos
 # ==============================================================================
 if app_mode_adm == "🏷️ Patrimônio e Inventário":
 
-    st.markdown('<div class="header-box"><div class="header-title">🏷️ Gestão de Patrimônio e Inventário</div></div>', unsafe_allow_html=True)
+    st.markdown('<div class="header-box"><div class="header-title">🏷️ Gestão de Patrimônio</div></div>', unsafe_allow_html=True)
     st.write("") # Espaçamento
     
     col_voltar, _ = st.columns([2, 8])
@@ -11674,7 +11674,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
     # --- TELA 0: VISÃO GERAL ---
     # ==================================================================
     if aba_selecionada == "📊 Visão Geral":
-        st.header("1. Visão Geral")
+        st.header("Visão Geral")
         if not df_patrimonio.empty:
             # Esconde a coluna da imagem base64 na visualização da tabela para não poluir a tela
             df_display = df_patrimonio.drop(columns=['foto_base64'], errors='ignore')
@@ -11686,7 +11686,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
     # --- TELA 1: CONFERÊNCIA E ATUALIZAÇÃO ---
     # ==================================================================
     elif aba_selecionada == "✅ Conferência e Atualização":
-        st.header("2. Conferência e Atualização")
+        st.header("Conferência")
         
         col_busca, col_form = st.columns([4, 6], gap="large")
         
@@ -11837,7 +11837,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
     # --- TELA 2: CADASTRO DE BENS ---
     # ==================================================================
     elif aba_selecionada == "➕ Cadastro de Bens":
-        st.header("3. Cadastro de Bens")
+        st.header("Cadastro de Bens")
         st.markdown("Preencha o formulário abaixo para registrar um novo bem no sistema.")
         
         with st.form("form_novo_patrimonio", clear_on_submit=True):
@@ -11898,7 +11898,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
     # --- TELA 3: IMPRESSÕES E RELATÓRIOS ---
     # ==================================================================
     elif aba_selecionada == "🖨️ Etiquetas e Relatórios":
-        st.header("4. Etiquetas e Relatórios")
+        st.header("Etiquetas e Relatórios")
         
         # Mudei a sub-aba para radio também para garantir que não vai bugar!
         sub_aba = st.radio("Selecione o que deseja gerar:", ["🏷️ Geração de Etiquetas (QR Code)", "📑 Relatórios Oficiais (Padrão CONAM)"], horizontal=True)

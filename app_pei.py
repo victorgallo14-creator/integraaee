@@ -11907,7 +11907,11 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
         st.header("Etiquetas e Relatórios")
         
         # Mudei a sub-aba para radio também para garantir que não vai bugar!
-        sub_aba = st.radio("Selecione o que deseja gerar:", ["🏷️ Geração de Etiquetas (QR Code)", "📑 Relatórios Oficiais (Padrão CONAM)", "📸 Relatório Fotográfico por Setor"], horizontal=True)
+        sub_aba = st.radio("Selecione o que deseja gerar:", [
+            "🏷️ Geração de Etiquetas (QR Code)", 
+            "📑 Relatórios Oficiais (Padrão CONAM)",
+            "📸 Relatório Fotográfico por Setor"
+        ], horizontal=True)
         st.write("")
         
         if not df_patrimonio.empty:

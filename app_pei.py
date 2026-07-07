@@ -11636,11 +11636,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
     # Leitura da tabela no Supabase
     df_patrimonio = safe_read("Patrimonio", ["id", "codigo", "nome", "localizacao", "estado", "conferido", "ultima_conferencia", "foto_base64", "observacao"])
 
-    # Criação das abas armazenadas na variável 'tabs'
-    tabs = st.tabs([
-        "📊 Visão Geral", "✅ Conferência e Atualização", "➕ Cadastro de Bens", "🖨️ Etiquetas e Relatórios"
-    ])
-
     # Lista de locais organizada
     LOCAIS_ESCOLA = sorted([
         "ALMOXARIFADO", "ARQUIVO MORTO", "BANHEIROS ADM", "BANHEIROS ALUNOS",
@@ -11658,9 +11653,27 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
         st.session_state.local_trabalho_atual = LOCAIS_ESCOLA[0]
 
     # ==================================================================
-    # --- ABA 0: VISÃO GERAL ---
+    # --- SISTEMA DE NAVEGAÇÃO À PROVA DE BUGS (Substitui st.tabs) ---
     # ==================================================================
-    with tabs[0]:
+    menu_opcoes = [
+        "📊 Visão Geral", 
+        "✅ Conferência e Atualização", 
+        "➕ Cadastro de Bens", 
+        "🖨️ Etiquetas e Relatórios"
+    ]
+    
+    aba_selecionada = st.radio(
+        "Navegação:", 
+        menu_opcoes, 
+        horizontal=True, 
+        label_visibility="collapsed"
+    )
+    st.markdown("---") # Linha separadora para simular o design de abas
+
+    # ==================================================================
+    # --- TELA 0: VISÃO GERAL ---
+    # ==================================================================
+    if aba_selecionada == "📊 Visão Geral":
         st.header("1. Visão Geral")
         if not df_patrimonio.empty:
             # Esconde a coluna da imagem base64 na visualização da tabela para não poluir a tela
@@ -11670,9 +11683,9 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
             st.info("Nenhum bem cadastrado no banco de dados.")
 
     # ==================================================================
-    # --- ABA 1: CONFERÊNCIA E ATUALIZAÇÃO ---
+    # --- TELA 1: CONFERÊNCIA E ATUALIZAÇÃO ---
     # ==================================================================
-    with tabs[1]:
+    elif aba_selecionada == "✅ Conferência e Atualização":
         st.header("2. Conferência e Atualização")
         
         col_busca, col_form = st.columns([4, 6], gap="large")
@@ -11776,7 +11789,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                                 except:
                                     st.warning("Erro ao carregar imagem salva.")
                             else:
-                                st.info("📸 Sem foto registrada anteriormente.")
+                                st.info("📸 Sem foto registrada.")
                                 
                         with col_img_2:
                             nova_foto = st.file_uploader("Substituir / Inserir Foto", type=["jpg", "png", "jpeg"])
@@ -11816,14 +11829,14 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                             except Exception as e:
                                 st.error(f"Erro ao salvar no banco: {e}")
                 else:
-                    st.warning("⚠️ Código não encontrado no sistema. Você pode cadastrá-lo na aba 'Cadastro de Bens'.")
+                    st.warning("⚠️ Código não encontrado no sistema. Vá para a aba 'Cadastro de Bens'.")
             else:
                 st.info("Aguardando inserção ou leitura do código.")
 
     # ==================================================================
-    # --- ABA 2: CADASTRO DE BENS ---
+    # --- TELA 2: CADASTRO DE BENS ---
     # ==================================================================
-    with tabs[2]:
+    elif aba_selecionada == "➕ Cadastro de Bens":
         st.header("3. Cadastro de Bens")
         st.markdown("Preencha o formulário abaixo para registrar um novo bem no sistema.")
         
@@ -11836,7 +11849,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                 n_local = st.selectbox("Localização", LOCAIS_ESCOLA, index=idx_loc_atual)
                 
             with col2:
-                n_nome = st.text_input("Nome/Descrição do Bem *", placeholder="Ex: Mesa de Escritório MDF em L")
+                n_nome = st.text_input("Nome/Descrição do Bem *", placeholder="Ex: Mesa de Escritório MDF")
                 n_estado = st.selectbox("Estado de Conservação", ["Novo", "Bom", "Regular", "Ruim", "Inservível/Sucata"])
                 
             n_foto = st.file_uploader("Foto Inicial do Bem (Opcional)", type=["jpg", "png", "jpeg"])
@@ -11882,19 +11895,18 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     st.error("Preencha os campos obrigatórios (Código e Nome).")
 
     # ==================================================================
-    # --- ABA 3: IMPRESSÕES E RELATÓRIOS ---
+    # --- TELA 3: IMPRESSÕES E RELATÓRIOS ---
     # ==================================================================
-    with tabs[3]:
+    elif aba_selecionada == "🖨️ Etiquetas e Relatórios":
         st.header("4. Etiquetas e Relatórios")
         
-        sub_tab_etiquetas, sub_tab_relatorio = st.tabs(["🏷️ Geração de Etiquetas (QR Code)", "📑 Relatórios Oficiais (Padrão CONAM)"])
+        # Mudei a sub-aba para radio também para garantir que não vai bugar!
+        sub_aba = st.radio("Selecione o que deseja gerar:", ["🏷️ Geração de Etiquetas (QR Code)", "📑 Relatórios Oficiais (Padrão CONAM)"], horizontal=True)
+        st.write("")
         
         if not df_patrimonio.empty:
             
-            # -------------------------------------
-            # SUB ABA: ETIQUETAS
-            # -------------------------------------
-            with sub_tab_etiquetas:
+            if sub_aba == "🏷️ Geração de Etiquetas (QR Code)":
                 col_eti_1, col_eti_2 = st.columns([1, 1], gap="large")
                 
                 with col_eti_1:
@@ -12015,10 +12027,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     else:
                         st.write("Aguardando seleção de itens.")
 
-            # -------------------------------------
-            # SUB ABA: RELATÓRIOS CONAM
-            # -------------------------------------
-            with sub_tab_relatorio:
+            elif sub_aba == "📑 Relatórios Oficiais (Padrão CONAM)":
                 col_rel_1, col_rel_2 = st.columns([1, 1], gap="large")
                 
                 with col_rel_1:

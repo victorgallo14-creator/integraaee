@@ -11636,8 +11636,8 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
     # Leitura da tabela no Supabase
     df_patrimonio = safe_read("Patrimonio", ["id", "codigo", "nome", "localizacao", "estado", "conferido", "ultima_conferencia", "foto_base64", "observacao"])
 
-    # Nomes das abas estendidos para desktop e inclusão da Visão Geral em Tabela
-    tab_visao, tab_conferencia, tab_cadastro, tab_etiquetas = st.tabs([
+    # Criação das abas armazenadas na variável 'tabs'
+    tabs = st.tabs([
         "📊 Visão Geral", "✅ Conferência e Atualização", "➕ Cadastro de Bens", "🖨️ Etiquetas e Relatórios"
     ])
 
@@ -11658,10 +11658,10 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
         st.session_state.local_trabalho_atual = LOCAIS_ESCOLA[0]
 
     # ==================================================================
-    # --- ABA 0: VISÃO GERAL (Ideal para Desktop) ---
+    # --- ABA 0: VISÃO GERAL ---
     # ==================================================================
-    with tab_visao:
-        st.subheader("📋 Inventário Completo")
+    with tabs[0]:
+        st.header("1. Visão Geral")
         if not df_patrimonio.empty:
             # Esconde a coluna da imagem base64 na visualização da tabela para não poluir a tela
             df_display = df_patrimonio.drop(columns=['foto_base64'], errors='ignore')
@@ -11670,12 +11670,11 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
             st.info("Nenhum bem cadastrado no banco de dados.")
 
     # ==================================================================
-    # --- ABA 1: CONFERÊNCIA E BUSCA ---
+    # --- ABA 1: CONFERÊNCIA E ATUALIZAÇÃO ---
     # ==================================================================
-    with tab_conferencia:
-        st.subheader("🔍 Localizar e Atualizar Patrimônio")
+    with tabs[1]:
+        st.header("2. Conferência e Atualização")
         
-        # Uso de colunas para dividir a tela do monitor: Busca na Esquerda, Formulário na Direita
         col_busca, col_form = st.columns([4, 6], gap="large")
         
         with col_busca:
@@ -11690,7 +11689,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
             st.markdown("---")
             st.markdown("#### 2. Localizar Bem")
             
-            # Padronizado para desktop (Leitor USB em 1º lugar)
             metodo_busca = st.selectbox("Método de Leitura:", [
                 "Digitar / Leitor USB",
                 "Câmera (QR Code)", 
@@ -11786,7 +11784,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                         st.markdown("---")
                         conferido = st.checkbox("✅ Marcar como CONFERIDO E VISTADO nesta data", value=True)
                         
-                        # Botão posicionado à direita
                         col_submit, _ = st.columns([4, 6])
                         with col_submit:
                             submit_btn = st.form_submit_button("💾 Salvar Conferência", type="primary", use_container_width=True)
@@ -11824,10 +11821,10 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                 st.info("Aguardando inserção ou leitura do código.")
 
     # ==================================================================
-    # --- ABA 2: CADASTRO MANUAL ---
+    # --- ABA 2: CADASTRO DE BENS ---
     # ==================================================================
-    with tab_cadastro:
-        st.subheader("➕ Adicionar Novo Patrimônio")
+    with tabs[2]:
+        st.header("3. Cadastro de Bens")
         st.markdown("Preencha o formulário abaixo para registrar um novo bem no sistema.")
         
         with st.form("form_novo_patrimonio", clear_on_submit=True):
@@ -11885,10 +11882,10 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     st.error("Preencha os campos obrigatórios (Código e Nome).")
 
     # ==================================================================
-    # --- ABA 3: IMPRESSÕES (ETIQUETAS E RELATÓRIOS CONAM) ---
+    # --- ABA 3: IMPRESSÕES E RELATÓRIOS ---
     # ==================================================================
-    with tab_etiquetas:
-        st.subheader("🖨️ Central de Impressão e Documentação")
+    with tabs[3]:
+        st.header("4. Etiquetas e Relatórios")
         
         sub_tab_etiquetas, sub_tab_relatorio = st.tabs(["🏷️ Geração de Etiquetas (QR Code)", "📑 Relatórios Oficiais (Padrão CONAM)"])
         

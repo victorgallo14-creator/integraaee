@@ -15,7 +15,7 @@ import time
 import uuid
 import threading
 import random
-import time
+import time""
 import zipfile
 import io
 from dados_curriculo import CURRICULO_DB
@@ -11620,31 +11620,28 @@ import re  # Biblioteca para filtrar textos
 # ... (Seu código existente até chegar no bloco do Módulo Administrativo) ...
 
 # ==============================================================================
-# MÓDULO: ADMINISTRATIVO (PATRIMÔNIO E INVENTÁRIO) - OTIMIZADO PARA MOBILE
+# MÓDULO: ADMINISTRATIVO (PATRIMÔNIO E INVENTÁRIO) - VERSÃO DESKTOP/WEB
 # ==============================================================================
 if app_mode_adm == "🏷️ Patrimônio e Inventário":
-    st.markdown("""
-        <style>
-        .stButton>button { min-height: 3.2rem; font-weight: bold; font-size: 16px; }
-        .stTextInput>div>div>input { min-height: 3rem; font-size: 16px; }
-        .stSelectbox>div>div>div { min-height: 3rem; font-size: 16px; }
-        .stCameraInput { margin-bottom: 1rem; }
-        </style>
-    """, unsafe_allow_html=True)
 
-    st.markdown('<div class="header-box"><div class="header-title">🏷️ Gestão de Patrimônio</div></div>', unsafe_allow_html=True)
+    st.markdown('<div class="header-box"><div class="header-title">🏷️ Gestão de Patrimônio e Inventário</div></div>', unsafe_allow_html=True)
+    st.write("") # Espaçamento
     
-    if st.button("⬅️ Voltar ao Menu Inicial", key="voltar_patrimonio", use_container_width=True):
-        st.session_state.modulo_atuacao = None
-        st.rerun()
+    col_voltar, _ = st.columns([2, 8])
+    with col_voltar:
+        if st.button("⬅️ Voltar ao Menu Inicial", key="voltar_patrimonio", use_container_width=True):
+            st.session_state.modulo_atuacao = None
+            st.rerun()
 
     # Leitura da tabela no Supabase
     df_patrimonio = safe_read("Patrimonio", ["id", "codigo", "nome", "localizacao", "estado", "conferido", "ultima_conferencia", "foto_base64", "observacao"])
 
-    # Nomes das abas curtos para evitar quebra de tela no celular
-    tab_conferencia, tab_cadastro, tab_etiquetas = st.tabs(["✅ Conferir", "➕ Cadastrar", "🖨️ Imprimir"])
+    # Nomes das abas estendidos para desktop e inclusão da Visão Geral em Tabela
+    tab_visao, tab_conferencia, tab_cadastro, tab_etiquetas = st.tabs([
+        "📊 Visão Geral", "✅ Conferência e Atualização", "➕ Cadastro de Bens", "🖨️ Etiquetas e Relatórios"
+    ])
 
-    # 1. Lista de locais organizada
+    # Lista de locais organizada
     LOCAIS_ESCOLA = sorted([
         "ALMOXARIFADO", "ARQUIVO MORTO", "BANHEIROS ADM", "BANHEIROS ALUNOS",
         "BANHEIROS FUNC.", "BANHEIROS PROF", "BIBLIOTECA", "CORREDOR FUNDAMENTAL",
@@ -11661,155 +11658,198 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
         st.session_state.local_trabalho_atual = LOCAIS_ESCOLA[0]
 
     # ==================================================================
+    # --- ABA 0: VISÃO GERAL (Ideal para Desktop) ---
+    # ==================================================================
+    with tab_visao:
+        st.subheader("📋 Inventário Completo")
+        if not df_patrimonio.empty:
+            # Esconde a coluna da imagem base64 na visualização da tabela para não poluir a tela
+            df_display = df_patrimonio.drop(columns=['foto_base64'], errors='ignore')
+            st.dataframe(df_display, use_container_width=True, hide_index=True)
+        else:
+            st.info("Nenhum bem cadastrado no banco de dados.")
+
+    # ==================================================================
     # --- ABA 1: CONFERÊNCIA E BUSCA ---
     # ==================================================================
-    with tab_conferencia: # ⬅️ ALINHAMENTO AQUI (Deve ter 4 espaços a partir da margem)
+    with tab_conferencia:
+        st.subheader("🔍 Localizar e Atualizar Patrimônio")
         
-        st.markdown("### 📍 Em qual ambiente você está agora?")
-        st.session_state.local_trabalho_atual = st.selectbox(
-            "Selecione para aplicar a todas as conferências:", 
-            LOCAIS_ESCOLA,
-            index=LOCAIS_ESCOLA.index(st.session_state.local_trabalho_atual)
-        )
+        # Uso de colunas para dividir a tela do monitor: Busca na Esquerda, Formulário na Direita
+        col_busca, col_form = st.columns([4, 6], gap="large")
         
-        st.markdown("---")
-        st.subheader("🔍 Localizar Patrimônio")
-        
-        metodo_busca = st.selectbox("Método de Leitura:", [
-            "Câmera (Ler Plaquinha - OCR)",
-            "Câmera (QR Code)", 
-            "Digitar / Leitor USB"
-        ])
-        
-        codigo_busca = ""
-        
-        if metodo_busca == "Digitar / Leitor USB":
-            st.info("💡 Digite o tombo manualmente ou use um leitor USB.")
-            codigo_busca = st.text_input("Código do Bem (Tombo):", placeholder="Ex: 123456", key="busca_patrimonio")
+        with col_busca:
+            st.markdown("#### 1. Configuração de Ambiente")
+            st.session_state.local_trabalho_atual = st.selectbox(
+                "Ambiente atual de trabalho:", 
+                LOCAIS_ESCOLA,
+                index=LOCAIS_ESCOLA.index(st.session_state.local_trabalho_atual),
+                help="O local selecionado aqui será sugerido automaticamente ao conferir ou cadastrar bens."
+            )
             
-        elif metodo_busca == "Câmera (QR Code)":
-            st.info("💡 Tire uma foto nítida do QR Code.")
-            foto_qr = st.camera_input("📷 Aponte a câmera para o QR Code")
+            st.markdown("---")
+            st.markdown("#### 2. Localizar Bem")
             
-            if foto_qr:
-                try:
-                    file_bytes = np.asarray(bytearray(foto_qr.read()), dtype=np.uint8)
-                    img = cv2.imdecode(file_bytes, 1)
-                    detector = cv2.QRCodeDetector()
-                    data, bbox, _ = detector.detectAndDecode(img)
-                    
-                    if data:
-                        codigo_busca = data
-                        st.success(f"✅ QR Code lido: **{codigo_busca}**")
-                    else:
-                        st.error("❌ Não foi possível ler o QR. Centralize a etiqueta e melhore o foco.")
-                except Exception as e:
-                    st.error(f"Erro ao processar a imagem: {e}")
-                    
-        elif metodo_busca == "Câmera (Ler Plaquinha - OCR)":
-            st.info("💡 Foque bem no número da placa. Evite reflexos de luz.")
-            foto_placa = st.camera_input("📷 Aponte a câmera para o Número")
+            # Padronizado para desktop (Leitor USB em 1º lugar)
+            metodo_busca = st.selectbox("Método de Leitura:", [
+                "Digitar / Leitor USB",
+                "Câmera (QR Code)", 
+                "Câmera (Ler Plaquinha - OCR)"
+            ])
             
-            if foto_placa:
-                with st.spinner("Analisando imagem..."):
-                    try:
-                        img_placa = Image.open(foto_placa)
-                        config_tesseract = r'--psm 6'
-                        texto_bruto = pytesseract.image_to_string(img_placa, config=config_tesseract)
-                        
-                        numeros_encontrados = re.findall(r'\d+', texto_bruto)
-                        
-                        if numeros_encontrados:
-                            texto_extraido = max(numeros_encontrados, key=len)
-                            st.success("✅ Número detectado!")
-                            codigo_busca = st.text_input("🔍 Confirme o código lido:", value=texto_extraido, key="confirma_ocr")
-                        else:
-                            st.error("❌ Nenhum número detectado. Tente focar apenas na placa.")
-                    except Exception as e:
-                        st.error(f"Erro no leitor de placa: {e}")
-
-        if codigo_busca:
-            bem_encontrado = df_patrimonio[df_patrimonio['codigo'] == codigo_busca]
+            codigo_busca = ""
             
-            if not bem_encontrado.empty:
-                bem = bem_encontrado.iloc[0]
-                st.success(f"Bem localizado: **{bem['nome']}**")
+            if metodo_busca == "Digitar / Leitor USB":
+                st.info("💡 Conecte o leitor USB, clique no campo abaixo e bipe a etiqueta.")
+                codigo_busca = st.text_input("Código do Bem (Tombo):", placeholder="Ex: 123456", key="busca_patrimonio")
                 
-                with st.form(f"form_conf_{bem['id']}"):
-                    st.markdown("### Atualizar Status do Inventário")
-                    
-                    idx_loc_atual = LOCAIS_ESCOLA.index(st.session_state.local_trabalho_atual)
-                    nova_loc = st.selectbox("Localização Atual do Bem", LOCAIS_ESCOLA, index=idx_loc_atual)
-                    
-                    opcoes_estado = ["Novo", "Bom", "Regular", "Ruim", "Inservível/Sucata", "Em Manutenção"]
-                    idx_est = opcoes_estado.index(bem.get('estado', 'Bom')) if bem.get('estado') in opcoes_estado else 1
-                    novo_estado = st.selectbox("Estado de Conservação", opcoes_estado, index=idx_est)
-                    
-                    obs = st.text_area("Observações (Avarias, Transferências, etc.)", value=bem.get('observacao', ''))
-                    
-                    st.markdown("---")
-                    st.markdown("**Registro Fotográfico**")
-                    
-                    if bem.get('foto_base64') and pd.notnull(bem['foto_base64']) and bem['foto_base64'] != "":
-                        try:
-                            st.image(base64.b64decode(bem['foto_base64']), use_container_width=True)
-                        except:
-                            st.warning("Erro ao carregar imagem.")
-                    else:
-                        st.info("📸 Sem foto registrada.")
+            elif metodo_busca == "Câmera (QR Code)":
+                st.info("💡 Aponte a webcam para o QR Code.")
+                foto_qr = st.camera_input("📷 Webcam")
+                
+                if foto_qr:
+                    try:
+                        file_bytes = np.asarray(bytearray(foto_qr.read()), dtype=np.uint8)
+                        img = cv2.imdecode(file_bytes, 1)
+                        detector = cv2.QRCodeDetector()
+                        data, bbox, _ = detector.detectAndDecode(img)
                         
-                    nova_foto = st.file_uploader("Atualizar Foto", type=["jpg", "png", "jpeg"])
-                    
-                    st.markdown("---")
-                    conferido = st.checkbox("✅ Marcar como CONFERIDO E VISTADO nesta data", value=True)
-                    
-                    if st.form_submit_button("💾 Salvar Conferência", type="primary", use_container_width=True):
-                        dados_update = {
-                            "localizacao": nova_loc,
-                            "estado": novo_estado,
-                            "observacao": obs,
-                            "conferido": conferido,
-                            "ultima_conferencia": datetime.now().strftime("%d/%m/%Y %H:%M")
-                        }
+                        if data:
+                            codigo_busca = data
+                            st.success(f"✅ QR Code lido: **{codigo_busca}**")
+                        else:
+                            st.error("❌ Não foi possível ler o QR Code.")
+                    except Exception as e:
+                        st.error(f"Erro ao processar a imagem: {e}")
                         
-                        if nova_foto:
-                            try:
-                                img = Image.open(nova_foto)
-                                if img.mode != 'RGB': img = img.convert('RGB')
-                                img.thumbnail((500, 500))
-                                buf = io.BytesIO()
-                                img.save(buf, format="JPEG", quality=80)
-                                dados_update['foto_base64'] = base64.b64encode(buf.getvalue()).decode()
-                            except Exception as e:
-                                st.error(f"Erro ao processar a foto: {e}")
-                                
+            elif metodo_busca == "Câmera (Ler Plaquinha - OCR)":
+                st.info("💡 Centralize o número da placa na webcam.")
+                foto_placa = st.camera_input("📷 Webcam")
+                
+                if foto_placa:
+                    with st.spinner("Analisando imagem..."):
                         try:
-                            supabase.table("Patrimonio").update(dados_update).eq("id", bem['id']).execute()
-                            st.success("✅ Inventário atualizado com sucesso!")
-                            time.sleep(1)
-                            st.rerun()
+                            img_placa = Image.open(foto_placa)
+                            config_tesseract = r'--psm 6'
+                            texto_bruto = pytesseract.image_to_string(img_placa, config=config_tesseract)
+                            
+                            numeros_encontrados = re.findall(r'\d+', texto_bruto)
+                            
+                            if numeros_encontrados:
+                                texto_extraido = max(numeros_encontrados, key=len)
+                                st.success("✅ Número detectado!")
+                                codigo_busca = st.text_input("🔍 Confirme o código lido:", value=texto_extraido, key="confirma_ocr")
+                            else:
+                                st.error("❌ Nenhum número detectado.")
                         except Exception as e:
-                            st.error(f"Erro ao salvar no banco: {e}")
+                            st.error(f"Erro no leitor de placa: {e}")
+
+        with col_form:
+            st.markdown("#### 3. Painel de Atualização")
+            if codigo_busca:
+                bem_encontrado = df_patrimonio[df_patrimonio['codigo'] == codigo_busca]
+                
+                if not bem_encontrado.empty:
+                    bem = bem_encontrado.iloc[0]
+                    st.success(f"Bem localizado: **{bem['nome']}** (Cód: {bem['codigo']})")
+                    
+                    with st.form(f"form_conf_{bem['id']}"):
+                        
+                        col_f1, col_f2 = st.columns(2)
+                        
+                        idx_loc_atual = LOCAIS_ESCOLA.index(st.session_state.local_trabalho_atual)
+                        with col_f1:
+                            nova_loc = st.selectbox("Localização Atual do Bem", LOCAIS_ESCOLA, index=idx_loc_atual)
+                        
+                        with col_f2:
+                            opcoes_estado = ["Novo", "Bom", "Regular", "Ruim", "Inservível/Sucata", "Em Manutenção"]
+                            idx_est = opcoes_estado.index(bem.get('estado', 'Bom')) if bem.get('estado') in opcoes_estado else 1
+                            novo_estado = st.selectbox("Estado de Conservação", opcoes_estado, index=idx_est)
+                        
+                        obs = st.text_area("Observações (Avarias, Transferências, etc.)", value=bem.get('observacao', ''), height=100)
+                        
+                        st.markdown("**Registro Fotográfico**")
+                        col_img_1, col_img_2 = st.columns([1, 1])
+                        
+                        with col_img_1:
+                            if bem.get('foto_base64') and pd.notnull(bem['foto_base64']) and bem['foto_base64'] != "":
+                                try:
+                                    st.image(base64.b64decode(bem['foto_base64']), caption="Foto Atual", use_container_width=True)
+                                except:
+                                    st.warning("Erro ao carregar imagem salva.")
+                            else:
+                                st.info("📸 Sem foto registrada anteriormente.")
+                                
+                        with col_img_2:
+                            nova_foto = st.file_uploader("Substituir / Inserir Foto", type=["jpg", "png", "jpeg"])
+                        
+                        st.markdown("---")
+                        conferido = st.checkbox("✅ Marcar como CONFERIDO E VISTADO nesta data", value=True)
+                        
+                        # Botão posicionado à direita
+                        col_submit, _ = st.columns([4, 6])
+                        with col_submit:
+                            submit_btn = st.form_submit_button("💾 Salvar Conferência", type="primary", use_container_width=True)
+                        
+                        if submit_btn:
+                            dados_update = {
+                                "localizacao": nova_loc,
+                                "estado": novo_estado,
+                                "observacao": obs,
+                                "conferido": conferido,
+                                "ultima_conferencia": datetime.now().strftime("%d/%m/%Y %H:%M")
+                            }
+                            
+                            if nova_foto:
+                                try:
+                                    img = Image.open(nova_foto)
+                                    if img.mode != 'RGB': img = img.convert('RGB')
+                                    img.thumbnail((500, 500))
+                                    buf = io.BytesIO()
+                                    img.save(buf, format="JPEG", quality=80)
+                                    dados_update['foto_base64'] = base64.b64encode(buf.getvalue()).decode()
+                                except Exception as e:
+                                    st.error(f"Erro ao processar a foto: {e}")
+                                    
+                            try:
+                                supabase.table("Patrimonio").update(dados_update).eq("id", bem['id']).execute()
+                                st.success("✅ Inventário atualizado com sucesso!")
+                                time.sleep(1)
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Erro ao salvar no banco: {e}")
+                else:
+                    st.warning("⚠️ Código não encontrado no sistema. Você pode cadastrá-lo na aba 'Cadastro de Bens'.")
             else:
-                st.warning("⚠️ Código não encontrado no sistema. Vá para a aba 'Cadastrar'.")
+                st.info("Aguardando inserção ou leitura do código.")
 
     # ==================================================================
     # --- ABA 2: CADASTRO MANUAL ---
     # ==================================================================
-    with tab_cadastro: # ⬅️ ALINHAMENTO AQUI (Deve estar na EXATA mesma reta do 'with tab_conferencia:')
-        st.subheader("Adicionar Novo Patrimônio")
+    with tab_cadastro:
+        st.subheader("➕ Adicionar Novo Patrimônio")
+        st.markdown("Preencha o formulário abaixo para registrar um novo bem no sistema.")
+        
         with st.form("form_novo_patrimonio", clear_on_submit=True):
+            col1, col2 = st.columns(2)
             
-            n_codigo = st.text_input("Código / Tombo *", placeholder="Ex: 98765")
-            n_nome = st.text_input("Nome/Descrição do Bem *", placeholder="Ex: Mesa de Escritório MDF")
+            with col1:
+                n_codigo = st.text_input("Código / Tombo *", placeholder="Ex: 98765")
+                idx_loc_atual = LOCAIS_ESCOLA.index(st.session_state.local_trabalho_atual)
+                n_local = st.selectbox("Localização", LOCAIS_ESCOLA, index=idx_loc_atual)
+                
+            with col2:
+                n_nome = st.text_input("Nome/Descrição do Bem *", placeholder="Ex: Mesa de Escritório MDF em L")
+                n_estado = st.selectbox("Estado de Conservação", ["Novo", "Bom", "Regular", "Ruim", "Inservível/Sucata"])
+                
+            n_foto = st.file_uploader("Foto Inicial do Bem (Opcional)", type=["jpg", "png", "jpeg"])
             
-            idx_loc_atual = LOCAIS_ESCOLA.index(st.session_state.local_trabalho_atual)
-            n_local = st.selectbox("Localização", LOCAIS_ESCOLA, index=idx_loc_atual)
+            st.markdown("---")
+            col_submit, _ = st.columns([3, 7])
+            with col_submit:
+                btn_cadastrar = st.form_submit_button("➕ Cadastrar Bem", type="primary", use_container_width=True)
             
-            n_estado = st.selectbox("Estado", ["Novo", "Bom", "Regular", "Ruim"])
-            n_foto = st.file_uploader("Foto Inicial (Opcional)", type=["jpg", "png", "jpeg"])
-            
-            if st.form_submit_button("➕ Cadastrar Bem", type="primary", use_container_width=True):
+            if btn_cadastrar:
                 if n_codigo and n_nome:
                     foto_b64 = ""
                     if n_foto:
@@ -11847,282 +11887,300 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
     # ==================================================================
     # --- ABA 3: IMPRESSÕES (ETIQUETAS E RELATÓRIOS CONAM) ---
     # ==================================================================
-    with tab_etiquetas: # ⬅️ ALINHAMENTO AQUI (Deve estar na EXATA mesma reta dos outros 'with')
-        st.subheader("🖨️ Central de Impressão")
+    with tab_etiquetas:
+        st.subheader("🖨️ Central de Impressão e Documentação")
         
-        sub_tab_etiquetas, sub_tab_relatorio = st.tabs(["🏷️ Etiquetas", "📑 Relatório"])
+        sub_tab_etiquetas, sub_tab_relatorio = st.tabs(["🏷️ Geração de Etiquetas (QR Code)", "📑 Relatórios Oficiais (Padrão CONAM)"])
         
         if not df_patrimonio.empty:
             
+            # -------------------------------------
+            # SUB ABA: ETIQUETAS
+            # -------------------------------------
             with sub_tab_etiquetas:
-                st.markdown("Escolha se deseja imprimir as etiquetas de um ambiente inteiro ou itens manuais.")
+                col_eti_1, col_eti_2 = st.columns([1, 1], gap="large")
                 
-                def gerar_pdf_etiquetas(df_bens):
-                    pdf = FPDF('P', 'mm', 'A4')
-                    pdf.set_auto_page_break(auto=False)
-                    pdf.add_page()
+                with col_eti_1:
+                    st.markdown("#### Seleção de Itens")
+                    modo_impressao = st.radio("Selecione os dados para gerar a folha de etiquetas:", ["📍 Por Ambiente", "✍️ Seleção Manual"])
+                    df_para_imprimir = pd.DataFrame()
                     
-                    cols, rows = 4, 5
-                    margin_x, margin_y = 10, 15
-                    label_w, label_h = 45, 52
-                    space_x, space_y = 3, 3
-                    
-                    idx = 0
-                    progress_text = "Gerando QR Codes e montando o PDF..."
-                    my_bar = st.progress(0, text=progress_text)
-                    total_itens = len(df_bens)
-                    
-                    for i, (_, bem) in enumerate(df_bens.iterrows()):
-                        if idx >= cols * rows:
+                    if modo_impressao == "📍 Por Ambiente":
+                        locais_disponiveis = [loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""]
+                        if locais_disponiveis:
+                            local_sel = st.selectbox("Selecione o Ambiente:", ["-- Escolha o Ambiente --"] + sorted(locais_disponiveis))
+                            if local_sel != "-- Escolha o Ambiente --":
+                                df_para_imprimir = df_patrimonio[df_patrimonio['localizacao'] == local_sel]
+                                st.info(f"Foram encontrados **{len(df_para_imprimir)}** bens neste ambiente.")
+                        else:
+                            st.warning("Nenhum ambiente foi registrado ainda.")
+                    else:
+                        opcoes_bens = df_patrimonio.apply(lambda row: f"{row['codigo']} - {row['nome']}", axis=1).tolist()
+                        bens_selecionados = st.multiselect("Pesquise e selecione os bens desejados:", opcoes_bens)
+                        if bens_selecionados:
+                            codigos_selecionados = [item.split(" - ")[0] for item in bens_selecionados]
+                            df_para_imprimir = df_patrimonio[df_patrimonio['codigo'].isin(codigos_selecionados)]
+
+                with col_eti_2:
+                    st.markdown("#### Geração do PDF")
+                    if not df_para_imprimir.empty:
+                        def gerar_pdf_etiquetas(df_bens):
+                            pdf = FPDF('P', 'mm', 'A4')
+                            pdf.set_auto_page_break(auto=False)
                             pdf.add_page()
+                            
+                            cols, rows = 4, 5
+                            margin_x, margin_y = 10, 15
+                            label_w, label_h = 45, 52
+                            space_x, space_y = 3, 3
+                            
                             idx = 0
+                            progress_text = "Gerando QR Codes e montando o PDF..."
+                            my_bar = st.progress(0, text=progress_text)
+                            total_itens = len(df_bens)
                             
-                        col = idx % cols
-                        row = idx // cols
-                        
-                        x = margin_x + col * (label_w + space_x)
-                        y = margin_y + row * (label_h + space_y)
-                        
-                        pdf.set_draw_color(200, 200, 200)
-                        pdf.rect(x, y, label_w, label_h)
-                        
-                        pdf.set_xy(x, y + 3)
-                        pdf.set_font("Arial", "B", 6)
-                        pdf.set_text_color(0, 0, 0)
-                        pdf.cell(label_w, 3, "CEIEF RAFAEL AFFONSO LEITE", align='C')
-                        
-                        pdf.set_xy(x, y + 6)
-                        pdf.set_font("Arial", "", 5)
-                        pdf.cell(label_w, 3, "INVENTÁRIO / PATRIMÔNIO", align='C')
-                        
-                        qr_size = 26
-                        qr_x = x + (label_w - qr_size) / 2
-                        qr_y = y + 11
-                        
-                        qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={bem['codigo']}"
-                        
-                        try:
-                            req = urllib.request.Request(qr_url, headers={'User-Agent': 'Mozilla/5.0'})
-                            with urllib.request.urlopen(req) as response:
-                                img_data = response.read()
-                            
-                            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
-                                tmp_file.write(img_data)
-                                tmp_path = tmp_file.name
-                            
-                            pdf.image(tmp_path, x=qr_x, y=qr_y, w=qr_size, h=qr_size)
-                            os.unlink(tmp_path)
-                        except Exception:
-                            pdf.set_xy(x, qr_y + 10)
-                            pdf.set_font("Arial", "B", 8)
-                            pdf.cell(label_w, 5, "[ERRO QR]", align='C')
-                        
-                        pdf.set_xy(x, qr_y + qr_size + 2)
-                        pdf.set_font("Arial", "B", 9)
-                        pdf.cell(label_w, 5, str(bem['codigo']), align='C')
-                        
-                        nome = clean_pdf_text(str(bem['nome']))
-                        if len(nome) > 35: nome = nome[:32] + "..."
-                            
-                        pdf.set_xy(x + 2, qr_y + qr_size + 7)
-                        pdf.set_font("Arial", "", 6)
-                        pdf.multi_cell(label_w - 4, 3, nome, align='C')
-                        
-                        idx += 1
-                        my_bar.progress((i + 1) / total_itens, text=progress_text)
-                    
-                    my_bar.empty()
-                    return get_pdf_bytes(pdf)
-
-                modo_impressao = st.radio("Método de Seleção:", ["📍 Por Ambiente", "✍️ Seleção Manual"])
-                df_para_imprimir = pd.DataFrame()
-                
-                if modo_impressao == "📍 Por Ambiente":
-                    locais_disponiveis = [loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""]
-                    if locais_disponiveis:
-                        local_sel = st.selectbox("Selecione o Ambiente:", ["-- Escolha o Ambiente --"] + sorted(locais_disponiveis))
-                        if local_sel != "-- Escolha o Ambiente --":
-                            df_para_imprimir = df_patrimonio[df_patrimonio['localizacao'] == local_sel]
-                            st.info(f"Foram encontrados **{len(df_para_imprimir)}** bens.")
-                    else:
-                        st.warning("Nenhum ambiente foi registrado ainda.")
-                else:
-                    opcoes_bens = df_patrimonio.apply(lambda row: f"{row['codigo']} - {row['nome']}", axis=1).tolist()
-                    bens_selecionados = st.multiselect("Selecione os itens:", opcoes_bens)
-                    if bens_selecionados:
-                        codigos_selecionados = [item.split(" - ")[0] for item in bens_selecionados]
-                        df_para_imprimir = df_patrimonio[df_patrimonio['codigo'].isin(codigos_selecionados)]
-
-                if not df_para_imprimir.empty:
-                    st.markdown("---")
-                    if st.button("👁️ Gerar PDF de Etiquetas", type="primary", use_container_width=True):
-                        with st.spinner("Gerando etiquetas..."):
-                            st.session_state.pdf_etiquetas = gerar_pdf_etiquetas(df_para_imprimir)
-                    
-                    if 'pdf_etiquetas' in st.session_state:
-                        st.download_button(
-                            label="📥 Baixar Etiquetas (PDF)", 
-                            data=st.session_state.pdf_etiquetas, 
-                            file_name=f"Etiquetas_Patrimonio_{datetime.now().strftime('%d%m%Y_%H%M')}.pdf", 
-                            mime="application/pdf", 
-                            use_container_width=True,
-                            type="primary"
-                        )
-
-            with sub_tab_relatorio:
-                st.markdown("Listagem oficial para assinatura, padrão CONAM.")
-                
-                locais_rel = [loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""]
-                local_rel = st.selectbox("Filtrar por Setor/Ambiente:", ["Todos os Ambientes"] + sorted(locais_rel))
-                
-                resp_padrao = st.session_state.get('usuario_nome', '').upper()
-                resp_rel = st.text_input("Responsável pelo Setor:", value=resp_padrao)
-
-                class RelatorioConamPDF(FPDF):
-                    def __init__(self, setor_nome, responsavel):
-                        super().__init__('L', 'mm', 'A4')
-                        self.set_margins(10, 10, 10)
-                        self.set_auto_page_break(auto=False)
-                        self.setor_nome = setor_nome
-                        self.responsavel = responsavel
-                        self.data_hoje = datetime.now().strftime("%d/%m/%Y")
-
-                    def header(self):
-                        self.set_font('Courier', '', 9)
-                        self.set_text_color(0, 0, 0)
-                        self.set_draw_color(0, 0, 0)
-                        
-                        self.cell(138, 4, "CN-SIP", 0, 0, 'L')
-                        self.cell(138, 4, "CONAM", 0, 1, 'R')
-
-                        self.cell(0, 4, "Prefeitura Municipal de Limeira", 0, 1, 'C')
-                        self.cell(0, 4, "Relatorio de Moveis por Setor 01671 SMED - CEIEF RAFAEL AFFONSO LEITE", 0, 1, 'C')
-                        self.cell(0, 4, f"Selecao : Bens INCORPORADOS             de            a {self.data_hoje}", 0, 1, 'C')
-
-                        self.cell(138, 4, f"DATA {self.data_hoje}", 0, 0, 'L')
-                        self.cell(138, 4, f"PAGINA      {self.page_no()}", 0, 1, 'R')
-
-                        self.line(10, self.get_y(), 287, self.get_y())
-                        self.ln(2)
-
-                        self.set_x(70)
-                        setor_str = f"01671 SMED - CEIEF RAFAEL AFFONSO LEITE - {self.setor_nome}" if self.setor_nome != "Todos os Ambientes" else "01671 SMED - CEIEF RAFAEL AFFONSO LEITE"
-                        self.cell(0, 4, f"Setor       : {setor_str}", 0, 1, 'L')
-                        
-                        self.set_x(70)
-                        self.cell(0, 4, f"Responsavel : {self.responsavel.upper()}", 0, 1, 'L')
-                        self.ln(2)
-
-                        self.line(10, self.get_y(), 287, self.get_y())
-                        self.ln(1)
-
-                        self.set_x(12)
-                        self.cell(30, 4, "No. CHAPA", 0, 0, 'L')
-                        self.cell(83, 4, "DESCRICAO", 0, 0, 'L')
-                        self.set_x(155)
-                        self.cell(0, 4, "OBSERVACAO", 0, 1, 'L')
-
-                        self.line(10, self.get_y(), 287, self.get_y())
-                        self.ln(1)
-                        self.line(10, self.get_y(), 287, self.get_y())
-
-                if st.button("👁️ Gerar Relatório CONAM", type="primary", use_container_width=True):
-                    df_rel = df_patrimonio.copy()
-                    
-                    df_rel['codigo_num'] = pd.to_numeric(df_rel['codigo'], errors='coerce')
-                    df_rel = df_rel.sort_values(by=['codigo_num', 'codigo'])
-                    
-                    if local_rel != "Todos os Ambientes":
-                        df_rel = df_rel[df_rel['localizacao'] == local_rel]
-                    
-                    if df_rel.empty:
-                        st.warning("Nenhum bem encontrado para este filtro.")
-                    else:
-                        with st.spinner("Desenhando relatório matricial..."):
-                            pdf = RelatorioConamPDF(local_rel, resp_rel)
-                            pdf.add_page()
-                            
-                            pdf.set_font('Courier', '', 8)
-                            row_height = 3.4
-                            linhas_na_pagina = 0
-                            
-                            for i, row in df_rel.iterrows():
-                                if linhas_na_pagina >= 46:
-                                    pdf.line(10, pdf.get_y(), 287, pdf.get_y())
+                            for i, (_, bem) in enumerate(df_bens.iterrows()):
+                                if idx >= cols * rows:
                                     pdf.add_page()
-                                    pdf.set_font('Courier', '', 8)
-                                    linhas_na_pagina = 0
+                                    idx = 0
                                     
-                                y = pdf.get_y()
+                                col = idx % cols
+                                row = idx // cols
                                 
-                                pdf.line(10, y, 10, y + row_height)
-                                pdf.line(125, y, 125, y + row_height)
-                                pdf.line(195, y, 195, y + row_height)
-                                pdf.line(287, y, 287, y + row_height)
+                                x = margin_x + col * (label_w + space_x)
+                                y = margin_y + row * (label_h + space_y)
                                 
-                                chapa = str(row['codigo']).zfill(10)
-                                pdf.set_xy(11, y + 0.2)
-                                pdf.cell(25, 3, chapa, 0, 0)
+                                pdf.set_draw_color(200, 200, 200)
+                                pdf.rect(x, y, label_w, label_h)
                                 
-                                desc = clean_pdf_text(str(row['nome'])).upper()
-                                if len(desc) > 55: desc = desc[:52] + "..."
-                                pdf.set_xy(38, y + 0.2)
-                                pdf.cell(85, 3, desc, 0, 0)
+                                pdf.set_xy(x, y + 3)
+                                pdf.set_font("Arial", "B", 6)
+                                pdf.set_text_color(0, 0, 0)
+                                pdf.cell(label_w, 3, "CEIEF RAFAEL AFFONSO LEITE", align='C')
                                 
-                                estado = str(row.get('estado', '')).strip()
-                                if estado in ['None', 'nan']: estado = ""
+                                pdf.set_xy(x, y + 6)
+                                pdf.set_font("Arial", "", 5)
+                                pdf.cell(label_w, 3, "INVENTÁRIO / PATRIMÔNIO", align='C')
                                 
-                                loc = str(row.get('localizacao', '')).strip()
-                                if loc in ['None', 'nan']: loc = ""
+                                qr_size = 26
+                                qr_x = x + (label_w - qr_size) / 2
+                                qr_y = y + 11
                                 
-                                obs_parts = [p for p in [estado, loc] if p]
-                                obs_text = clean_pdf_text(" - ".join(obs_parts)).upper()
+                                qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={bem['codigo']}"
                                 
-                                if len(obs_text) > 42: obs_text = obs_text[:39] + "..."
+                                try:
+                                    req = urllib.request.Request(qr_url, headers={'User-Agent': 'Mozilla/5.0'})
+                                    with urllib.request.urlopen(req) as response:
+                                        img_data = response.read()
+                                    
+                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                                        tmp_file.write(img_data)
+                                        tmp_path = tmp_file.name
+                                    
+                                    pdf.image(tmp_path, x=qr_x, y=qr_y, w=qr_size, h=qr_size)
+                                    os.unlink(tmp_path)
+                                except Exception:
+                                    pdf.set_xy(x, qr_y + 10)
+                                    pdf.set_font("Arial", "B", 8)
+                                    pdf.cell(label_w, 5, "[ERRO QR]", align='C')
                                 
-                                pdf.set_xy(127, y + 0.2)
-                                pdf.cell(66, 3, obs_text, 0, 0)
+                                pdf.set_xy(x, qr_y + qr_size + 2)
+                                pdf.set_font("Arial", "B", 9)
+                                pdf.cell(label_w, 5, str(bem['codigo']), align='C')
                                 
-                                pdf.set_y(y + row_height)
-                                linhas_na_pagina += 1
+                                nome = clean_pdf_text(str(bem['nome']))
+                                if len(nome) > 35: nome = nome[:32] + "..."
+                                    
+                                pdf.set_xy(x + 2, qr_y + qr_size + 7)
+                                pdf.set_font("Arial", "", 6)
+                                pdf.multi_cell(label_w - 4, 3, nome, align='C')
                                 
-                            pdf.line(10, pdf.get_y(), 287, pdf.get_y())
+                                idx += 1
+                                my_bar.progress((i + 1) / total_itens, text=progress_text)
+                            
+                            my_bar.empty()
+                            return get_pdf_bytes(pdf)
 
-                            if pdf.get_y() > 185:
+                        st.write(f"Você selecionou **{len(df_para_imprimir)}** itens para impressão.")
+                        if st.button("⚙️ Gerar Arquivo PDF", type="primary", use_container_width=True):
+                            with st.spinner("Gerando etiquetas..."):
+                                st.session_state.pdf_etiquetas = gerar_pdf_etiquetas(df_para_imprimir)
+                        
+                        if 'pdf_etiquetas' in st.session_state:
+                            st.success("PDF gerado com sucesso!")
+                            st.download_button(
+                                label="📥 Baixar Etiquetas (PDF)", 
+                                data=st.session_state.pdf_etiquetas, 
+                                file_name=f"Etiquetas_Patrimonio_{datetime.now().strftime('%d%m%Y_%H%M')}.pdf", 
+                                mime="application/pdf", 
+                                use_container_width=True
+                            )
+                    else:
+                        st.write("Aguardando seleção de itens.")
+
+            # -------------------------------------
+            # SUB ABA: RELATÓRIOS CONAM
+            # -------------------------------------
+            with sub_tab_relatorio:
+                col_rel_1, col_rel_2 = st.columns([1, 1], gap="large")
+                
+                with col_rel_1:
+                    st.markdown("#### Configuração do Relatório Matricial")
+                    st.write("Listagem oficial para assinatura de responsabilidade patrimonial.")
+                    
+                    locais_rel = [loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""]
+                    local_rel = st.selectbox("Filtrar por Setor/Ambiente:", ["Todos os Ambientes"] + sorted(locais_rel))
+                    
+                    resp_padrao = st.session_state.get('usuario_nome', '').upper()
+                    resp_rel = st.text_input("Responsável pelo Setor (Assinatura):", value=resp_padrao)
+
+                    class RelatorioConamPDF(FPDF):
+                        def __init__(self, setor_nome, responsavel):
+                            super().__init__('L', 'mm', 'A4')
+                            self.set_margins(10, 10, 10)
+                            self.set_auto_page_break(auto=False)
+                            self.setor_nome = setor_nome
+                            self.responsavel = responsavel
+                            self.data_hoje = datetime.now().strftime("%d/%m/%Y")
+
+                        def header(self):
+                            self.set_font('Courier', '', 9)
+                            self.set_text_color(0, 0, 0)
+                            self.set_draw_color(0, 0, 0)
+                            
+                            self.cell(138, 4, "CN-SIP", 0, 0, 'L')
+                            self.cell(138, 4, "CONAM", 0, 1, 'R')
+
+                            self.cell(0, 4, "Prefeitura Municipal de Limeira", 0, 1, 'C')
+                            self.cell(0, 4, "Relatorio de Moveis por Setor 01671 SMED - CEIEF RAFAEL AFFONSO LEITE", 0, 1, 'C')
+                            self.cell(0, 4, f"Selecao : Bens INCORPORADOS             de             a {self.data_hoje}", 0, 1, 'C')
+
+                            self.cell(138, 4, f"DATA {self.data_hoje}", 0, 0, 'L')
+                            self.cell(138, 4, f"PAGINA      {self.page_no()}", 0, 1, 'R')
+
+                            self.line(10, self.get_y(), 287, self.get_y())
+                            self.ln(2)
+
+                            self.set_x(70)
+                            setor_str = f"01671 SMED - CEIEF RAFAEL AFFONSO LEITE - {self.setor_nome}" if self.setor_nome != "Todos os Ambientes" else "01671 SMED - CEIEF RAFAEL AFFONSO LEITE"
+                            self.cell(0, 4, f"Setor       : {setor_str}", 0, 1, 'L')
+                            
+                            self.set_x(70)
+                            self.cell(0, 4, f"Responsavel : {self.responsavel.upper()}", 0, 1, 'L')
+                            self.ln(2)
+
+                            self.line(10, self.get_y(), 287, self.get_y())
+                            self.ln(1)
+
+                            self.set_x(12)
+                            self.cell(30, 4, "No. CHAPA", 0, 0, 'L')
+                            self.cell(83, 4, "DESCRICAO", 0, 0, 'L')
+                            self.set_x(155)
+                            self.cell(0, 4, "OBSERVACAO", 0, 1, 'L')
+
+                            self.line(10, self.get_y(), 287, self.get_y())
+                            self.ln(1)
+                            self.line(10, self.get_y(), 287, self.get_y())
+
+                with col_rel_2:
+                    st.markdown("#### Gerar Listagem")
+                    if st.button("⚙️ Processar Relatório CONAM", type="primary", use_container_width=True):
+                        df_rel = df_patrimonio.copy()
+                        
+                        df_rel['codigo_num'] = pd.to_numeric(df_rel['codigo'], errors='coerce')
+                        df_rel = df_rel.sort_values(by=['codigo_num', 'codigo'])
+                        
+                        if local_rel != "Todos os Ambientes":
+                            df_rel = df_rel[df_rel['localizacao'] == local_rel]
+                        
+                        if df_rel.empty:
+                            st.warning("Nenhum bem encontrado para os filtros informados.")
+                        else:
+                            with st.spinner("Desenhando relatório matricial..."):
+                                pdf = RelatorioConamPDF(local_rel, resp_rel)
                                 pdf.add_page()
                                 
-                            total_moveis = len(df_rel)
-                            setores_unicos = df_rel['localizacao'].dropna().apply(lambda x: str(x).strip()).unique()
-                            setores_unicos = [s for s in setores_unicos if s not in ["", "None", "nan"]]
-                            total_setores = len(setores_unicos) if len(setores_unicos) > 0 else 1
-                            
-                            str_moveis = str(total_moveis).rjust(4)
-                            str_setores = str(total_setores).zfill(4)
-                            
-                            pdf.set_font('Courier', '', 9)
-                            pdf.ln(2)
-                            pdf.cell(0, 4, f"    {str_moveis} Movel(is)  deste Setor mostrado(s).", 0, 1, 'L')
-                            pdf.ln(1)
-                            
-                            pdf.line(10, pdf.get_y(), 287, pdf.get_y())
-                            pdf.ln(1)
-                            
-                            pdf.cell(0, 4, f"    {str_setores} Setor(es) mostrado(s).", 0, 1, 'L')
-                            pdf.ln(1)
-                            
-                            pdf.line(10, pdf.get_y(), 287, pdf.get_y())
-                            
-                            st.session_state.pdf_conam = get_pdf_bytes(pdf)
-                        
-                if 'pdf_conam' in st.session_state:
-                    st.download_button(
-                        label="📥 Baixar Relatório (PDF)", 
-                        data=st.session_state.pdf_conam, 
-                        file_name=f"Relatorio_CONAM_{datetime.now().strftime('%Y%m%d')}.pdf", 
-                        mime="application/pdf", 
-                        use_container_width=True,
-                        type="primary"
-                    )
+                                pdf.set_font('Courier', '', 8)
+                                row_height = 3.4
+                                linhas_na_pagina = 0
+                                
+                                for i, row in df_rel.iterrows():
+                                    if linhas_na_pagina >= 46:
+                                        pdf.line(10, pdf.get_y(), 287, pdf.get_y())
+                                        pdf.add_page()
+                                        pdf.set_font('Courier', '', 8)
+                                        linhas_na_pagina = 0
+                                        
+                                    y = pdf.get_y()
+                                    
+                                    pdf.line(10, y, 10, y + row_height)
+                                    pdf.line(125, y, 125, y + row_height)
+                                    pdf.line(195, y, 195, y + row_height)
+                                    pdf.line(287, y, 287, y + row_height)
+                                    
+                                    chapa = str(row['codigo']).zfill(10)
+                                    pdf.set_xy(11, y + 0.2)
+                                    pdf.cell(25, 3, chapa, 0, 0)
+                                    
+                                    desc = clean_pdf_text(str(row['nome'])).upper()
+                                    if len(desc) > 55: desc = desc[:52] + "..."
+                                    pdf.set_xy(38, y + 0.2)
+                                    pdf.cell(85, 3, desc, 0, 0)
+                                    
+                                    estado = str(row.get('estado', '')).strip()
+                                    if estado in ['None', 'nan']: estado = ""
+                                    
+                                    loc = str(row.get('localizacao', '')).strip()
+                                    if loc in ['None', 'nan']: loc = ""
+                                    
+                                    obs_parts = [p for p in [estado, loc] if p]
+                                    obs_text = clean_pdf_text(" - ".join(obs_parts)).upper()
+                                    
+                                    if len(obs_text) > 42: obs_text = obs_text[:39] + "..."
+                                    
+                                    pdf.set_xy(127, y + 0.2)
+                                    pdf.cell(66, 3, obs_text, 0, 0)
+                                    
+                                    pdf.set_y(y + row_height)
+                                    linhas_na_pagina += 1
+                                    
+                                pdf.line(10, pdf.get_y(), 287, pdf.get_y())
+
+                                if pdf.get_y() > 185:
+                                    pdf.add_page()
+                                    
+                                total_moveis = len(df_rel)
+                                setores_unicos = df_rel['localizacao'].dropna().apply(lambda x: str(x).strip()).unique()
+                                setores_unicos = [s for s in setores_unicos if s not in ["", "None", "nan"]]
+                                total_setores = len(setores_unicos) if len(setores_unicos) > 0 else 1
+                                
+                                str_moveis = str(total_moveis).rjust(4)
+                                str_setores = str(total_setores).zfill(4)
+                                
+                                pdf.set_font('Courier', '', 9)
+                                pdf.ln(2)
+                                pdf.cell(0, 4, f"    {str_moveis} Movel(is)  deste Setor mostrado(s).", 0, 1, 'L')
+                                pdf.ln(1)
+                                
+                                pdf.line(10, pdf.get_y(), 287, pdf.get_y())
+                                pdf.ln(1)
+                                
+                                pdf.cell(0, 4, f"    {str_setores} Setor(es) mostrado(s).", 0, 1, 'L')
+                                pdf.ln(1)
+                                
+                                pdf.line(10, pdf.get_y(), 287, pdf.get_y())
+                                
+                                st.session_state.pdf_conam = get_pdf_bytes(pdf)
+                    
+                    if 'pdf_conam' in st.session_state:
+                        st.success("Relatório processado!")
+                        st.download_button(
+                            label="📥 Baixar Relatório (PDF)", 
+                            data=st.session_state.pdf_conam, 
+                            file_name=f"Relatorio_CONAM_{datetime.now().strftime('%Y%m%d')}.pdf", 
+                            mime="application/pdf", 
+                            use_container_width=True
+                        )
 
         else:
-            st.info("Nenhum bem cadastrado no inventário ainda.")
+            st.info("Nenhum bem cadastrado no inventário ainda para gerar relatórios.")

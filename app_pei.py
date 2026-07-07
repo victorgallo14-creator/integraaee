@@ -11792,7 +11792,13 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                                 st.info("📸 Sem foto registrada.")
                                 
                         with col_img_2:
-                            nova_foto = st.file_uploader("Substituir / Inserir Foto", type=["jpg", "png", "jpeg"])
+                            metodo_foto = st.radio("Como inserir a foto?", ["📸 Câmera Direta", "📁 Galeria/Arquivo"], horizontal=True, key=f"metodo_foto_{bem['id']}")
+                            
+                            nova_foto = None
+                            if metodo_foto == "📸 Câmera Direta":
+                                nova_foto = st.camera_input("Tire a foto", key=f"cam_{bem['id']}")
+                            else:
+                                nova_foto = st.file_uploader("Substituir / Inserir Foto", type=["jpg", "png", "jpeg"], key=f"up_{bem['id']}")
                         
                         st.markdown("---")
                         conferido = st.checkbox("✅ Marcar como CONFERIDO E VISTADO nesta data", value=True)

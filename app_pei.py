@@ -11674,13 +11674,34 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
     # --- TELA 0: VISÃO GERAL ---
     # ==================================================================
     if aba_selecionada == "📊 Visão Geral":
-        st.header("Visão Geral")
+        st.header("Visão Geral do Inventário")
+        
         if not df_patrimonio.empty:
+            # 1. Cálculo das Métricas
+            total_bens = len(df_patrimonio)
+            
+            # Conta quantos itens estão com status 'conferido' igual a True ou "True"
+            # (Garante que funcione independentemente de como o Supabase/Pandas tipa o boolean)
+            conferidos = len(df_patrimonio[df_patrimonio['conferido'].astype(bool) == True])
+            pendentes = total_bens - conferidos
+            
+            # 2. Exibição dos Indicadores (Cards)
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric(label="📦 Total de Bens", value=total_bens)
+            with col2:
+                st.metric(label="✅ Conferidos", value=conferidos)
+            with col3:
+                st.metric(label="⚠️ Pendentes", value=pendentes)
+                
+            st.markdown("---") # Linha divisória antes da tabela
+
+            # 3. Exibição da Tabela
             # Esconde a coluna da imagem base64 na visualização da tabela para não poluir a tela
             df_display = df_patrimonio.drop(columns=['foto_base64'], errors='ignore')
             st.dataframe(df_display, use_container_width=True, hide_index=True)
         else:
-            st.info("Nenhum bem cadastrado no banco de dados.")
+            st.info("Nenhum bem cadastrado no banco de dados."
 
     # ==================================================================
     # --- TELA 1: CONFERÊNCIA E ATUALIZAÇÃO ---

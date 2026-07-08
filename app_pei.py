@@ -11701,7 +11701,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
             df_display = df_patrimonio.drop(columns=['foto_base64'], errors='ignore')
             st.dataframe(df_display, use_container_width=True, hide_index=True)
         else:
-            st.info("Nenhum bem cadastrado no banco de dados."
+            st.info("Nenhum bem cadastrado no banco de dados.")
 
     # ==================================================================
     # --- TELA 1: CONFERÊNCIA E ATUALIZAÇÃO ---

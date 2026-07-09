@@ -11616,6 +11616,7 @@ from datetime import datetime
 import pytesseract
 from PIL import Image
 import re  # Biblioteca para filtrar textos
+from PIL import Image, ImageOps
 
 # ... (Seu código existente até chegar no bloco do Módulo Administrativo) ...
 
@@ -12219,8 +12220,8 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                             use_container_width=True
                         )
 
-            # ==================================================================
-            # --- NOVA OPÇÃO: RELATÓRIO FOTOGRÁFICO ---
+# ==================================================================
+            # --- NOVA OPÇÃO: RELATÓRIO FOTOGRÁFICO COM DESIGN TOP ---
             # ==================================================================
             elif sub_aba == "📸 Relatório Fotográfico por Setor":
                 col_foto_1, col_foto_2 = st.columns([1, 1], gap="large")
@@ -12237,7 +12238,6 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     if st.button("⚙️ Processar Relatório Fotográfico", type="primary", use_container_width=True):
                         df_foto = df_patrimonio.copy()
                         
-                        # Ordenar para ficar organizado
                         df_foto['codigo_num'] = pd.to_numeric(df_foto['codigo'], errors='coerce')
                         df_foto = df_foto.sort_values(by=['localizacao', 'codigo_num', 'codigo'])
                         
@@ -12247,87 +12247,139 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                         if df_foto.empty:
                             st.warning("Nenhum bem encontrado para este ambiente.")
                         else:
-                            with st.spinner("Extraindo fotos e montando o catálogo... Isso pode levar alguns segundos."):
+                            with st.spinner("Padronizando fotos e montando o catálogo..."):
                                 pdf = FPDF('P', 'mm', 'A4')
                                 pdf.set_auto_page_break(auto=True, margin=15)
-                                pdf.add_page()
                                 
-                                # Cabeçalho do Relatório
+                                # ---------------------------------------------------------
+                                # DESIGN DA CAPA
+                                # ---------------------------------------------------------
+                                pdf.add_page()
+                                # Fundo azul escuro para a capa
+                                pdf.set_fill_color(33, 47, 61) 
+                                pdf.rect(0, 0, 210, 297, 'F')
+                                
+                                # Faixa decorativa
+                                pdf.set_fill_color(52, 152, 219)
+                                pdf.rect(0, 140, 210, 3, 'F')
+                                
+                                pdf.set_text_color(255, 255, 255)
+                                pdf.set_y(100)
+                                pdf.set_font("Arial", "B", 26)
+                                pdf.cell(0, 10, "CATÁLOGO FOTOGRÁFICO", ln=True, align='C')
+                                pdf.set_font("Arial", "", 18)
+                                pdf.cell(0, 10, "GESTÃO DE PATRIMÔNIO", ln=True, align='C')
+                                
+                                pdf.set_y(160)
                                 pdf.set_font("Arial", "B", 14)
-                                pdf.cell(0, 10, "CATÁLOGO FOTOGRÁFICO DE PATRIMÔNIO", ln=True, align='C')
-                                pdf.set_font("Arial", "", 10)
+                                pdf.cell(0, 8, "CEIEF RAFAEL AFFONSO LEITE", ln=True, align='C')
+                                pdf.set_font("Arial", "", 12)
+                                
                                 titulo_local = local_foto_selecionado if local_foto_selecionado != "Todos os Ambientes" else "Geral (Todos os Ambientes)"
-                                pdf.cell(0, 6, f"Ambiente: {titulo_local}", ln=True, align='C')
-                                pdf.cell(0, 6, f"Data de Emissão: {datetime.now().strftime('%d/%m/%Y')}", ln=True, align='C')
-                                pdf.ln(10)
+                                pdf.cell(0, 8, f"Ambiente: {titulo_local}", ln=True, align='C')
+                                pdf.cell(0, 8, f"Data de Emissão: {datetime.now().strftime('%d/%m/%Y')}", ln=True, align='C')
+                                
+                                # Reset para as páginas de conteúdo
+                                pdf.add_page()
+                                pdf.set_text_color(0, 0, 0)
                                 
                                 import tempfile
                                 import os
                                 
+                                # Configuração do Card
+                                altura_card = 48
+                                espacamento = 5
+                                
                                 for i, row in df_foto.iterrows():
-                                    # Tratamento de textos
                                     codigo = str(row['codigo'])
                                     nome = str(row.get('nome', '')).encode('latin-1', 'replace').decode('latin-1')
                                     estado = str(row.get('estado', 'Não informado'))
                                     loc = str(row.get('localizacao', 'Não informado')).encode('latin-1', 'replace').decode('latin-1')
                                     obs = str(row.get('observacao', '')).encode('latin-1', 'replace').decode('latin-1')
-                                    if obs in ['None', 'nan', '']: obs = "Nenhuma."
+                                    if obs in ['None', 'nan', '']: obs = "Nenhuma observação registrada."
                                     
-                                    # Posicionamento Y atual (para não quebrar bloco no meio da página)
-                                    if pdf.get_y() > 220:
+                                    # Verifica se cabe na página atual (se não, nova página)
+                                    if pdf.get_y() + altura_card > 280:
                                         pdf.add_page()
                                     
-                                    y_inicial_bloco = pdf.get_y()
+                                    y_inicial = pdf.get_y()
                                     
-                                    # Imagem à esquerda
+                                    # Desenha o Card (Fundo cinza claro e borda suave)
+                                    pdf.set_fill_color(248, 249, 250)
+                                    pdf.set_draw_color(220, 220, 220)
+                                    pdf.rect(10, y_inicial, 190, altura_card, 'DF')
+                                    
+                                    # Processamento da Imagem Fixa e Centralizada
+                                    pos_x_img = 12
+                                    pos_y_img = y_inicial + 2
+                                    img_size = 44 # Tamanho quadrado fixo
+                                    
                                     if row.get('foto_base64') and pd.notnull(row['foto_base64']) and str(row['foto_base64']).strip() != "":
                                         try:
                                             img_data = base64.b64decode(row['foto_base64'])
+                                            img = Image.open(io.BytesIO(img_data))
+                                            
+                                            if img.mode != 'RGB': 
+                                                img = img.convert('RGB')
+                                            
+                                            # Força um corte 1:1 perfeito para caber no box sem deformar
+                                            img_cortada = ImageOps.fit(img, (400, 400), Image.Resampling.LANCZOS)
+                                            
                                             with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
-                                                tmp_file.write(img_data)
+                                                img_cortada.save(tmp_file, format="JPEG", quality=90)
                                                 tmp_path = tmp_file.name
                                             
-                                            pdf.image(tmp_path, x=10, y=y_inicial_bloco, w=50)
+                                            pdf.image(tmp_path, x=pos_x_img, y=pos_y_img, w=img_size, h=img_size)
                                             os.unlink(tmp_path)
                                         except Exception:
-                                            pdf.set_xy(10, y_inicial_bloco + 20)
+                                            pdf.set_xy(pos_x_img, pos_y_img + 18)
                                             pdf.set_font("Arial", "I", 8)
-                                            pdf.cell(50, 5, "[ERRO NA IMAGEM]", align='C')
+                                            pdf.cell(img_size, 5, "[ERRO]", align='C')
                                     else:
-                                        pdf.set_xy(10, y_inicial_bloco + 20)
+                                        pdf.set_fill_color(230, 230, 230)
+                                        pdf.rect(pos_x_img, pos_y_img, img_size, img_size, 'F')
+                                        pdf.set_xy(pos_x_img, pos_y_img + 18)
                                         pdf.set_font("Arial", "I", 8)
-                                        pdf.cell(50, 5, "[SEM FOTO]", border=1, align='C')
+                                        pdf.set_text_color(150, 150, 150)
+                                        pdf.cell(img_size, 5, "[SEM FOTO]", align='C')
+                                        pdf.set_text_color(0, 0, 0)
                                     
                                     # Textos à direita da imagem
-                                    pdf.set_xy(65, y_inicial_bloco)
+                                    pos_x_texto = pos_x_img + img_size + 8
                                     
-                                    pdf.set_font("Arial", "B", 11)
-                                    pdf.multi_cell(0, 5, f"{codigo} - {nome}")
+                                    pdf.set_xy(pos_x_texto, y_inicial + 4)
+                                    pdf.set_font("Arial", "B", 12)
+                                    nome_formatado = f"{codigo} - {nome}"
+                                    if len(nome_formatado) > 55: nome_formatado = nome_formatado[:52] + "..."
+                                    pdf.cell(130, 6, nome_formatado, ln=True)
                                     
-                                    pdf.set_xy(65, pdf.get_y() + 2)
+                                    pdf.set_xy(pos_x_texto, pdf.get_y() + 2)
                                     pdf.set_font("Arial", "B", 9)
-                                    pdf.cell(20, 5, "Local:")
+                                    pdf.set_text_color(80, 80, 80)
+                                    pdf.cell(15, 5, "Local:")
                                     pdf.set_font("Arial", "", 9)
-                                    pdf.cell(0, 5, loc, ln=True)
+                                    pdf.set_text_color(0, 0, 0)
+                                    pdf.cell(60, 5, loc)
                                     
-                                    pdf.set_xy(65, pdf.get_y())
                                     pdf.set_font("Arial", "B", 9)
-                                    pdf.cell(20, 5, "Estado:")
+                                    pdf.set_text_color(80, 80, 80)
+                                    pdf.cell(15, 5, "Status:")
                                     pdf.set_font("Arial", "", 9)
-                                    pdf.cell(0, 5, estado, ln=True)
+                                    pdf.set_text_color(0, 0, 0)
+                                    pdf.cell(40, 5, estado, ln=True)
                                     
-                                    pdf.set_xy(65, pdf.get_y())
+                                    pdf.set_xy(pos_x_texto, pdf.get_y() + 1)
                                     pdf.set_font("Arial", "B", 9)
-                                    pdf.cell(20, 5, "Obs:")
-                                    pdf.set_font("Arial", "", 9)
-                                    pdf.multi_cell(0, 5, obs)
+                                    pdf.set_text_color(80, 80, 80)
+                                    pdf.cell(15, 5, "Obs:")
+                                    pdf.set_font("Arial", "", 8)
+                                    pdf.set_text_color(50, 50, 50)
                                     
-                                    # Avançar Y para o próximo item
-                                    novo_y = max(pdf.get_y(), y_inicial_bloco + 55)
-                                    pdf.set_y(novo_y)
-                                    pdf.set_draw_color(200, 200, 200)
-                                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                                    pdf.ln(5)
+                                    if len(obs) > 130: obs = obs[:127] + "..."
+                                    pdf.multi_cell(115, 4, obs)
+                                    
+                                    # Move para o próximo card
+                                    pdf.set_y(y_inicial + altura_card + espacamento)
                                     
                                 # Salva o PDF no session_state
                                 st.session_state.pdf_foto_final = get_pdf_bytes(pdf)

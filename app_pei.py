@@ -12220,11 +12220,10 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                             use_container_width=True
                         )
 
-# ==================================================================
-            # ==================================================================
+    # ==================================================================
     # --- RELATÓRIO FOTOGRÁFICO, ANALÍTICO E LEGAL ---
     # ==================================================================
-    elif sub_aba == "📸 Relatório Fotográfico por Setor":
+    elif aba_selecionada == "📸 Relatório Fotográfico por Setor":
         st.markdown("#### Filtros do Catálogo Visual e Analítico")
         st.write("Gera um relatório completo contendo a análise do acervo, a legislação municipal vigente e as fotos detalhadas.")
         

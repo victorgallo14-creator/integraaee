@@ -12477,5 +12477,5 @@ Art. 6°. Em caso de furto, roubo ou danos aos bens públicos, a Secretaria Resp
                     use_container_width=True
                 )
 
-        else:
-            st.info("Nenhum bem cadastrado no inventário ainda para gerar relatórios.")
+            else:
+                st.info("Nenhum bem cadastrado no inventário ainda para gerar relatórios.")

@@ -12220,261 +12220,261 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                             use_container_width=True
                         )
 
-    # ==================================================================
-    # --- RELATÓRIO FOTOGRÁFICO, ANALÍTICO E LEGAL ---
-    # ==================================================================
-    elif aba_selecionada == "📸 Relatório Fotográfico por Setor":
-        st.markdown("#### Filtros do Catálogo Visual e Analítico")
-        st.write("Gera um relatório completo contendo a análise do acervo, a legislação municipal vigente e as fotos detalhadas.")
-        
-        locais_foto = [loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""]
-        local_foto_selecionado = st.selectbox("Selecione o Ambiente para Análise:", ["Todos os Ambientes"] + sorted(locais_foto), key="sel_foto")
-
-        # Filtra os dados conforme a seleção
-        df_foto = df_patrimonio.copy()
-        df_foto['codigo_num'] = pd.to_numeric(df_foto['codigo'], errors='coerce')
-        df_foto = df_foto.sort_values(by=['localizacao', 'codigo_num', 'codigo'])
-        
-        if local_foto_selecionado != "Todos os Ambientes":
-            df_foto = df_foto[df_foto['localizacao'] == local_foto_selecionado]
-
-        if df_foto.empty:
-            st.warning("Nenhum bem encontrado para este ambiente.")
-        else:
-            # ==========================================================
-            # DASHBOARD INTERATIVO NA TELA (STREAMLIT)
-            # ==========================================================
-            st.markdown("---")
-            st.markdown(f"### 📊 Panorama do Acervo: {local_foto_selecionado}")
-            
-            col_met1, col_met2, col_met3 = st.columns(3)
-            col_met1.metric("Total de Bens Listados", len(df_foto))
-            col_met2.metric("Bens em Bom/Novo Estado", len(df_foto[df_foto['estado'].isin(['Bom', 'Novo'])]))
-            col_met3.metric("Bens Inservíveis/Ruins", len(df_foto[df_foto['estado'].isin(['Ruim', 'Inservível/Sucata'])]))
-
-            col_graf1, col_graf2 = st.columns(2)
-            with col_graf1:
-                st.markdown("**Condição dos Bens**")
-                estado_counts = df_foto['estado'].value_counts()
-                st.bar_chart(estado_counts, color="#3498db")
+            # ==================================================================
+            # --- RELATÓRIO FOTOGRÁFICO, ANALÍTICO E LEGAL ---
+            # ==================================================================
+            elif sub_aba == "📸 Relatório Fotográfico por Setor":
+                st.markdown("#### Filtros do Catálogo Visual e Analítico")
+                st.write("Gera um relatório completo contendo a análise do acervo, a legislação municipal vigente e as fotos detalhadas.")
                 
-            with col_graf2:
-                st.markdown("**Distribuição por Setor**")
-                if local_foto_selecionado == "Todos os Ambientes":
-                    setor_counts = df_foto['localizacao'].value_counts().head(10) # Top 10 para não poluir
-                    st.bar_chart(setor_counts, color="#2ecc71")
+                locais_foto = [loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""]
+                local_foto_selecionado = st.selectbox("Selecione o Ambiente para Análise:", ["Todos os Ambientes"] + sorted(locais_foto), key="sel_foto")
+        
+                # Filtra os dados conforme a seleção
+                df_foto = df_patrimonio.copy()
+                df_foto['codigo_num'] = pd.to_numeric(df_foto['codigo'], errors='coerce')
+                df_foto = df_foto.sort_values(by=['localizacao', 'codigo_num', 'codigo'])
+                
+                if local_foto_selecionado != "Todos os Ambientes":
+                    df_foto = df_foto[df_foto['localizacao'] == local_foto_selecionado]
+        
+                if df_foto.empty:
+                    st.warning("Nenhum bem encontrado para este ambiente.")
                 else:
-                    st.info("Gráfico de setores oculto pois a busca é específica de um único ambiente.")
-
-            st.markdown("---")
-            
-            # ==========================================================
-            # GERAÇÃO DO PDF
-            # ==========================================================
-            st.markdown("#### Geração do Documento Oficial")
-            if st.button("⚙️ Processar Relatório e Catálogo (PDF)", type="primary", use_container_width=True):
-                with st.spinner("Compilando estatísticas, legislação e imagens..."):
-                    pdf = FPDF('P', 'mm', 'A4')
-                    pdf.set_auto_page_break(auto=True, margin=15)
+                    # ==========================================================
+                    # DASHBOARD INTERATIVO NA TELA (STREAMLIT)
+                    # ==========================================================
+                    st.markdown("---")
+                    st.markdown(f"### 📊 Panorama do Acervo: {local_foto_selecionado}")
                     
-                    # ---------------------------------------------------------
-                    # 1. DESIGN DA CAPA
-                    # ---------------------------------------------------------
-                    pdf.add_page()
-                    pdf.set_fill_color(33, 47, 61) 
-                    pdf.rect(0, 0, 210, 297, 'F')
-                    
-                    pdf.set_fill_color(52, 152, 219)
-                    pdf.rect(0, 140, 210, 3, 'F')
-                    
-                    pdf.set_text_color(255, 255, 255)
-                    pdf.set_y(90)
-                    pdf.set_font("Arial", "B", 26)
-                    pdf.cell(0, 10, "RELATÓRIO PATRIMONIAL".encode('latin-1', 'replace').decode('latin-1'), ln=True, align='C')
-                    pdf.set_font("Arial", "", 16)
-                    pdf.cell(0, 10, "ANÁLISE, LEGISLAÇÃO E CATÁLOGO".encode('latin-1', 'replace').decode('latin-1'), ln=True, align='C')
-                    
-                    pdf.set_y(160)
-                    pdf.set_font("Arial", "B", 14)
-                    pdf.cell(0, 8, "CEIEF RAFAEL AFFONSO LEITE - LIMEIRA/SP", ln=True, align='C')
-                    pdf.set_font("Arial", "", 12)
-                    
-                    titulo_local = local_foto_selecionado if local_foto_selecionado != "Todos os Ambientes" else "Geral (Todos os Ambientes)"
-                    pdf.cell(0, 8, f"Ambiente: {titulo_local}".encode('latin-1', 'replace').decode('latin-1'), ln=True, align='C')
-                    pdf.cell(0, 8, f"Data de Emissão: {datetime.now().strftime('%d/%m/%Y')}", ln=True, align='C')
-
-                    # ---------------------------------------------------------
-                    # 2. PÁGINA DE ANÁLISE E ESTATÍSTICAS
-                    # ---------------------------------------------------------
-                    pdf.add_page()
-                    pdf.set_text_color(0, 0, 0)
-                    pdf.set_font("Arial", "B", 16)
-                    pdf.cell(0, 10, "1. RESUMO ANALÍTICO DO ACERVO".encode('latin-1', 'replace').decode('latin-1'), ln=True, align='L')
-                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                    pdf.ln(5)
-
-                    pdf.set_font("Arial", "", 12)
-                    pdf.cell(0, 8, f"Total de bens listados neste relatório: {len(df_foto)}", ln=True)
-                    pdf.ln(5)
-
-                    # Tabela de Condições
-                    pdf.set_font("Arial", "B", 12)
-                    pdf.cell(0, 8, "Estado de Conservação dos Bens:".encode('latin-1', 'replace').decode('latin-1'), ln=True)
-                    pdf.set_font("Arial", "", 11)
-                    
-                    for estado, qtd in estado_counts.items():
-                        estado_clean = str(estado).encode('latin-1', 'replace').decode('latin-1')
-                        pdf.cell(10, 6, "-", ln=0, align='C')
-                        pdf.cell(80, 6, f"{estado_clean}:", ln=0)
-                        pdf.cell(20, 6, f"{qtd} item(ns)", ln=True)
-                    
-                    pdf.ln(10)
-
-                    # ---------------------------------------------------------
-                    # 3. PÁGINA DE LEGISLAÇÃO (IN 04/2021)
-                    # ---------------------------------------------------------
-                    pdf.add_page()
-                    pdf.set_font("Arial", "B", 16)
-                    pdf.cell(0, 10, "2. BASE LEGAL E RESPONSABILIDADE".encode('latin-1', 'replace').decode('latin-1'), ln=True, align='L')
-                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                    pdf.ln(5)
-
-                    pdf.set_font("Arial", "B", 10)
-                    pdf.cell(0, 6, "PREFEITURA MUNICIPAL DE LIMEIRA - SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO".encode('latin-1', 'replace').decode('latin-1'), ln=True)
-                    pdf.cell(0, 6, "INSTRUÇÃO NORMATIVA N° 04/2021".encode('latin-1', 'replace').decode('latin-1'), ln=True)
-                    pdf.ln(3)
-
-                    texto_legislacao = """
-"Disciplina os procedimentos em casos de roubo, furto ou danos aos bens patrimoniais das Unidades da Administração Municipal e estabelece as responsabilidades dos Gestores."
-
-Art. 2°. A gestão dos bens patrimoniais alocados em cada Secretaria Municipal e seus Departamentos, Divisões e Setores é de responsabilidade exclusiva do detentor de carga patrimonial.
-Parágrafo único: Todo servidor público poderá ser responsabilizado administrativa e juridicamente pelo desaparecimento ou dano ao material que lhe for confiado para guarda e/ou uso, bem como pelo dano que, dolosa ou culposamente, causar a qualquer material.
-
-Art. 4°. Conceitos fundamentais:
-III. Extravio: É o desaparecimento de bens por furto, roubo ou por negligência do responsável pela guarda.
-VI. Avaria: Significa estrago ou danificação total ou parcial de bem, em virtude de mau uso ou sinistro.
-VIII. Detentor de Carga Patrimonial: servidor designado responsável pelo uso, guarda e conservação de bem patrimonial.
-
-Art. 5°. É dever dos utilizadores dos bens patrimoniais utilizar adequadamente os equipamentos e materiais, bem como adotar e propor providências que preservem a segurança e conservação dos bens móveis.
-
-Art. 6°. Em caso de furto, roubo ou danos aos bens públicos, a Secretaria Responsável deve providenciar o Boletim de Ocorrência (B.O) relatando à autoridade policial o ocorrido, contendo os números dos bens patrimoniais furtados/roubados.
-                    """
-                    pdf.set_font("Arial", "", 10)
-                    texto_limpo = texto_legislacao.strip().encode('latin-1', 'replace').decode('latin-1')
-                    pdf.multi_cell(0, 6, texto_limpo)
-
-                    # ---------------------------------------------------------
-                    # 4. CATÁLOGO FOTOGRÁFICO
-                    # ---------------------------------------------------------
-                    pdf.add_page()
-                    pdf.set_font("Arial", "B", 16)
-                    pdf.cell(0, 10, "3. CATÁLOGO FOTOGRÁFICO DOS BENS".encode('latin-1', 'replace').decode('latin-1'), ln=True, align='L')
-                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                    pdf.ln(5)
-
-                    import tempfile
-                    import os
-                    
-                    altura_card = 48
-                    espacamento = 5
-                    
-                    for i, row in df_foto.iterrows():
-                        codigo = str(row['codigo'])
-                        nome = str(row.get('nome', '')).encode('latin-1', 'replace').decode('latin-1')
-                        estado = str(row.get('estado', 'Não informado')).encode('latin-1', 'replace').decode('latin-1')
-                        loc = str(row.get('localizacao', 'Não informado')).encode('latin-1', 'replace').decode('latin-1')
-                        obs = str(row.get('observacao', '')).encode('latin-1', 'replace').decode('latin-1')
-                        if obs in ['None', 'nan', '']: obs = "Nenhuma observação registrada."
+                    col_met1, col_met2, col_met3 = st.columns(3)
+                    col_met1.metric("Total de Bens Listados", len(df_foto))
+                    col_met2.metric("Bens em Bom/Novo Estado", len(df_foto[df_foto['estado'].isin(['Bom', 'Novo'])]))
+                    col_met3.metric("Bens Inservíveis/Ruins", len(df_foto[df_foto['estado'].isin(['Ruim', 'Inservível/Sucata'])]))
+        
+                    col_graf1, col_graf2 = st.columns(2)
+                    with col_graf1:
+                        st.markdown("**Condição dos Bens**")
+                        estado_counts = df_foto['estado'].value_counts()
+                        st.bar_chart(estado_counts, color="#3498db")
                         
-                        if pdf.get_y() + altura_card > 280:
-                            pdf.add_page()
-                        
-                        y_inicial = pdf.get_y()
-                        
-                        # Desenha o Card
-                        pdf.set_fill_color(248, 249, 250)
-                        pdf.set_draw_color(220, 220, 220)
-                        pdf.rect(10, y_inicial, 190, altura_card, 'DF')
-                        
-                        pos_x_img = 12
-                        pos_y_img = y_inicial + 2
-                        img_size = 44
-                        
-                        if row.get('foto_base64') and pd.notnull(row['foto_base64']) and str(row['foto_base64']).strip() != "":
-                            try:
-                                img_data = base64.b64decode(row['foto_base64'])
-                                img = Image.open(io.BytesIO(img_data))
-                                
-                                if img.mode != 'RGB': 
-                                    img = img.convert('RGB')
-                                
-                                img_cortada = ImageOps.fit(img, (400, 400), Image.Resampling.LANCZOS)
-                                
-                                with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
-                                    img_cortada.save(tmp_file, format="JPEG", quality=90)
-                                    tmp_path = tmp_file.name
-                                
-                                pdf.image(tmp_path, x=pos_x_img, y=pos_y_img, w=img_size, h=img_size)
-                                os.unlink(tmp_path)
-                            except Exception:
-                                pdf.set_xy(pos_x_img, pos_y_img + 18)
-                                pdf.set_font("Arial", "I", 8)
-                                pdf.cell(img_size, 5, "[ERRO]", align='C')
+                    with col_graf2:
+                        st.markdown("**Distribuição por Setor**")
+                        if local_foto_selecionado == "Todos os Ambientes":
+                            setor_counts = df_foto['localizacao'].value_counts().head(10) # Top 10 para não poluir
+                            st.bar_chart(setor_counts, color="#2ecc71")
                         else:
-                            pdf.set_fill_color(230, 230, 230)
-                            pdf.rect(pos_x_img, pos_y_img, img_size, img_size, 'F')
-                            pdf.set_xy(pos_x_img, pos_y_img + 18)
-                            pdf.set_font("Arial", "I", 8)
-                            pdf.set_text_color(150, 150, 150)
-                            pdf.cell(img_size, 5, "[SEM FOTO]", align='C')
-                            pdf.set_text_color(0, 0, 0)
-                        
-                        pos_x_texto = pos_x_img + img_size + 8
-                        
-                        pdf.set_xy(pos_x_texto, y_inicial + 4)
-                        pdf.set_font("Arial", "B", 12)
-                        nome_formatado = f"{codigo} - {nome}"
-                        if len(nome_formatado) > 55: nome_formatado = nome_formatado[:52] + "..."
-                        pdf.cell(130, 6, nome_formatado, ln=True)
-                        
-                        pdf.set_xy(pos_x_texto, pdf.get_y() + 2)
-                        pdf.set_font("Arial", "B", 9)
-                        pdf.set_text_color(80, 80, 80)
-                        pdf.cell(15, 5, "Local:")
-                        pdf.set_font("Arial", "", 9)
-                        pdf.set_text_color(0, 0, 0)
-                        pdf.cell(60, 5, loc)
-                        
-                        pdf.set_font("Arial", "B", 9)
-                        pdf.set_text_color(80, 80, 80)
-                        pdf.cell(15, 5, "Status:")
-                        pdf.set_font("Arial", "", 9)
-                        pdf.set_text_color(0, 0, 0)
-                        pdf.cell(40, 5, estado, ln=True)
-                        
-                        pdf.set_xy(pos_x_texto, pdf.get_y() + 1)
-                        pdf.set_font("Arial", "B", 9)
-                        pdf.set_text_color(80, 80, 80)
-                        pdf.cell(15, 5, "Obs:")
-                        pdf.set_font("Arial", "", 8)
-                        pdf.set_text_color(50, 50, 50)
-                        
-                        if len(obs) > 130: obs = obs[:127] + "..."
-                        pdf.multi_cell(115, 4, obs)
-                        
-                        pdf.set_y(y_inicial + altura_card + espacamento)
-                        
-                    st.session_state.pdf_foto_final = get_pdf_bytes(pdf)
+                            st.info("Gráfico de setores oculto pois a busca é específica de um único ambiente.")
+        
+                    st.markdown("---")
                     
-            if 'pdf_foto_final' in st.session_state:
-                st.success("Relatório gerado com sucesso!")
-                st.download_button(
-                    label="📥 Baixar Relatório Oficial (PDF)", 
-                    data=st.session_state.pdf_foto_final, 
-                    file_name=f"Relatorio_Patrimonio_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf", 
-                    mime="application/pdf", 
-                    use_container_width=True
-                )
-
-            else:
-                st.info("Nenhum bem cadastrado no inventário ainda para gerar relatórios.")
+                    # ==========================================================
+                    # GERAÇÃO DO PDF
+                    # ==========================================================
+                    st.markdown("#### Geração do Documento Oficial")
+                    if st.button("⚙️ Processar Relatório e Catálogo (PDF)", type="primary", use_container_width=True):
+                        with st.spinner("Compilando estatísticas, legislação e imagens..."):
+                            pdf = FPDF('P', 'mm', 'A4')
+                            pdf.set_auto_page_break(auto=True, margin=15)
+                            
+                            # ---------------------------------------------------------
+                            # 1. DESIGN DA CAPA
+                            # ---------------------------------------------------------
+                            pdf.add_page()
+                            pdf.set_fill_color(33, 47, 61) 
+                            pdf.rect(0, 0, 210, 297, 'F')
+                            
+                            pdf.set_fill_color(52, 152, 219)
+                            pdf.rect(0, 140, 210, 3, 'F')
+                            
+                            pdf.set_text_color(255, 255, 255)
+                            pdf.set_y(90)
+                            pdf.set_font("Arial", "B", 26)
+                            pdf.cell(0, 10, "RELATÓRIO PATRIMONIAL".encode('latin-1', 'replace').decode('latin-1'), ln=True, align='C')
+                            pdf.set_font("Arial", "", 16)
+                            pdf.cell(0, 10, "ANÁLISE, LEGISLAÇÃO E CATÁLOGO".encode('latin-1', 'replace').decode('latin-1'), ln=True, align='C')
+                            
+                            pdf.set_y(160)
+                            pdf.set_font("Arial", "B", 14)
+                            pdf.cell(0, 8, "CEIEF RAFAEL AFFONSO LEITE - LIMEIRA/SP", ln=True, align='C')
+                            pdf.set_font("Arial", "", 12)
+                            
+                            titulo_local = local_foto_selecionado if local_foto_selecionado != "Todos os Ambientes" else "Geral (Todos os Ambientes)"
+                            pdf.cell(0, 8, f"Ambiente: {titulo_local}".encode('latin-1', 'replace').decode('latin-1'), ln=True, align='C')
+                            pdf.cell(0, 8, f"Data de Emissão: {datetime.now().strftime('%d/%m/%Y')}", ln=True, align='C')
+        
+                            # ---------------------------------------------------------
+                            # 2. PÁGINA DE ANÁLISE E ESTATÍSTICAS
+                            # ---------------------------------------------------------
+                            pdf.add_page()
+                            pdf.set_text_color(0, 0, 0)
+                            pdf.set_font("Arial", "B", 16)
+                            pdf.cell(0, 10, "1. RESUMO ANALÍTICO DO ACERVO".encode('latin-1', 'replace').decode('latin-1'), ln=True, align='L')
+                            pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                            pdf.ln(5)
+        
+                            pdf.set_font("Arial", "", 12)
+                            pdf.cell(0, 8, f"Total de bens listados neste relatório: {len(df_foto)}", ln=True)
+                            pdf.ln(5)
+        
+                            # Tabela de Condições
+                            pdf.set_font("Arial", "B", 12)
+                            pdf.cell(0, 8, "Estado de Conservação dos Bens:".encode('latin-1', 'replace').decode('latin-1'), ln=True)
+                            pdf.set_font("Arial", "", 11)
+                            
+                            for estado, qtd in estado_counts.items():
+                                estado_clean = str(estado).encode('latin-1', 'replace').decode('latin-1')
+                                pdf.cell(10, 6, "-", ln=0, align='C')
+                                pdf.cell(80, 6, f"{estado_clean}:", ln=0)
+                                pdf.cell(20, 6, f"{qtd} item(ns)", ln=True)
+                            
+                            pdf.ln(10)
+        
+                            # ---------------------------------------------------------
+                            # 3. PÁGINA DE LEGISLAÇÃO (IN 04/2021)
+                            # ---------------------------------------------------------
+                            pdf.add_page()
+                            pdf.set_font("Arial", "B", 16)
+                            pdf.cell(0, 10, "2. BASE LEGAL E RESPONSABILIDADE".encode('latin-1', 'replace').decode('latin-1'), ln=True, align='L')
+                            pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                            pdf.ln(5)
+        
+                            pdf.set_font("Arial", "B", 10)
+                            pdf.cell(0, 6, "PREFEITURA MUNICIPAL DE LIMEIRA - SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO".encode('latin-1', 'replace').decode('latin-1'), ln=True)
+                            pdf.cell(0, 6, "INSTRUÇÃO NORMATIVA N° 04/2021".encode('latin-1', 'replace').decode('latin-1'), ln=True)
+                            pdf.ln(3)
+        
+                            texto_legislacao = """
+        "Disciplina os procedimentos em casos de roubo, furto ou danos aos bens patrimoniais das Unidades da Administração Municipal e estabelece as responsabilidades dos Gestores."
+        
+        Art. 2°. A gestão dos bens patrimoniais alocados em cada Secretaria Municipal e seus Departamentos, Divisões e Setores é de responsabilidade exclusiva do detentor de carga patrimonial.
+        Parágrafo único: Todo servidor público poderá ser responsabilizado administrativa e juridicamente pelo desaparecimento ou dano ao material que lhe for confiado para guarda e/ou uso, bem como pelo dano que, dolosa ou culposamente, causar a qualquer material.
+        
+        Art. 4°. Conceitos fundamentais:
+        III. Extravio: É o desaparecimento de bens por furto, roubo ou por negligência do responsável pela guarda.
+        VI. Avaria: Significa estrago ou danificação total ou parcial de bem, em virtude de mau uso ou sinistro.
+        VIII. Detentor de Carga Patrimonial: servidor designado responsável pelo uso, guarda e conservação de bem patrimonial.
+        
+        Art. 5°. É dever dos utilizadores dos bens patrimoniais utilizar adequadamente os equipamentos e materiais, bem como adotar e propor providências que preservem a segurança e conservação dos bens móveis.
+        
+        Art. 6°. Em caso de furto, roubo ou danos aos bens públicos, a Secretaria Responsável deve providenciar o Boletim de Ocorrência (B.O) relatando à autoridade policial o ocorrido, contendo os números dos bens patrimoniais furtados/roubados.
+                            """
+                            pdf.set_font("Arial", "", 10)
+                            texto_limpo = texto_legislacao.strip().encode('latin-1', 'replace').decode('latin-1')
+                            pdf.multi_cell(0, 6, texto_limpo)
+        
+                            # ---------------------------------------------------------
+                            # 4. CATÁLOGO FOTOGRÁFICO
+                            # ---------------------------------------------------------
+                            pdf.add_page()
+                            pdf.set_font("Arial", "B", 16)
+                            pdf.cell(0, 10, "3. CATÁLOGO FOTOGRÁFICO DOS BENS".encode('latin-1', 'replace').decode('latin-1'), ln=True, align='L')
+                            pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                            pdf.ln(5)
+        
+                            import tempfile
+                            import os
+                            
+                            altura_card = 48
+                            espacamento = 5
+                            
+                            for i, row in df_foto.iterrows():
+                                codigo = str(row['codigo'])
+                                nome = str(row.get('nome', '')).encode('latin-1', 'replace').decode('latin-1')
+                                estado = str(row.get('estado', 'Não informado')).encode('latin-1', 'replace').decode('latin-1')
+                                loc = str(row.get('localizacao', 'Não informado')).encode('latin-1', 'replace').decode('latin-1')
+                                obs = str(row.get('observacao', '')).encode('latin-1', 'replace').decode('latin-1')
+                                if obs in ['None', 'nan', '']: obs = "Nenhuma observação registrada."
+                                
+                                if pdf.get_y() + altura_card > 280:
+                                    pdf.add_page()
+                                
+                                y_inicial = pdf.get_y()
+                                
+                                # Desenha o Card
+                                pdf.set_fill_color(248, 249, 250)
+                                pdf.set_draw_color(220, 220, 220)
+                                pdf.rect(10, y_inicial, 190, altura_card, 'DF')
+                                
+                                pos_x_img = 12
+                                pos_y_img = y_inicial + 2
+                                img_size = 44
+                                
+                                if row.get('foto_base64') and pd.notnull(row['foto_base64']) and str(row['foto_base64']).strip() != "":
+                                    try:
+                                        img_data = base64.b64decode(row['foto_base64'])
+                                        img = Image.open(io.BytesIO(img_data))
+                                        
+                                        if img.mode != 'RGB': 
+                                            img = img.convert('RGB')
+                                        
+                                        img_cortada = ImageOps.fit(img, (400, 400), Image.Resampling.LANCZOS)
+                                        
+                                        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+                                            img_cortada.save(tmp_file, format="JPEG", quality=90)
+                                            tmp_path = tmp_file.name
+                                        
+                                        pdf.image(tmp_path, x=pos_x_img, y=pos_y_img, w=img_size, h=img_size)
+                                        os.unlink(tmp_path)
+                                    except Exception:
+                                        pdf.set_xy(pos_x_img, pos_y_img + 18)
+                                        pdf.set_font("Arial", "I", 8)
+                                        pdf.cell(img_size, 5, "[ERRO]", align='C')
+                                else:
+                                    pdf.set_fill_color(230, 230, 230)
+                                    pdf.rect(pos_x_img, pos_y_img, img_size, img_size, 'F')
+                                    pdf.set_xy(pos_x_img, pos_y_img + 18)
+                                    pdf.set_font("Arial", "I", 8)
+                                    pdf.set_text_color(150, 150, 150)
+                                    pdf.cell(img_size, 5, "[SEM FOTO]", align='C')
+                                    pdf.set_text_color(0, 0, 0)
+                                
+                                pos_x_texto = pos_x_img + img_size + 8
+                                
+                                pdf.set_xy(pos_x_texto, y_inicial + 4)
+                                pdf.set_font("Arial", "B", 12)
+                                nome_formatado = f"{codigo} - {nome}"
+                                if len(nome_formatado) > 55: nome_formatado = nome_formatado[:52] + "..."
+                                pdf.cell(130, 6, nome_formatado, ln=True)
+                                
+                                pdf.set_xy(pos_x_texto, pdf.get_y() + 2)
+                                pdf.set_font("Arial", "B", 9)
+                                pdf.set_text_color(80, 80, 80)
+                                pdf.cell(15, 5, "Local:")
+                                pdf.set_font("Arial", "", 9)
+                                pdf.set_text_color(0, 0, 0)
+                                pdf.cell(60, 5, loc)
+                                
+                                pdf.set_font("Arial", "B", 9)
+                                pdf.set_text_color(80, 80, 80)
+                                pdf.cell(15, 5, "Status:")
+                                pdf.set_font("Arial", "", 9)
+                                pdf.set_text_color(0, 0, 0)
+                                pdf.cell(40, 5, estado, ln=True)
+                                
+                                pdf.set_xy(pos_x_texto, pdf.get_y() + 1)
+                                pdf.set_font("Arial", "B", 9)
+                                pdf.set_text_color(80, 80, 80)
+                                pdf.cell(15, 5, "Obs:")
+                                pdf.set_font("Arial", "", 8)
+                                pdf.set_text_color(50, 50, 50)
+                                
+                                if len(obs) > 130: obs = obs[:127] + "..."
+                                pdf.multi_cell(115, 4, obs)
+                                
+                                pdf.set_y(y_inicial + altura_card + espacamento)
+                                
+                            st.session_state.pdf_foto_final = get_pdf_bytes(pdf)
+                            
+                    if 'pdf_foto_final' in st.session_state:
+                        st.success("Relatório gerado com sucesso!")
+                        st.download_button(
+                            label="📥 Baixar Relatório Oficial (PDF)", 
+                            data=st.session_state.pdf_foto_final, 
+                            file_name=f"Relatorio_Patrimonio_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf", 
+                            mime="application/pdf", 
+                            use_container_width=True
+                        )
+        
+                    else:
+                        st.info("Nenhum bem cadastrado no inventário ainda para gerar relatórios.")

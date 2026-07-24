@@ -12149,33 +12149,20 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                                 pdf.add_page()
                                 
                                 pdf.set_font('Courier', '', 8)
-                                row_height = 3.4
-                                linhas_na_pagina = 0
                                 
                                 for i, row in df_rel.iterrows():
-                                    if linhas_na_pagina >= 46:
+                                    # NOVA LÓGICA DE QUEBRA DE PÁGINA: baseada no espaço restante e não no número de linhas
+                                    if pdf.get_y() > 182:
                                         pdf.line(10, pdf.get_y(), 287, pdf.get_y())
                                         pdf.add_page()
                                         pdf.set_font('Courier', '', 8)
-                                        linhas_na_pagina = 0
                                         
                                     y = pdf.get_y()
                                     
-                                    pdf.line(10, y, 10, y + row_height)
-                                    pdf.line(125, y, 125, y + row_height)
-                                    pdf.line(195, y, 195, y + row_height)
-                                    pdf.line(287, y, 287, y + row_height)
-                                    
+                                    # 1. Puxa os dados
                                     chapa = str(row['codigo']).zfill(10)
-                                    pdf.set_xy(11, y + 0.2)
-                                    pdf.cell(25, 3, chapa, 0, 0)
-                                    
                                     desc = clean_pdf_text(str(row['nome'])).upper()
-                                    if len(desc) > 55: desc = desc[:52] + "..."
-                                    pdf.set_xy(38, y + 0.2)
-                                    pdf.cell(85, 3, desc, 0, 0)
                                     
-                                    # Puxa as informações tratando nulos
                                     estado = str(row.get('estado', '')).strip()
                                     if estado in ['None', 'nan']: estado = ""
                                     
@@ -12185,53 +12172,46 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                                     obs_banco = str(row.get('observacao', '')).strip()
                                     if obs_banco in ['None', 'nan']: obs_banco = ""
                                     
-                                    # === NOVO: Monta a string baseada na escolha do usuário ===
+                                    # 2. Monta as partes conforme a escolha do SelectBox
                                     obs_parts = []
-                                    if estado: 
-                                        obs_parts.append(estado)
-                                        
-                                    # Adiciona o Local apenas se a opção escolhida contiver "Local"
+                                    if estado: obs_parts.append(estado)
                                     if nivel_detalhe_obs in ["Estado + Local", "Estado + Local + Observações do Bem"] and loc:
                                         obs_parts.append(loc)
-                                        
-                                    # Adiciona a Observação apenas se a opção escolhida contiver "Observações"
                                     if nivel_detalhe_obs in ["Estado + Observações do Bem", "Estado + Local + Observações do Bem"] and obs_banco:
                                         obs_parts.append(obs_banco)
                                     
-                                    # Junta tudo e aplica limite de caracteres
+                                    # Tira as reticências e limite de caracteres! Deixa o texto inteiro.
                                     obs_text = clean_pdf_text(" - ".join(obs_parts)).upper()
-                                    if len(obs_text) > 42: obs_text = obs_text[:39] + "..."
                                     
+                                    # 3. Escreve os textos primeiro para o sistema calcular a altura da linha
+                                    pdf.set_xy(11, y + 0.2)
+                                    pdf.cell(25, 3, chapa, 0, 0)
+                                    
+                                    # multi_cell permite que a descrição quebre em várias linhas se for enorme
+                                    pdf.set_xy(38, y + 0.2)
+                                    pdf.multi_cell(85, 3, desc, 0, 'L')
+                                    y_desc = pdf.get_y()
+                                    
+                                    # multi_cell permite que a observação quebre linha, usando um espaço bem mais largo (158mm)
                                     pdf.set_xy(127, y + 0.2)
-                                    pdf.cell(66, 3, obs_text, 0, 0)
+                                    pdf.multi_cell(158, 3, obs_text, 0, 'L')
+                                    y_obs = pdf.get_y()
                                     
+                                    # 4. Calcula a nova altura dinâmica desta linha da tabela
+                                    row_height = max(y_desc, y_obs) - y + 0.4
+                                    if row_height < 3.4: 
+                                        row_height = 3.4 # Garante altura mínima
+                                    
+                                    # 5. Desenha as divisórias verticais acompanhando a altura dinâmica do texto
+                                    pdf.line(10, y, 10, y + row_height)
+                                    pdf.line(125, y, 125, y + row_height)
+                                    # pdf.line(195, y, 195, y + row_height) -> APAGUEI ESSA LINHA PARA DAR MAIS ESPAÇO PARA O TEXTO
+                                    pdf.line(287, y, 287, y + row_height)
+                                    
+                                    # Desce a "caneta" para a próxima linha
                                     pdf.set_y(y + row_height)
-                                    linhas_na_pagina += 1
                                     
-                                pdf.line(10, pdf.get_y(), 287, pdf.get_y())
-
-                                if pdf.get_y() > 185:
-                                    pdf.add_page()
-                                    
-                                total_moveis = len(df_rel)
-                                setores_unicos = df_rel['localizacao'].dropna().apply(lambda x: str(x).strip()).unique()
-                                setores_unicos = [s for s in setores_unicos if s not in ["", "None", "nan"]]
-                                total_setores = len(setores_unicos) if len(setores_unicos) > 0 else 1
-                                
-                                str_moveis = str(total_moveis).rjust(4)
-                                str_setores = str(total_setores).zfill(4)
-                                
-                                pdf.set_font('Courier', '', 9)
-                                pdf.ln(2)
-                                pdf.cell(0, 4, f"    {str_moveis} Movel(is)  deste Setor mostrado(s).", 0, 1, 'L')
-                                pdf.ln(1)
-                                
-                                pdf.line(10, pdf.get_y(), 287, pdf.get_y())
-                                pdf.ln(1)
-                                
-                                pdf.cell(0, 4, f"    {str_setores} Setor(es) mostrado(s).", 0, 1, 'L')
-                                pdf.ln(1)
-                                
+                                # Desenha a linha horizontal final de fechamento da tabela
                                 pdf.line(10, pdf.get_y(), 287, pdf.get_y())
                                 
                                 st.session_state.pdf_conam = get_pdf_bytes(pdf)

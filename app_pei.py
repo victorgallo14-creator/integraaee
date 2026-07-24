@@ -12253,10 +12253,11 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     st.markdown("---")
                     st.markdown(f"### 📊 Panorama do Acervo: {local_foto_selecionado}")
                     
-                    col_met1, col_met2, col_met3 = st.columns(3)
+                    col_met1, col_met2, col_met3, col_met4 = st.columns(4)
                     col_met1.metric("Total de Bens Listados", len(df_foto))
                     col_met2.metric("Bens em Bom/Novo Estado", len(df_foto[df_foto['estado'].isin(['Bom', 'Novo'])]))
-                    col_met3.metric("Bens Inservíveis/Ruins", len(df_foto[df_foto['estado'].isin(['Ruim', 'Inservível/Sucata'])]))
+                    col_met3.metric("Bens em Regular Estado", len(df_foto[df_foto['estado'].isin(['Regular'])]))
+                    col_met4.metric("Bens Inservíveis/Ruins", len(df_foto[df_foto['estado'].isin(['Ruim', 'Inservível/Sucata'])]))
         
                     col_graf1, col_graf2 = st.columns(2)
                     with col_graf1:

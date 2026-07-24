@@ -12171,9 +12171,15 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                                     loc = str(row.get('localizacao', '')).strip()
                                     if loc in ['None', 'nan']: loc = ""
                                     
-                                    obs_parts = [p for p in [estado, loc] if p]
+                                    # === NOVO: Capturando o campo observação do banco ===
+                                    obs_banco = str(row.get('observacao', '')).strip()
+                                    if obs_banco in ['None', 'nan']: obs_banco = ""
+                                    
+                                    # Inclui obs_banco na lista para ser juntada com os hifens
+                                    obs_parts = [p for p in [estado, loc, obs_banco] if p]
                                     obs_text = clean_pdf_text(" - ".join(obs_parts)).upper()
                                     
+                                    # Mantendo o seu limite de caracteres para não quebrar o layout matricial
                                     if len(obs_text) > 42: obs_text = obs_text[:39] + "..."
                                     
                                     pdf.set_xy(127, y + 0.2)

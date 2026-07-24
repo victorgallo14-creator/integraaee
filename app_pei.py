@@ -12214,6 +12214,30 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                                 # Desenha a linha horizontal final de fechamento da tabela
                                 pdf.line(10, pdf.get_y(), 287, pdf.get_y())
                                 
+                                if pdf.get_y() > 185:
+                                    pdf.add_page()
+                                    
+                                total_moveis = len(df_rel)
+                                setores_unicos = df_rel['localizacao'].dropna().apply(lambda x: str(x).strip()).unique()
+                                setores_unicos = [s for s in setores_unicos if s not in ["", "None", "nan"]]
+                                total_setores = len(setores_unicos) if len(setores_unicos) > 0 else 1
+                                
+                                str_moveis = str(total_moveis).rjust(4)
+                                str_setores = str(total_setores).zfill(4)
+                                
+                                pdf.set_font('Courier', '', 9)
+                                pdf.ln(2)
+                                pdf.cell(0, 4, f"    {str_moveis} Movel(is)  deste Setor mostrado(s).", 0, 1, 'L')
+                                pdf.ln(1)
+                                
+                                pdf.line(10, pdf.get_y(), 287, pdf.get_y())
+                                pdf.ln(1)
+                                
+                                pdf.cell(0, 4, f"    {str_setores} Setor(es) mostrado(s).", 0, 1, 'L')
+                                pdf.ln(1)
+                                
+                                pdf.line(10, pdf.get_y(), 287, pdf.get_y())
+                                
                                 st.session_state.pdf_conam = get_pdf_bytes(pdf)
                     
                     if 'pdf_conam' in st.session_state:

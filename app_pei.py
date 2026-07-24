@@ -11660,6 +11660,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
         "📊 Visão Geral", 
         "✅ Conferência e Atualização", 
         "➕ Cadastro de Bens", 
+        "🖼️ Galeria por Ambiente",
         "🖨️ Etiquetas e Relatórios"
     ]
     
@@ -11922,6 +11923,72 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                 else:
                     st.error("Preencha os campos obrigatórios (Código e Nome).")
 
+    # ==================================================================
+    # --- TELA: GALERIA DE BENS POR AMBIENTE (CARÔMETRO PATRIMONIAL) ---
+    # ==================================================================
+    elif aba_selecionada == "🖼️ Galeria por Ambiente":
+        st.header("Galeria de Bens por Ambiente")
+        st.markdown("Selecione um ambiente para visualizar visualmente todos os bens, estado de conservação e observações.")
+        
+        if df_patrimonio.empty:
+            st.warning("⚠️ Nenhum bem cadastrado no banco de dados.")
+        else:
+            # Puxa apenas os locais que realmente possuem bens cadastrados
+            locais_com_bens = sorted([loc for loc in df_patrimonio['localizacao'].unique() if pd.notnull(loc) and str(loc).strip() != ""])
+            
+            if not locais_com_bens:
+                st.info("Nenhum ambiente possui bens cadastrados com localização.")
+            else:
+                col_filtro, _ = st.columns([4, 6])
+                with col_filtro:
+                    local_escolhido = st.selectbox("Selecione o Ambiente:", ["-- Escolha o Ambiente --"] + locais_com_bens)
+
+                if local_escolhido != "-- Escolha o Ambiente --":
+                    df_filtrado = df_patrimonio[df_patrimonio['localizacao'] == local_escolhido]
+                    
+                    st.markdown(f"**Total de itens neste ambiente:** {len(df_filtrado)}")
+                    st.divider()
+
+                    # Estilização adaptada do seu carômetro
+                    st.markdown("""
+                        <style>
+                        .pat-foto-frame { height: 160px; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px; background-color: #f8fafc; margin: 10px 0; border: 1px dashed #cbd5e1; }
+                        .pat-nome { font-weight: 800; color: #1e3a8a; font-size: 11px; min-height: 35px; display: flex; align-items: center; justify-content: center; text-align: center; text-transform: uppercase; line-height: 1.1; }
+                        .pat-info { font-size: 10px; color: #64748b; line-height: 1.2; text-align: center; min-height: 45px; overflow-y: auto; padding: 2px; }
+                        </style>
+                    """, unsafe_allow_html=True)
+
+                    cols = st.columns(5)
+                    idx_col = 0
+
+                    for _, bem in df_filtrado.iterrows():
+                        codigo_bem = bem.get("codigo", "-")
+                        nome_bem = bem.get("nome", "Sem descrição")
+                        estado = bem.get("estado", "Não informado")
+                        obs = bem.get("observacao", "")
+                        foto_b64 = bem.get("foto_base64", None)
+
+                        with cols[idx_col]:
+                            with st.container(border=True):
+                                # Título (Código + Nome)
+                                st.markdown(f'<div class="pat-nome">{codigo_bem}<br>{nome_bem}</div>', unsafe_allow_html=True)
+                                
+                                # Processamento da Imagem
+                                if foto_b64 and pd.notnull(foto_b64) and str(foto_b64).strip() != "":
+                                    # Limpa possíveis cabeçalhos de data URI para evitar quebra
+                                    clean_b64 = str(foto_b64).replace("data:image/jpeg;base64,", "").replace("data:image/png;base64,", "")
+                                    img_html = f"<img src='data:image/jpeg;base64,{clean_b64}' style='width: 100%; height: 100%; object-fit: cover;'>"
+                                else:
+                                    img_html = "<div style='font-size: 40px; opacity: 0.2;'>📦</div>"
+                                
+                                st.markdown(f'<div class="pat-foto-frame">{img_html}</div>', unsafe_allow_html=True)
+                                
+                                # Informações Adicionais
+                                obs_formatada = f"<br><b style='color:#b91c1c;'>Obs:</b> {obs}" if pd.notnull(obs) and obs.strip() != "" else ""
+                                st.markdown(f'<div class="pat-info"><b>Estado:</b> {estado}{obs_formatada}</div>', unsafe_allow_html=True)
+
+                        idx_col = (idx_col + 1) % 5
+                        
     # ==================================================================
     # --- TELA 3: IMPRESSÕES E RELATÓRIOS ---
     # ==================================================================

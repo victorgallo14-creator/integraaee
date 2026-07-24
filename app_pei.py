@@ -11795,7 +11795,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                             nova_loc = st.selectbox("Localização Atual do Bem", LOCAIS_ESCOLA, index=idx_loc_atual)
                         
                         with col_f2:
-                            opcoes_estado = ["Novo", "Bom", "Regular", "Ruim", "Inservível/Sucata", "Em Manutenção"]
+                            opcoes_estado = ["Ótimo", "Novo", "Bom", "Regular", "Ruim", "Inservível/Sucata", "Em Manutenção"]
                             idx_est = opcoes_estado.index(bem.get('estado', 'Bom')) if bem.get('estado') in opcoes_estado else 1
                             novo_estado = st.selectbox("Estado de Conservação", opcoes_estado, index=idx_est)
                         
@@ -12255,7 +12255,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     
                     col_met1, col_met2, col_met3, col_met4 = st.columns(4)
                     col_met1.metric("Total de Bens Listados", len(df_foto))
-                    col_met2.metric("Bens em Bom/Novo Estado", len(df_foto[df_foto['estado'].isin(['Bom', 'Novo'])]))
+                    col_met2.metric("Bens em Ótimo/Bom/Novo Estado", len(df_foto[df_foto['estado'].isin(['Ótimo', 'Bom', 'Novo'])]))
                     col_met3.metric("Bens em Regular Estado", len(df_foto[df_foto['estado'].isin(['Regular'])]))
                     col_met4.metric("Bens Inservíveis/Ruins", len(df_foto[df_foto['estado'].isin(['Ruim', 'Inservível/Sucata'])]))
         

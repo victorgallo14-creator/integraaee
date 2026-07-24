@@ -12072,6 +12072,16 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                     resp_padrao = st.session_state.get('usuario_nome', '').upper()
                     resp_rel = st.text_input("Responsável pelo Setor (Assinatura):", value=resp_padrao)
 
+                    nivel_detalhe_obs = st.selectbox(
+                        "Conteúdo da coluna OBSERVAÇÃO:",
+                        [
+                            "Somente Estado", 
+                            "Estado + Local", 
+                            "Estado + Observações do Bem",
+                            "Estado + Local + Observações do Bem"
+                        ]
+                    )
+
                     class RelatorioConamPDF(FPDF):
                         def __init__(self, setor_nome, responsavel):
                             super().__init__('L', 'mm', 'A4')
@@ -12165,21 +12175,31 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
                                     pdf.set_xy(38, y + 0.2)
                                     pdf.cell(85, 3, desc, 0, 0)
                                     
+                                    # Puxa as informações tratando nulos
                                     estado = str(row.get('estado', '')).strip()
                                     if estado in ['None', 'nan']: estado = ""
                                     
                                     loc = str(row.get('localizacao', '')).strip()
                                     if loc in ['None', 'nan']: loc = ""
                                     
-                                    # === NOVO: Capturando o campo observação do banco ===
                                     obs_banco = str(row.get('observacao', '')).strip()
                                     if obs_banco in ['None', 'nan']: obs_banco = ""
                                     
-                                    # Inclui obs_banco na lista para ser juntada com os hifens
-                                    obs_parts = [p for p in [estado, loc, obs_banco] if p]
-                                    obs_text = clean_pdf_text(" - ".join(obs_parts)).upper()
+                                    # === NOVO: Monta a string baseada na escolha do usuário ===
+                                    obs_parts = []
+                                    if estado: 
+                                        obs_parts.append(estado)
+                                        
+                                    # Adiciona o Local apenas se a opção escolhida contiver "Local"
+                                    if nivel_detalhe_obs in ["Estado + Local", "Estado + Local + Observações do Bem"] and loc:
+                                        obs_parts.append(loc)
+                                        
+                                    # Adiciona a Observação apenas se a opção escolhida contiver "Observações"
+                                    if nivel_detalhe_obs in ["Estado + Observações do Bem", "Estado + Local + Observações do Bem"] and obs_banco:
+                                        obs_parts.append(obs_banco)
                                     
-                                    # Mantendo o seu limite de caracteres para não quebrar o layout matricial
+                                    # Junta tudo e aplica limite de caracteres
+                                    obs_text = clean_pdf_text(" - ".join(obs_parts)).upper()
                                     if len(obs_text) > 42: obs_text = obs_text[:39] + "..."
                                     
                                     pdf.set_xy(127, y + 0.2)

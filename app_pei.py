@@ -8131,40 +8131,40 @@ elif modulo_atuacao == "🏫 Ensino Regular":
         st.markdown("Reserve a sala de computadores para a sua turma do Ensino Regular.")
         st.divider()
 
-        # --- GRADE FIXA ANUAL ---
+        # --- GRADE FIXA ANUAL ATUALIZADA ---
         grade_fixa = {
             0: [ # Segunda-feira
-                {"Horario": "07:00 - 07:50", "Professor": "Prof. Fernando", "Turma": "1º ANO 1: Linguagens"},
-                {"Horario": "12:30 - 13:20", "Professor": "Prof. Elaine", "Turma": "Etapa 2-2: Linguagens"},
-                {"Horario": "13:20 - 14:10", "Professor": "Prof. Elaine", "Turma": "Etapa 2-3: Linguagens"},
-                {"Horario": "14:10 - 15:00", "Professor": "Prof. Fernando", "Turma": "1º ANO 2: Linguagens"},
-                {"Horario": "15:00 - 15:50", "Professor": "Prof. Fernando", "Turma": "2º ANO 1: Linguagens"}
+                {"Horario": "07:00 - 07:50", "Professor": "Prof. Fernando", "Turma": "1º ANO 1: Linguagens e Tecnologias"},
+                {"Horario": "11:10 - 12:00", "Professor": "Prof. Bruna", "Turma": "5º ANO 1: Linguagens e Tecnologias"},
+                {"Horario": "12:30 - 13:20", "Professor": "Prof. Elaine", "Turma": "Etapa 2-2: Linguagens e Tecnologias"},
+                {"Horario": "13:20 - 14:10", "Professor": "Prof. Elaine", "Turma": "Etapa 2-3: Linguagens e Tecnologias"},
+                {"Horario": "14:10 - 15:00", "Professor": "Prof. Fernando", "Turma": "1º ANO 2: Linguagens e Tecnologias"},
+                {"Horario": "15:00 - 15:50", "Professor": "Prof. Fernando", "Turma": "2º ANO 1: Linguagens e Tecnologias"}
             ],
             1: [ # Terça-feira
-                {"Horario": "07:00 - 07:50", "Professor": "Prof. Josiane", "Turma": "4º ANO 2: Linguagens"},
-                {"Horario": "07:50 - 08:40", "Professor": "Prof. Fernando", "Turma": "Etapa 1-2: Linguagens"},
-                {"Horario": "09:30 - 10:20", "Professor": "Prof. Josiane", "Turma": "4º ANO 1: Linguagens"},
-                {"Horario": "12:30 - 13:20", "Professor": "Prof. Elaine", "Turma": "Etapa 2-1: Linguagens"},
-                {"Horario": "13:20 - 14:10", "Professor": "Prof. Elaine", "Turma": "Mat. 2-2: Linguagens"}
+                {"Horario": "07:00 - 07:50", "Professor": "Prof. Josiane", "Turma": "4º ANO 2: Linguagens e Tecnologias"},
+                {"Horario": "09:30 - 10:20", "Professor": "Prof. Josiane", "Turma": "4º ANO 1: Linguagens e Tecnologias"},
+                {"Horario": "11:10 - 12:00", "Professor": "Prof. Bruna", "Turma": "5º ANO 3: Linguagens e Tecnologias"},
+                {"Horario": "12:30 - 13:20", "Professor": "Prof. Elaine", "Turma": "Etapa 2-1: Linguagens e Tecnologias"},
+                {"Horario": "13:20 - 14:10", "Professor": "Prof. Elaine", "Turma": "Mat. 2-2: Linguagens e Tecnologias"}
             ],
             2: [ # Quarta-feira
-                {"Horario": "07:50 - 08:40", "Professor": "Prof. Karina", "Turma": "Mat. 2-1: Linguagens"},
-                {"Horario": "08:40 - 09:30", "Professor": "Prof. Karina", "Turma": "Etapa 1-1: Linguagens"},
-                {"Horario": "11:10 - 12:00", "Professor": "Prof. Fernando", "Turma": "Etapa 1-3: Linguagens"},
-                {"Horario": "15:50 - 16:40", "Professor": "Prof. Fernando", "Turma": "2º ANO 2: Linguagens"}
+                {"Horario": "07:50 - 08:40", "Professor": "Prof. Karina", "Turma": "Mat. 2-1: Linguagens e Tecnologias"},
+                {"Horario": "08:40 - 09:30", "Professor": "Prof. Karina", "Turma": "Etapa 1-1: Linguagens e Tecnologias"},
+                {"Horario": "15:50 - 16:40", "Professor": "Prof. Fernando", "Turma": "2º ANO 2: Linguagens e Tecnologias"}
             ],
             3: [ # Quinta-feira
-                {"Horario": "09:30 - 10:20", "Professor": "Prof. Bruna", "Turma": "5º ANO 2: Linguagens"},
-                {"Horario": "10:20 - 11:10", "Professor": "Prof. Josiane", "Turma": "4º ANO 3: Linguagens"},
-                {"Horario": "12:30 - 13:20", "Professor": "Prof. Elaine", "Turma": "3º ANO 2: Linguagens"},
-                {"Horario": "13:20 - 14:10", "Professor": "Prof. Elaine", "Turma": "3º ANO 1: Linguagens"},
-                {"Horario": "14:10 - 15:00", "Professor": "Prof. Elaine", "Turma": "3º ANO 3: Linguagens"},
-                {"Horario": "15:00 - 15:50", "Professor": "Prof. Fernando", "Turma": "1º ANO 3: Linguagens"}
+                {"Horario": "09:30 - 10:20", "Professor": "Prof. Bruna", "Turma": "5º ANO 2: Linguagens e Tecnologias"},
+                {"Horario": "10:20 - 11:10", "Professor": "Prof. Josiane", "Turma": "4º ANO 3: Linguagens e Tecnologias"},
+                {"Horario": "12:30 - 13:20", "Professor": "Prof. Elaine", "Turma": "3º ANO 2: Linguagens e Tecnologias"},
+                {"Horario": "13:20 - 14:10", "Professor": "Prof. Elaine", "Turma": "3º ANO 1: Linguagens e Tecnologias"},
+                {"Horario": "14:10 - 15:00", "Professor": "Prof. Elaine", "Turma": "3º ANO 3: Linguagens e Tecnologias"},
+                {"Horario": "15:00 - 15:50", "Professor": "Prof. Fernando", "Turma": "1º ANO 3: Linguagens e Tecnologias"}
             ],
             4: [ # Sexta-feira
-                {"Horario": "07:00 - 07:50", "Professor": "Prof. Bruna", "Turma": "5º ANO 1: Linguagens"},
-                {"Horario": "07:50 - 08:40", "Professor": "Prof. Bruna", "Turma": "5º ANO 3: Linguagens"},
-                {"Horario": "15:00 - 15:50", "Professor": "Prof. Fernando", "Turma": "2º ANO 3: Linguagens"}
+                {"Horario": "09:30 - 10:20", "Professor": "Prof. Ramon", "Turma": "Etapa 1-2: Linguagens e Tecnologias"},
+                {"Horario": "10:20 - 11:10", "Professor": "Prof. Ramon", "Turma": "Etapa 1-3: Linguagens e Tecnologias"},
+                {"Horario": "15:00 - 15:50", "Professor": "Prof. Fernando", "Turma": "2º ANO 3: Linguagens e Tecnologias"}
             ],
             5: [], 6: []
         }

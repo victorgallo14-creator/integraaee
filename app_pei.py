@@ -6627,7 +6627,6 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                                         assinaturas_auto.append({"Nome": nome_prof, "Cargo/Atuação": f"{cargo_formatado} (Atuante na Turma)"})
                                         professores_adicionados.add(nome_prof)
                                         
-                                assinaturas_auto.append({"Nome": "", "Cargo/Atuação": "Prof. de Libras (Atuante na Turma)"})
                                 
                                 df_ciclo = df_matriz[(df_matriz['Ciclo'] == ciclo_sel) & (df_matriz['Turma'] != turma_sel)]
                                 for _, row in df_ciclo.iterrows():
@@ -6856,7 +6855,6 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                                     lista_final.append({"Nome": nome_prof, "Cargo/Atuação": f"{cargo_formatado} (Atuante na Turma)"})
                                     professores_adicionados.add(nome_prof)
                                     
-                            lista_final.append({"Nome": "", "Cargo/Atuação": "Prof. de Libras (Atuante na Turma)"})
                             
                             df_ciclo = df_matriz[(df_matriz['Ciclo'] == ciclo_atual) & (df_matriz['Turma'] != turma_atual)]
                             for _, row in df_ciclo.iterrows():

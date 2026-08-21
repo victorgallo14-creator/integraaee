@@ -6559,6 +6559,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                     data_ata[key] = data_ata[key].to_dict('records')
             
         # --- PORTÃO DE ENTRADA (GATE) ---
+            # --- PORTÃO DE ENTRADA (GATE) ---
             if not st.session_state.ata_turma_confirmada:
                 st.markdown("""
                 <div style='background-color: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;'>
@@ -6575,34 +6576,70 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                 turmas_disp = turmas_bd + ["Outra Turma..."]
                 
                 turma_sel = c_t.selectbox("2. Selecione a Turma:", turmas_disp)
-                trimestre_sel = c_tri.selectbox("3. Trimestre:", ["1º Trimestre", "2º Trimestre", "3º Trimestre"])
+                # AJUSTE 1: Trimestre sem valor padrão (obrigando a escolha)
+                trimestre_sel = c_tri.selectbox("3. Trimestre:", ["1º Trimestre", "2º Trimestre", "3º Trimestre"], index=None, placeholder="Selecione...")
                 
                 if turma_sel == "Outra Turma...":
                     turma_sel = st.text_input("Digite o nome da turma:")
                 
                 st.write("")
                 if st.button("✅ Confirmar e Acessar Formulário", type="primary", use_container_width=True):
-                    if turma_sel:
-                        # 1. Monta o ID que deve estar no banco
+                    # BARREIRA DE VALIDAÇÃO
+                    if not turma_sel or not trimestre_sel:
+                        st.warning("⚠️ Atenção: Por favor, selecione a Turma e o Trimestre antes de continuar.")
+                    else:
+                        # AJUSTE 2: Limpa o PDF da memória ao entrar em uma ata
+                        st.session_state.pop('pdf_bytes_ata', None)
+                        
                         id_buscado = f"{turma_sel} - {trimestre_sel} (Ensino Fundamental)"
                         df_atas = safe_read("Atas_Conselho", ["id_ata", "modalidade", "turma", "dados_json"])
                         
-                        # 2. Verifica se a ata já existe no histórico
                         if not df_atas.empty and id_buscado in df_atas["id_ata"].values:
                             dados_row = df_atas[df_atas["id_ata"] == id_buscado].iloc[0]
                             st.session_state.data_ata_ef = json.loads(dados_row["dados_json"])
                             st.toast("Rascunho anterior carregado com sucesso!", icon="🔄")
                         else:
-                            # 3. Se não existe, cria um template zerado
+                            # AJUSTE 3: Assinaturas preenchidas no ato da criação
+                            assinaturas_auto = []
+                            professores_adicionados = set()
+                            df_turma = df_matriz[(df_matriz['Ciclo'] == ciclo_sel) & (df_matriz['Turma'] == turma_sel)]
+                            
+                            if not df_turma.empty:
+                                for _, row in df_turma.iterrows():
+                                    materia = row['Disciplina']
+                                    nome_prof = row['Professor']
+                                    if nome_prof and nome_prof not in professores_adicionados:
+                                        cargo_formatado = "Prof. Polivalente" if materia == "Polivalente" else f"Prof. de {materia}"
+                                        assinaturas_auto.append({"Nome": nome_prof, "Cargo/Atuação": f"{cargo_formatado} (Atuante na Turma)"})
+                                        professores_adicionados.add(nome_prof)
+                                        
+                                assinaturas_auto.append({"Nome": "", "Cargo/Atuação": "Prof. de Libras (Atuante na Turma)"})
+                                
+                                df_ciclo = df_matriz[(df_matriz['Ciclo'] == ciclo_sel) & (df_matriz['Turma'] != turma_sel)]
+                                for _, row in df_ciclo.iterrows():
+                                    materia = row['Disciplina']
+                                    nome_prof = row['Professor']
+                                    if nome_prof and nome_prof not in professores_adicionados:
+                                        cargo_formatado = "Prof. Polivalente" if materia == "Polivalente" else f"Prof. de {materia}"
+                                        assinaturas_auto.append({"Nome": nome_prof, "Cargo/Atuação": f"{cargo_formatado} (Atuante no Ciclo)"})
+                                        professores_adicionados.add(nome_prof)
+                                        
+                                for _, row in df_gestao.iterrows():
+                                    if row['Nome']:
+                                        assinaturas_auto.append({"Nome": row['Nome'], "Cargo/Atuação": row['Cargo']})
+                                        
+                            if not assinaturas_auto:
+                                assinaturas_auto = [{"Nome": "", "Cargo/Atuação": ""}]
+
                             st.session_state.data_ata_ef = {
                                 'abaixo_basico': [{"Estudante": "", "LP": "", "M": "", "H": "", "G": "", "C": "", "A": "", "EF": "", "LT": "", "LIBRAS": ""}],
                                 'basico': [{"Estudante": "", "Ações (LP e Mat)": ""}],
                                 'obs_especiais': [{"Estudante": "", "Desempenho/Observação": ""}],
                                 'encaminhamentos': [{"Estudante": "", "Motivo": ""}],
                                 'mat_tardia': [{"Estudante": "", "Data Matrícula": "", "Total Frequência": ""}],
-                                'obs_apc': "", # <--- NOVO CAMPO AQUI
+                                'obs_apc': "", 
                                 'obs_outras': "",
-                                'assinaturas': [{"Nome": "", "Cargo/Atuação": ""}],
+                                'assinaturas': assinaturas_auto, # Inserido automaticamente aqui
                                 'ciclo': ciclo_sel,
                                 'turma': turma_sel,
                                 'trimestre': trimestre_sel
@@ -6611,8 +6648,6 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                         st.session_state.ata_ciclo_confirmado = ciclo_sel
                         st.session_state.ata_turma_confirmada = turma_sel
                         st.rerun()
-                    else:
-                        st.warning("⚠️ Por favor, informe o nome da turma.")
             
             # --- FORMULÁRIO DO FUNDAMENTAL ---
             else:
@@ -6620,6 +6655,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                 c_info.success(f"📌 **Ata em edição:** {st.session_state.ata_ciclo_confirmado} - {st.session_state.ata_turma_confirmada}")
                 if c_btn.button("⬅️ Trocar Turma", use_container_width=True):
                     st.session_state.ata_turma_confirmada = None
+                    st.session_state.pop('pdf_bytes_ata', None) # Limpa PDF ao voltar
                     st.rerun()
                     
                 tabs = st.tabs(["1. Identificação", "2. Síntese", "3. Plano de Ação", "4. Observações", "5. Finalização"])
@@ -7330,6 +7366,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                     data_inf[key] = data_inf[key].to_dict('records')
             
 # --- PORTÃO DE ENTRADA (GATE) ---
+            # --- PORTÃO DE ENTRADA (GATE) ---
             if not st.session_state.ata_turma_confirmada_inf:
                 st.markdown("""
                 <div style='background-color: #fdf4ff; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #f5d0fe;'>
@@ -7350,32 +7387,54 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                 turmas_disp = turmas_bd + ["Outra Turma..."]
                 
                 turma_sel = c_t.selectbox("2. Selecione a Turma:", turmas_disp)
-                trimestre_sel = c_tri.selectbox("3. Trimestre:", ["1º Trimestre", "2º Trimestre", "3º Trimestre"], key="tri_gate_inf")
+                # AJUSTE 1: Index nulo
+                trimestre_sel = c_tri.selectbox("3. Trimestre:", ["1º Trimestre", "2º Trimestre", "3º Trimestre"], key="tri_gate_inf", index=None, placeholder="Selecione...")
                 
                 if turma_sel == "Outra Turma...":
                     turma_sel = st.text_input("Digite o nome da turma:")
                 
                 st.write("")
                 if st.button("✅ Confirmar e Acessar Formulário do Infantil", type="primary", use_container_width=True):
-                    if turma_sel:
-                        # 1. Monta o ID do Infantil (note que o seu sistema salva como "(Infantil)")
+                    if not turma_sel or not trimestre_sel:
+                        st.warning("⚠️ Atenção: Por favor, selecione a Turma e o Trimestre antes de continuar.")
+                    else:
+                        st.session_state.pop('pdf_bytes_ata', None) # Limpa cache PDF
+                        
                         id_buscado = f"{turma_sel} - {trimestre_sel} (Infantil)"
                         df_atas = safe_read("Atas_Conselho", ["id_ata", "modalidade", "turma", "dados_json"])
                         
-                        # 2. Verifica se a ata já existe
                         if not df_atas.empty and id_buscado in df_atas["id_ata"].values:
                             dados_row = df_atas[df_atas["id_ata"] == id_buscado].iloc[0]
                             st.session_state.data_ata_inf = json.loads(dados_row["dados_json"])
                             st.toast("Rascunho anterior carregado com sucesso!", icon="🔄")
                         else:
-                            # 3. Cria um template zerado se for nova
+                            # Preenchimento automático Infantil
+                            assinaturas_auto = []
+                            professores_adicionados = set()
+                            df_turma = df_matriz[(df_matriz['Turma'] == turma_sel)]
+                            
+                            if not df_turma.empty:
+                                for _, row in df_turma.iterrows():
+                                    materia = row['Disciplina']
+                                    nome_prof = row['Professor']
+                                    if nome_prof and nome_prof not in professores_adicionados:
+                                        assinaturas_auto.append({"Nome": nome_prof, "Cargo/Atuação": f"{materia} (Atuante na Turma)"})
+                                        professores_adicionados.add(nome_prof)
+                                        
+                                for _, row in df_gestao.iterrows():
+                                    if row['Nome']:
+                                        assinaturas_auto.append({"Nome": row['Nome'], "Cargo/Atuação": row['Cargo']})
+                                        
+                            if not assinaturas_auto:
+                                assinaturas_auto = [{"Nome": "", "Cargo/Atuação": ""}]
+
                             st.session_state.data_ata_inf = {
                                 'abaixo_basico': [{"Estudante": "", "LV": "", "LM": "", "IS": "", "A": "", "CCM": "", "LT": "", "LIBRAS": ""}],
                                 'obs_especiais': [{"Estudante": "", "Desempenho/Observação": ""}],
                                 'encaminhamentos': [{"Estudante": "", "Motivo": ""}],
                                 'mat_tardia': [{"Estudante": "", "Data Matrícula": "", "Total Frequência": ""}],
                                 'obs_outras': "",
-                                'assinaturas': [{"Nome": "", "Cargo/Atuação": ""}],
+                                'assinaturas': assinaturas_auto, # Assinaturas incluídas!
                                 'ciclo': ciclo_sel,
                                 'turma': turma_sel,
                                 'trimestre': trimestre_sel
@@ -7384,8 +7443,6 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                         st.session_state.ata_ciclo_confirmado_inf = ciclo_sel
                         st.session_state.ata_turma_confirmada_inf = turma_sel
                         st.rerun()
-                    else:
-                        st.warning("⚠️ Por favor, informe o nome da turma.")
                         
             # --- FORMULÁRIO DA EDUCAÇÃO INFANTIL ---
             else:
@@ -7393,6 +7450,7 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                 c_info.success(f"🧸 **Ata do Infantil em edição:** {st.session_state.ata_ciclo_confirmado_inf} - {st.session_state.ata_turma_confirmada_inf}")
                 if c_btn.button("⬅️ Trocar Turma", use_container_width=True, key="btn_trocar_inf"):
                     st.session_state.ata_turma_confirmada_inf = None
+                    st.session_state.pop('pdf_bytes_ata', None) # Limpa cache PDF ao voltar
                     st.rerun()
                 
                 criterios_etapa = get_criterios_infantil(st.session_state.ata_ciclo_confirmado_inf)

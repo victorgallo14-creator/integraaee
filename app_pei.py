@@ -6476,14 +6476,14 @@ elif modulo_atuacao == "🏫 Ensino Regular":
 
         {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 2", "Disciplina": "Professor de Ed. Infantil", "Professor": "Sandra Maria Ribeiro dos Santos Brito"},
         {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 2", "Disciplina": "Artes", "Professor": "Karen Cristina Fernandes Donatti"},
-        {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 2", "Disciplina": "Educação Física", "Professor": "Fernando Indig Bongiovanni"},
-        {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 2", "Disciplina": "Linguagens e Tecnologias", "Professor": "Fernando Indig Bongiovanni"},
+        {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 2", "Disciplina": "Educação Física", "Professor": "Ramon Diego Clementino Franco"},
+        {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 2", "Disciplina": "Linguagens e Tecnologias", "Professor": "Ramon Diego Clementino Franco"},
         {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 2", "Disciplina": "Libras", "Professor": "Viviane Ayumi Yanase Doi Quesada"},
 
         {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 3", "Disciplina": "Professor de Ed. Infantil", "Professor": "Amanda Mussi"},
         {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 3", "Disciplina": "Artes", "Professor": "Karen Cristina Fernandes Donatti"},
-        {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 3", "Disciplina": "Educação Física", "Professor": "Fernando Indig Bongiovanni"},
-        {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 3", "Disciplina": "Linguagens e Tecnologias", "Professor": "Fernando Indig Bongiovanni"},
+        {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 3", "Disciplina": "Educação Física", "Professor": "Ramon Diego Clementino Franco"},
+        {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 3", "Disciplina": "Linguagens e Tecnologias", "Professor": "Ramon Diego Clementino Franco"},
         {"Ciclo": "1ª Etapa", "Turma": "1ª Etapa 3", "Disciplina": "Libras", "Professor": "Flaviany Miranda Mantovani"},
         
         

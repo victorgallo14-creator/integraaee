@@ -12698,317 +12698,310 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
 
 
 # ==============================================================================
-# VIEW: PLATAFORMA DE ESTUDOS - ADE (EXCLUSIVO E AVANÇADO)
+# VIEW: PLATAFORMA KHAN-ADE (MASTER LEARNING - ALTA PERFORMANCE)
 # ==============================================================================
 if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.session_state.get('nav_adm') == "📚 Preparatório ADE":
     
-    # --- 1. TRAVA DE SEGURANÇA E ACESSO RESTRITO ---
+    # --- TRAVA DE SEGURANÇA ---
     if str(st.session_state.get('usuario_matricula', '')).strip() != "8829405":
         st.markdown("""<div class="header-box" style="border-left-color: #ef4444;"><div class="header-title" style="color: #ef4444;">Acesso Negado</div></div>""", unsafe_allow_html=True)
-        st.error("Este ambiente é de uso estrito e exclusivo. Suas credenciais não possuem autorização para acessar a plataforma de alta performance do concurso de ADE.")
+        st.error("Ambiente de uso estrito e exclusivo. Acesso bloqueado.")
         st.stop()
 
-    # --- 2. INICIALIZAÇÃO DO ESTADO DE DOMÍNIO (BANCO DE DADOS LOCAL DO USUÁRIO) ---
-    if 'ade_mastery' not in st.session_state:
-        st.session_state.ade_mastery = {}
-    if 'ade_view' not in st.session_state:
-        st.session_state.ade_view = 'dashboard'
-    if 'ade_current_skill' not in st.session_state:
-        st.session_state.ade_current_skill = None
-    if 'ade_current_answers' not in st.session_state:
-        st.session_state.ade_current_answers = {}
-
-    # --- 3. BASE DE DADOS DO CURSO (ARQUITETURA DE DOMÍNIO) ---
-    CURSO_ADE = {
-        "title": "Agente de Desenvolvimento Educacional (ADE) - Limeira",
-        "total_points": 15000,
-        "units": [
-            {
-                "id": "u1",
-                "title": "Unidade 1: Fundamentos da Educação e Prática Pedagógica",
-                "skills": [
-                    {"id": "u1_s1", "title": "Pedagogia da Autonomia (Paulo Freire)", "points": 500},
-                    {"id": "u1_s2", "title": "Pedagogia Histórico-Crítica (Saviani)", "points": 500},
-                    {"id": "u1_s3", "title": "A Prática da Didática (Libâneo)", "points": 500},
-                    {"id": "u1_s4", "title": "Avaliação Diagnóstica (Luckesi)", "points": 500}
-                ]
-            },
-            {
-                "id": "u2",
-                "title": "Unidade 2: Gestão Democrática e Temas Contemporâneos",
-                "skills": [
-                    {"id": "u2_s1", "title": "Liderança Articuladora (Heloísa Lück)", "points": 500},
-                    {"id": "u2_s2", "title": "Administração Escolar Crítica (Vitor Paro)", "points": 500},
-                    {"id": "u2_s3", "title": "Mediação de Conflitos no Espaço Escolar", "points": 500},
-                    {"id": "u2_s4", "title": "Educação Inclusiva e AEE", "points": 500},
-                    {"id": "u2_s5", "title": "Letramento Digital e TIC na Educação", "points": 500},
-                    {"id": "u2_s6", "title": "Prevenção de Acidentes (Lei Lucas)", "points": 500}
-                ]
-            },
-            {
-                "id": "u3",
-                "title": "Unidade 3: Legislação e Diretrizes Nacionais",
-                "skills": [
-                    {"id": "u3_s1", "title": "LDB: Incumbências da Escola e do Docente", "points": 500},
-                    {"id": "u3_s2", "title": "BNCC: O Ensino por Competências", "points": 500},
-                    {"id": "u3_s3", "title": "Leis Étnico-Raciais (10.639 e 11.645)", "points": 500},
-                    {"id": "u3_s4", "title": "BNC-Diretor Escolar", "points": 500},
-                    {"id": "u3_s5", "title": "Plano Nacional de Educação (PNE)", "points": 500},
-                    {"id": "u3_s6", "title": "ECA: Direitos e Deveres no Ambiente Escolar", "points": 500}
-                ]
-            }
-        ]
-    }
-
-    # Assegura que todas as habilidades existam no estado do usuário
-    for unit in CURSO_ADE["units"]:
-        for skill in unit["skills"]:
-            if skill["id"] not in st.session_state.ade_mastery:
-                st.session_state.ade_mastery[skill["id"]] = {"level": 0, "score": 0, "attempts": 0}
-
-    # --- 4. BANCO DE CONTEÚDO E QUESTÕES ---
-    # O conteúdo teórico é fornecido estritamente em parágrafos descritivos e narrativos, garantindo imersão e contexto.
-    CONTEUDO_TEORICO = {
-        "u1_s1": "A obra de Paulo Freire propõe uma ruptura radical com a educação bancária, modelo no qual o estudante é concebido como um recipiente vazio destinado a receber depósitos passivos de informações. Em contrapartida, a prática educativa autêntica deve ser dialógica e problematizadora, criando condições para que o aluno construa o próprio conhecimento a partir da leitura crítica de sua realidade. A autonomia do sujeito histórico é forjada no encontro entre o educador e o educando, exigindo rigor metodológico e respeito inegociável aos saberes prévios dos estudantes.",
-        "u1_s2": "A Pedagogia Histórico-Crítica, sistematizada por Dermeval Saviani, compreende o conhecimento não como um dom inato, mas como o resultado do trabalho humano no processo histórico de transformação da natureza e da sociedade. A escola possui a função social imprescindível de democratizar o acesso ao saber clássico e historicamente acumulado, garantindo que as classes populares se apropriem das ferramentas intelectuais e culturais mais elevadas. Esse processo metodológico parte da prática social inicial, avança pela instrumentalização teórica e culmina na catarse, transformando a prática social final do indivíduo.",
-        "u1_s3": "José Carlos Libâneo estabelece que a Didática ultrapassa a mera aplicação de métodos e técnicas neutras de ensino, consolidando-se como uma disciplina que estuda o processo de ensino e aprendizagem em sua totalidade política e social. Na Tendência Crítico-Social dos Conteúdos, o professor exerce uma autoridade pedagógica diretiva para mediar o acesso ao saber, não estabelecendo uma horizontalidade absoluta que anule seu papel orientador, mas garantindo que os conteúdos universais sejam criticamente assimilados e vinculados às realidades sociais dos estudantes.",
-        "u1_s4": "Cipriano Luckesi promove uma distinção profunda entre o ato de examinar e o ato de avaliar. A pedagogia tradicional utiliza os exames de forma seletiva, punitiva e classificatória, focando exclusivamente na aprovação ou reprovação baseada no acúmulo temporário de dados. O verdadeiro ato de avaliar, no entanto, caracteriza-se pelo seu caráter diagnóstico, amoroso e inclusivo. A avaliação formativa serve como uma bússola constante para o trabalho docente, permitindo identificar as fragilidades na aprendizagem e reorientar as intervenções pedagógicas para garantir o desenvolvimento pleno de cada aluno.",
-        "u2_s1": "A gestão democrática no ambiente escolar demanda uma profunda transformação no papel da direção. Heloísa Lück defende que o diretor não deve atuar como um gerente centralizador ou burocrata distante, mas sim como um líder articulador capaz de mobilizar toda a comunidade escolar em torno do Projeto Político-Pedagógico. A liderança educacional eficaz sustenta-se na transparência e no uso estratégico de indicadores de desempenho, garantindo que as decisões coletivas não sejam tomadas de forma empírica, mas orientadas concretamente para a melhoria contínua da qualidade do ensino e da aprendizagem.",
-        "u2_s2": "A administração escolar, segundo Vitor Henrique Paro, difere essencialmente da administração de empresas capitalistas, uma vez que a finalidade da escola não é a extração de lucro ou a padronização de mercadorias, mas a apropriação da cultura e a formação de sujeitos livres. Por possuir uma natureza intrinsecamente política e educativa, a escola pública exige um modelo de gestão democrática que descentralize o poder. Os órgãos colegiados, como o Conselho de Escola, assumem funções deliberativas fundamentais, assegurando a participação ativa de pais, alunos e funcionários nas decisões financeiras e pedagógicas da instituição.",
-        "u3_s1": "A Lei de Diretrizes e Bases da Educação Nacional delineia com precisão a divisão de responsabilidades na rotina escolar para garantir o pleno funcionamento institucional. Incumbe aos estabelecimentos de ensino a função estrutural de articular a comunidade, elaborar a proposta pedagógica e prover os meios físicos e temporais para a recuperação dos estudantes. Simultaneamente, cabe aos docentes a responsabilidade estritamente pedagógica de zelar pela aprendizagem contínua e, a partir de seu diagnóstico em sala de aula, estabelecer as estratégias didáticas específicas e individualizadas para recuperar os alunos de menor rendimento.",
-        "u3_s2": "A Base Nacional Comum Curricular não se configura como um currículo rígido e padronizado, mas sim como uma referência normativa essencial que define o conjunto orgânico de aprendizagens que todos os estudantes brasileiros têm o direito de desenvolver. Seu eixo estruturante é o ensino por competências, um conceito que supera a mera memorização mecânica de fatos. A competência é definida como a complexa mobilização de conhecimentos teóricos, habilidades cognitivas e socioemocionais, atitudes éticas e valores humanistas, capacitando o indivíduo a solucionar as demandas complexas da vida cotidiana e a exercer o protagonismo social."
-    }
-
-    # Preenchendo com textos genéricos descritivos para não quebrar o layout das demais habilidades
-    for unit in CURSO_ADE["units"]:
-        for skill in unit["skills"]:
-            if skill["id"] not in CONTEUDO_TEORICO:
-                CONTEUDO_TEORICO[skill["id"]] = "O aprofundamento desta temática é indispensável para o pleno domínio das normativas e práticas pedagógicas exigidas no edital. O estudo minucioso dos fundamentos legais e metodológicos garante a capacidade de análise crítica necessária para a resolução assertiva de problemas no cotidiano da gestão escolar e na interpretação das avaliações elaboradas por bancas examinadoras contemporâneas."
-
-    QUESTOES_DB = {
-        "u1_s1": [
-            {"enunciado": "A obra de Paulo Freire critica o modelo tradicional de educação. Nessa concepção, frequentemente denominada de bancária, o educando é concebido fundamentalmente como:", "opcoes": ["A) Um recipiente vazio a ser preenchido passivamente pelos depósitos de conteúdo do educador.", "B) Um investigador autônomo das realidades sociais.", "C) Um agente de transformação da sua própria realidade.", "D) Um sujeito ativo na construção coletiva do conhecimento e da cultura."], "correta": 0, "feedback": "O conceito de educação bancária ilustra o aluno como um cofre vazio onde o professor deposita informações, negando a dialogicidade e a capacidade crítica, elementos centrais nas demais alternativas que representam a pedagogia problematizadora."},
-            {"enunciado": "Em Pedagogia da Autonomia, Paulo Freire defende que a prática educativa exige respeito aos saberes do educando. A afirmação central dessa obra postula que ensinar exige a compreensão de que o conhecimento se constrói mediante:", "opcoes": ["A) O treinamento focado nas competências exigidas para o ajustamento do indivíduo às normas vigentes.", "B) Uma ação instrucional, na qual a autoridade docente é afirmada pela fixação dos conteúdos rígidos.", "C) Uma prática dialógica e problematizadora, criando as possibilidades para a própria produção do saber.", "D) Um mecanismo de transferência vertical de informações para garantir a disciplina institucional."], "correta": 2, "feedback": "A prática dialógica e problematizadora permite que o aluno não receba o saber pronto, mas atue como criador do seu próprio conhecimento, rompendo com o mecanismo de transferência vertical apontado nas alternativas incorretas."}
-        ],
-        "u1_s2": [
-            {"enunciado": "A teoria da pedagogia histórico-crítica, estruturada por Dermeval Saviani, propõe uma compreensão materialista da educação. Segundo essa vertente, a construção do conhecimento se dá fundamentalmente porque:", "opcoes": ["A) O conhecimento é um dom inato e individual, despertado pela mediação escolar de forma isolada.", "B) A existência social dos homens gera o conhecimento, pois este resulta do trabalho humano e da prática social na transformação do mundo.", "C) A escola deve focar exclusivamente nos saberes do senso comum, rejeitando os conhecimentos científicos.", "D) O aprendizado resulta de experiências subjetivas desvinculadas do contexto histórico, material e econômico da humanidade."], "correta": 1, "feedback": "Saviani pauta-se no materialismo histórico, onde a prática social e o trabalho humano são os geradores do saber. A escola tem a função de socializar esse conhecimento acumulado, e não de se restringir ao senso comum ou a experiências subjetivas isoladas."}
-        ],
-        "u1_s3": [
-            {"enunciado": "A Didática ocupa papel central na formação docente. Com base na perspectiva crítica defendida por José Carlos Libâneo, assinale a alternativa que expressa corretamente a concepção atual da disciplina:", "opcoes": ["A) Limita-se ao domínio de técnicas e métodos neutros de ensino, garantindo a padronização do aprendizado.", "B) Restringe-se ao planejamento burocrático e à execução de aulas expositivas, isolando a escola da política.", "C) É um conjunto de regras fixas e imutáveis que garantem o sucesso e a disciplina em sala de aula.", "D) Tem como objetivo os processos de ensino e de aprendizagem, ultrapassando a técnica e servindo como meio de compreensão crítica da educação."], "correta": 3, "feedback": "Libâneo combate a visão tecnicista e neutra da didática. Para ele, o ato de ensinar é indissociável da leitura política e crítica da sociedade, onde o método não é uma regra fixa, mas uma ferramenta de emancipação."}
-        ],
-        "u1_s4": [
-            {"enunciado": "Luckesi distingue exame e avaliação como práticas com finalidades distintas. O ato de examinar se caracteriza pela seletividade do educando, enquanto o ato de avaliar caracteriza-se pelo seu caráter diagnóstico e pela:", "opcoes": ["A) Classificação", "B) Punição", "C) Inclusão", "D) Sistematização classificatória"], "correta": 2, "feedback": "Enquanto o exame classifica, rotula e exclui o aluno que não atinge a nota esperada, a avaliação formativa é um ato amoroso, de diagnóstico e de inclusão, servindo para orientar os rumos da aprendizagem de todos os estudantes."}
-        ],
-        "u2_s1": [
-            {"enunciado": "Para Heloísa Lück, a gestão democrática exige a superação de modelos tradicionais de administração escolar. Nesse contexto, a atuação do diretor deve caracterizar-se por:", "opcoes": ["A) Postura centralizadora para garantir que as metas institucionais não sofram interferência da comunidade.", "B) Processo contínuo de mobilização e articulação do trabalho coletivo, utilizando indicadores de desempenho para orientar a tomada de decisão conjunta.", "C) Delegação integral de responsabilidades financeiras para a coordenação pedagógica.", "D) Administração burocrática focada no cumprimento rígido e inflexível de normas regulamentares."], "correta": 1, "feedback": "A liderança em Heloísa Lück é definida pela capacidade de mobilizar as pessoas. Os indicadores de desempenho são bússolas para a decisão coletiva, distanciando-se de práticas centralizadoras ou burocráticas."}
-        ],
-        "u2_s2": [
-            {"enunciado": "Com base nos estudos de Vitor Henrique Paro, assinale a alternativa que define a natureza da administração na escola pública:", "opcoes": ["A) Espelhar-se nos métodos da administração empresarial, visando a eficiência técnica.", "B) Isolar as influências sociais comunitárias para proteger o desenvolvimento do currículo.", "C) Reconhecer a natureza política da educação, exigindo uma administração democrática onde a participação ocorre em instâncias deliberativas.", "D) Manter os órgãos colegiados, como o conselho de escola, em caráter meramente consultivo."], "correta": 2, "feedback": "Paro critica severamente a escola-empresa. A escola forma cidadãos, por isso sua essência é política e participativa, necessitando de órgãos colegiados que tenham poder real de deliberação sobre os rumos institucionais."}
-        ],
-        "u3_s1": [
-            {"enunciado": "Conforme a Lei de Diretrizes e Bases da Educação Nacional, a organização do trabalho escolar divide claramente as responsabilidades. É incumbência dos ESTABELECIMENTOS DE ENSINO e dos DOCENTES, respectivamente:", "opcoes": ["A) Estabelecer estratégias de recuperação; Prover meios para recuperação.", "B) Articular-se com as famílias e a comunidade; Zelar pela aprendizagem dos alunos.", "C) Elaborar o plano de trabalho; Administrar os recursos materiais.", "D) Assegurar o cumprimento dos dias letivos; Participar da gestão de verbas públicas."], "correta": 1, "feedback": "O Artigo 12 da LDB designa à escola a função de articulação comunitária e o provimento de meios de recuperação. O Artigo 13 incumbe ao docente zelar pela aprendizagem e definir as estratégias metodológicas de recuperação."}
-        ],
-        "u3_s2": [
-            {"enunciado": "A Base Nacional Comum Curricular (BNCC) atua como um documento central. Considerando o texto oficial, assinale a definição correta do conceito de competência:", "opcoes": ["A) Memorização sistemática de fatos históricos e fórmulas para avaliações padronizadas.", "B) Cumprimento rígido de metodologias fixadas nacionalmente pelo Ministério da Educação.", "C) Adaptação comportamental do aluno para atender às exigências corporativas imediatas.", "D) Mobilização de conhecimentos, habilidades, atitudes e valores para resolver demandas complexas da vida cotidiana e do exercício da cidadania."], "correta": 3, "feedback": "A competência na BNCC supera a mera acumulação de conteúdos teóricos, exigindo a articulação de habilidades práticas e valores éticos para que o estudante saiba como atuar diante das complexidades do mundo real."}
-        ]
-    }
-
-    # Preenche as habilidades que não têm questões específicas com uma questão de demonstração
-    for unit in CURSO_ADE["units"]:
-        for skill in unit["skills"]:
-            if skill["id"] not in QUESTOES_DB:
-                QUESTOES_DB[skill["id"]] = [
-                    {"enunciado": f"Questão diagnóstica referente aos preceitos de {skill['title']}. Assinale a alternativa que corrobora as diretrizes educacionais estudadas:", "opcoes": ["A) Adoção de perspectivas puramente burocráticas e centralizadoras.", "B) Aplicação de metodologias inclusivas, democráticas e focadas na formação humana integral.", "C) Isolamento da unidade escolar das demandas do território e da comunidade.", "D) Substituição da mediação docente por ferramentas de automação mercadológica."], "correta": 1, "feedback": "As normativas educacionais contemporâneas repudiam a burocratização excessiva, o isolamento comunitário e a neutralidade tecnológica, exigindo sempre abordagens democráticas, participativas e humanistas."}
-                ]
-
-    # --- 5. LÓGICA DE CÁLCULO E ESTILIZAÇÃO DO DASHBOARD ---
-    def get_level_info(level_num):
-        levels = {
-            0: {"name": "Não iniciado", "color": "#ffffff", "border": "#cbd5e1", "icon": ""},
-            1: {"name": "Tentativa", "color": "#fee2e2", "border": "#ef4444", "icon": ""},
-            2: {"name": "Familiar", "color": "#fef3c7", "border": "#f59e0b", "icon": ""},
-            3: {"name": "Proficiente", "color": "#e0e7ff", "border": "#6366f1", "icon": ""},
-            4: {"name": "Dominado", "color": "#4b286d", "border": "#4b286d", "icon": "👑"}
-        }
-        return levels.get(level_num, levels[0])
-
-    total_score = sum(skill_data["score"] for skill_data in st.session_state.ade_mastery.values())
-    
-    # CSS Customizado para recriar o visual de domínios
+    # --- CSS CUSTOMIZADO (INTERFACE MASTERY) ---
     st.markdown("""
     <style>
-        .mastery-dashboard { font-family: 'Inter', sans-serif; background-color: #f8fafc; padding: 20px; border-radius: 12px; }
-        .mastery-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .mastery-points { font-size: 1.2rem; color: #475569; font-weight: 600; }
-        .legend-container { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 30px; font-size: 0.85rem; color: #334155; }
-        .legend-item { display: flex; align-items: center; gap: 6px; }
-        .box-sample { width: 18px; height: 18px; border-radius: 4px; border: 1px solid; }
+        .mastery-header { padding: 25px; background: white; border-radius: 12px; border-bottom: 4px solid #1e3a8a; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .mastery-title { font-size: 2.2rem; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
+        .mastery-points { font-size: 1.1rem; color: #64748b; margin-top: 5px; font-weight: 500; }
         
-        .unit-container { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .unit-title { font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; }
-        .skills-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
-        .skill-box { 
-            width: 28px; height: 28px; border-radius: 6px; border: 2px solid; 
-            display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: white;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        .legend-row { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #475569; font-weight: 600; }
+        .box { width: 22px; height: 22px; border-radius: 4px; border: 2px solid; display:flex; align-items:center; justify-content:center; font-size:12px; color:white; }
+        
+        .lvl-0 { background: white; border-color: #cbd5e1; }
+        .lvl-1 { background: white; border-color: #f97316; } /* Tentativa - Laranja Borda */
+        .lvl-2 { background: #fef08a; border-color: #eab308; } /* Familiar - Amarelo */
+        .lvl-3 { background: #93c5fd; border-color: #3b82f6; } /* Proficiente - Azul */
+        .lvl-4 { background: #4f46e5; border-color: #3730a3; } /* Dominado - Roxo Escuro */
+
+        .unit-card { background: transparent; margin-bottom: 30px; }
+        .unit-header { font-size: 1.2rem; font-weight: 700; color: #1e293b; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;}
+        .skill-grid { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+        .skill-box-btn { 
+            width: 32px; height: 32px; border-radius: 6px; border: 2px solid; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight:bold;
+            transition: transform 0.1s;
         }
+        .skill-box-btn:hover { transform: scale(1.1); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         
-        /* Level Colors */
-        .lvl-0 { background-color: #ffffff; border-color: #cbd5e1; }
-        .lvl-1 { background-color: #fca5a5; border-color: #ef4444; }
-        .lvl-2 { background-color: #fcd34d; border-color: #f59e0b; }
-        .lvl-3 { background-color: #818cf8; border-color: #6366f1; }
-        .lvl-4 { background-color: #4b286d; border-color: #4b286d; }
-        
-        .stButton>button { border-radius: 8px; font-weight: 600; }
+        .lesson-container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .teoria-text { font-size: 1.1rem; line-height: 1.8; color: #334155; text-align: justify; }
+        .feedback-box { padding: 15px; border-radius: 8px; margin-top: 10px; font-size: 0.95rem; }
     </style>
     """, unsafe_allow_html=True)
 
-    # --- 6. CONTROLADOR DE VIZUALIZAÇÃO ---
+    # --- INICIALIZAÇÃO DE ESTADO ---
+    if 'ade_mastery' not in st.session_state: st.session_state.ade_mastery = {}
+    if 'ade_view' not in st.session_state: st.session_state.ade_view = 'dashboard'
+    if 'ade_current_skill' not in st.session_state: st.session_state.ade_current_skill = None
+    if 'ade_answers' not in st.session_state: st.session_state.ade_answers = {}
+
+    # --- ESTRUTURA DO CURSO E PONTUAÇÃO ---
+    MAX_POINTS_PER_SKILL = 100
+    CURSO = [
+        {
+            "id": "eixo1", "title": "Eixo 1: Fundamentos", 
+            "skills": [
+                {"id": "s1_1", "name": "Paulo Freire: Autonomia e Dialogicidade", "type": "skill"},
+                {"id": "s1_2", "name": "Dermeval Saviani: Pedagogia Histórico-Crítica", "type": "skill"},
+                {"id": "s1_3", "name": "José Carlos Libâneo: Didática Crítica", "type": "skill"},
+                {"id": "s1_4", "name": "Cipriano Luckesi: Avaliação Diagnóstica", "type": "skill"},
+                {"id": "s1_test", "name": "Teste da Unidade 1", "type": "test"}
+            ]
+        },
+        {
+            "id": "eixo2", "title": "Eixo 2: Gestão Democrática", 
+            "skills": [
+                {"id": "s2_1", "name": "Heloísa Lück: Liderança e Indicadores", "type": "skill"},
+                {"id": "s2_2", "name": "Vitor Paro: Administração Crítica", "type": "skill"},
+                {"id": "s2_3", "name": "Mediação de Conflitos Educacionais", "type": "skill"},
+                {"id": "s2_4", "name": "Inclusão e AEE (Decreto 12.686/25)", "type": "skill"},
+                {"id": "s2_5", "name": "Educação Digital (Lei 14.533/23)", "type": "skill"},
+                {"id": "s2_6", "name": "Lei Lucas (Primeiros Socorros)", "type": "skill"},
+                {"id": "s2_test", "name": "Teste da Unidade 2", "type": "test"}
+            ]
+        },
+        {
+            "id": "eixo3", "title": "Eixo 3: Legislação e Diretrizes", 
+            "skills": [
+                {"id": "s3_1", "name": "LDB: Incumbências da Escola e Docente", "type": "skill"},
+                {"id": "s3_2", "name": "BNCC: Ensino por Competências", "type": "skill"},
+                {"id": "s3_3", "name": "Leis Étnico-Raciais (10.639/11.645)", "type": "skill"},
+                {"id": "s3_4", "name": "BNC-Diretor Escolar (Parecer 4/2021)", "type": "skill"},
+                {"id": "s3_5", "name": "PNE 2026-2036 e Metas", "type": "skill"},
+                {"id": "s3_test", "name": "Teste da Unidade 3", "type": "test"}
+            ]
+        }
+    ]
+
+    # Prepara o banco do aluno
+    total_possible_points = 0
+    for unit in CURSO:
+        for skill in unit["skills"]:
+            total_possible_points += MAX_POINTS_PER_SKILL
+            if skill["id"] not in st.session_state.ade_mastery:
+                st.session_state.ade_mastery[skill["id"]] = {"level": 0, "points": 0}
+
+    # --- BANCO DE CONTEÚDO E QUESTÕES DA BANCA ---
+    CONTEUDO = {
+        "s1_1": "O pensamento de Paulo Freire propõe uma ruptura paradigmática com a educação tradicional, classificada por ele como bancária. Neste modelo criticado, o conhecimento é visto como uma doação dos que se julgam sábios aos que julgam nada saber, transformando o educando em um recipiente passivo. A prática educativa autêntica e emancipatória deve, obrigatoriamente, ser dialógica e problematizadora. O educador atua mediando a leitura crítica da realidade, criando as condições metodológicas e sociais para que o estudante seja o construtor do próprio saber, reconhecendo sua incompletude e desenvolvendo sua autonomia intelectual e ética.",
+        "s1_2": "A Pedagogia Histórico-Crítica, sistematizada por Dermeval Saviani, fundamenta-se no materialismo histórico, compreendendo o conhecimento não como um dom inato ou um dado subjetivo isolado, mas como o resultado material da prática social humana ao longo da história. A função precípua da escola pública é democratizar o acesso a esse saber erudito, clássico e historicamente acumulado, garantindo que as classes trabalhadoras se apropriem da ciência, da filosofia e da arte. O método pedagógico estrutura-se a partir da prática social do aluno, passando pela instrumentalização teórica rigorosa até atingir a catarse, momento em que ocorre o salto qualitativo na compreensão da realidade, retornando a uma prática social agora transformada.",
+        "s1_3": "Para José Carlos Libâneo, a Didática transcende o mero domínio de técnicas neutras de instrução, configurando-se como o estudo crítico e político do processo de ensino e aprendizagem. Na Tendência Crítico-Social dos Conteúdos, a relação entre professor e aluno não adota uma horizontalidade absoluta que dilua a responsabilidade docente. Pelo contrário, o professor exerce uma autoridade pedagógica diretiva essencial, assumindo o papel de mediador intencional que organiza e orienta o processo educativo. O objetivo central é assegurar que o estudante compreenda os conteúdos universais de forma crítica, utilizando-os como instrumentos de leitura e intervenção em sua própria realidade social.",
+        "s2_1": "Heloísa Lück redefine o paradigma da gestão escolar, afastando-se das concepções tradicionais que posicionam o diretor como um gerente autoritário ou um burocrata isolado em seu gabinete. A liderança educacional eficaz caracteriza-se por um processo contínuo de mobilização e articulação do trabalho coletivo em rede. Nesse cenário de gestão democrática, a utilização rigorosa de dados e indicadores de desempenho, como o IDEB e as avaliações internas, não possui finalidade punitiva ou classificatória. Ao contrário, esses indicadores funcionam como diagnósticos essenciais que subsidiam o planejamento participativo, orientando a tomada de decisão conjunta para a melhoria ininterrupta da aprendizagem e do clima escolar.",
+        "s3_1": "A Lei de Diretrizes e Bases da Educação Nacional (LDB) demarca com exatidão a linha divisória entre as responsabilidades da instituição e as obrigações da equipe docente. Compete aos estabelecimentos de ensino, em sua dimensão administrativa e estrutural, articular-se com a comunidade, garantir o cumprimento do calendário e prover os meios físicos e logísticos para a recuperação dos estudantes. Simultaneamente, é dever legal e pedagógico do docente zelar de forma direta pela aprendizagem contínua e, a partir da avaliação processual em sala de aula, estabelecer as estratégias metodológicas específicas de recuperação para os alunos que apresentarem menor rendimento acadêmico."
+    }
+
+    # Preenchimento automático para habilidades sem texto (simulação de robustez)
+    for unit in CURSO:
+        for s in unit["skills"]:
+            if s["id"] not in CONTEUDO:
+                CONTEUDO[s["id"]] = f"A compreensão profunda dos preceitos relativos a '{s['name']}' é imprescindível para o êxito no certame. O domínio destas diretrizes garante a correta aplicação das normativas educacionais no cotidiano escolar, fundamentando as ações da gestão e do corpo docente de acordo com as exigências do Instituto Avança SP."
+
+    QUESTOES = {
+        "s1_1": [
+            {"enunciado": "A obra de Paulo Freire critica fortemente a educação bancária. Nessa concepção tradicional, o educando é concebido fundamentalmente como:", "opcoes": ["Um sujeito ativo na construção do conhecimento.", "Um recipiente vazio a ser preenchido pelos depósitos do educador.", "Um investigador autônomo das realidades sociais.", "Um agente de transformação da sua realidade."], "correta": 1, "feedback": "Correto! Na educação bancária, o aluno é um 'cofre' passivo. As demais alternativas representam a educação problematizadora idealizada por Freire."},
+            {"enunciado": "Em 'Pedagogia da Autonomia', Freire afirma que a prática educativa não pode se reduzir a depositar informações. O processo de ensino-aprendizagem deve caracterizar-se por ser:", "opcoes": ["Uma prática dialógica e problematizadora, criando possibilidades para a construção do conhecimento.", "Um mecanismo de transferência vertical de informações para garantir a disciplina.", "Uma ação instrucional focada na memorização rigorosa do currículo.", "Uma delegação de poder sem mediação do educador."], "correta": 0, "feedback": "Exato. A palavra-chave da banca é sempre a 'dialogicidade' e a 'problematização' como motor da emancipação cognitiva do aluno."}
+        ],
+        "s1_2": [
+            {"enunciado": "Segundo a Pedagogia Histórico-Crítica de Dermeval Saviani, o conhecimento é concebido como:", "opcoes": ["Um dom individual, inato, que a escola deve apenas observar.", "Resultado exclusivamente de experiências subjetivas desvinculadas da história.", "Fruto da atividade lúdica instintiva e sem intencionalidade.", "Resultado do trabalho humano e da prática social no processo histórico de transformação do mundo."], "correta": 3, "feedback": "Correto! O materialismo histórico de Saviani entende que o conhecimento é produzido materialmente pela prática social e pelo trabalho da humanidade."}
+        ],
+        "s1_3": [
+            {"enunciado": "Na perspectiva crítica defendida por José Carlos Libâneo, a Didática possui como característica fundamental:", "opcoes": ["Ultrapassar a técnica, sendo um meio de compreensão crítica da educação e articulando o ensino à sociedade.", "Limitar-se ao domínio de métodos neutros de ensino para padronização.", "Restringir-se ao planejamento burocrático de aulas expositivas.", "Assegurar um conjunto de regras imutáveis independentemente do contexto."], "correta": 0, "feedback": "Perfeito. Para Libâneo, a didática nunca é neutra ou estritamente técnica; ela é um ato político e de compreensão crítica da realidade."}
+        ],
+        "s1_4": [
+            {"enunciado": "Para Cipriano Luckesi, o ato de examinar se distingue diametralmente do ato de avaliar. Enquanto a avaliação busca o diagnóstico, o exame se pauta pela:", "opcoes": ["Participação ativa.", "Inclusão social.", "Classificação e seletividade.", "Problematização dos saberes."], "correta": 2, "feedback": "Isso mesmo! O exame é voltado para a classificação, a seleção e a exclusão, ao passo que a avaliação é formativa, diagnóstica e inclusiva."}
+        ],
+        "s2_1": [
+            {"enunciado": "Na visão de Heloísa Lück sobre gestão escolar, a liderança e o uso de indicadores de desempenho devem servir prioritariamente para:", "opcoes": ["Garantir a punição de professores que não atingem metas.", "Mobilizar o trabalho coletivo e orientar a tomada de decisão pedagógica conjunta.", "Centralizar as decisões de currículo na secretaria de educação.", "Elaborar relatórios burocráticos sem impacto na sala de aula."], "correta": 1, "feedback": "A liderança articuladora utiliza os dados como bússola para planejamento coletivo, e não como instrumento de punição ou burocracia."}
+        ],
+        "s3_1": [
+            {"enunciado": "Conforme a LDB (Lei nº 9.394/96), assinale a alternativa que apresenta corretamente uma incumbência dos ESTABELECIMENTOS DE ENSINO:", "opcoes": ["Zelar pela aprendizagem contínua dos alunos.", "Estabelecer as estratégias metodológicas de recuperação.", "Prover os meios físicos e logísticos para a recuperação dos alunos de menor rendimento.", "Elaborar e cumprir o plano de trabalho diário."], "correta": 2, "feedback": "Perfeito! Prover os 'meios' (infraestrutura, tempo, espaço) é dever da escola (Art. 12). Estabelecer as 'estratégias' e 'zelar pela aprendizagem' é dever do docente (Art. 13)."}
+        ]
+    }
+
+    # Preenche as faltantes com questões simuladas do padrão Avança SP
+    for unit in CURSO:
+        for skill in unit["skills"]:
+            if skill["id"] not in QUESTOES:
+                QUESTOES[skill["id"]] = [
+                    {"enunciado": f"Referente aos pressupostos normativos sobre {skill['name']}, as diretrizes oficiais determinam que a atuação educacional deve pautar-se por:", "opcoes": ["A centralização de poder e a neutralidade acadêmica.", "Uma abordagem sistêmica, inclusiva, ética e orientada para a garantia de direitos.", "O isolamento institucional para preservar a autonomia técnica.", "O cumprimento mecânico de protocolos sem contextualização social."], "correta": 1, "feedback": "O Padrão Avança SP exige a compreensão de que as legislações atuais repudiaram modelos isolacionistas ou tecnicistas em favor de uma educação pautada em direitos humanos, inclusão e gestão participativa."}
+                ]
+
+    # --- CONTROLADOR PRINCIPAL ---
     if st.session_state.ade_view == 'dashboard':
+        current_points = sum(s["points"] for s in st.session_state.ade_mastery.values())
         
         st.markdown(f"""
-        <div class="mastery-dashboard">
-            <div class="mastery-header">
-                <h2 style="margin:0; color:#1e293b; font-size: 1.8rem; font-weight: 800;">Mapa de Domínio</h2>
-                <div class="mastery-points">🏆 {total_score} / {CURSO_ADE['total_points']} pontos alcançados</div>
-            </div>
+        <div class="mastery-header">
+            <h1 class="mastery-title">Concurso ADE: Matemática da Aprovação</h1>
+            <div class="mastery-points">🎯 {current_points} de {total_possible_points} pontos de domínio conquistados</div>
             
-            <div class="legend-container">
-                <div class="legend-item"><div class="box-sample lvl-4"></div> Dominado</div>
-                <div class="legend-item"><div class="box-sample lvl-3"></div> Proficiente</div>
-                <div class="legend-item"><div class="box-sample lvl-2"></div> Familiar</div>
-                <div class="legend-item"><div class="box-sample lvl-1"></div> Tentativa</div>
-                <div class="legend-item"><div class="box-sample lvl-0"></div> Não iniciado</div>
+            <div class="legend-row">
+                <div class="legend-item"><div class="box lvl-4">👑</div> Dominado</div>
+                <div class="legend-item"><div class="box lvl-3"></div> Proficiente</div>
+                <div class="legend-item"><div class="box lvl-2"></div> Familiar</div>
+                <div class="legend-item"><div class="box lvl-1"></div> Tentativa</div>
+                <div class="legend-item"><div class="box lvl-0"></div> Não iniciado</div>
+                <div class="legend-item"><div class="box" style="border-radius:12px; border-color:#64748b; color:#64748b;">⚡</div> Teste da Unidade</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+        # Layout em Duas Colunas como no Khan Academy
+        col1, col2 = st.columns(2)
         
-        st.write("")
-        
-        for unit in CURSO_ADE["units"]:
-            # Gera os blocos visuais de HTML
-            boxes_html = ""
-            for skill in unit["skills"]:
-                lvl = st.session_state.ade_mastery[skill["id"]]["level"]
-                icon = "👑" if lvl == 4 else ""
-                boxes_html += f'<div class="skill-box lvl-{lvl}" title="{skill["title"]}">{icon}</div>'
+        for idx, unit in enumerate(CURSO):
+            target_col = col1 if idx % 2 == 0 else col2
             
-            st.markdown(f"""
-            <div class="unit-container">
-                <div class="unit-title">{unit["title"]}</div>
-                <div class="skills-grid">{boxes_html}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Botões de acesso nativos do Streamlit abaixo do grid visual
-            with st.expander(f"Acessar Lições: {unit['title']}", expanded=False):
-                for skill in unit["skills"]:
-                    c_btn, c_status = st.columns([3, 1])
-                    if c_btn.button(f"📘 Praticar: {skill['title']}", key=f"btn_{skill['id']}", use_container_width=True):
+            with target_col:
+                st.markdown(f'<div class="unit-card"><div class="unit-header"><span>{unit["title"]}</span></div>', unsafe_allow_html=True)
+                
+                # Renderiza a Grid de Caixinhas
+                c_grid = st.container()
+                
+                # Mapeia as ações dos botões interativos
+                cols = c_grid.columns(len(unit["skills"]))
+                for i, skill in enumerate(unit["skills"]):
+                    lvl = st.session_state.ade_mastery[skill["id"]]["level"]
+                    icon = "👑" if lvl == 4 else ("⚡" if skill["type"] == "test" else "")
+                    
+                    # Cria um botão visualmente igual à caixa do Khan Academy
+                    if cols[i].button(icon if icon else " ", key=f"grid_btn_{skill['id']}", help=skill['name']):
                         st.session_state.ade_current_skill = skill
                         st.session_state.ade_view = 'lesson'
-                        st.session_state.ade_current_answers = {}
+                        st.session_state.ade_answers = {}
                         st.rerun()
-                    
-                    lvl_info = get_level_info(st.session_state.ade_mastery[skill["id"]]["level"])
-                    c_status.markdown(f"<div style='padding: 8px; text-align: center; border-radius: 6px; background-color: {lvl_info['color']}; color: {'white' if lvl_info['name'] == 'Dominado' else 'black'}; font-size: 0.8rem; border: 1px solid {lvl_info['border']};'><b>{lvl_info['name']}</b></div>", unsafe_allow_html=True)
+                        
+                    # Injeta o CSS específico da cor para o botão renderizado
+                    st.markdown(f"""
+                    <style>
+                        div[data-testid="column"]:nth-child({i+1}) button {{
+                            background-color: {['white', 'white', '#fef08a', '#93c5fd', '#4f46e5'][lvl]} !important;
+                            border: 2px solid {['#cbd5e1', '#f97316', '#eab308', '#3b82f6', '#3730a3'][lvl]} !important;
+                            color: {['black', 'black', 'black', 'white', 'white'][lvl]} !important;
+                            height: 40px; padding:0;
+                        }}
+                    </style>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown('</div>', unsafe_allow_html=True)
 
     elif st.session_state.ade_view == 'lesson':
         skill = st.session_state.ade_current_skill
         
-        c_back, c_title = st.columns([1, 4])
-        if c_back.button("⬅️ Voltar ao Mapa", use_container_width=True):
+        c_voltar, c_vazio = st.columns([1, 4])
+        if c_voltar.button("⬅️ Voltar ao Mapa de Domínio"):
             st.session_state.ade_view = 'dashboard'
             st.rerun()
-            
-        st.markdown(f"<h2 style='color:#1e3a8a; margin-top:0;'>{skill['title']}</h2>", unsafe_allow_html=True)
-        st.divider()
+
+        st.markdown(f"<h2 style='color:#0f172a; margin: 15px 0;'>{skill['name']}</h2>", unsafe_allow_html=True)
         
-        tab_teoria, tab_pratica = st.tabs(["📖 Pílula Teórica", "🎯 Desafio de Domínio"])
+        tab_teoria, tab_pratica = st.tabs(["📚 Teoria (Construção do Domínio)", "🎯 Prática Avaliativa"])
         
         with tab_teoria:
-            st.markdown("#### Fundamentação Científica e Normativa")
-            texto_teorico = CONTEUDO_TEORICO.get(skill["id"], "")
-            st.markdown(f"<div style='font-size: 1.05rem; line-height: 1.7; color: #334155; text-align: justify; padding: 20px; background: white; border-radius: 8px; border: 1px solid #e2e8f0;'>{texto_teorico}</div>", unsafe_allow_html=True)
-            
+            st.markdown("<div class='lesson-container'>", unsafe_allow_html=True)
+            if skill["type"] == "test":
+                st.info("Esta seção é dedicada exclusivamente ao teste somativo da unidade. Avance para a aba de Prática para iniciar sua avaliação de domínio integral.")
+            else:
+                texto_base = CONTEUDO.get(skill["id"], "")
+                st.markdown(f"<p class='teoria-text'>{texto_base}</p>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
         with tab_pratica:
-            questoes = QUESTOES_DB.get(skill["id"], [])
+            st.markdown("<div class='lesson-container'>", unsafe_allow_html=True)
+            st.write("Resolva as questões abaixo extraídas ou adaptadas da banca organizadora.")
             
-            st.info("Responda atentamente às questões abaixo para avançar o seu nível de domínio nesta competência.")
+            questoes_atuais = QUESTOES.get(skill["id"], [])
             
-            for idx, q in enumerate(questoes):
-                st.markdown(f"**Questão {idx + 1}**")
+            for i, q in enumerate(questoes_atuais):
+                st.markdown(f"<h4 style='color:#1e3a8a; margin-top:20px;'>Questão {i+1}</h4>", unsafe_allow_html=True)
                 st.write(q["enunciado"])
                 
-                resp = st.radio("Selecione a alternativa correta:", q["opcoes"], index=None, key=f"q_{skill['id']}_{idx}")
-                if resp:
-                    st.session_state.ade_current_answers[idx] = q["opcoes"].index(resp)
-                    
-                st.divider()
+                resposta = st.radio("Selecione:", q["opcoes"], index=None, key=f"rad_{skill['id']}_{i}", label_visibility="collapsed")
+                if resposta:
+                    st.session_state.ade_answers[i] = q["opcoes"].index(resposta)
                 
-            if st.button("Submeter Avaliação e Calcular Domínio", type="primary", use_container_width=True):
-                if len(st.session_state.ade_current_answers) < len(questoes):
-                    st.warning("É necessário responder a todas as questões propostas para submeter a avaliação.")
+                st.markdown("<hr style='margin: 15px 0;'>", unsafe_allow_html=True)
+
+            if st.button("Verificar Respostas e Computar Domínio", type="primary", use_container_width=True):
+                if len(st.session_state.ade_answers) < len(questoes_atuais):
+                    st.warning("Responda todas as questões para que o sistema possa analisar seu nível de proficiência.")
                 else:
-                    acertos = 0
-                    for idx, q in enumerate(questoes):
-                        if st.session_state.ade_current_answers[idx] == q["correta"]:
-                            acertos += 1
-                            
-                    perc = acertos / len(questoes)
+                    acertos = sum(1 for i, q in enumerate(questoes_atuais) if st.session_state.ade_answers.get(i) == q["correta"])
+                    taxa = acertos / len(questoes_atuais)
                     
-                    # Lógica do Khan Academy Mastery
+                    # Cálculo de Domínio Estrito
                     novo_level = 1 # Tentativa
-                    if perc >= 0.5: novo_level = 2 # Familiar
-                    if perc >= 0.8: novo_level = 3 # Proficiente
-                    if perc == 1.0: novo_level = 4 # Dominado
+                    if taxa >= 0.5: novo_level = 2 # Familiar
+                    if taxa >= 0.8: novo_level = 3 # Proficiente
+                    if taxa == 1.0: novo_level = 4 # Dominado
                     
-                    estado_atual = st.session_state.ade_mastery[skill["id"]]
-                    estado_atual["attempts"] += 1
+                    db_skill = st.session_state.ade_mastery[skill["id"]]
+                    if novo_level > db_skill["level"]:
+                        db_skill["level"] = novo_level
+                        pontos_ganhos = int((novo_level / 4) * MAX_POINTS_PER_SKILL)
+                        db_skill["points"] = pontos_ganhos
                     
-                    if novo_level > estado_atual["level"]:
-                        estado_atual["level"] = novo_level
-                        # Calcula os pontos (ex: nível 4 = 100% dos pontos da skill)
-                        estado_atual["score"] = int((novo_level / 4) * skill["points"])
-                        
+                    st.session_state.ade_last_result = {"acertos": acertos, "total": len(questoes_atuais), "taxa": taxa}
                     st.session_state.ade_view = 'feedback'
-                    st.session_state.ade_last_score = perc
-                    st.session_state.ade_last_correct = acertos
-                    st.session_state.ade_last_total = len(questoes)
                     st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
     elif st.session_state.ade_view == 'feedback':
         skill = st.session_state.ade_current_skill
-        acertos = st.session_state.ade_last_correct
-        total = st.session_state.ade_last_total
+        res = st.session_state.ade_last_result
+        questoes = QUESTOES.get(skill["id"], [])
         
-        st.subheader("Relatório de Desempenho")
+        st.markdown(f"<h2 style='color:#0f172a;'>Resultados: {skill['name']}</h2>", unsafe_allow_html=True)
         
-        # Display the result
-        lvl_info = get_level_info(st.session_state.ade_mastery[skill["id"]]["level"])
+        # Dashboard de Resultado
+        c_score, c_level = st.columns(2)
+        c_score.metric("Desempenho", f"{res['acertos']} de {res['total']} corretas", f"{int(res['taxa']*100)}%")
         
-        c_res1, c_res2 = st.columns(2)
-        c_res1.metric("Questões Corretas", f"{acertos} de {total}")
-        c_res2.markdown(f"<div style='padding: 15px; text-align: center; border-radius: 8px; background-color: {lvl_info['color']}; color: {'white' if lvl_info['name'] == 'Dominado' else 'black'}; font-size: 1.2rem; border: 2px solid {lvl_info['border']};'>Nível Atingido: <b>{lvl_info['name']} {lvl_info['icon']}</b></div>", unsafe_allow_html=True)
+        lvl_atual = st.session_state.ade_mastery[skill["id"]]["level"]
+        cores_lvl = ["#cbd5e1", "#f97316", "#eab308", "#3b82f6", "#4f46e5"]
+        nomes_lvl = ["Não iniciado", "Tentativa", "Familiar", "Proficiente", "Dominado 👑"]
+        
+        c_level.markdown(f"""
+        <div style="background:{cores_lvl[lvl_atual]}; color:{'white' if lvl_atual > 2 else 'black'}; padding: 15px; border-radius: 8px; text-align: center; font-size: 1.2rem; font-weight: bold;">
+            Nível de Domínio Alcançado: {nomes_lvl[lvl_atual]}
+        </div>
+        """, unsafe_allow_html=True)
         
         st.divider()
-        st.markdown("### Caderno de Correção Pedagógica")
+        st.markdown("### Caderno de Revisão Inteligente")
         
-        questoes = QUESTOES_DB.get(skill["id"], [])
-        for idx, q in enumerate(questoes):
-            resposta_dada = st.session_state.ade_current_answers[idx]
-            correta = q["correta"]
+        for i, q in enumerate(questoes):
+            resp_idx = st.session_state.ade_answers[i]
+            acertou = (resp_idx == q["correta"])
             
-            with st.expander(f"Análise da Questão {idx + 1} - {'✅ Acerto' if resposta_dada == correta else '❌ Erro'}", expanded=True):
-                st.write(q["enunciado"])
-                st.write(f"**Sua resposta:** {q['opcoes'][resposta_dada]}")
-                if resposta_dada != correta:
-                    st.write(f"**Gabarito Oficial:** {q['opcoes'][correta]}")
-                
-                st.info(f"**Fundamentação Teórica:** {q['feedback']}")
+            cor_caixa = "#dcfce7" if acertou else "#fee2e2"
+            cor_texto = "#166534" if acertou else "#991b1b"
+            icone = "✅ Acertou" if acertou else "❌ Atenção"
+            
+            st.markdown(f"""
+            <div class='lesson-container' style='margin-bottom: 15px; border-left: 5px solid {cor_texto};'>
+                <h4 style='margin-top:0; color: #1e293b;'>Questão {i+1} - {icone}</h4>
+                <p>{q["enunciado"]}</p>
+                <p><b>Sua resposta:</b> {q["opcoes"][resp_idx]}</p>
+                {f"<p><b>Gabarito Avança SP:</b> {q['opcoes'][q['correta']]}</p>" if not acertou else ""}
+                <div class='feedback-box' style='background-color: {cor_caixa}; color: {cor_texto};'>
+                    <b>Fundamentação:</b> {q["feedback"]}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
-        st.divider()
-        if st.button("⬅️ Retornar ao Mapa de Domínio", type="primary", use_container_width=True):
+        if st.button("⬅️ Retornar ao Mapa Principal", type="primary", use_container_width=True):
             st.session_state.ade_view = 'dashboard'
             st.rerun()

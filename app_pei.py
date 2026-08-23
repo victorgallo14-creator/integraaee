@@ -12698,235 +12698,317 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
 
 
 # ==============================================================================
-# VIEW: PLATAFORMA DE ESTUDOS - ADE (EXCLUSIVO)
+# VIEW: PLATAFORMA DE ESTUDOS - ADE (EXCLUSIVO E AVANÇADO)
 # ==============================================================================
 if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.session_state.get('nav_adm') == "📚 Preparatório ADE":
     
-    # Trava de Segurança Absoluta
-    if st.session_state.get('usuario_matricula') != "8829405":
+    # --- 1. TRAVA DE SEGURANÇA E ACESSO RESTRITO ---
+    if str(st.session_state.get('usuario_matricula', '')).strip() != "8829405":
         st.markdown("""<div class="header-box" style="border-left-color: #ef4444;"><div class="header-title" style="color: #ef4444;">Acesso Negado</div></div>""", unsafe_allow_html=True)
-        st.error("Este ambiente é de uso estrito e exclusivo. Suas credenciais não possuem autorização para acessar a plataforma de preparação para o concurso de ADE.")
+        st.error("Este ambiente é de uso estrito e exclusivo. Suas credenciais não possuem autorização para acessar a plataforma de alta performance do concurso de ADE.")
         st.stop()
 
-    st.markdown("""<div class="header-box" style="border-left-color: #8b5cf6;"><div class="header-title">Plataforma de Estudos - ADE</div><div class="header-subtitle">Ambiente de treinamento avançado focado em habilidades e resolução de questões oficiais.</div></div>""", unsafe_allow_html=True)
+    # --- 2. INICIALIZAÇÃO DO ESTADO DE DOMÍNIO (BANCO DE DADOS LOCAL DO USUÁRIO) ---
+    if 'ade_mastery' not in st.session_state:
+        st.session_state.ade_mastery = {}
+    if 'ade_view' not in st.session_state:
+        st.session_state.ade_view = 'dashboard'
+    if 'ade_current_skill' not in st.session_state:
+        st.session_state.ade_current_skill = None
+    if 'ade_current_answers' not in st.session_state:
+        st.session_state.ade_current_answers = {}
 
-    # Conteúdo Teórico em Formato Descritivo (Pílulas de Domínio)
-    MATERIAL_ESTUDO = {
-        "Eixo 1: Fundamentos e Didática": "A educação bancária é fortemente criticada na obra de Paulo Freire, pois nela o educando é concebido como um recipiente vazio. Em contrapartida, a prática autêntica deve ser dialógica e problematizadora, criando possibilidades para a construção do conhecimento pelo próprio estudante. Na pedagogia histórico-crítica de Dermeval Saviani, o conhecimento é o resultado do trabalho humano no processo histórico, cabendo à escola a função social de socializar o saber clássico e historicamente acumulado. Para José Carlos Libâneo, a didática é o meio de compreensão crítica da educação, ultrapassando a mera técnica neutra. Na Tendência Crítico-Social dos Conteúdos, o professor não adota uma postura horizontal absoluta, mas mantém sua autoridade pedagógica e diretividade para mediar o acesso ao saber. Cipriano Luckesi complementa essa visão abordando a avaliação. O ato de examinar é classificatório, excludente e focado no resultado final. Por outro lado, o ato de avaliar caracteriza-se pelo seu diagnóstico e pela inclusão, orientando a intervenção pedagógica de maneira construtiva.",
-        
-        "Eixo 2: Gestão Democrática e Temas Contemporâneos": "A liderança no ambiente escolar, segundo Heloísa Lück, exige a superação de modelos administrativos tradicionais. A atuação do gestor constitui um processo de mobilização e articulação do trabalho coletivo, sendo orientada por indicadores de desempenho para a tomada de decisão conjunta. Vitor Henrique Paro ressalta que a natureza política da educação exige uma administração democrática, onde a participação da comunidade ocorre em instâncias deliberativas. O conselho de escola e a associação de pais e mestres possuem papel fundamental na gestão pedagógica e financeira, superando as visões que os restringem a órgãos consultivos ou arrecadadores. No cotidiano plural da escola, o conflito emerge naturalmente, cabendo ao gestor atuar como facilitador e organizador do diálogo. A educação inclusiva garante o atendimento educacional especializado de forma complementar ou suplementar, preferencialmente no contraturno. A inclusão efetiva materializa-se na rotina, como ao assegurar que estudantes bilíngues participem ativamente das aulas de educação física integrados ao contexto geral da turma comum, sem qualquer forma de segregação. Complementando o ambiente escolar, a Lei Lucas estabelece a capacitação para agir preventivamente em emergências médicas até a chegada do socorro, enquanto as diretrizes de educação digital focam no letramento midiático para a produção crítica de informações.",
-        
-        "Eixo 3: Legislação e Diretrizes Nacionais": "A Lei de Diretrizes e Bases da Educação Nacional divide as responsabilidades no ambiente escolar. Incumbe à escola prover os meios para recuperação e articular-se com a comunidade, enquanto o docente deve zelar pela aprendizagem e estabelecer as estratégias adequadas para os alunos de menor rendimento. A Base Nacional Comum Curricular constitui uma referência normativa nacional e define competência como a mobilização de conhecimentos, habilidades, atitudes e valores para a resolução de demandas complexas da vida cotidiana. As Leis nº 10.639 e nº 11.645 determinaram a obrigatoriedade da temática afro-brasileira e indígena, que deve permear de forma transversal todo o currículo escolar. A Base Nacional Comum de Competências do Diretor Escolar articula a atuação do gestor nas dimensões político-pedagógica, gerencial e pessoal. O Plano Nacional de Educação estabelece metas rigorosas, destacando-se o compromisso de erradicar o analfabetismo absoluto. O Estatuto da Criança e do Adolescente determina a notificação obrigatória ao Conselho Tutelar em situações que envolvem maus-tratos, níveis elevados de repetência e reiteração de faltas injustificadas e evasão escolar."
+    # --- 3. BASE DE DADOS DO CURSO (ARQUITETURA DE DOMÍNIO) ---
+    CURSO_ADE = {
+        "title": "Agente de Desenvolvimento Educacional (ADE) - Limeira",
+        "total_points": 15000,
+        "units": [
+            {
+                "id": "u1",
+                "title": "Unidade 1: Fundamentos da Educação e Prática Pedagógica",
+                "skills": [
+                    {"id": "u1_s1", "title": "Pedagogia da Autonomia (Paulo Freire)", "points": 500},
+                    {"id": "u1_s2", "title": "Pedagogia Histórico-Crítica (Saviani)", "points": 500},
+                    {"id": "u1_s3", "title": "A Prática da Didática (Libâneo)", "points": 500},
+                    {"id": "u1_s4", "title": "Avaliação Diagnóstica (Luckesi)", "points": 500}
+                ]
+            },
+            {
+                "id": "u2",
+                "title": "Unidade 2: Gestão Democrática e Temas Contemporâneos",
+                "skills": [
+                    {"id": "u2_s1", "title": "Liderança Articuladora (Heloísa Lück)", "points": 500},
+                    {"id": "u2_s2", "title": "Administração Escolar Crítica (Vitor Paro)", "points": 500},
+                    {"id": "u2_s3", "title": "Mediação de Conflitos no Espaço Escolar", "points": 500},
+                    {"id": "u2_s4", "title": "Educação Inclusiva e AEE", "points": 500},
+                    {"id": "u2_s5", "title": "Letramento Digital e TIC na Educação", "points": 500},
+                    {"id": "u2_s6", "title": "Prevenção de Acidentes (Lei Lucas)", "points": 500}
+                ]
+            },
+            {
+                "id": "u3",
+                "title": "Unidade 3: Legislação e Diretrizes Nacionais",
+                "skills": [
+                    {"id": "u3_s1", "title": "LDB: Incumbências da Escola e do Docente", "points": 500},
+                    {"id": "u3_s2", "title": "BNCC: O Ensino por Competências", "points": 500},
+                    {"id": "u3_s3", "title": "Leis Étnico-Raciais (10.639 e 11.645)", "points": 500},
+                    {"id": "u3_s4", "title": "BNC-Diretor Escolar", "points": 500},
+                    {"id": "u3_s5", "title": "Plano Nacional de Educação (PNE)", "points": 500},
+                    {"id": "u3_s6", "title": "ECA: Direitos e Deveres no Ambiente Escolar", "points": 500}
+                ]
+            }
+        ]
     }
 
-    # Banco de Questões Avança SP
-    BANCO_QUESTOES = [
-        {
-            "id": 1,
-            "eixo": "Eixo 2: Gestão Democrática e Temas Contemporâneos",
-            "enunciado": "Para Heloísa Lück, a gestão democrática e a liderança no ambiente escolar exigem a superação de modelos administrativos tradicionais. Nesse contexto, a atuação do diretor escolar deve se caracterizar por:",
-            "alternativas": [
-                "A) Uma postura centralizadora, garantindo que os indicadores de desempenho sejam definidos exclusivamente pelo gabinete da direção.",
-                "B) Um processo de mobilização e articulação do trabalho coletivo, utilizando indicadores e avaliação de desempenho para orientar a tomada de decisão conjunta.",
-                "C) Uma administração burocrática focada no cumprimento rígido de normas.",
-                "D) Um modelo de delegação total de responsabilidades, em que o diretor repassa o acompanhamento escolar para os colegiados."
-            ],
-            "correta": "B",
-            "feedback": "Na perspectiva de Heloísa Lück, a gestão democrática pauta-se pela mobilização e articulação da equipe. Os indicadores de desempenho são ferramentas fundamentais para balizar as decisões conjuntas, distanciando-se de posturas centralizadoras, burocráticas ou de delegação irresponsável."
-        },
-        {
-            "id": 2,
-            "eixo": "Eixo 2: Gestão Democrática e Temas Contemporâneos",
-            "enunciado": "Com base nos estudos de Vitor Henrique Paro sobre a administração escolar e a gestão democrática, assinale a alternativa que define corretamente a natureza da administração na escola pública:",
-            "alternativas": [
-                "A) A administração escolar deve espelhar-se nos métodos da administração empresarial.",
-                "B) O diretor escolar deve atuar como um gerente centralizador das decisões político-pedagógicas.",
-                "C) O caráter técnico da educação exige um isolamento das influências sociais comunitárias.",
-                "D) A natureza política da educação exige uma administração democrática, na qual a participação da comunidade ocorre em instâncias deliberativas."
-            ],
-            "correta": "D",
-            "feedback": "Vitor Henrique Paro combate a transferência de modelos empresariais para a escola. Como a finalidade educacional é a apropriação da cultura e a formação humana, sua natureza é eminentemente política, exigindo que a comunidade participe de instâncias com poder real de deliberação."
-        },
-        {
-            "id": 3,
-            "eixo": "Eixo 2: Gestão Democrática e Temas Contemporâneos",
-            "enunciado": "A convivência entre diferentes sujeitos no espaço escolar pode gerar divergências de opiniões e interpretações. Considerando a perspectiva atual da gestão democrática sobre a mediação de conflitos, assinale a alternativa correta:",
-            "alternativas": [
-                "A) O conflito no ambiente escolar deve ser compreendido sempre como uma anomalia disciplinar que precisa ser eliminada.",
-                "B) O conflito emerge naturalmente em situações de compartilhamento de espaços e poder, cabendo ao gestor atuar como facilitador do processo.",
-                "C) A função principal do gestor é blindar a equipe docente das divergências sociais externas.",
-                "D) Cabe ao gestor escolar assumir sozinho a responsabilidade de solucionar as divergências com punições severas."
-            ],
-            "correta": "B",
-            "feedback": "O conflito é compreendido como um fenômeno natural nas relações interpessoais. O gestor democrático não age como um juiz punitivo ou repressor, mas desempenha o papel de facilitador para promover o diálogo e a cultura de paz no ambiente escolar."
-        },
-        {
-            "id": 4,
-            "eixo": "Eixo 2: Gestão Democrática e Temas Contemporâneos",
-            "enunciado": "A integração das Tecnologias da Informação e Comunicação e a Educação Digital tornaram-se pautas centrais. Sobre o papel da tecnologia no ambiente escolar, assinale a alternativa que reflete corretamente as diretrizes atuais:",
-            "alternativas": [
-                "A) O uso de tecnologias tem como objetivo principal a substituição do trabalho docente automatizando o ensino.",
-                "B) A educação digital foca exclusivamente no treinamento técnico para o uso de hardwares.",
-                "C) As tecnologias devem ser utilizadas para potencializar a aprendizagem, promovendo o letramento midiático de maneira crítica e ética.",
-                "D) O uso de telas deve ser estimulado de forma ininterrupta durante as aulas para garantir indicadores elevados."
-            ],
-            "correta": "C",
-            "feedback": "O letramento digital transcende a mera inserção de equipamentos nas escolas. A tecnologia atua como um instrumento de emancipação e produção de conhecimento, exigindo o desenvolvimento de um pensamento crítico e ético frente às mídias, sempre com o professor atuando na mediação ativa."
-        },
-        {
-            "id": 5,
-            "eixo": "Eixo 2: Gestão Democrática e Temas Contemporâneos",
-            "enunciado": "O atendimento educacional especializado busca garantir condições de aprendizagem a estudantes com necessidades específicas. Assinale a alternativa que expressa corretamente essa concepção de atendimento:",
-            "alternativas": [
-                "A) O AEE destina-se apenas a alunos com dificuldades temporárias sem necessidade de recursos.",
-                "B) O atendimento educacional especializado deve substituir totalmente o ensino regular.",
-                "C) O atendimento educacional especializado disponibiliza programas de enriquecimento curricular, ensino de linguagens, códigos de comunicação, ajudas técnicas e tecnologia assistiva.",
-                "D) O AEE deve funcionar de forma isolada, sem articulação com a proposta pedagógica comum."
-            ],
-            "correta": "C",
-            "feedback": "A política de inclusão estabelece que o Atendimento Educacional Especializado possui caráter complementar ou suplementar à formação do estudante. Ele provê recursos e estratégias específicas, não devendo jamais funcionar de forma isolada ou substituir o ensino ofertado nas classes comuns."
-        },
-        {
-            "id": 6,
-            "eixo": "Eixo 2: Gestão Democrática e Temas Contemporâneos",
-            "enunciado": "A Lei nº 13.722/2018 torna obrigatória a capacitação em noções básicas de primeiros socorros de professores e funcionários. A respeito dessa Lei, assinale a alternativa correta:",
-            "alternativas": [
-                "A) Os estabelecimentos não poderão manter sob sua guarda kits de primeiros socorros para evitar automedicação.",
-                "B) O conteúdo dos cursos de primeiros socorros deverá ser padronizado ignorando a faixa etária do público atendido.",
-                "C) Os cursos de primeiros socorros têm por objetivo capacitar os profissionais para identificar e agir preventivamente em situações de emergência até que o suporte médico especializado se torne possível.",
-                "D) É facultado aos estabelecimentos guardar a certificação que comprove a capacitação em primeiros socorros."
-            ],
-            "correta": "C",
-            "feedback": "A legislação, popularmente conhecida como Lei Lucas, determina que o objetivo central da formação é fornecer o preparo inicial para agir na preservação da vida. O conhecimento prévio estabiliza a situação de risco até que a intervenção médica oficial chegue ao local da ocorrência."
-        },
-        {
-            "id": 7,
-            "eixo": "Eixo 3: Legislação e Diretrizes Nacionais",
-            "enunciado": "Conforme a LDB (Lei nº 9.394/96), a organização do trabalho escolar divide claramente as responsabilidades. Assinale a alternativa que apresenta, correta e respectivamente, uma incumbência dos ESTABELECIMENTOS DE ENSINO e uma incumbência dos DOCENTES:",
-            "alternativas": [
-                "A) Estabelecer estratégias de recuperação para alunos de menor rendimento; Prover meios para a recuperação.",
-                "B) Elaborar e cumprir plano de trabalho; Participar da elaboração da proposta pedagógica.",
-                "C) Articular-se com as famílias e a comunidade, criando processos de integração; Zelar pela aprendizagem dos alunos.",
-                "D) Assegurar o cumprimento dos dias letivos; Administrar seu pessoal e seus recursos."
-            ],
-            "correta": "C",
-            "feedback": "O Artigo 12 da LDB designa à escola a função estrutural e administrativa de conectar-se com a comunidade e fornecer meios. Já o Artigo 13 incumbe o docente das responsabilidades estritamente pedagógicas, como zelar pelo progresso de ensino e estabelecer as estratégias avaliativas e de recuperação."
-        },
-        {
-            "id": 8,
-            "eixo": "Eixo 3: Legislação e Diretrizes Nacionais",
-            "enunciado": "Considerando os conceitos adotados pela Base Nacional Comum Curricular (BNCC), assinale a alternativa que define corretamente o conceito de competência e o papel do documento:",
-            "alternativas": [
-                "A) A BNCC é o currículo obrigatório que deve ser executado de forma engessada, e competência é a memorização de conteúdos.",
-                "B) O documento constitui uma referência nacional para a formulação dos currículos locais, e competência é definida como a mobilização de conhecimentos, habilidades, atitudes e valores.",
-                "C) A BNCC orienta exclusivamente o Ensino Fundamental e o Ensino Médio.",
-                "D) A BNCC atua como um manual imutável de métodos pedagógicos."
-            ],
-            "correta": "B",
-            "feedback": "A BNCC estabelece os direitos de aprendizagem que norteiam os currículos estaduais e municipais, sem se configurar como o currículo final. A abordagem por competências pressupõe a integração orgânica do saber teórico à sua aplicação prática, aliada a atitudes e valores éticos para a resolução de situações reais."
-        },
-        {
-            "id": 9,
-            "eixo": "Eixo 3: Legislação e Diretrizes Nacionais",
-            "enunciado": "As Leis nº 10.639/2003 e nº 11.645/2008 alteraram a LDB tornando obrigatório o estudo da história e cultura afro-brasileira e indígena. Com base nessas normativas, assinale a alternativa correta:",
-            "alternativas": [
-                "A) O estudo deve ser abordado de forma restrita a datas comemorativas específicas do calendário.",
-                "B) A obrigatoriedade destina-se exclusivamente ao Ensino Médio devido à maturidade cognitiva exigida.",
-                "C) A temática constitui um conteúdo transversal e obrigatório que deve ser integrado de maneira articulada a todo o currículo escolar, com ênfase em arte, literatura e história do Brasil.",
-                "D) O cumprimento da lei ocorre de maneira facultativa pelas redes de ensino público."
-            ],
-            "correta": "C",
-            "feedback": "As diretrizes estabelecem que a reparação histórica não ocorre de maneira pontual em datas isoladas. A cultura e a história africana e indígena formam a base identitária nacional, devendo estar incorporadas transversalmente em todos os momentos formativos da educação básica."
-        },
-        {
-            "id": 10,
-            "eixo": "Eixo 3: Legislação e Diretrizes Nacionais",
-            "enunciado": "A Lei nº 10.639/2003 incluiu no currículo oficial da Rede de Ensino a obrigatoriedade da temática 'História e Cultura Afro-Brasileira'. Essa alteração foi feita especificamente em qual artigo da LDB?",
-            "alternativas": [
-                "A) Artigo 2",
-                "B) Artigo 26-A",
-                "C) Artigo 53",
-                "D) Artigo 211"
-            ],
-            "correta": "B",
-            "feedback": "O Artigo 26-A da LDB é a principal e mais expressiva alteração legal no sentido de fomentar uma educação antirracista. A menção direta a esse artigo é um tópico frequente e rigorosamente exigido em questões de legislações estruturantes."
-        },
-        {
-            "id": 11,
-            "eixo": "Eixo 3: Legislação e Diretrizes Nacionais",
-            "enunciado": "Com base nas diretrizes da BNC-Diretor Escolar (Parecer CNE/CP nº 4/2021) e nas inovações da Política Nacional de Educação Especial Inclusiva (Decreto nº 12.686/2025), analise as afirmativas: I. A atuação do diretor restringe-se exclusivamente aos aspectos gerenciais e financeiros. II. O Decreto reforça que o AEE e as adaptações devem garantir a permanência em classes comuns. III. As dimensões da prática do diretor articulam competências político-pedagógicas, gerenciais e pessoais.",
-            "alternativas": [
-                "A) Apenas as afirmativas I e II estão corretas.",
-                "B) Apenas as afirmativas II e III estão corretas.",
-                "C) Apenas a afirmativa I está correta.",
-                "D) I, II e III estão corretas."
-            ],
-            "correta": "B",
-            "feedback": "O gestor escolar transcende a figura de um administrador focado apenas em orçamentos; sua liderança articula os aspectos pedagógicos, organizacionais e relacionais. A afirmação II condiz perfeitamente com a diretriz atual de que o atendimento inclusivo busca promover o desenvolvimento integral dentro da sala de aula comum."
+    # Assegura que todas as habilidades existam no estado do usuário
+    for unit in CURSO_ADE["units"]:
+        for skill in unit["skills"]:
+            if skill["id"] not in st.session_state.ade_mastery:
+                st.session_state.ade_mastery[skill["id"]] = {"level": 0, "score": 0, "attempts": 0}
+
+    # --- 4. BANCO DE CONTEÚDO E QUESTÕES ---
+    # O conteúdo teórico é fornecido estritamente em parágrafos descritivos e narrativos, garantindo imersão e contexto.
+    CONTEUDO_TEORICO = {
+        "u1_s1": "A obra de Paulo Freire propõe uma ruptura radical com a educação bancária, modelo no qual o estudante é concebido como um recipiente vazio destinado a receber depósitos passivos de informações. Em contrapartida, a prática educativa autêntica deve ser dialógica e problematizadora, criando condições para que o aluno construa o próprio conhecimento a partir da leitura crítica de sua realidade. A autonomia do sujeito histórico é forjada no encontro entre o educador e o educando, exigindo rigor metodológico e respeito inegociável aos saberes prévios dos estudantes.",
+        "u1_s2": "A Pedagogia Histórico-Crítica, sistematizada por Dermeval Saviani, compreende o conhecimento não como um dom inato, mas como o resultado do trabalho humano no processo histórico de transformação da natureza e da sociedade. A escola possui a função social imprescindível de democratizar o acesso ao saber clássico e historicamente acumulado, garantindo que as classes populares se apropriem das ferramentas intelectuais e culturais mais elevadas. Esse processo metodológico parte da prática social inicial, avança pela instrumentalização teórica e culmina na catarse, transformando a prática social final do indivíduo.",
+        "u1_s3": "José Carlos Libâneo estabelece que a Didática ultrapassa a mera aplicação de métodos e técnicas neutras de ensino, consolidando-se como uma disciplina que estuda o processo de ensino e aprendizagem em sua totalidade política e social. Na Tendência Crítico-Social dos Conteúdos, o professor exerce uma autoridade pedagógica diretiva para mediar o acesso ao saber, não estabelecendo uma horizontalidade absoluta que anule seu papel orientador, mas garantindo que os conteúdos universais sejam criticamente assimilados e vinculados às realidades sociais dos estudantes.",
+        "u1_s4": "Cipriano Luckesi promove uma distinção profunda entre o ato de examinar e o ato de avaliar. A pedagogia tradicional utiliza os exames de forma seletiva, punitiva e classificatória, focando exclusivamente na aprovação ou reprovação baseada no acúmulo temporário de dados. O verdadeiro ato de avaliar, no entanto, caracteriza-se pelo seu caráter diagnóstico, amoroso e inclusivo. A avaliação formativa serve como uma bússola constante para o trabalho docente, permitindo identificar as fragilidades na aprendizagem e reorientar as intervenções pedagógicas para garantir o desenvolvimento pleno de cada aluno.",
+        "u2_s1": "A gestão democrática no ambiente escolar demanda uma profunda transformação no papel da direção. Heloísa Lück defende que o diretor não deve atuar como um gerente centralizador ou burocrata distante, mas sim como um líder articulador capaz de mobilizar toda a comunidade escolar em torno do Projeto Político-Pedagógico. A liderança educacional eficaz sustenta-se na transparência e no uso estratégico de indicadores de desempenho, garantindo que as decisões coletivas não sejam tomadas de forma empírica, mas orientadas concretamente para a melhoria contínua da qualidade do ensino e da aprendizagem.",
+        "u2_s2": "A administração escolar, segundo Vitor Henrique Paro, difere essencialmente da administração de empresas capitalistas, uma vez que a finalidade da escola não é a extração de lucro ou a padronização de mercadorias, mas a apropriação da cultura e a formação de sujeitos livres. Por possuir uma natureza intrinsecamente política e educativa, a escola pública exige um modelo de gestão democrática que descentralize o poder. Os órgãos colegiados, como o Conselho de Escola, assumem funções deliberativas fundamentais, assegurando a participação ativa de pais, alunos e funcionários nas decisões financeiras e pedagógicas da instituição.",
+        "u3_s1": "A Lei de Diretrizes e Bases da Educação Nacional delineia com precisão a divisão de responsabilidades na rotina escolar para garantir o pleno funcionamento institucional. Incumbe aos estabelecimentos de ensino a função estrutural de articular a comunidade, elaborar a proposta pedagógica e prover os meios físicos e temporais para a recuperação dos estudantes. Simultaneamente, cabe aos docentes a responsabilidade estritamente pedagógica de zelar pela aprendizagem contínua e, a partir de seu diagnóstico em sala de aula, estabelecer as estratégias didáticas específicas e individualizadas para recuperar os alunos de menor rendimento.",
+        "u3_s2": "A Base Nacional Comum Curricular não se configura como um currículo rígido e padronizado, mas sim como uma referência normativa essencial que define o conjunto orgânico de aprendizagens que todos os estudantes brasileiros têm o direito de desenvolver. Seu eixo estruturante é o ensino por competências, um conceito que supera a mera memorização mecânica de fatos. A competência é definida como a complexa mobilização de conhecimentos teóricos, habilidades cognitivas e socioemocionais, atitudes éticas e valores humanistas, capacitando o indivíduo a solucionar as demandas complexas da vida cotidiana e a exercer o protagonismo social."
+    }
+
+    # Preenchendo com textos genéricos descritivos para não quebrar o layout das demais habilidades
+    for unit in CURSO_ADE["units"]:
+        for skill in unit["skills"]:
+            if skill["id"] not in CONTEUDO_TEORICO:
+                CONTEUDO_TEORICO[skill["id"]] = "O aprofundamento desta temática é indispensável para o pleno domínio das normativas e práticas pedagógicas exigidas no edital. O estudo minucioso dos fundamentos legais e metodológicos garante a capacidade de análise crítica necessária para a resolução assertiva de problemas no cotidiano da gestão escolar e na interpretação das avaliações elaboradas por bancas examinadoras contemporâneas."
+
+    QUESTOES_DB = {
+        "u1_s1": [
+            {"enunciado": "A obra de Paulo Freire critica o modelo tradicional de educação. Nessa concepção, frequentemente denominada de bancária, o educando é concebido fundamentalmente como:", "opcoes": ["A) Um recipiente vazio a ser preenchido passivamente pelos depósitos de conteúdo do educador.", "B) Um investigador autônomo das realidades sociais.", "C) Um agente de transformação da sua própria realidade.", "D) Um sujeito ativo na construção coletiva do conhecimento e da cultura."], "correta": 0, "feedback": "O conceito de educação bancária ilustra o aluno como um cofre vazio onde o professor deposita informações, negando a dialogicidade e a capacidade crítica, elementos centrais nas demais alternativas que representam a pedagogia problematizadora."},
+            {"enunciado": "Em Pedagogia da Autonomia, Paulo Freire defende que a prática educativa exige respeito aos saberes do educando. A afirmação central dessa obra postula que ensinar exige a compreensão de que o conhecimento se constrói mediante:", "opcoes": ["A) O treinamento focado nas competências exigidas para o ajustamento do indivíduo às normas vigentes.", "B) Uma ação instrucional, na qual a autoridade docente é afirmada pela fixação dos conteúdos rígidos.", "C) Uma prática dialógica e problematizadora, criando as possibilidades para a própria produção do saber.", "D) Um mecanismo de transferência vertical de informações para garantir a disciplina institucional."], "correta": 2, "feedback": "A prática dialógica e problematizadora permite que o aluno não receba o saber pronto, mas atue como criador do seu próprio conhecimento, rompendo com o mecanismo de transferência vertical apontado nas alternativas incorretas."}
+        ],
+        "u1_s2": [
+            {"enunciado": "A teoria da pedagogia histórico-crítica, estruturada por Dermeval Saviani, propõe uma compreensão materialista da educação. Segundo essa vertente, a construção do conhecimento se dá fundamentalmente porque:", "opcoes": ["A) O conhecimento é um dom inato e individual, despertado pela mediação escolar de forma isolada.", "B) A existência social dos homens gera o conhecimento, pois este resulta do trabalho humano e da prática social na transformação do mundo.", "C) A escola deve focar exclusivamente nos saberes do senso comum, rejeitando os conhecimentos científicos.", "D) O aprendizado resulta de experiências subjetivas desvinculadas do contexto histórico, material e econômico da humanidade."], "correta": 1, "feedback": "Saviani pauta-se no materialismo histórico, onde a prática social e o trabalho humano são os geradores do saber. A escola tem a função de socializar esse conhecimento acumulado, e não de se restringir ao senso comum ou a experiências subjetivas isoladas."}
+        ],
+        "u1_s3": [
+            {"enunciado": "A Didática ocupa papel central na formação docente. Com base na perspectiva crítica defendida por José Carlos Libâneo, assinale a alternativa que expressa corretamente a concepção atual da disciplina:", "opcoes": ["A) Limita-se ao domínio de técnicas e métodos neutros de ensino, garantindo a padronização do aprendizado.", "B) Restringe-se ao planejamento burocrático e à execução de aulas expositivas, isolando a escola da política.", "C) É um conjunto de regras fixas e imutáveis que garantem o sucesso e a disciplina em sala de aula.", "D) Tem como objetivo os processos de ensino e de aprendizagem, ultrapassando a técnica e servindo como meio de compreensão crítica da educação."], "correta": 3, "feedback": "Libâneo combate a visão tecnicista e neutra da didática. Para ele, o ato de ensinar é indissociável da leitura política e crítica da sociedade, onde o método não é uma regra fixa, mas uma ferramenta de emancipação."}
+        ],
+        "u1_s4": [
+            {"enunciado": "Luckesi distingue exame e avaliação como práticas com finalidades distintas. O ato de examinar se caracteriza pela seletividade do educando, enquanto o ato de avaliar caracteriza-se pelo seu caráter diagnóstico e pela:", "opcoes": ["A) Classificação", "B) Punição", "C) Inclusão", "D) Sistematização classificatória"], "correta": 2, "feedback": "Enquanto o exame classifica, rotula e exclui o aluno que não atinge a nota esperada, a avaliação formativa é um ato amoroso, de diagnóstico e de inclusão, servindo para orientar os rumos da aprendizagem de todos os estudantes."}
+        ],
+        "u2_s1": [
+            {"enunciado": "Para Heloísa Lück, a gestão democrática exige a superação de modelos tradicionais de administração escolar. Nesse contexto, a atuação do diretor deve caracterizar-se por:", "opcoes": ["A) Postura centralizadora para garantir que as metas institucionais não sofram interferência da comunidade.", "B) Processo contínuo de mobilização e articulação do trabalho coletivo, utilizando indicadores de desempenho para orientar a tomada de decisão conjunta.", "C) Delegação integral de responsabilidades financeiras para a coordenação pedagógica.", "D) Administração burocrática focada no cumprimento rígido e inflexível de normas regulamentares."], "correta": 1, "feedback": "A liderança em Heloísa Lück é definida pela capacidade de mobilizar as pessoas. Os indicadores de desempenho são bússolas para a decisão coletiva, distanciando-se de práticas centralizadoras ou burocráticas."}
+        ],
+        "u2_s2": [
+            {"enunciado": "Com base nos estudos de Vitor Henrique Paro, assinale a alternativa que define a natureza da administração na escola pública:", "opcoes": ["A) Espelhar-se nos métodos da administração empresarial, visando a eficiência técnica.", "B) Isolar as influências sociais comunitárias para proteger o desenvolvimento do currículo.", "C) Reconhecer a natureza política da educação, exigindo uma administração democrática onde a participação ocorre em instâncias deliberativas.", "D) Manter os órgãos colegiados, como o conselho de escola, em caráter meramente consultivo."], "correta": 2, "feedback": "Paro critica severamente a escola-empresa. A escola forma cidadãos, por isso sua essência é política e participativa, necessitando de órgãos colegiados que tenham poder real de deliberação sobre os rumos institucionais."}
+        ],
+        "u3_s1": [
+            {"enunciado": "Conforme a Lei de Diretrizes e Bases da Educação Nacional, a organização do trabalho escolar divide claramente as responsabilidades. É incumbência dos ESTABELECIMENTOS DE ENSINO e dos DOCENTES, respectivamente:", "opcoes": ["A) Estabelecer estratégias de recuperação; Prover meios para recuperação.", "B) Articular-se com as famílias e a comunidade; Zelar pela aprendizagem dos alunos.", "C) Elaborar o plano de trabalho; Administrar os recursos materiais.", "D) Assegurar o cumprimento dos dias letivos; Participar da gestão de verbas públicas."], "correta": 1, "feedback": "O Artigo 12 da LDB designa à escola a função de articulação comunitária e o provimento de meios de recuperação. O Artigo 13 incumbe ao docente zelar pela aprendizagem e definir as estratégias metodológicas de recuperação."}
+        ],
+        "u3_s2": [
+            {"enunciado": "A Base Nacional Comum Curricular (BNCC) atua como um documento central. Considerando o texto oficial, assinale a definição correta do conceito de competência:", "opcoes": ["A) Memorização sistemática de fatos históricos e fórmulas para avaliações padronizadas.", "B) Cumprimento rígido de metodologias fixadas nacionalmente pelo Ministério da Educação.", "C) Adaptação comportamental do aluno para atender às exigências corporativas imediatas.", "D) Mobilização de conhecimentos, habilidades, atitudes e valores para resolver demandas complexas da vida cotidiana e do exercício da cidadania."], "correta": 3, "feedback": "A competência na BNCC supera a mera acumulação de conteúdos teóricos, exigindo a articulação de habilidades práticas e valores éticos para que o estudante saiba como atuar diante das complexidades do mundo real."}
+        ]
+    }
+
+    # Preenche as habilidades que não têm questões específicas com uma questão de demonstração
+    for unit in CURSO_ADE["units"]:
+        for skill in unit["skills"]:
+            if skill["id"] not in QUESTOES_DB:
+                QUESTOES_DB[skill["id"]] = [
+                    {"enunciado": f"Questão diagnóstica referente aos preceitos de {skill['title']}. Assinale a alternativa que corrobora as diretrizes educacionais estudadas:", "opcoes": ["A) Adoção de perspectivas puramente burocráticas e centralizadoras.", "B) Aplicação de metodologias inclusivas, democráticas e focadas na formação humana integral.", "C) Isolamento da unidade escolar das demandas do território e da comunidade.", "D) Substituição da mediação docente por ferramentas de automação mercadológica."], "correta": 1, "feedback": "As normativas educacionais contemporâneas repudiam a burocratização excessiva, o isolamento comunitário e a neutralidade tecnológica, exigindo sempre abordagens democráticas, participativas e humanistas."}
+                ]
+
+    # --- 5. LÓGICA DE CÁLCULO E ESTILIZAÇÃO DO DASHBOARD ---
+    def get_level_info(level_num):
+        levels = {
+            0: {"name": "Não iniciado", "color": "#ffffff", "border": "#cbd5e1", "icon": ""},
+            1: {"name": "Tentativa", "color": "#fee2e2", "border": "#ef4444", "icon": ""},
+            2: {"name": "Familiar", "color": "#fef3c7", "border": "#f59e0b", "icon": ""},
+            3: {"name": "Proficiente", "color": "#e0e7ff", "border": "#6366f1", "icon": ""},
+            4: {"name": "Dominado", "color": "#4b286d", "border": "#4b286d", "icon": "👑"}
         }
-    ]
+        return levels.get(level_num, levels[0])
 
-    # Inicialização de variáveis de estado do Quiz
-    if 'ade_respostas' not in st.session_state:
-        st.session_state.ade_respostas = {}
-    if 'aba_ativa_ade' not in st.session_state:
-        st.session_state.aba_ativa_ade = "Material Teórico"
+    total_score = sum(skill_data["score"] for skill_data in st.session_state.ade_mastery.values())
+    
+    # CSS Customizado para recriar o visual de domínios
+    st.markdown("""
+    <style>
+        .mastery-dashboard { font-family: 'Inter', sans-serif; background-color: #f8fafc; padding: 20px; border-radius: 12px; }
+        .mastery-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .mastery-points { font-size: 1.2rem; color: #475569; font-weight: 600; }
+        .legend-container { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 30px; font-size: 0.85rem; color: #334155; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .box-sample { width: 18px; height: 18px; border-radius: 4px; border: 1px solid; }
+        
+        .unit-container { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .unit-title { font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; }
+        .skills-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
+        .skill-box { 
+            width: 28px; height: 28px; border-radius: 6px; border: 2px solid; 
+            display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: white;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        /* Level Colors */
+        .lvl-0 { background-color: #ffffff; border-color: #cbd5e1; }
+        .lvl-1 { background-color: #fca5a5; border-color: #ef4444; }
+        .lvl-2 { background-color: #fcd34d; border-color: #f59e0b; }
+        .lvl-3 { background-color: #818cf8; border-color: #6366f1; }
+        .lvl-4 { background-color: #4b286d; border-color: #4b286d; }
+        
+        .stButton>button { border-radius: 8px; font-weight: 600; }
+    </style>
+    """, unsafe_allow_html=True)
 
-    tabs_ade = st.tabs(["📚 Material Teórico", "🎯 Treinamento e Simulado", "📖 Desempenho e Revisão"])
+    # --- 6. CONTROLADOR DE VIZUALIZAÇÃO ---
+    if st.session_state.ade_view == 'dashboard':
+        
+        st.markdown(f"""
+        <div class="mastery-dashboard">
+            <div class="mastery-header">
+                <h2 style="margin:0; color:#1e293b; font-size: 1.8rem; font-weight: 800;">Mapa de Domínio</h2>
+                <div class="mastery-points">🏆 {total_score} / {CURSO_ADE['total_points']} pontos alcançados</div>
+            </div>
+            
+            <div class="legend-container">
+                <div class="legend-item"><div class="box-sample lvl-4"></div> Dominado</div>
+                <div class="legend-item"><div class="box-sample lvl-3"></div> Proficiente</div>
+                <div class="legend-item"><div class="box-sample lvl-2"></div> Familiar</div>
+                <div class="legend-item"><div class="box-sample lvl-1"></div> Tentativa</div>
+                <div class="legend-item"><div class="box-sample lvl-0"></div> Não iniciado</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.write("")
+        
+        for unit in CURSO_ADE["units"]:
+            # Gera os blocos visuais de HTML
+            boxes_html = ""
+            for skill in unit["skills"]:
+                lvl = st.session_state.ade_mastery[skill["id"]]["level"]
+                icon = "👑" if lvl == 4 else ""
+                boxes_html += f'<div class="skill-box lvl-{lvl}" title="{skill["title"]}">{icon}</div>'
+            
+            st.markdown(f"""
+            <div class="unit-container">
+                <div class="unit-title">{unit["title"]}</div>
+                <div class="skills-grid">{boxes_html}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Botões de acesso nativos do Streamlit abaixo do grid visual
+            with st.expander(f"Acessar Lições: {unit['title']}", expanded=False):
+                for skill in unit["skills"]:
+                    c_btn, c_status = st.columns([3, 1])
+                    if c_btn.button(f"📘 Praticar: {skill['title']}", key=f"btn_{skill['id']}", use_container_width=True):
+                        st.session_state.ade_current_skill = skill
+                        st.session_state.ade_view = 'lesson'
+                        st.session_state.ade_current_answers = {}
+                        st.rerun()
+                    
+                    lvl_info = get_level_info(st.session_state.ade_mastery[skill["id"]]["level"])
+                    c_status.markdown(f"<div style='padding: 8px; text-align: center; border-radius: 6px; background-color: {lvl_info['color']}; color: {'white' if lvl_info['name'] == 'Dominado' else 'black'}; font-size: 0.8rem; border: 1px solid {lvl_info['border']};'><b>{lvl_info['name']}</b></div>", unsafe_allow_html=True)
 
-    with tabs_ade[0]:
-        st.subheader("Síntese das Diretrizes e Fundamentos")
-        st.write("Abaixo encontram-se as descrições conceituais dos eixos centrais estruturados para o concurso. A leitura atenta consolida o arcabouço teórico necessário para a análise das questões propostas.")
+    elif st.session_state.ade_view == 'lesson':
+        skill = st.session_state.ade_current_skill
+        
+        c_back, c_title = st.columns([1, 4])
+        if c_back.button("⬅️ Voltar ao Mapa", use_container_width=True):
+            st.session_state.ade_view = 'dashboard'
+            st.rerun()
+            
+        st.markdown(f"<h2 style='color:#1e3a8a; margin-top:0;'>{skill['title']}</h2>", unsafe_allow_html=True)
         st.divider()
-        for eixo, texto in MATERIAL_ESTUDO.items():
-            st.markdown(f"##### {eixo}")
-            st.write(texto)
-            st.write("")
-
-    with tabs_ade[1]:
-        st.subheader("Bateria de Questões Oficiais")
-        st.write("Resolva as questões selecionadas. O feedback correspondente a cada raciocínio elaborado será registrado em seu caderno de revisão.")
         
-        for q in BANCO_QUESTOES:
-            st.markdown(f"**Questão {q['id']} - {q['eixo']}**")
-            st.write(q['enunciado'])
+        tab_teoria, tab_pratica = st.tabs(["📖 Pílula Teórica", "🎯 Desafio de Domínio"])
+        
+        with tab_teoria:
+            st.markdown("#### Fundamentação Científica e Normativa")
+            texto_teorico = CONTEUDO_TEORICO.get(skill["id"], "")
+            st.markdown(f"<div style='font-size: 1.05rem; line-height: 1.7; color: #334155; text-align: justify; padding: 20px; background: white; border-radius: 8px; border: 1px solid #e2e8f0;'>{texto_teorico}</div>", unsafe_allow_html=True)
             
-            resp = st.radio("Selecione sua alternativa:", q['alternativas'], index=None, key=f"q_{q['id']}")
+        with tab_pratica:
+            questoes = QUESTOES_DB.get(skill["id"], [])
             
-            if st.button("Confirmar", key=f"btn_confirm_{q['id']}"):
+            st.info("Responda atentamente às questões abaixo para avançar o seu nível de domínio nesta competência.")
+            
+            for idx, q in enumerate(questoes):
+                st.markdown(f"**Questão {idx + 1}**")
+                st.write(q["enunciado"])
+                
+                resp = st.radio("Selecione a alternativa correta:", q["opcoes"], index=None, key=f"q_{skill['id']}_{idx}")
                 if resp:
-                    letra_escolhida = resp[0]
-                    acertou = (letra_escolhida == q['correta'])
-                    st.session_state.ade_respostas[q['id']] = {
-                        "enunciado": q['enunciado'],
-                        "escolha": resp,
-                        "correta": q['correta'],
-                        "acertou": acertou,
-                        "feedback": q['feedback']
-                    }
-                    if acertou:
-                        st.success("Alternativa correta registrada.")
-                    else:
-                        st.error("Alternativa incorreta. O conteúdo foi adicionado ao seu caderno de revisão.")
-                else:
-                    st.warning("Selecione uma alternativa antes de confirmar a questão.")
-            st.divider()
-
-    with tabs_ade[2]:
-        st.subheader("Caderno de Erros e Feedbacks")
-        st.write("Os apontamentos a seguir reúnem o detalhamento técnico das questões que necessitam de consolidação teórica.")
-        
-        erros_cometidos = {k: v for k, v in st.session_state.ade_respostas.items() if not v['acertou']}
-        
-        if erros_cometidos:
-            for q_id, dados in erros_cometidos.items():
-                st.markdown(f"**Referente à Questão {q_id}:**")
-                st.write(dados['enunciado'])
-                st.warning(f"Alternativa marcada: {dados['escolha']}")
-                st.info(f"Análise Pedagógica: {dados['feedback']}")
+                    st.session_state.ade_current_answers[idx] = q["opcoes"].index(resp)
+                    
                 st.divider()
-        else:
-            if not st.session_state.ade_respostas:
-                st.write("Inicie a resolução do simulado para gerar os relatórios de desempenho.")
-            else:
-                st.success("Desempenho excelente. Não há falhas registradas na sua trilha de estudo atual.")
+                
+            if st.button("Submeter Avaliação e Calcular Domínio", type="primary", use_container_width=True):
+                if len(st.session_state.ade_current_answers) < len(questoes):
+                    st.warning("É necessário responder a todas as questões propostas para submeter a avaliação.")
+                else:
+                    acertos = 0
+                    for idx, q in enumerate(questoes):
+                        if st.session_state.ade_current_answers[idx] == q["correta"]:
+                            acertos += 1
+                            
+                    perc = acertos / len(questoes)
+                    
+                    # Lógica do Khan Academy Mastery
+                    novo_level = 1 # Tentativa
+                    if perc >= 0.5: novo_level = 2 # Familiar
+                    if perc >= 0.8: novo_level = 3 # Proficiente
+                    if perc == 1.0: novo_level = 4 # Dominado
+                    
+                    estado_atual = st.session_state.ade_mastery[skill["id"]]
+                    estado_atual["attempts"] += 1
+                    
+                    if novo_level > estado_atual["level"]:
+                        estado_atual["level"] = novo_level
+                        # Calcula os pontos (ex: nível 4 = 100% dos pontos da skill)
+                        estado_atual["score"] = int((novo_level / 4) * skill["points"])
+                        
+                    st.session_state.ade_view = 'feedback'
+                    st.session_state.ade_last_score = perc
+                    st.session_state.ade_last_correct = acertos
+                    st.session_state.ade_last_total = len(questoes)
+                    st.rerun()
+
+    elif st.session_state.ade_view == 'feedback':
+        skill = st.session_state.ade_current_skill
+        acertos = st.session_state.ade_last_correct
+        total = st.session_state.ade_last_total
+        
+        st.subheader("Relatório de Desempenho")
+        
+        # Display the result
+        lvl_info = get_level_info(st.session_state.ade_mastery[skill["id"]]["level"])
+        
+        c_res1, c_res2 = st.columns(2)
+        c_res1.metric("Questões Corretas", f"{acertos} de {total}")
+        c_res2.markdown(f"<div style='padding: 15px; text-align: center; border-radius: 8px; background-color: {lvl_info['color']}; color: {'white' if lvl_info['name'] == 'Dominado' else 'black'}; font-size: 1.2rem; border: 2px solid {lvl_info['border']};'>Nível Atingido: <b>{lvl_info['name']} {lvl_info['icon']}</b></div>", unsafe_allow_html=True)
+        
+        st.divider()
+        st.markdown("### Caderno de Correção Pedagógica")
+        
+        questoes = QUESTOES_DB.get(skill["id"], [])
+        for idx, q in enumerate(questoes):
+            resposta_dada = st.session_state.ade_current_answers[idx]
+            correta = q["correta"]
+            
+            with st.expander(f"Análise da Questão {idx + 1} - {'✅ Acerto' if resposta_dada == correta else '❌ Erro'}", expanded=True):
+                st.write(q["enunciado"])
+                st.write(f"**Sua resposta:** {q['opcoes'][resposta_dada]}")
+                if resposta_dada != correta:
+                    st.write(f"**Gabarito Oficial:** {q['opcoes'][correta]}")
+                
+                st.info(f"**Fundamentação Teórica:** {q['feedback']}")
+
+        st.divider()
+        if st.button("⬅️ Retornar ao Mapa de Domínio", type="primary", use_container_width=True):
+            st.session_state.ade_view = 'dashboard'
+            st.rerun()

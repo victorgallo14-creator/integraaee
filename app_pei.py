@@ -12708,29 +12708,191 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         st.error("Ambiente de uso estrito e exclusivo. Acesso bloqueado.")
         st.stop()
 
-    # --- IMPORTAÇÕES DA ARQUITETURA CORE ---
-    from core.models import Competency, Attempt
-    from core.mastery import MasteryEngine
-    from core.adaptive import AdaptiveEngine
-    from services.storage import SupabaseStorage
+    # ==========================================================================
+    # 1. NÚCLEO COGNITIVO E DADOS (Embutido para evitar ModuleNotFoundError)
+    # ==========================================================================
+    from dataclasses import dataclass, field
+    from datetime import datetime, timezone
+    from math import exp
+    from typing import Optional, Dict, List, Any
     import random
+    import json
 
-    # --- INICIALIZAÇÃO DOS MOTORES E CONEXÃO SUPABASE ---
-    if 'ade_storage' not in st.session_state:
-        # Passamos a conexão Supabase que já existe no seu app_pei.py
-        st.session_state.ade_storage = SupabaseStorage(supabase)
-        
-    if 'ade_engine' not in st.session_state:
-        st.session_state.ade_engine = MasteryEngine()
-        # Restaura a memória cognitiva do banco de dados na inicialização
-        estados_salvos = st.session_state.ade_storage.load_all_skill_states()
-        st.session_state.ade_engine.states = estados_salvos
+    @dataclass
+    class Competency:
+        id: str
+        eixo: str
+        name: str
+        description: str
+        importance: float = 0.5
 
-    if 'ade_view' not in st.session_state:
-        st.session_state.ade_view = 'dashboard'
+    @dataclass
+    class Attempt:
+        question_id: str
+        competency_id: str
+        correct: bool
+        difficulty: float = 5.0
+        time_seconds: Optional[float] = None
+        confidence: Optional[int] = None
+        error_type: Optional[str] = None
+        timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    # --- DEFINIÇÃO DO EDITAL (GRAFO DE COMPETÊNCIAS) ---
-    # Em produção, isso viria do banco, mas mantemos aqui para inicialização imediata
+    @dataclass
+    class SkillState:
+        competency_id: str
+        mastery: float = 0.0
+        retention: float = 0.0
+        application: float = 0.0
+        speed: float = 0.0
+        consistency: float = 0.0
+        attempts: int = 0
+        correct: int = 0
+        risk: float = 1.0
+        last_seen: Optional[datetime] = None
+        next_review: Optional[datetime] = None
+        error_counts: Dict[str, int] = field(default_factory=dict)
+
+    class MasteryEngine:
+        def __init__(self):
+            self.states: Dict[str, SkillState] = {}
+
+        def get_state(self, competency_id: str) -> SkillState:
+            if competency_id not in self.states:
+                self.states[competency_id] = SkillState(competency_id=competency_id)
+            return self.states[competency_id]
+
+        def register_attempt(self, attempt: Attempt):
+            state = self.get_state(attempt.competency_id)
+            state.attempts += 1
+            if attempt.correct:
+                state.correct += 1
+            if attempt.error_type:
+                state.error_counts[attempt.error_type] = state.error_counts.get(attempt.error_type, 0) + 1
+            state.last_seen = attempt.timestamp
+
+            self._update_mastery(state, attempt)
+            self._update_speed(state, attempt)
+            self._update_consistency(state)
+            self._update_retention(state)
+            self._update_risk(state)
+
+        def _update_mastery(self, state: SkillState, attempt: Attempt):
+            performance = 1.0 if attempt.correct else 0.0
+            difficulty_factor = 0.7 + (attempt.difficulty / 10.0) * 0.3
+            evidence = performance * difficulty_factor
+            learning_rate = 0.18
+            state.mastery += learning_rate * (evidence - state.mastery)
+            state.mastery = max(0.0, min(1.0, state.mastery))
+
+        def _update_speed(self, state: SkillState, attempt: Attempt):
+            if attempt.time_seconds is None: return
+            target = 90.0
+            performance = min(1.0, target / max(attempt.time_seconds, 1))
+            if state.speed == 0: state.speed = performance
+            else: state.speed = (state.speed * 0.8 + performance * 0.2)
+
+        def _update_consistency(self, state: SkillState):
+            if state.attempts > 0: state.consistency = state.correct / state.attempts
+
+        def _update_retention(self, state: SkillState):
+            if state.last_seen is None:
+                state.retention = 0.0
+                return
+            now = datetime.now(timezone.utc)
+            days = (now - state.last_seen).total_seconds() / 86400
+            decay = exp(-days / 14)
+            state.retention = state.mastery * decay
+
+        def _update_risk(self, state: SkillState):
+            deficit = 1 - state.mastery
+            retention_deficit = 1 - state.retention
+            risk = (deficit * 0.60 + retention_deficit * 0.40)
+            state.risk = max(0.0, min(1.0, risk))
+
+        def get_priority(self, competency_id: str, importance: float = 0.5) -> float:
+            state = self.get_state(competency_id)
+            return state.risk * importance
+
+        def get_level(self, competency_id: str) -> int:
+            state = self.get_state(competency_id)
+            if state.mastery < 0.40: return 1  
+            if state.mastery < 0.65: return 2  
+            if state.mastery < 0.85: return 3  
+            return 4  
+
+    class AdaptiveEngine:
+        def __init__(self, mastery_engine: MasteryEngine, competencies: List[Competency]):
+            self.mastery = mastery_engine
+            self.competencies = {c.id: c for c in competencies}
+
+        def calculate_priorities(self) -> List[Dict[str, Any]]:
+            priorities = []
+            for comp_id, comp in self.competencies.items():
+                state = self.mastery.get_state(comp_id)
+                deficit = 1.0 - state.mastery
+                risk = state.risk
+                priority_score = deficit * risk * comp.importance
+                
+                next_action_code = "estudar_teoria" if state.mastery < 0.40 else "questoes_aplicacao"
+                action_map = {
+                    "estudar_teoria": "Ler Teoria + Questões Básicas",
+                    "revisar": "Revisão Espaçada",
+                    "questoes_aplicacao": "Treino Prático (Aplicação)",
+                    "treino_cronometrado": "Treino de Velocidade",
+                    "questoes_desafio": "Questões Nível Hard"
+                }
+                
+                priorities.append({
+                    "competency_id": comp_id,
+                    "name": comp.name,
+                    "priority_score": priority_score,
+                    "risk": risk,
+                    "recommended_action": action_map.get(next_action_code, "Estudo Misto"),
+                    "action_code": next_action_code
+                })
+                
+            priorities.sort(key=lambda x: x["priority_score"], reverse=True)
+            return priorities
+
+        def generate_mission(self, available_minutes: int = 45) -> Dict[str, Any]:
+            ranked_priorities = self.calculate_priorities()
+            top_risks = ranked_priorities[:3] if len(ranked_priorities) >= 3 else ranked_priorities
+            
+            mission_items = []
+            time_alloc = [0.40, 0.30, 0.30]
+            
+            for i, target in enumerate(top_risks):
+                time_m = int(available_minutes * time_alloc[i])
+                mission_items.append({
+                    "order": i + 1,
+                    "type": "Foco Crítico" if i == 0 else "Reforço",
+                    "target": target,
+                    "time_minutes": time_m,
+                    "questions_target": int(time_m * 1.2)
+                })
+            
+            return {
+                "total_time": available_minutes,
+                "mission_items": mission_items
+            }
+
+    class SupabaseStorageMock:
+        """
+        Garante que o app rode mesmo se as tabelas ainda não estiverem prontas no Supabase.
+        Substituiremos pelo código real quando você confirmar que rodou o SQL.
+        """
+        def __init__(self, db):
+            self.db = db
+        def save_attempt(self, attempt):
+            pass
+        def save_skill_state(self, state):
+            pass
+        def load_all_skill_states(self):
+            return {}
+
+    # ==========================================================================
+    # 2. DEFINIÇÃO DO EDITAL (GRAFO DE COMPETÊNCIAS)
+    # ==========================================================================
     COMPETENCIAS_EDITAL = [
         Competency("ESP.FREIRE", "Eixo 1", "Paulo Freire: Autonomia", "Ruptura com educação bancária", importance=0.9),
         Competency("ESP.SAVIANI", "Eixo 1", "Saviani: Histórico-Crítica", "Função social do saber clássico", importance=0.85),
@@ -12742,6 +12904,20 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         Competency("LEG.LDB.12", "Eixo 3", "LDB: Escola vs Docente", "Artigos 12 e 13 da LDB", importance=0.95),
         Competency("LEG.BNCC", "Eixo 3", "BNCC: Competências", "Mobilização de saberes práticos", importance=0.85)
     ]
+
+    # ==========================================================================
+    # 3. INICIALIZAÇÃO DE ESTADOS DO STREAMLIT
+    # ==========================================================================
+    if 'ade_storage' not in st.session_state:
+        st.session_state.ade_storage = SupabaseStorageMock(supabase)
+        
+    if 'ade_engine' not in st.session_state:
+        st.session_state.ade_engine = MasteryEngine()
+        estados_salvos = st.session_state.ade_storage.load_all_skill_states()
+        st.session_state.ade_engine.states = estados_salvos
+
+    if 'ade_view' not in st.session_state:
+        st.session_state.ade_view = 'dashboard'
 
     if 'ade_adaptive' not in st.session_state:
         st.session_state.ade_adaptive = AdaptiveEngine(st.session_state.ade_engine, COMPETENCIAS_EDITAL)
@@ -12763,26 +12939,27 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         .mission-item:last-child { border-bottom: none; }
         .tag-action { font-size: 0.7rem; font-weight: bold; background: #f1f5f9; padding: 3px 8px; border-radius: 4px; color: #475569; text-transform: uppercase; }
         
-        .skill-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px; }
-        .status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .unit-block { margin-bottom: 30px; }
+        .unit-name { font-size: 1.2rem; font-weight: 700; color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 15px; }
+        .grid-skills { display: grid; grid-template-columns: repeat(auto-fill, minmax(28px, 1fr)); gap: 8px; }
         
-        .dot-0 { background-color: #cbd5e1; } /* Não Iniciado */
-        .dot-1 { background-color: #ef4444; } /* Fragil */
-        .dot-2 { background-color: #f59e0b; } /* Instavel */
-        .dot-3 { background-color: #3b82f6; } /* Proficiente */
-        .dot-4 { background-color: #4f46e5; } /* Dominado */
+        .status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .dot-0 { background-color: #cbd5e1; } 
+        .dot-1 { background-color: #ef4444; } 
+        .dot-2 { background-color: #f59e0b; } 
+        .dot-3 { background-color: #3b82f6; } 
+        .dot-4 { background-color: #4f46e5; } 
         
         .q-container { background: white; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
     # ==============================================================================
-    # VIEWS DO SISTEMA
+    # 4. VIEWS DO SISTEMA
     # ==============================================================================
 
     if st.session_state.ade_view == 'dashboard':
         
-        # --- CÁLCULO DA PRONTIDÃO COMPETITIVA ---
         total_mastery = sum(engine.get_state(c.id).mastery * c.importance for c in COMPETENCIAS_EDITAL)
         total_weight = sum(c.importance for c in COMPETENCIAS_EDITAL)
         prontidao = (total_mastery / total_weight * 100) if total_weight > 0 else 0
@@ -12809,7 +12986,6 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             st.markdown("### ⚡ Sua Missão Hoje")
             minutos_disp = st.slider("Tempo disponível agora (minutos):", min_value=15, max_value=120, value=45, step=5)
             
-            # Gera a missão baseada no Adaptive Engine
             missao_hoje = adaptive.generate_mission(available_minutes=minutos_disp)
             
             html_missao = """<div class="mission-card">"""
@@ -12842,30 +13018,33 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             st.markdown("### 🗺️ Radar do Edital")
             st.caption("Visão raio-x das suas vulnerabilidades")
             
-            # Mapeia as competências visualmente com a bolinha de cor indicando o nível
+            # Organiza por eixo para visualização limpa
+            eixos = {"Eixo 1": [], "Eixo 2": [], "Eixo 3": []}
             for comp in COMPETENCIAS_EDITAL:
-                lvl = engine.get_level(comp.id) if engine.get_state(comp.id).attempts > 0 else 0
-                status_name = ["Não Iniciado", "Frágil", "Instável", "Proficiente", "Dominado"][lvl]
-                
-                st.markdown(f"""
-                <div class="skill-row">
-                    <div style="font-weight: 600; color: #334155; font-size: 0.9rem;">
-                        <span class="status-dot dot-{lvl}"></span>{comp.name}
+                if comp.eixo in eixos: eixos[comp.eixo].append(comp)
+            
+            for nome_eixo, comps in eixos.items():
+                st.markdown(f"<div class='unit-name'>{nome_eixo}</div>", unsafe_allow_html=True)
+                for comp in comps:
+                    lvl = engine.get_level(comp.id) if engine.get_state(comp.id).attempts > 0 else 0
+                    status_name = ["Não Iniciado", "Frágil", "Instável", "Proficiente", "Dominado"][lvl]
+                    
+                    st.markdown(f"""
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px;">
+                        <div style="font-weight: 600; color: #334155; font-size: 0.9rem;">
+                            <span class="status-dot dot-{lvl}"></span>{comp.name}
+                        </div>
+                        <div style="font-size: 0.8rem; color: #64748b;">{status_name}</div>
                     </div>
-                    <div style="font-size: 0.8rem; color: #64748b;">{status_name}</div>
-                </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
 
-    # ==============================================================================
-    # VIEW: MISSÃO ATIVA (EXECUÇÃO)
-    # ==============================================================================
     elif st.session_state.ade_view == 'mission_active':
         missao = st.session_state.ade_active_mission
         idx = st.session_state.ade_mission_idx
         
         if idx >= len(missao):
             st.session_state.ade_view = 'dashboard'
-            st.success("Missão concluída com sucesso! Os seus estados cognitivos foram atualizados e sincronizados com o banco de dados.")
+            st.success("Missão concluída com sucesso! Os seus estados cognitivos foram atualizados e sincronizados.")
             st.rerun()
             
         item_atual = missao[idx]
@@ -12877,15 +13056,12 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         st.markdown(f"<h2>Alvo {item_atual['order']}: {alvo['name']}</h2>", unsafe_allow_html=True)
         st.info(f"**Ação Recomendada pelo Motor:** {alvo['recommended_action']} | **Meta:** {item_atual['time_minutes']} minutos.")
 
-        # --- SIMULAÇÃO DA BATERIA DE ESTUDO ---
-        # Aqui, a plataforma conectará ao banco de questões reais (que estruturamos no Models)
-        # Para o ciclo funcionar agora, faremos a submissão de uma evidência
-        
+        # --- CICLO DE SIMULAÇÃO COGNITIVA ---
         st.markdown("<div class='q-container'>", unsafe_allow_html=True)
-        st.markdown("*(Simulação de Resolução de Questão - Padrão Avança SP)*")
-        st.write(f"**Competência Avaliada:** {alvo['name']}")
+        st.markdown("*(Simulação do Algoritmo de Correção Contínua)*")
+        st.write(f"Para calcularmos a sua curva de retenção na competência **{alvo['name']}**, informe o resultado do seu estudo:")
         
-        acertou = st.radio("Selecione o resultado da sua resolução:", ["Errei a questão", "Acertei a questão"], index=None, horizontal=True)
+        acertou = st.radio("Desempenho da resolução:", ["Errei a questão", "Acertei a questão"], index=None, horizontal=True)
         confianca = st.select_slider("Grau de confiança na resposta:", options=["Chute cego", "Dúvida considerável", "Certeza moderada", "Certeza absoluta"])
         
         if st.button("Submeter Evidência Cognitiva", type="primary"):
@@ -12893,21 +13069,19 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
                 conf_map = {"Chute cego": 1, "Dúvida considerável": 2, "Certeza moderada": 3, "Certeza absoluta": 4}
                 is_correct = (acertou == "Acertei a questão")
                 
-                # Registra a tentativa
                 att = Attempt(
                     question_id=f"MOCK-{alvo['competency_id']}",
                     competency_id=alvo["competency_id"],
                     correct=is_correct,
-                    difficulty=7.5, # Dificuldade média
+                    difficulty=7.5, 
                     time_seconds=random.randint(30, 90),
                     confidence=conf_map[confianca],
                     error_type="CONCEPT_CONFUSION" if not is_correct else None
                 )
                 
-                # O motor processa e recalcula a curva de esquecimento e o domínio
                 engine.register_attempt(att)
                 
-                # SALVA NO SUPABASE IMEDIATAMENTE (Persistência)
+                # Salvamento contínuo (usando o Mock ou o Supabase real que você configurar)
                 storage.save_attempt(att)
                 storage.save_skill_state(engine.get_state(alvo["competency_id"]))
                 

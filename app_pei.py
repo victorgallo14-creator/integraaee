@@ -12716,7 +12716,7 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
     from math import exp
     from typing import Optional, Dict, List, Any
     import random
-    import json
+    import pandas as pd
 
     @dataclass
     class Competency:
@@ -12874,7 +12874,6 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             try:
                 response = self.db.table("skill_states").select("*").execute()
                 states = {}
-                # Usando o padrão de tratamento do seu código atual
                 registros = response.data if hasattr(response, 'data') else response
                 
                 for row in registros:
@@ -12912,41 +12911,31 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         Competency("LEG.BNCC", "Eixo 3", "BNCC e Ensino", "Mobilização de saberes práticos", importance=0.85)
     ]
 
-    # TEXTOS DESCRITIVOS APROFUNDADOS (Fugindo de listas superficiais)
     BIBLIOTECA_TEORICA = {
-        "ESP.FREIRE": "O pensamento de Paulo Freire propõe uma ruptura paradigmática com a educação tradicional, classificada por ele como bancária. Neste modelo criticado, o conhecimento é visto como uma doação dos que se julgam sábios aos que julgam nada saber, transformando o educando em um recipiente passivo que apenas arquiva informações descontextualizadas. A prática educativa autêntica e emancipatória deve, obrigatoriamente, ser dialógica e problematizadora. O educador atua mediando a leitura crítica da realidade, criando as condições metodológicas e sociais para que o estudante seja o construtor do próprio saber. Esse processo exige que o educador reconheça sua própria incompletude e respeite rigorosamente os saberes prévios dos estudantes, desenvolvendo assim a autonomia intelectual e ética necessária para a intervenção no mundo.",
-        
-        "ESP.SAVIANI": "A Pedagogia Histórico-Crítica, sistematizada por Dermeval Saviani, fundamenta-se no materialismo histórico, compreendendo o conhecimento não como um dom inato ou um dado subjetivo isolado, mas como o resultado material da prática social humana ao longo da história. A função precípua da escola pública é democratizar o acesso a esse saber erudito, clássico e historicamente acumulado, garantindo que as classes trabalhadoras se apropriem da ciência, da filosofia e da arte para compreender e superar sua condição. O método pedagógico estrutura-se invariavelmente a partir da prática social inicial do aluno, avançando pela instrumentalização teórica rigorosa até atingir a catarse. Esse momento de salto qualitativo na compreensão da realidade culmina no retorno a uma prática social agora intencionalmente transformada.",
-        
-        "ESP.LIBANEO": "Para José Carlos Libâneo, a Didática transcende o mero domínio de técnicas neutras de instrução, configurando-se como o estudo crítico e político do processo de ensino e aprendizagem. Na Tendência Crítico-Social dos Conteúdos, a relação entre professor e aluno não adota uma horizontalidade absoluta que dilua a responsabilidade docente, como ocorre em vertentes não-diretivas. Pelo contrário, o professor exerce uma autoridade pedagógica diretiva essencial, assumindo o papel de mediador intencional que organiza e orienta o processo educativo. O objetivo central é assegurar que o estudante compreenda os conteúdos universais de forma crítica e os converta em instrumentos efetivos de leitura e intervenção em sua própria realidade social e cultural.",
-        
-        "ESP.LUCKESI": "Cipriano Luckesi promove uma distinção profunda e estrutural entre o ato de examinar e o ato de avaliar. A pedagogia tradicional utiliza os exames de forma seletiva, punitiva e classificatória, focando exclusivamente na aprovação ou reprovação baseada no acúmulo temporário de dados numéricos. O verdadeiro ato de avaliar, no entanto, caracteriza-se pelo seu caráter diagnóstico, amoroso e inclusivo. A avaliação formativa serve como uma bússola constante para o trabalho docente, permitindo que a escola identifique as fragilidades momentâneas na aprendizagem e reoriente as intervenções pedagógicas de forma a garantir o desenvolvimento pleno e contínuo de absolutamente todos os alunos.",
-        
-        "ESP.LUCK": "Heloísa Lück redefine o paradigma da gestão escolar ao afastar-se das concepções tradicionais que posicionam o diretor como um gerente autoritário ou um burocrata enclausurado em seu gabinete. A liderança educacional eficaz caracteriza-se por um processo contínuo de mobilização, articulação e facilitação do trabalho coletivo em rede. Nesse cenário de gestão verdadeiramente democrática, a utilização rigorosa de dados e indicadores de desempenho, como o IDEB e as métricas internas de avaliação, não possui qualquer finalidade punitiva ou classificatória. Ao contrário, esses indicadores funcionam como diagnósticos essenciais que subsidiam o planejamento participativo, orientando a tomada de decisão conjunta da equipe gestora e docente para a melhoria ininterrupta da aprendizagem e do clima escolar.",
-        
-        "ESP.PARO": "A administração escolar, segundo a robusta crítica de Vitor Henrique Paro, difere essencialmente da administração de empresas capitalistas, uma vez que a finalidade da escola não é a extração de lucro ou a padronização de mercadorias, mas a apropriação da cultura e a formação de sujeitos emancipados. Por possuir uma natureza intrinsecamente política e educativa, a escola pública exige um modelo de gestão democrática que descentralize efetivamente o poder de decisão. Os órgãos colegiados, notadamente o Conselho de Escola, assumem funções deliberativas fundamentais, assegurando a participação ativa de pais, alunos, docentes e funcionários não apenas em questões periféricas, mas nas decisões financeiras e pedagógicas centrais da instituição.",
-        
-        "LEG.LDB": "A Lei de Diretrizes e Bases da Educação Nacional (LDB) demarca com exatidão a linha divisória entre as responsabilidades da instituição e as obrigações da equipe docente, evitando a sobreposição de papéis. Compete aos estabelecimentos de ensino, em sua dimensão administrativa e estrutural, articular-se com a comunidade local, garantir o estrito cumprimento do calendário letivo e prover os meios físicos e logísticos para a recuperação dos estudantes. Simultaneamente, é dever legal e pedagógico do docente zelar de forma direta pela aprendizagem contínua e, a partir de seu diagnóstico em sala de aula, estabelecer as estratégias metodológicas específicas e individualizadas de recuperação para os alunos que apresentarem menor rendimento acadêmico ao longo do processo avaliativo.",
-        
-        "LEG.BNCC": "A Base Nacional Comum Curricular não se configura como um currículo rígido e padronizado, mas sim como uma referência normativa essencial que define o conjunto orgânico de aprendizagens que todos os estudantes brasileiros têm o direito fundamental de desenvolver. Seu eixo estruturante é o ensino por competências, um conceito moderno que supera a mera memorização mecânica de fatos desconexos. A competência é legalmente definida como a complexa mobilização de conhecimentos teóricos, habilidades cognitivas e socioemocionais, atitudes éticas e valores humanistas, capacitando o indivíduo a solucionar as demandas imprevisíveis e complexas da vida cotidiana e a exercer plenamente o seu protagonismo social."
+        "ESP.FREIRE": "O pensamento de Paulo Freire propõe uma ruptura paradigmática com a educação tradicional, classificada por ele como bancária. Neste modelo criticado, o conhecimento é visto como uma doação dos que se julgam sábios aos que julgam nada saber, transformando o educando em um recipiente passivo que apenas arquiva informações descontextualizadas. A prática educativa autêntica e emancipatória deve, obrigatoriamente, ser dialógica e problematizadora. O educador atua mediando a leitura crítica da realidade, criando as condições metodológicas e sociais para que o estudante seja o construtor do próprio saber, reconhecendo sua incompletude e desenvolvendo sua autonomia intelectual e ética.",
+        "ESP.SAVIANI": "A Pedagogia Histórico-Crítica, sistematizada por Dermeval Saviani, fundamenta-se no materialismo histórico, compreendendo o conhecimento não como um dom inato ou um dado subjetivo isolado, mas como o resultado material da prática social humana ao longo da história. A função precípua da escola pública é democratizar o acesso a esse saber erudito, clássico e historicamente acumulado, garantindo que as classes trabalhadoras se apropriem da ciência, da filosofia e da arte para compreender e superar sua condição. O método pedagógico estrutura-se invariavelmente a partir da prática social inicial do aluno, avançando pela instrumentalização teórica rigorosa até atingir a catarse, momento de salto qualitativo na compreensão da realidade, retornando a uma prática social agora intencionalmente transformada.",
+        "ESP.LIBANEO": "Para José Carlos Libâneo, a Didática transcende o mero domínio de técnicas neutras de instrução, configurando-se como o estudo crítico e político do processo de ensino e aprendizagem. Na Tendência Crítico-Social dos Conteúdos, a relação entre professor e aluno não adota uma horizontalidade absoluta que dilua a responsabilidade docente. Pelo contrário, o professor exerce uma autoridade pedagógica diretiva essencial, assumindo o papel de mediador intencional que organiza e orienta o processo educativo para assegurar que o estudante compreenda os conteúdos universais de forma crítica.",
+        "ESP.LUCKESI": "Cipriano Luckesi promove uma distinção profunda e estrutural entre o ato de examinar e o ato de avaliar. A pedagogia tradicional utiliza os exames de forma seletiva, punitiva e classificatória, focando exclusivamente na aprovação ou reprovação. O verdadeiro ato de avaliar caracteriza-se pelo seu caráter diagnóstico, amoroso e inclusivo, servindo como bússola para reorientar as intervenções pedagógicas e garantir o desenvolvimento pleno de todos os alunos.",
+        "ESP.LUCK": "Heloísa Lück redefine o paradigma da gestão escolar ao afastar-se da figura do diretor burocrata. A liderança educacional eficaz caracteriza-se por um processo contínuo de mobilização e articulação do trabalho coletivo em rede, utilizando rigorosamente indicadores de desempenho (como o IDEB) não para punir, mas para subsidiar o planejamento participativo.",
+        "ESP.PARO": "A administração escolar, segundo Vitor Henrique Paro, difere da administração empresarial porque a finalidade da escola não é a extração de lucro, mas a formação de sujeitos emancipados. Exige gestão democrática descentralizada, onde os órgãos colegiados, como o Conselho de Escola, assumem funções deliberativas centrais.",
+        "LEG.LDB": "A LDB demarca com exatidão as responsabilidades: compete aos estabelecimentos de ensino prover os meios físicos e logísticos para a recuperação (Art. 12), e ao docente zelar pela aprendizagem e estabelecer as estratégias didáticas específicas de recuperação (Art. 13).",
+        "LEG.BNCC": "A BNCC é uma referência normativa que define o conjunto orgânico de aprendizagens essenciais. Seu eixo é o ensino por competências, definido como a complexa mobilização de conhecimentos, habilidades, atitudes e valores para solucionar demandas da vida cotidiana."
     }
 
-    # Assegura que haja um texto para cada competência
     for c in COMPETENCIAS_EDITAL:
         if c.id not in BIBLIOTECA_TEORICA:
-            BIBLIOTECA_TEORICA[c.id] = f"O aprofundamento descritivo desta temática ('{c.name}') requer o estudo detalhado das publicações institucionais. Compreender a totalidade e a complexidade deste assunto é requisito indispensável para a análise crítica exigida pela banca Avança SP."
+            BIBLIOTECA_TEORICA[c.id] = f"O aprofundamento descritivo desta temática ('{c.name}') requer o estudo detalhado das publicações institucionais. Compreender a totalidade deste assunto é requisito indispensável para a análise crítica exigida pela banca Avança SP."
 
     BANCO_QUESTOES_REAIS = [
-        {"id": "Q1", "competency_id": "ESP.FREIRE", "dificuldade": 6.5, "enunciado": "A obra de Paulo Freire critica fortemente a educação bancária. Nessa concepção tradicional, o educando é concebido fundamentalmente como:", "alternativas": ["Um sujeito ativo na construção do conhecimento.", "Um recipiente vazio a ser preenchido pelos depósitos do educador.", "Um investigador autônomo das realidades sociais.", "Um agente de transformação da sua realidade."], "gabarito": 1, "explicacao": "Correto! Na educação bancária, o aluno é um cofre passivo. As demais alternativas representam a educação problematizadora idealizada por Freire."},
+        {"id": "Q1", "competency_id": "ESP.FREIRE", "dificuldade": 6.5, "enunciado": "A obra de Paulo Freire critica fortemente a educação bancária. Nessa concepção tradicional, o educando é concebido fundamentalmente como:", "alternativas": ["Um sujeito ativo na construção do conhecimento.", "Um recipiente vazio a ser preenchido pelos depósitos do educador.", "Um investigador autônomo das realidades sociais.", "Um agente de transformação da sua realidade."], "gabarito": 1, "explicacao": "Na educação bancária, o aluno é um cofre passivo. As demais alternativas representam a educação problematizadora."},
         {"id": "Q2", "competency_id": "ESP.SAVIANI", "dificuldade": 7.0, "enunciado": "Segundo a Pedagogia Histórico-Crítica de Dermeval Saviani, o conhecimento é concebido como:", "alternativas": ["Um dom individual, inato, que a escola deve apenas observar.", "Resultado exclusivamente de experiências subjetivas desvinculadas da história.", "Fruto da atividade lúdica instintiva e sem intencionalidade.", "Resultado do trabalho humano e da prática social no processo histórico de transformação do mundo."], "gabarito": 3, "explicacao": "O materialismo histórico de Saviani entende que o conhecimento é produzido materialmente pela prática social e pelo trabalho da humanidade."},
-        {"id": "Q3", "competency_id": "ESP.LIBANEO", "dificuldade": 7.5, "enunciado": "Na perspectiva crítica defendida por José Carlos Libâneo, a Didática possui como característica fundamental:", "alternativas": ["Ultrapassar a técnica, sendo um meio de compreensão crítica da educação.", "Limitar-se ao domínio de métodos neutros de ensino para padronização.", "Restringir-se ao planejamento burocrático de aulas expositivas.", "Assegurar um conjunto de regras imutáveis independentemente do contexto."], "gabarito": 0, "explicacao": "Para Libâneo, a didática nunca é neutra ou estritamente técnica; ela é um ato político e de compreensão crítica da realidade."},
+        {"id": "Q3", "competency_id": "ESP.LIBANEO", "dificuldade": 7.5, "enunciado": "Na perspectiva crítica defendida por José Carlos Libâneo, a Didática possui como característica fundamental:", "alternativas": ["Ultrapassar a técnica, sendo um meio de compreensão crítica da educação.", "Limitar-se ao domínio de métodos neutros de ensino para padronização.", "Restringir-se ao planejamento burocrático de aulas expositivas.", "Assegurar um conjunto de regras imutáveis independentemente do contexto."], "gabarito": 0, "explicacao": "Para Libâneo, a didática nunca é neutra ou estritamente técnica; ela é um ato político e de compreensão crítica."},
         {"id": "Q4", "competency_id": "ESP.LUCKESI", "dificuldade": 6.0, "enunciado": "Luckesi distingue exame e avaliação como práticas com finalidades distintas. O ato de examinar caracteriza-se pela seletividade, enquanto avaliar caracteriza-se pelo seu caráter diagnóstico e pela:", "alternativas": ["Classificação do estudante.", "Punição pedagógica.", "Inclusão.", "Sistematização de notas finais."], "gabarito": 2, "explicacao": "O exame é voltado para a classificação, seleção e exclusão, ao passo que a avaliação é formativa, diagnóstica e inclusiva."},
         {"id": "Q5", "competency_id": "ESP.LUCK", "dificuldade": 8.0, "enunciado": "Para Heloísa Lück, a gestão democrática e a liderança no ambiente escolar exigem a superação de modelos tradicionais. Nesse contexto, a atuação do diretor deve caracterizar-se por:", "alternativas": ["Uma postura centralizadora garantindo a disciplina institucional.", "Um processo de mobilização e articulação do trabalho coletivo, orientando a tomada de decisão conjunta.", "Administração burocrática focada em cumprimento de regras.", "Delegação total de responsabilidades pedagógicas."], "gabarito": 1, "explicacao": "A liderança articuladora utiliza a colaboração e os indicadores de desempenho como bússola para planejamento coletivo."},
-        {"id": "Q6", "competency_id": "ESP.PARO", "dificuldade": 8.5, "enunciado": "Com base nos estudos de Vitor Henrique Paro, assinale a alternativa que define a natureza da administração na escola pública:", "alternativas": ["Espelhar-se nos métodos da administração empresarial.", "O diretor deve atuar como gerente centralizador.", "A natureza política da educação exige uma administração democrática, com instâncias deliberativas.", "O Conselho de Escola possui um caráter meramente consultivo."], "gabarito": 2, "explicacao": "Paro critica a escola-empresa. A escola tem natureza política e participativa, necessitando de órgãos colegiados que tenham poder real de deliberação."},
-        {"id": "Q7", "competency_id": "LEG.LDB", "dificuldade": 9.0, "enunciado": "Conforme a LDB (Lei nº 9.394/96), assinale a alternativa que apresenta corretamente uma incumbência dos ESTABELECIMENTOS DE ENSINO e uma dos DOCENTES, respectivamente:", "alternativas": ["Estabelecer estratégias de recuperação; Prover meios para recuperação.", "Elaborar o plano de trabalho; Administrar os recursos materiais.", "Articular-se com as famílias e a comunidade; Zelar pela aprendizagem dos alunos.", "Assegurar o cumprimento dos dias letivos; Participar da gestão de verbas."], "gabarito": 2, "explicacao": "O Artigo 12 da LDB designa à escola a articulação com a comunidade e prover meios. O Artigo 13 incumbe ao docente zelar pela aprendizagem e definir estratégias de recuperação."}
+        {"id": "Q6", "competency_id": "ESP.PARO", "dificuldade": 8.5, "enunciado": "Com base nos estudos de Vitor Henrique Paro, assinale a alternativa que define a natureza da administração na escola pública:", "alternativas": ["Espelhar-se nos métodos da administração empresarial.", "O diretor deve atuar como gerente centralizador.", "A natureza política da educação exige uma administração democrática, com instâncias deliberativas.", "O Conselho de Escola possui um caráter meramente consultivo."], "gabarito": 2, "explicacao": "Paro critica a escola-empresa. A escola tem natureza política e participativa, necessitando de órgãos colegiados com poder real de deliberação."},
+        {"id": "Q7", "competency_id": "LEG.LDB", "dificuldade": 9.0, "enunciado": "Conforme a LDB (Lei nº 9.394/96), assinale a alternativa que apresenta corretamente uma incumbência dos ESTABELECIMENTOS DE ENSINO e uma dos DOCENTES, respectivamente:", "alternativas": ["Estabelecer estratégias de recuperação; Prover meios para recuperação.", "Elaborar o plano de trabalho; Administrar os recursos materiais.", "Articular-se com as famílias e a comunidade; Zelar pela aprendizagem dos alunos.", "Assegurar o cumprimento dos dias letivos; Participar da gestão de verbas."], "gabarito": 2, "explicacao": "O Artigo 12 da LDB designa à escola a articulação comunitária e prover meios. O Artigo 13 incumbe ao docente zelar pela aprendizagem e definir estratégias de recuperação."}
     ]
 
-    # Preenche competências faltantes com questões de segurança
     ids_questoes_criadas = [q["competency_id"] for q in BANCO_QUESTOES_REAIS]
     for c in COMPETENCIAS_EDITAL:
         if c.id not in ids_questoes_criadas:
@@ -12965,7 +12954,6 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         
     if 'ade_engine' not in st.session_state:
         st.session_state.ade_engine = MasteryEngine()
-        # Aqui o Cérebro recupera suas memórias do Banco de Dados Real!
         st.session_state.ade_engine.states = st.session_state.ade_storage.load_all_skill_states()
 
     if 'ade_view' not in st.session_state: st.session_state.ade_view = 'dashboard'
@@ -13006,188 +12994,216 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
     """, unsafe_allow_html=True)
 
     # ==============================================================================
-    # 4. VIEWS DO SISTEMA
+    # 4. SISTEMA DE ABAS (INCLUINDO A CONSULTA DA MATRIZ)
     # ==============================================================================
+    aba_dashboard, aba_matriz = st.tabs(["⚡ Central de Missões & Estudo", "🗺️ Matriz e Radar do Edital"])
 
-    if st.session_state.ade_view == 'dashboard':
-        
-        total_mastery = sum(engine.get_state(c.id).mastery * c.importance for c in COMPETENCIAS_EDITAL)
-        total_weight = sum(c.importance for c in COMPETENCIAS_EDITAL)
-        prontidao = (total_mastery / total_weight * 100) if total_weight > 0 else 0
+    with aba_dashboard:
+        if st.session_state.ade_view == 'dashboard':
+            
+            total_mastery = sum(engine.get_state(c.id).mastery * c.importance for c in COMPETENCIAS_EDITAL)
+            total_weight = sum(c.importance for c in COMPETENCIAS_EDITAL)
+            prontidao = (total_mastery / total_weight * 100) if total_weight > 0 else 0
 
-        st.markdown(f"""
-        <div class="master-header">
-            <div class="master-title">MASTER ADE</div>
-            <div style="color: #94a3b8; font-size: 1rem;">Inteligência Adaptativa Conectada ao Supabase</div>
-            <div class="prontidao-box">
-                <div>
-                    <div style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: #cbd5e1;">Prontidão Competitiva</div>
-                    <div class="prontidao-val">{prontidao:.1f}%</div>
-                </div>
-                <div style="margin-left: 20px; font-size: 0.95rem; color: #94a3b8; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 20px;">
-                    Seus acertos, erros e retenção estão salvos na nuvem.<br>O algoritmo varre suas fraquezas para o 1º lugar.
+            st.markdown(f"""
+            <div class="master-header">
+                <div class="master-title">MASTER ADE</div>
+                <div style="color: #94a3b8; font-size: 1rem;">Inteligência Adaptativa Conectada ao Supabase</div>
+                <div class="prontidao-box">
+                    <div>
+                        <div style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: #cbd5e1;">Prontidão Competitiva</div>
+                        <div class="prontidao-val">{prontidao:.1f}%</div>
+                    </div>
+                    <div style="margin-left: 20px; font-size: 0.95rem; color: #94a3b8; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 20px;">
+                        Seus acertos, erros e retenção estão salvos na nuvem.<br>O algoritmo varre suas fraquezas para o 1º lugar.
+                    </div>
                 </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-        c_missao, c_malha = st.columns([1.2, 1])
+            c_missao, c_malha = st.columns([1.2, 1])
 
-        with c_missao:
-            st.markdown("### ⚡ Missão Adaptativa")
-            minutos_disp = st.slider("Tempo disponível agora (minutos):", min_value=15, max_value=120, value=45, step=5)
-            
-            missao_hoje = adaptive.generate_mission(available_minutes=minutos_disp)
-            
-            html_missao = "<div class='mission-card'>"
-            for item in missao_hoje["mission_items"]:
-                alvo = item["target"]
-                cor_alvo = "#ef4444" if alvo['risk'] > 0.6 else ("#f59e0b" if alvo['risk'] > 0.3 else "#3b82f6")
+            with c_missao:
+                st.markdown("### ⚡ Missão Adaptativa")
+                minutos_disp = st.slider("Tempo disponível agora (minutos):", min_value=15, max_value=120, value=45, step=5)
                 
-                html_missao += f"<div class='mission-item'>"
-                html_missao += f"<div><div style='color: {cor_alvo}; font-weight: 800; font-size: 1.1rem;'>{item['order']}. {alvo['name']}</div>"
-                html_missao += f"<div class='tag-action'>{alvo['recommended_action']}</div></div>"
-                html_missao += f"<div style='text-align: right;'><div style='font-size: 1.1rem; font-weight: bold; color: #1e293b;'>{item['time_minutes']} min</div>"
-                html_missao += f"<div style='color: #64748b; font-size: 0.8rem;'>Aprimoramento</div></div>"
-                html_missao += f"</div>"
-            html_missao += "</div>"
+                missao_hoje = adaptive.generate_mission(available_minutes=minutos_disp)
+                
+                html_missao = "<div class='mission-card'>"
+                for item in missao_hoje["mission_items"]:
+                    alvo = item["target"]
+                    cor_alvo = "#ef4444" if alvo['risk'] > 0.6 else ("#f59e0b" if alvo['risk'] > 0.3 else "#3b82f6")
+                    
+                    html_missao += f"<div class='mission-item'>"
+                    html_missao += f"<div><div style='color: {cor_alvo}; font-weight: 800; font-size: 1.1rem;'>{item['order']}. {alvo['name']}</div>"
+                    html_missao += f"<div class='tag-action'>{alvo['recommended_action']}</div></div>"
+                    html_missao += f"<div style='text-align: right;'><div style='font-size: 1.1rem; font-weight: bold; color: #1e293b;'>{item['time_minutes']} min</div>"
+                    html_missao += f"<div style='color: #64748b; font-size: 0.8rem;'>Aprimoramento</div></div>"
+                    html_missao += f"</div>"
+                html_missao += "</div>"
+                
+                st.markdown(html_missao, unsafe_allow_html=True)
+                
+                if st.button("🚀 INICIAR SALA DE ESTUDOS", type="primary", use_container_width=True):
+                    st.session_state.ade_mission_items = missao_hoje["mission_items"]
+                    st.session_state.ade_mission_idx = 0
+                    st.session_state.ade_view = 'study_room'
+                    st.rerun()
+
+            with c_malha:
+                st.markdown("### 🗺️ Radar Rápido do Edital")
+                st.caption("Visão raio-x das suas vulnerabilidades")
+                
+                eixos = {"Eixo 1": [], "Eixo 2": [], "Eixo 3": []}
+                for comp in COMPETENCIAS_EDITAL:
+                    if comp.eixo in eixos: eixos[comp.eixo].append(comp)
+                
+                for nome_eixo, comps in eixos.items():
+                    st.markdown(f"<div class='unit-name'>{nome_eixo}</div>", unsafe_allow_html=True)
+                    for comp in comps:
+                        lvl = engine.get_level(comp.id) if engine.get_state(comp.id).attempts > 0 else 0
+                        status_name = ["Não Iniciado", "Frágil", "Instável", "Proficiente", "Dominado"][lvl]
+                        
+                        st.markdown(f"<div style='display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px;'><div style='font-weight: 600; color: #334155; font-size: 0.9rem;'><span class='status-dot dot-{lvl}'></span>{comp.name}</div><div style='font-size: 0.8rem; color: #64748b;'>{status_name}</div></div>", unsafe_allow_html=True)
+
+        # ==============================================================================
+        # VIEW: SALA DE ESTUDOS (TEORIA APROFUNDADA)
+        # ==============================================================================
+        elif st.session_state.ade_view == 'study_room':
+            missao = st.session_state.ade_mission_items
+            idx = st.session_state.ade_mission_idx
             
-            st.markdown(html_missao, unsafe_allow_html=True)
+            if idx >= len(missao):
+                st.session_state.ade_view = 'dashboard'
+                st.success("Missão diária concluída! Seu cérebro virtual sincronizou todos os dados com o Supabase.")
+                st.rerun()
+                
+            item_atual = missao[idx]
+            alvo_id = item_atual["target"]["competency_id"]
+            alvo_nome = item_atual["target"]["name"]
             
-            if st.button("🚀 INICIAR SALA DE ESTUDOS", type="primary", use_container_width=True):
-                # Carrega a sequência da missão para o estado de navegação
-                st.session_state.ade_mission_items = missao_hoje["mission_items"]
-                st.session_state.ade_mission_idx = 0
+            st.button("⬅️ Voltar ao Painel", on_click=lambda: st.session_state.update(ade_view='dashboard'))
+            st.progress((idx) / len(missao))
+            
+            st.markdown(f"<h2 style='color:#0f172a;'>📖 Sala de Estudos: {alvo_nome}</h2>", unsafe_allow_html=True)
+            st.info("Antes de enfrentar as questões da banca, consolide a base teórica estrutural através da leitura analítica abaixo.")
+            
+            st.markdown("<div class='q-container'>", unsafe_allow_html=True)
+            texto_estudo = BIBLIOTECA_TEORICA.get(alvo_id, "Conteúdo em elaboração.")
+            st.markdown(f"<div class='texto-teorico'>{texto_estudo}</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            if st.button("Avançar para Missão de Domínio (Prática) 🎯", type="primary"):
+                questoes_comp = [q for q in BANCO_QUESTOES_REAIS if q["competency_id"] == alvo_id]
+                random.shuffle(questoes_comp)
+                st.session_state.ade_current_questions = questoes_comp
+                st.session_state.ade_q_idx = 0
+                st.session_state.ade_view = 'mission_active'
+                st.rerun()
+
+        # ==============================================================================
+        # VIEW: MISSÃO ATIVA (PRÁTICA OFICIAL)
+        # ==============================================================================
+        elif st.session_state.ade_view == 'mission_active':
+            questoes = st.session_state.ade_current_questions
+            q_idx = st.session_state.ade_q_idx
+            
+            if q_idx >= len(questoes):
+                st.session_state.ade_mission_idx += 1
                 st.session_state.ade_view = 'study_room'
                 st.rerun()
+                
+            q_atual = questoes[q_idx]
+            item_geral = st.session_state.ade_mission_items[st.session_state.ade_mission_idx]
+            
+            st.markdown(f"<h2 style='color:#0f172a;'>🎯 Prática de Domínio: {item_geral['target']['name']}</h2>", unsafe_allow_html=True)
 
-        with c_malha:
-            st.markdown("### 🗺️ Radar do Edital")
-            st.caption("Visão raio-x das suas competências")
+            st.markdown("<div class='q-container'>", unsafe_allow_html=True)
+            st.markdown(f"<p style='font-size: 1.1rem; color: #1e293b; font-weight: 600;'>{q_atual['enunciado']}</p>", unsafe_allow_html=True)
             
-            eixos = {"Eixo 1": [], "Eixo 2": [], "Eixo 3": []}
-            for comp in COMPETENCIAS_EDITAL:
-                if comp.eixo in eixos: eixos[comp.eixo].append(comp)
+            resp = st.radio("Selecione sua resposta:", q_atual["alternativas"], index=None, label_visibility="collapsed")
+            confianca = st.select_slider("Grau de confiança na resposta:", options=["Chute cego", "Dúvida", "Certeza moderada", "Certeza absoluta"])
             
-            for nome_eixo, comps in eixos.items():
-                st.markdown(f"<div class='unit-name'>{nome_eixo}</div>", unsafe_allow_html=True)
-                for comp in comps:
-                    lvl = engine.get_level(comp.id) if engine.get_state(comp.id).attempts > 0 else 0
-                    status_name = ["Não Iniciado", "Frágil", "Instável", "Proficiente", "Dominado"][lvl]
+            if st.button("Submeter ao Motor Cognitivo", type="primary"):
+                if resp:
+                    conf_map = {"Chute cego": 1, "Dúvida": 2, "Certeza moderada": 3, "Certeza absoluta": 4}
+                    idx_resp = q_atual["alternativas"].index(resp)
+                    acertou = (idx_resp == q_atual["gabarito"])
                     
-                    st.markdown(f"<div style='display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px;'><div style='font-weight: 600; color: #334155; font-size: 0.9rem;'><span class='status-dot dot-{lvl}'></span>{comp.name}</div><div style='font-size: 0.8rem; color: #64748b;'>{status_name}</div></div>", unsafe_allow_html=True)
+                    att = Attempt(
+                        question_id=q_atual["id"],
+                        competency_id=q_atual["competency_id"],
+                        correct=acertou,
+                        difficulty=q_atual["dificuldade"],
+                        time_seconds=random.randint(40, 90),
+                        confidence=conf_map[confianca],
+                        error_type="ERRO_DIRETO" if not acertou else None
+                    )
+                    engine.register_attempt(att)
+                    
+                    # SALVAMENTO REAL NO SUPABASE
+                    storage.save_attempt(att)
+                    storage.save_skill_state(engine.get_state(q_atual["competency_id"]))
+                    
+                    st.session_state.ade_last_eval = {
+                        "acertou": acertou, 
+                        "gabarito_texto": q_atual["alternativas"][q_atual["gabarito"]], 
+                        "feedback": q_atual["explicacao"]
+                    }
+                    st.session_state.ade_view = 'feedback_mission'
+                    st.rerun()
+                else:
+                    st.warning("Selecione uma alternativa.")
+            st.markdown("</div>", unsafe_allow_html=True)
 
-    # ==============================================================================
-    # VIEW: SALA DE ESTUDOS (TEORIA)
-    # ==============================================================================
-    elif st.session_state.ade_view == 'study_room':
-        missao = st.session_state.ade_mission_items
-        idx = st.session_state.ade_mission_idx
-        
-        if idx >= len(missao):
-            st.session_state.ade_view = 'dashboard'
-            st.success("Missão diária concluída! Seu cérebro virtual sincronizou todos os dados com o Supabase.")
-            st.rerun()
+        # ==============================================================================
+        # VIEW: FEEDBACK COGNITIVO IMEDIATO
+        # ==============================================================================
+        elif st.session_state.ade_view == 'feedback_mission':
+            eval_data = st.session_state.ade_last_eval
             
-        item_atual = missao[idx]
-        alvo_id = item_atual["target"]["competency_id"]
-        alvo_nome = item_atual["target"]["name"]
-        
-        st.button("⬅️ Voltar ao Painel", on_click=lambda: st.session_state.update(ade_view='dashboard'))
-        st.progress((idx) / len(missao))
-        
-        st.markdown(f"<h2 style='color:#0f172a;'>📖 Sala de Estudos: {alvo_nome}</h2>", unsafe_allow_html=True)
-        st.info("Antes de enfrentar as questões da banca, consolide a base teórica estrutural através da leitura analítica abaixo.")
-        
-        st.markdown("<div class='q-container'>", unsafe_allow_html=True)
-        # Recupera o texto aprofundado em parágrafos descritivos
-        texto_estudo = BIBLIOTECA_TEORICA.get(alvo_id, "Conteúdo em elaboração.")
-        st.markdown(f"<div class='texto-teorico'>{texto_estudo}</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        if st.button("Avançar para Missão de Domínio (Prática) 🎯", type="primary"):
-            # Filtra a questão exata para esta competência
-            questoes_comp = [q for q in BANCO_QUESTOES_REAIS if q["competency_id"] == alvo_id]
-            random.shuffle(questoes_comp)
-            st.session_state.ade_current_questions = questoes_comp
-            st.session_state.ade_q_idx = 0
-            st.session_state.ade_view = 'mission_active'
-            st.rerun()
-
-    # ==============================================================================
-    # VIEW: MISSÃO ATIVA (PRÁTICA OFICIAL)
-    # ==============================================================================
-    elif st.session_state.ade_view == 'mission_active':
-        questoes = st.session_state.ade_current_questions
-        q_idx = st.session_state.ade_q_idx
-        
-        if q_idx >= len(questoes):
-            # Terminou as questões desta competência, avança para a próxima etapa da missão geral
-            st.session_state.ade_mission_idx += 1
-            st.session_state.ade_view = 'study_room'
-            st.rerun()
-            
-        q_atual = questoes[q_idx]
-        item_geral = st.session_state.ade_mission_items[st.session_state.ade_mission_idx]
-        
-        st.markdown(f"<h2 style='color:#0f172a;'>🎯 Prática de Domínio: {item_geral['target']['name']}</h2>", unsafe_allow_html=True)
-
-        st.markdown("<div class='q-container'>", unsafe_allow_html=True)
-        st.markdown(f"<p style='font-size: 1.1rem; color: #1e293b; font-weight: 600;'>{q_atual['enunciado']}</p>", unsafe_allow_html=True)
-        
-        resp = st.radio("Selecione sua resposta:", q_atual["alternativas"], index=None, label_visibility="collapsed")
-        confianca = st.select_slider("Grau de confiança na resposta:", options=["Chute cego", "Dúvida", "Certeza moderada", "Certeza absoluta"])
-        
-        if st.button("Submeter ao Motor Cognitivo", type="primary"):
-            if resp:
-                conf_map = {"Chute cego": 1, "Dúvida": 2, "Certeza moderada": 3, "Certeza absoluta": 4}
-                idx_resp = q_atual["alternativas"].index(resp)
-                acertou = (idx_resp == q_atual["gabarito"])
-                
-                # REGISTRO NO MOTOR COGNITIVO
-                att = Attempt(
-                    question_id=q_atual["id"],
-                    competency_id=q_atual["competency_id"],
-                    correct=acertou,
-                    difficulty=q_atual["dificuldade"],
-                    time_seconds=random.randint(40, 90),
-                    confidence=conf_map[confianca],
-                    error_type="ERRO_DIRETO" if not acertou else None
-                )
-                engine.register_attempt(att)
-                
-                # PERSISTÊNCIA REAL NO SUPABASE
-                storage.save_attempt(att)
-                storage.save_skill_state(engine.get_state(q_atual["competency_id"]))
-                
-                st.session_state.ade_last_eval = {
-                    "acertou": acertou, 
-                    "gabarito_texto": q_atual["alternativas"][q_atual["gabarito"]], 
-                    "feedback": q_atual["explicacao"]
-                }
-                st.session_state.ade_view = 'feedback_mission'
-                st.rerun()
+            st.markdown("<div class='q-container'>", unsafe_allow_html=True)
+            if eval_data["acertou"]:
+                st.success("✅ Resposta Correta!")
             else:
-                st.warning("Selecione uma alternativa.")
-        st.markdown("</div>", unsafe_allow_html=True)
+                st.error("❌ Resposta Incorreta.")
+                st.write(f"**Gabarito Oficial Avança SP:** {eval_data['gabarito_texto']}")
+                
+            st.info(f"**Análise Pedagógica:** {eval_data['feedback']}")
+            
+            if st.button("Continuar Missão", type="primary"):
+                st.session_state.ade_q_idx += 1
+                st.session_state.ade_view = 'mission_active'
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
     # ==============================================================================
-    # VIEW: FEEDBACK COGNITIVO IMEDIATO
+    # ABA DE CONSULTA DA MATRIZ COMPLETA DO EDITAL
     # ==============================================================================
-    elif st.session_state.ade_view == 'feedback_mission':
-        eval_data = st.session_state.ade_last_eval
+    with aba_matriz:
+        st.subheader("🗺️ Matriz Curricular e Auditoria de Domínio")
+        st.write("Consulte abaixo todas as competências mapeadas para o concurso de ADE, com seus respectivos pesos estratégicos e status cognitivo atualizado em tempo real pelo banco Supabase.")
         
-        st.markdown("<div class='q-container'>", unsafe_allow_html=True)
-        if eval_data["acertou"]:
-            st.success("✅ Resposta Correta!")
-        else:
-            st.error("❌ Resposta Incorreta.")
-            st.write(f"**Gabarito Oficial Avança SP:** {eval_data['gabarito_texto']}")
+        # Constrói um DataFrame limpo para visualização gerencial
+        dados_matriz = []
+        for c in COMPETENCIAS_EDITAL:
+            st_comp = engine.get_state(c.id)
+            lvl = engine.get_level(c.id) if st_comp.attempts > 0 else 0
+            status_desc = ["Não Iniciado", "Frágil (Domínio < 40%)", "Instável (Domínio < 65%)", "Proficiente (Domínio < 85%)", "Dominado 👑"][lvl]
             
-        st.info(f"**Análise Pedagógica:** {eval_data['feedback']}")
+            dados_matriz.append({
+                "Eixo": c.eixo,
+                "Competência": c.name,
+                "Descrição Teórica": c.description,
+                "Peso no Edital": f"{c.importance * 100:.0f}%",
+                "Tentativas": st_comp.attempts,
+                "Acertos": st_comp.correct,
+                "Domínio Atual": f"{st_comp.mastery * 100:.1f}%",
+                "Status Cognitivo": status_desc
+            })
+            
+        df_matriz = pd.DataFrame(dados_matriz)
+        st.dataframe(df_matriz, use_container_width=True, hide_index=True)
         
-        if st.button("Continuar Missão", type="primary"):
-            st.session_state.ade_q_idx += 1
-            st.session_state.ade_view = 'mission_active'
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.divider()
+        st.info("💡 **Dica Estratégica:** O motor adaptativo prioriza automaticamente as competências que combinam **alto peso no edital** com **baixo domínio atual** e **alto risco de retenção**. Consulte essa matriz periodicamente para acompanhar a evolução do seu preparo rumo ao 1º lugar!")

@@ -12698,314 +12698,412 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
 
 
 # ==============================================================================
-# VIEW: PLATAFORMA KHAN-ADE (MASTER LEARNING - ALTA PERFORMANCE)
+# VIEW: MASTER ADE - ALTA PERFORMANCE (MASTERY ENGINE)
 # ==============================================================================
 if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.session_state.get('nav_adm') == "📚 Preparatório ADE":
-    
-    # --- TRAVA DE SEGURANÇA ---
+
+    # --- TRAVA DE SEGURANÇA ESTRITA ---
     if str(st.session_state.get('usuario_matricula', '')).strip() != "8829405":
         st.markdown("""<div class="header-box" style="border-left-color: #ef4444;"><div class="header-title" style="color: #ef4444;">Acesso Negado</div></div>""", unsafe_allow_html=True)
         st.error("Ambiente de uso estrito e exclusivo. Acesso bloqueado.")
         st.stop()
 
-    # --- CSS CUSTOMIZADO (INTERFACE MASTERY) ---
-    st.markdown("""
-    <style>
-        .mastery-header { padding: 25px; background: white; border-radius: 12px; border-bottom: 4px solid #1e3a8a; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-        .mastery-title { font-size: 2.2rem; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
-        .mastery-points { font-size: 1.1rem; color: #64748b; margin-top: 5px; font-weight: 500; }
-        
-        .legend-row { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; }
-        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #475569; font-weight: 600; }
-        .box { width: 22px; height: 22px; border-radius: 4px; border: 2px solid; display:flex; align-items:center; justify-content:center; font-size:12px; color:white; }
-        
-        .lvl-0 { background: white; border-color: #cbd5e1; }
-        .lvl-1 { background: white; border-color: #f97316; } 
-        .lvl-2 { background: #fef08a; border-color: #eab308; } 
-        .lvl-3 { background: #93c5fd; border-color: #3b82f6; } 
-        .lvl-4 { background: #4f46e5; border-color: #3730a3; } 
+    # --- 1. CORE: MOTOR COGNITIVO (MASTERY ENGINE) ---
+    from dataclasses import dataclass, field
+    from datetime import datetime, timezone
+    from math import exp
+    from typing import Optional, Dict, List
+    import random
 
-        .unit-card { background: transparent; margin-bottom: 30px; }
-        .unit-header { font-size: 1.2rem; font-weight: 700; color: #1e293b; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;}
-        .skill-grid { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-        .skill-box-btn { 
-            width: 32px; height: 32px; border-radius: 6px; border: 2px solid; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight:bold;
-            transition: transform 0.1s;
-        }
-        .skill-box-btn:hover { transform: scale(1.1); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        
-        .lesson-container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        .teoria-text { font-size: 1.1rem; line-height: 1.8; color: #334155; text-align: justify; }
-        .feedback-box { padding: 15px; border-radius: 8px; margin-top: 10px; font-size: 0.95rem; }
-    </style>
-    """, unsafe_allow_html=True)
+    @dataclass
+    class Attempt:
+        question_id: str
+        competency_id: str
+        correct: bool
+        difficulty: float = 5.0
+        time_seconds: Optional[float] = None
+        confidence: Optional[int] = None
+        error_type: Optional[str] = None
+        timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    # --- INICIALIZAÇÃO BLINDADA DE ESTADO ---
-    if 'ade_mastery' not in st.session_state or not isinstance(st.session_state.ade_mastery, dict): 
-        st.session_state.ade_mastery = {}
-    if 'ade_view' not in st.session_state: 
+    @dataclass
+    class SkillState:
+        competency_id: str
+        mastery: float = 0.0
+        retention: float = 0.0
+        application: float = 0.0
+        speed: float = 0.0
+        consistency: float = 0.0
+        attempts: int = 0
+        correct: int = 0
+        risk: float = 1.0
+        last_seen: Optional[datetime] = None
+        next_review: Optional[datetime] = None
+        error_counts: Dict[str, int] = field(default_factory=dict)
+
+    class MasteryEngine:
+        def __init__(self):
+            self.states: Dict[str, SkillState] = {}
+
+        def get_state(self, competency_id: str) -> SkillState:
+            if competency_id not in self.states:
+                self.states[competency_id] = SkillState(competency_id=competency_id)
+            return self.states[competency_id]
+
+        def register_attempt(self, attempt: Attempt):
+            state = self.get_state(attempt.competency_id)
+            state.attempts += 1
+            if attempt.correct:
+                state.correct += 1
+            if attempt.error_type:
+                state.error_counts[attempt.error_type] = state.error_counts.get(attempt.error_type, 0) + 1
+            state.last_seen = attempt.timestamp
+
+            self._update_mastery(state, attempt)
+            self._update_speed(state, attempt)
+            self._update_consistency(state)
+            self._update_retention(state)
+            self._update_risk(state)
+
+        def _update_mastery(self, state: SkillState, attempt: Attempt):
+            performance = 1.0 if attempt.correct else 0.0
+            difficulty_factor = 0.7 + (attempt.difficulty / 10.0) * 0.3
+            evidence = performance * difficulty_factor
+            learning_rate = 0.18
+            state.mastery += learning_rate * (evidence - state.mastery)
+            state.mastery = max(0.0, min(1.0, state.mastery))
+
+        def _update_speed(self, state: SkillState, attempt: Attempt):
+            if attempt.time_seconds is None: return
+            target = 90.0
+            performance = min(1.0, target / max(attempt.time_seconds, 1))
+            if state.speed == 0: state.speed = performance
+            else: state.speed = (state.speed * 0.8 + performance * 0.2)
+
+        def _update_consistency(self, state: SkillState):
+            if state.attempts > 0: state.consistency = state.correct / state.attempts
+
+        def _update_retention(self, state: SkillState):
+            if state.last_seen is None:
+                state.retention = 0.0
+                return
+            now = datetime.now(timezone.utc)
+            days = (now - state.last_seen).total_seconds() / 86400
+            decay = exp(-days / 14)
+            state.retention = state.mastery * decay
+
+        def _update_risk(self, state: SkillState):
+            deficit = 1 - state.mastery
+            retention_deficit = 1 - state.retention
+            risk = (deficit * 0.60 + retention_deficit * 0.40)
+            state.risk = max(0.0, min(1.0, risk))
+
+        def get_priority(self, competency_id: str, importance: float = 0.5) -> float:
+            state = self.get_state(competency_id)
+            return state.risk * importance
+
+        def get_level(self, competency_id: str) -> int:
+            state = self.get_state(competency_id)
+            if state.mastery < 0.40: return 1  # Tentativa / Fragil
+            if state.mastery < 0.65: return 2  # Familiar / Instavel
+            if state.mastery < 0.85: return 3  # Proficiente
+            return 4  # Dominado
+
+    # --- 2. INICIALIZAÇÃO NO SESSION STATE ---
+    if 'ade_engine' not in st.session_state:
+        st.session_state.ade_engine = MasteryEngine()
+    if 'ade_view' not in st.session_state:
         st.session_state.ade_view = 'dashboard'
-    if 'ade_current_skill' not in st.session_state: 
-        st.session_state.ade_current_skill = None
-    if 'ade_answers' not in st.session_state: 
-        st.session_state.ade_answers = {}
+    if 'ade_active_mission' not in st.session_state:
+        st.session_state.ade_active_mission = None
 
-    # --- ESTRUTURA DO CURSO E PONTUAÇÃO ---
-    MAX_POINTS_PER_SKILL = 100
-    CURSO = [
+    engine = st.session_state.ade_engine
+
+    # --- 3. DADOS (GRAFO DO EDITAL E QUESTÕES) ---
+    GRAFO_EDITAL = [
         {
             "id": "eixo1", "title": "Eixo 1: Fundamentos", 
-            "skills": [
-                {"id": "s1_1", "name": "Paulo Freire: Autonomia e Dialogicidade", "type": "skill"},
-                {"id": "s1_2", "name": "Dermeval Saviani: Pedagogia Histórico-Crítica", "type": "skill"},
-                {"id": "s1_3", "name": "José Carlos Libâneo: Didática Crítica", "type": "skill"},
-                {"id": "s1_4", "name": "Cipriano Luckesi: Avaliação Diagnóstica", "type": "skill"},
-                {"id": "s1_test", "name": "Teste da Unidade 1", "type": "test"}
+            "competencias": [
+                {"id": "ESP.FREIRE.01", "name": "Educação Bancária x Problematizadora", "importance": 0.9},
+                {"id": "ESP.SAVIANI.01", "name": "Pedagogia Histórico-Crítica", "importance": 0.85},
+                {"id": "ESP.LIBANEO.01", "name": "Didática e Prática Social", "importance": 0.8},
+                {"id": "ESP.LUCKESI.01", "name": "Avaliação Diagnóstica", "importance": 0.9}
             ]
         },
         {
             "id": "eixo2", "title": "Eixo 2: Gestão Democrática", 
-            "skills": [
-                {"id": "s2_1", "name": "Heloísa Lück: Liderança e Indicadores", "type": "skill"},
-                {"id": "s2_2", "name": "Vitor Paro: Administração Crítica", "type": "skill"},
-                {"id": "s2_3", "name": "Mediação de Conflitos Educacionais", "type": "skill"},
-                {"id": "s2_4", "name": "Inclusão e AEE (Decreto 12.686/25)", "type": "skill"},
-                {"id": "s2_5", "name": "Educação Digital (Lei 14.533/23)", "type": "skill"},
-                {"id": "s2_6", "name": "Lei Lucas (Primeiros Socorros)", "type": "skill"},
-                {"id": "s2_test", "name": "Teste da Unidade 2", "type": "test"}
+            "competencias": [
+                {"id": "ESP.LUCK.01", "name": "Liderança e Indicadores", "importance": 0.95},
+                {"id": "ESP.PARO.01", "name": "Administração Crítica", "importance": 0.9},
+                {"id": "ESP.INCLUSAO.01", "name": "Educação Especial e AEE", "importance": 0.95},
+                {"id": "ESP.TECNOLOGIA.01", "name": "Letramento Digital", "importance": 0.8}
             ]
         },
         {
-            "id": "eixo3", "title": "Eixo 3: Legislação e Diretrizes", 
-            "skills": [
-                {"id": "s3_1", "name": "LDB: Incumbências da Escola e Docente", "type": "skill"},
-                {"id": "s3_2", "name": "BNCC: Ensino por Competências", "type": "skill"},
-                {"id": "s3_3", "name": "Leis Étnico-Raciais (10.639/11.645)", "type": "skill"},
-                {"id": "s3_4", "name": "BNC-Diretor Escolar (Parecer 4/2021)", "type": "skill"},
-                {"id": "s3_5", "name": "PNE 2026-2036 e Metas", "type": "skill"},
-                {"id": "s3_test", "name": "Teste da Unidade 3", "type": "test"}
+            "id": "eixo3", "title": "Eixo 3: Legislação Nacional e Local", 
+            "competencias": [
+                {"id": "LEG.LDB.01", "name": "Incumbências: Escola vs Docente", "importance": 0.95},
+                {"id": "LEG.BNCC.01", "name": "Ensino por Competências", "importance": 0.85},
+                {"id": "LEG.RACIAL.01", "name": "Leis 10.639 e 11.645", "importance": 0.85},
+                {"id": "LIM.LEG.01", "name": "Estatuto do Magistério (Limeira)", "importance": 0.9}
             ]
         }
     ]
 
-    # Prepara o banco do aluno e corrige chaves antigas que possam causar erros
-    total_possible_points = 0
-    for unit in CURSO:
-        for skill in unit["skills"]:
-            total_possible_points += MAX_POINTS_PER_SKILL
-            if skill["id"] not in st.session_state.ade_mastery:
-                st.session_state.ade_mastery[skill["id"]] = {"level": 0, "points": 0}
-            else:
-                # Se o usuário estiver vindo da versão anterior, injeta a chave nova para não travar
-                if "points" not in st.session_state.ade_mastery[skill["id"]]:
-                    st.session_state.ade_mastery[skill["id"]]["points"] = 0
-                if "level" not in st.session_state.ade_mastery[skill["id"]]:
-                    st.session_state.ade_mastery[skill["id"]]["level"] = 0
+    # Assegura que todas as competências existam no motor
+    for eixo in GRAFO_EDITAL:
+        for comp in eixo["competencias"]:
+            engine.get_state(comp["id"])
 
-    # --- BANCO DE CONTEÚDO E QUESTÕES DA BANCA ---
-    CONTEUDO = {
-        "s1_1": "O pensamento de Paulo Freire propõe uma ruptura paradigmática com a educação tradicional, classificada por ele como bancária. Neste modelo criticado, o conhecimento é visto como uma doação dos que se julgam sábios aos que julgam nada saber, transformando o educando em um recipiente passivo. A prática educativa autêntica e emancipatória deve, obrigatoriamente, ser dialógica e problematizadora. O educador atua mediando a leitura crítica da realidade, criando as condições metodológicas e sociais para que o estudante seja o construtor do próprio saber, reconhecendo sua incompletude e desenvolvendo sua autonomia intelectual e ética.",
-        "s1_2": "A Pedagogia Histórico-Crítica, sistematizada por Dermeval Saviani, fundamenta-se no materialismo histórico, compreendendo o conhecimento não como um dom inato ou um dado subjetivo isolado, mas como o resultado material da prática social humana ao longo da história. A função precípua da escola pública é democratizar o acesso a esse saber erudito, clássico e historicamente acumulado, garantindo que as classes trabalhadoras se apropriem da ciência, da filosofia e da arte. O método pedagógico estrutura-se a partir da prática social do aluno, passando pela instrumentalização teórica rigorosa até atingir a catarse, momento em que ocorre o salto qualitativo na compreensão da realidade, retornando a uma prática social agora transformada.",
-        "s1_3": "Para José Carlos Libâneo, a Didática transcende o mero domínio de técnicas neutras de instrução, configurando-se como o estudo crítico e político do processo de ensino e aprendizagem. Na Tendência Crítico-Social dos Conteúdos, a relação entre professor e aluno não adota uma horizontalidade absoluta que dilua a responsabilidade docente. Pelo contrário, o professor exerce uma autoridade pedagógica diretiva essencial, assumindo o papel de mediador intencional que organiza e orienta o processo educativo. O objetivo central é assegurar que o estudante compreenda os conteúdos universais de forma crítica, utilizando-os como instrumentos de leitura e intervenção em sua própria realidade social.",
-        "s1_4": "Cipriano Luckesi promove uma distinção profunda entre o ato de examinar e o ato de avaliar. A pedagogia tradicional utiliza os exames de forma seletiva, punitiva e classificatória, focando exclusivamente na aprovação ou reprovação baseada no acúmulo temporário de dados. O verdadeiro ato de avaliar, no entanto, caracteriza-se pelo seu caráter diagnóstico, cuidadoso e inclusivo. A avaliação formativa serve como uma bússola constante para o trabalho docente, permitindo identificar as fragilidades na aprendizagem e reorientar as intervenções pedagógicas para garantir o desenvolvimento pleno de cada aluno.",
-        "s2_1": "Heloísa Lück redefine o paradigma da gestão escolar, afastando-se das concepções tradicionais que posicionam o diretor como um gerente autoritário ou um burocrata distante em seu gabinete. A liderança educacional eficaz caracteriza-se por um processo contínuo de mobilização e articulação do trabalho coletivo em rede. Nesse cenário de gestão democrática, a utilização rigorosa de dados e indicadores de desempenho, como o IDEB e as avaliações internas, não possui finalidade punitiva ou classificatória. Ao contrário, esses indicadores funcionam como diagnósticos essenciais que subsidiam o planejamento participativo, orientando a tomada de decisão conjunta para a melhoria ininterrupta da aprendizagem e do clima escolar.",
-        "s2_2": "A administração escolar, segundo Vitor Henrique Paro, difere essencialmente da administração de empresas capitalistas, uma vez que a finalidade da escola não é a extração de lucro ou a padronização de mercadorias, mas a apropriação da cultura e a formação de sujeitos emancipados. Por possuir uma natureza intrinsecamente política e educativa, a escola pública exige um modelo de gestão democrática que descentralize o poder. Os órgãos colegiados, como o Conselho de Escola, assumem funções deliberativas fundamentais, assegurando a participação ativa de pais, alunos e funcionários nas decisões financeiras e pedagógicas da instituição.",
-        "s3_1": "A Lei de Diretrizes e Bases da Educação Nacional (LDB) demarca com exatidão a linha divisória entre as responsabilidades da instituição e as obrigações da equipe docente. Compete aos estabelecimentos de ensino, em sua dimensão administrativa e estrutural, articular-se com a comunidade, garantir o cumprimento do calendário e prover os meios físicos e logísticos para a recuperação dos estudantes. Simultaneamente, é dever legal e pedagógico do docente zelar de forma direta pela aprendizagem contínua e, a partir de seu diagnóstico em sala de aula, estabelecer as estratégias metodológicas específicas de recuperação para os alunos que apresentarem menor rendimento acadêmico.",
-        "s3_2": "A Base Nacional Comum Curricular não se configura como um currículo rígido e padronizado, mas sim como uma referência normativa essencial que define o conjunto orgânico de aprendizagens que todos os estudantes brasileiros têm o direito de desenvolver. Seu eixo estruturante é o ensino por competências, um conceito que supera a mera memorização mecânica de fatos. A competência é definida como a complexa mobilização de conhecimentos teóricos, habilidades cognitivas e socioemocionais, atitudes éticas e valores humanistas, capacitando o indivíduo a solucionar as demandas complexas da vida cotidiana e a exercer o protagonismo social."
-    }
+    # Banco de Questões Inteligente (Exemplo com 1 questão profunda por competência)
+    BANCO_QUESTOES = [
+        {
+            "id": "Q-ESP-FREIRE-001",
+            "competencias": ["ESP.FREIRE.01"],
+            "dificuldade": 6.5,
+            "enunciado": "A obra de Paulo Freire propõe uma ruptura com a educação bancária. Nesse modelo, o educando é concebido como:",
+            "alternativas": [
+                "A) Um investigador autônomo das realidades sociais.",
+                "B) Um recipiente vazio a ser preenchido passivamente pelos depósitos do educador.",
+                "C) Um sujeito ativo na construção coletiva do conhecimento.",
+                "D) Um agente de transformação da sua própria realidade."
+            ],
+            "gabarito": 1,
+            "explicacao": "A educação bancária trata o aluno como cofre passivo. As demais representam a educação problematizadora.",
+            "distratores": {0: "CONCEPT_CONFUSION", 2: "CONCEPT_CONFUSION", 3: "CONCEPT_CONFUSION"}
+        },
+        {
+            "id": "Q-LEG-LDB-001",
+            "competencias": ["LEG.LDB.01"],
+            "dificuldade": 8.0,
+            "enunciado": "Conforme a LDB (Lei nº 9.394/96), é incumbência exclusiva dos ESTABELECIMENTOS DE ENSINO:",
+            "alternativas": [
+                "A) Estabelecer estratégias de recuperação para alunos de menor rendimento.",
+                "B) Zelar pela aprendizagem contínua dos estudantes.",
+                "C) Prover meios para a recuperação dos alunos de menor rendimento e articular-se com a comunidade.",
+                "D) Elaborar o plano de trabalho diário."
+            ],
+            "gabarito": 2,
+            "explicacao": "Art. 12: A escola provê os meios e articula. Art. 13: O docente estabelece estratégias e zela pela aprendizagem.",
+            "distratores": {0: "CONFUSAO_ESCOLA_DOCENTE", 1: "CONFUSAO_ESCOLA_DOCENTE", 3: "CONFUSAO_ESCOLA_DOCENTE"}
+        }
+        # Novas questões podem ser adicionadas aqui no mesmo formato
+    ]
 
-    for unit in CURSO:
-        for s in unit["skills"]:
-            if s["id"] not in CONTEUDO:
-                CONTEUDO[s["id"]] = f"A compreensão profunda dos preceitos relativos a '{s['name']}' é indispensável para o êxito no certame. O domínio destas diretrizes garante a correta aplicação das normativas educacionais no cotidiano escolar, fundamentando as ações da gestão e do corpo docente de acordo com as exigências do Instituto Avança SP."
-
-    QUESTOES = {
-        "s1_1": [
-            {"enunciado": "A obra de Paulo Freire critica fortemente a educação bancária. Nessa concepção tradicional, o educando é concebido fundamentalmente como:", "opcoes": ["Um sujeito ativo na construção do conhecimento.", "Um recipiente vazio a ser preenchido pelos depósitos do educador.", "Um investigador autônomo das realidades sociais.", "Um agente de transformação da sua realidade."], "correta": 1, "feedback": "Correto! Na educação bancária, o aluno é um cofre passivo. As demais alternativas representam a educação problematizadora idealizada por Freire."},
-            {"enunciado": "Em 'Pedagogia da Autonomia', Freire afirma que a prática educativa não pode se reduzir a depositar informações. O processo de ensino-aprendizagem deve caracterizar-se por ser:", "opcoes": ["Uma prática dialógica e problematizadora, criando possibilidades para a construção do conhecimento.", "Um mecanismo de transferência vertical de informações para garantir a disciplina.", "Uma ação instrucional focada na memorização rigorosa do currículo.", "Uma delegação de poder sem mediação do educador."], "correta": 0, "feedback": "Exato. A palavra-chave da banca é sempre a 'dialogicidade' e a 'problematização' como motor da emancipação cognitiva do aluno."}
-        ],
-        "s1_2": [
-            {"enunciado": "Segundo a Pedagogia Histórico-Crítica de Dermeval Saviani, o conhecimento é concebido como:", "opcoes": ["Um dom individual, inato, que a escola deve apenas observar.", "Resultado exclusivamente de experiências subjetivas desvinculadas da história.", "Fruto da atividade lúdica instintiva e sem intencionalidade.", "Resultado do trabalho humano e da prática social no processo histórico de transformação do mundo."], "correta": 3, "feedback": "Correto! O materialismo histórico de Saviani entende que o conhecimento é produzido materialmente pela prática social e pelo trabalho histórico da humanidade."}
-        ],
-        "s1_3": [
-            {"enunciado": "Na perspectiva crítica defendida por José Carlos Libâneo, a Didática possui como característica fundamental:", "opcoes": ["Ultrapassar a técnica, sendo um meio de compreensão crítica da educação e articulando o ensino à sociedade.", "Limitar-se ao domínio de métodos neutros de ensino para padronização.", "Restringir-se ao planejamento burocrático de aulas expositivas.", "Assegurar um conjunto de regras imutáveis independentemente do contexto."], "correta": 0, "feedback": "Perfeito. Para Libâneo, a didática nunca é neutra ou estritamente técnica; ela é um ato político e de compreensão crítica da realidade."}
-        ],
-        "s1_4": [
-            {"enunciado": "Para Cipriano Luckesi, o ato de examinar se distingue diametralmente do ato de avaliar. Enquanto a avaliação busca o diagnóstico, o exame se pauta pela:", "opcoes": ["Participação ativa.", "Inclusão social.", "Classificação e seletividade.", "Problematização dos saberes."], "correta": 2, "feedback": "Isso mesmo! O exame é voltado para a classificação, a seleção e a exclusão, ao passo que a avaliação é formativa, diagnóstica e inclusiva."}
-        ],
-        "s2_1": [
-            {"enunciado": "Na visão de Heloísa Lück sobre gestão escolar, a liderança e o uso de indicadores de desempenho devem servir prioritariamente para:", "opcoes": ["Garantir a punição de professores que não atingem metas.", "Mobilizar o trabalho coletivo e orientar a tomada de decisão pedagógica conjunta.", "Centralizar as decisões de currículo na secretaria de educação.", "Elaborar relatórios burocráticos sem impacto na sala de aula."], "correta": 1, "feedback": "A liderança articuladora utiliza os dados como bússola para planejamento coletivo, e não como instrumento de punição ou burocracia."}
-        ],
-        "s3_1": [
-            {"enunciado": "Conforme a LDB (Lei nº 9.394/96), assinale a alternativa que apresenta corretamente uma incumbência dos ESTABELECIMENTOS DE ENSINO:", "opcoes": ["Zelar pela aprendizagem contínua dos alunos.", "Estabelecer as estratégias metodológicas de recuperação.", "Prover os meios físicos e logísticos para a recuperação dos alunos de menor rendimento.", "Elaborar e cumprir o plano de trabalho diário."], "correta": 2, "feedback": "Perfeito! Prover os 'meios' (infraestrutura, tempo, espaço) é dever da escola (Art. 12). Estabelecer as 'estratégias' e 'zelar pela aprendizagem' é dever do docente (Art. 13)."}
-        ]
-    }
-
-    for unit in CURSO:
-        for skill in unit["skills"]:
-            if skill["id"] not in QUESTOES:
-                QUESTOES[skill["id"]] = [
-                    {"enunciado": f"Referente aos pressupostos normativos sobre {skill['name']}, as diretrizes oficiais determinam que a atuação educacional deve pautar-se por:", "opcoes": ["A centralização de poder e a neutralidade acadêmica.", "Uma abordagem sistêmica, inclusiva, ética e orientada para a garantia de direitos.", "O isolamento institucional para preservar a autonomia técnica.", "O cumprimento mecânico de protocolos sem contextualização social."], "correta": 1, "feedback": "O Padrão Avança SP exige a compreensão de que as legislações atuais repudiaram modelos isolacionistas ou tecnicistas em favor de uma educação pautada em direitos humanos, inclusão e gestão participativa."}
-                ]
-
-    # --- CONTROLADOR PRINCIPAL ---
-    if st.session_state.ade_view == 'dashboard':
-        # Safely sum the points using .get to prevent KeyErrors
-        current_points = sum(s.get("points", 0) for s in st.session_state.ade_mastery.values())
+    # --- CSS CUSTOMIZADO (MASTER UI) ---
+    st.markdown("""
+    <style>
+        .master-header { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); padding: 30px; border-radius: 12px; color: white; margin-bottom: 30px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2); }
+        .master-title { font-size: 2.2rem; font-weight: 800; line-height: 1.1; margin-bottom: 5px; }
+        .master-subtitle { color: #94a3b8; font-size: 1rem; margin-bottom: 20px; }
+        .prontidao-box { display: flex; align-items: center; gap: 20px; background: rgba(255,255,255,0.1); padding: 15px 25px; border-radius: 8px; }
+        .prontidao-val { font-size: 3.5rem; font-weight: 800; color: #38bdf8; line-height: 1; }
         
+        .mission-card { background: white; border-left: 5px solid #f59e0b; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .mission-title { font-size: 1.2rem; font-weight: 800; color: #1e293b; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .mission-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.95rem; }
+        .mission-item:last-child { border-bottom: none; }
+        
+        .unit-block { margin-bottom: 30px; }
+        .unit-name { font-size: 1.2rem; font-weight: 700; color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 15px; }
+        .grid-skills { display: grid; grid-template-columns: repeat(auto-fill, minmax(28px, 1fr)); gap: 8px; }
+        .box-skill { height: 28px; border-radius: 4px; border: 2px solid; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; cursor: pointer; transition: transform 0.1s; }
+        .box-skill:hover { transform: scale(1.15); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        /* Paleta de Níveis */
+        .lvl-0 { background: white; border-color: #cbd5e1; color: #cbd5e1; } /* Não Iniciado */
+        .lvl-1 { background: white; border-color: #ef4444; color: #ef4444; } /* Fragil / Tentativa */
+        .lvl-2 { background: #fef08a; border-color: #eab308; color: #854d0e; } /* Instavel / Familiar */
+        .lvl-3 { background: #93c5fd; border-color: #3b82f6; color: #1e40af; } /* Proficiente */
+        .lvl-4 { background: #4f46e5; border-color: #312e81; color: white; } /* Dominado */
+        
+        .q-container { background: white; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # --- 4. ADAPTIVE ENGINE (GERADOR DE MISSÕES) ---
+    def generate_mission():
+        priorities = []
+        for eixo in GRAFO_EDITAL:
+            for comp in eixo["competencias"]:
+                p = engine.get_priority(comp["id"], comp["importance"])
+                state = engine.get_state(comp["id"])
+                priorities.append({
+                    "id": comp["id"],
+                    "name": comp["name"],
+                    "priority": p,
+                    "mastery": state.mastery,
+                    "risk": state.risk
+                })
+        # Ordena pelo maior risco/prioridade
+        priorities.sort(key=lambda x: x["priority"], reverse=True)
+        return priorities[:4] # Top 4 prioridades
+
+    # --- 5. ROTEAMENTO DE VIEWS ---
+    
+    if st.session_state.ade_view == 'dashboard':
+        
+        # Cálculo de Prontidão (Média Ponderada)
+        total_mastery = 0
+        total_weight = 0
+        for eixo in GRAFO_EDITAL:
+            for comp in eixo["competencias"]:
+                total_mastery += engine.get_state(comp["id"]).mastery * comp["importance"]
+                total_weight += comp["importance"]
+        
+        prontidao = (total_mastery / total_weight * 100) if total_weight > 0 else 0
+
         st.markdown(f"""
-        <div class="mastery-header">
-            <h1 class="mastery-title">Concurso ADE: Plataforma de Domínio</h1>
-            <div class="mastery-points">🎯 {current_points} de {total_possible_points} pontos de domínio conquistados</div>
-            
-            <div class="legend-row">
-                <div class="legend-item"><div class="box lvl-4">👑</div> Dominado</div>
-                <div class="legend-item"><div class="box lvl-3"></div> Proficiente</div>
-                <div class="legend-item"><div class="box lvl-2"></div> Familiar</div>
-                <div class="legend-item"><div class="box lvl-1"></div> Tentativa</div>
-                <div class="legend-item"><div class="box lvl-0"></div> Não iniciado</div>
-                <div class="legend-item"><div class="box" style="border-radius:12px; border-color:#64748b; color:#64748b;">⚡</div> Teste da Unidade</div>
+        <div class="master-header">
+            <div class="master-title">MASTER ADE</div>
+            <div class="master-subtitle">Inteligência Adaptativa para Aprovação em 1º Lugar</div>
+            <div class="prontidao-box">
+                <div>
+                    <div style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: #cbd5e1;">Prontidão Competitiva</div>
+                    <div class="prontidao-val">{prontidao:.1f}%</div>
+                </div>
+                <div style="margin-left: 20px; font-size: 0.95rem; color: #94a3b8; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 20px;">
+                    O algoritmo cruza seu domínio, retenção e riscos<br>para estimar seu preparo em tempo real.
+                </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        col1, col2 = st.columns(2)
-        
-        for idx, unit in enumerate(CURSO):
-            target_col = col1 if idx % 2 == 0 else col2
+        c_missao, c_malha = st.columns([1.2, 2])
+
+        with c_missao:
+            missao_atual = generate_mission()
+            html_missao = """<div class="mission-card"><div class="mission-title">⚡ Sua Missão Focada</div>"""
             
-            with target_col:
-                st.markdown(f'<div class="unit-card"><div class="unit-header"><span>{unit["title"]}</span></div>', unsafe_allow_html=True)
-                c_grid = st.container()
+            for i, m in enumerate(missao_atual):
+                cor_alerta = "#ef4444" if m['risk'] > 0.7 else ("#f59e0b" if m['risk'] > 0.4 else "#3b82f6")
+                html_missao += f"""
+                <div class="mission-item">
+                    <span><strong style="color: {cor_alerta};">①</strong> {m['name']}</span>
+                    <span style="color: #64748b; font-size: 0.8rem;">Risco {m['risk']*100:.0f}%</span>
+                </div>
+                """
+            html_missao += "</div>"
+            st.markdown(html_missao, unsafe_allow_html=True)
+            
+            if st.button("COMEÇAR MISSÃO", type="primary", use_container_width=True):
+                st.session_state.ade_active_mission = missao_atual
+                st.session_state.ade_view = 'mission'
+                st.session_state.ade_mission_index = 0
+                st.session_state.ade_answers = {}
+                st.rerun()
+
+        with c_malha:
+            st.markdown("<h3 style='color: #0f172a; margin-bottom: 15px;'>Mapeamento do Edital</h3>", unsafe_allow_html=True)
+            
+            for eixo in GRAFO_EDITAL:
+                st.markdown(f"<div class='unit-block'><div class='unit-name'>{eixo['title']}</div><div class='grid-skills'>", unsafe_allow_html=True)
                 
-                cols = c_grid.columns(len(unit["skills"]))
-                for i, skill in enumerate(unit["skills"]):
-                    lvl = st.session_state.ade_mastery[skill["id"]].get("level", 0)
-                    icon = "👑" if lvl == 4 else ("⚡" if skill["type"] == "test" else "")
+                c_grid = st.container()
+                cols = c_grid.columns(len(eixo["competencias"]))
+                
+                for i, comp in enumerate(eixo["competencias"]):
+                    lvl = engine.get_level(comp["id"]) if engine.get_state(comp["id"]).attempts > 0 else 0
+                    icon = "👑" if lvl == 4 else ""
                     
-                    if cols[i].button(icon if icon else " ", key=f"grid_btn_{skill['id']}", help=skill['name']):
-                        st.session_state.ade_current_skill = skill
-                        st.session_state.ade_view = 'lesson'
-                        st.session_state.ade_answers = {}
-                        st.rerun()
-                        
+                    if cols[i].button(icon if icon else " ", key=f"btn_{comp['id']}", help=f"{comp['name']} (Domínio: {int(engine.get_state(comp['id']).mastery*100)}%)"):
+                        st.toast("Para focar nesta competência, o algoritmo a priorizará na próxima missão.")
+                    
                     st.markdown(f"""
                     <style>
                         div[data-testid="column"]:nth-child({i+1}) button {{
                             background-color: {['white', 'white', '#fef08a', '#93c5fd', '#4f46e5'][lvl]} !important;
-                            border: 2px solid {['#cbd5e1', '#f97316', '#eab308', '#3b82f6', '#3730a3'][lvl]} !important;
-                            color: {['black', 'black', 'black', 'white', 'white'][lvl]} !important;
-                            height: 40px; padding:0;
+                            border: 2px solid {['#cbd5e1', '#ef4444', '#eab308', '#3b82f6', '#312e81'][lvl]} !important;
+                            color: {['black', '#ef4444', '#854d0e', '#1e40af', 'white'][lvl]} !important;
+                            height: 28px; width: 100%; padding:0; border-radius: 4px;
                         }}
                     </style>
                     """, unsafe_allow_html=True)
-                
-                st.markdown('</div>', unsafe_allow_html=True)
+                    
+                st.markdown("</div></div>", unsafe_allow_html=True)
 
-    elif st.session_state.ade_view == 'lesson':
-        skill = st.session_state.ade_current_skill
+    # --- 6. RENDERIZAÇÃO DA MISSÃO (SIMULAÇÃO E CORREÇÃO) ---
+    elif st.session_state.ade_view == 'mission':
+        missao = st.session_state.ade_active_mission
+        idx_atual = st.session_state.ade_mission_index
         
-        c_voltar, c_vazio = st.columns([1, 4])
-        if c_voltar.button("⬅️ Voltar ao Mapa de Domínio"):
+        if idx_atual >= len(missao):
+            st.session_state.ade_view = 'dashboard'
+            st.success("Missão Concluída! O motor recalibrou sua prontidão.")
+            st.rerun()
+            
+        comp_atual = missao[idx_atual]
+        
+        c_voltar, c_prog = st.columns([1, 3])
+        if c_voltar.button("⬅️ Abortar Missão"):
             st.session_state.ade_view = 'dashboard'
             st.rerun()
-
-        st.markdown(f"<h2 style='color:#0f172a; margin: 15px 0;'>{skill['name']}</h2>", unsafe_allow_html=True)
-        
-        tab_teoria, tab_pratica = st.tabs(["📚 Teoria (Construção do Domínio)", "🎯 Prática Avaliativa"])
-        
-        with tab_teoria:
-            st.markdown("<div class='lesson-container'>", unsafe_allow_html=True)
-            if skill["type"] == "test":
-                st.info("Esta seção é dedicada exclusivamente ao teste somativo da unidade. Avance para a aba de Prática para iniciar sua avaliação de domínio integral.")
-            else:
-                texto_base = CONTEUDO.get(skill["id"], "")
-                st.markdown(f"<p class='teoria-text'>{texto_base}</p>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        with tab_pratica:
-            st.markdown("<div class='lesson-container'>", unsafe_allow_html=True)
-            st.write("Resolva as questões abaixo extraídas ou adaptadas da banca organizadora.")
             
-            questoes_atuais = QUESTOES.get(skill["id"], [])
+        c_prog.progress((idx_atual) / len(missao))
+        
+        st.markdown(f"<h2 style='color:#0f172a;'>Foco: {comp_atual['name']}</h2>", unsafe_allow_html=True)
+        
+        # Filtra questões para esta competência
+        questoes_comp = [q for q in BANCO_QUESTOES if comp_atual["id"] in q["competencias"]]
+        
+        if not questoes_comp:
+            st.info("Banco de questões em processamento para esta competência. Avançando missão...")
+            if st.button("Continuar"):
+                st.session_state.ade_mission_index += 1
+                st.rerun()
+        else:
+            q = questoes_comp[0] # Pega a primeira questão como exemplo do ciclo
             
-            for i, q in enumerate(questoes_atuais):
-                st.markdown(f"<h4 style='color:#1e3a8a; margin-top:20px;'>Questão {i+1}</h4>", unsafe_allow_html=True)
-                st.write(q["enunciado"])
-                
-                resposta = st.radio("Selecione:", q["opcoes"], index=None, key=f"rad_{skill['id']}_{i}", label_visibility="collapsed")
-                if resposta:
-                    st.session_state.ade_answers[i] = q["opcoes"].index(resposta)
-                
-                st.markdown("<hr style='margin: 15px 0;'>", unsafe_allow_html=True)
-
-            if st.button("Verificar Respostas e Computar Domínio", type="primary", use_container_width=True):
-                if len(st.session_state.ade_answers) < len(questoes_atuais):
-                    st.warning("Responda todas as questões para que o sistema possa analisar seu nível de proficiência.")
-                else:
-                    acertos = sum(1 for i, q in enumerate(questoes_atuais) if st.session_state.ade_answers.get(i) == q["correta"])
-                    taxa = acertos / len(questoes_atuais)
+            st.markdown("<div class='q-container'>", unsafe_allow_html=True)
+            st.write(q["enunciado"])
+            
+            resp = st.radio("Selecione:", q["alternativas"], index=None, key=f"q_{q['id']}", label_visibility="collapsed")
+            confianca = st.select_slider("Qual seu nível de certeza?", options=["Chute", "Dúvida", "Razoável", "Certeza Absoluta"])
+            
+            if st.button("Confirmar Resposta", type="primary"):
+                if resp:
+                    idx_resp = q["alternativas"].index(resp)
+                    acertou = (idx_resp == q["gabarito"])
                     
-                    novo_level = 1 
-                    if taxa >= 0.5: novo_level = 2 
-                    if taxa >= 0.8: novo_level = 3 
-                    if taxa == 1.0: novo_level = 4 
+                    # Converte confiança para peso
+                    conf_map = {"Chute": 1, "Dúvida": 2, "Razoável": 3, "Certeza Absoluta": 4}
                     
-                    db_skill = st.session_state.ade_mastery[skill["id"]]
-                    if novo_level > db_skill.get("level", 0):
-                        db_skill["level"] = novo_level
-                        pontos_ganhos = int((novo_level / 4) * MAX_POINTS_PER_SKILL)
-                        db_skill["points"] = pontos_ganhos
+                    # Mapeia tipo de erro se houver
+                    error_type = q["distratores"].get(idx_resp) if not acertou else None
                     
-                    st.session_state.ade_last_result = {"acertos": acertos, "total": len(questoes_atuais), "taxa": taxa}
-                    st.session_state.ade_view = 'feedback'
+                    # Registra a tentativa no motor
+                    att = Attempt(
+                        question_id=q["id"],
+                        competency_id=comp_atual["id"],
+                        correct=acertou,
+                        difficulty=q["dificuldade"],
+                        time_seconds=random.randint(40, 120), # Simulação de tempo
+                        confidence=conf_map[confianca],
+                        error_type=error_type
+                    )
+                    engine.register_attempt(att)
+                    
+                    st.session_state.ade_last_eval = {
+                        "acertou": acertou, "gabarito": q["alternativas"][q["gabarito"]], "feedback": q["explicacao"]
+                    }
+                    st.session_state.ade_view = 'feedback_mission'
                     st.rerun()
+                else:
+                    st.warning("Selecione uma alternativa.")
             st.markdown("</div>", unsafe_allow_html=True)
 
-    elif st.session_state.ade_view == 'feedback':
-        skill = st.session_state.ade_current_skill
-        res = st.session_state.ade_last_result
-        questoes = QUESTOES.get(skill["id"], [])
+    elif st.session_state.ade_view == 'feedback_mission':
+        eval_data = st.session_state.ade_last_eval
         
-        st.markdown(f"<h2 style='color:#0f172a;'>Resultados: {skill['name']}</h2>", unsafe_allow_html=True)
-        
-        c_score, c_level = st.columns(2)
-        c_score.metric("Desempenho", f"{res['acertos']} de {res['total']} corretas", f"{int(res['taxa']*100)}%")
-        
-        lvl_atual = st.session_state.ade_mastery[skill["id"]].get("level", 0)
-        cores_lvl = ["#cbd5e1", "#f97316", "#eab308", "#3b82f6", "#4f46e5"]
-        nomes_lvl = ["Não iniciado", "Tentativa", "Familiar", "Proficiente", "Dominado 👑"]
-        
-        c_level.markdown(f"""
-        <div style="background:{cores_lvl[lvl_atual]}; color:{'white' if lvl_atual > 2 else 'black'}; padding: 15px; border-radius: 8px; text-align: center; font-size: 1.2rem; font-weight: bold;">
-            Nível de Domínio Alcançado: {nomes_lvl[lvl_atual]}
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.divider()
-        st.markdown("### Caderno de Revisão Inteligente")
-        
-        for i, q in enumerate(questoes):
-            resp_idx = st.session_state.ade_answers[i]
-            acertou = (resp_idx == q["correta"])
+        if eval_data["acertou"]:
+            st.success("✅ Resposta Correta!")
+        else:
+            st.error("❌ Resposta Incorreta.")
+            st.write(f"**Gabarito Oficial:** {eval_data['gabarito']}")
             
-            cor_caixa = "#dcfce7" if acertou else "#fee2e2"
-            cor_texto = "#166534" if acertou else "#991b1b"
-            icone = "✅ Acertou" if acertou else "❌ Atenção"
-            
-            st.markdown(f"""
-            <div class='lesson-container' style='margin-bottom: 15px; border-left: 5px solid {cor_texto};'>
-                <h4 style='margin-top:0; color: #1e293b;'>Questão {i+1} - {icone}</h4>
-                <p>{q["enunciado"]}</p>
-                <p><b>Sua resposta:</b> {q["opcoes"][resp_idx]}</p>
-                {f"<p><b>Gabarito Avança SP:</b> {q['opcoes'][q['correta']]}</p>" if not acertou else ""}
-                <div class='feedback-box' style='background-color: {cor_caixa}; color: {cor_texto};'>
-                    <b>Fundamentação:</b> {q["feedback"]}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        if st.button("⬅️ Retornar ao Mapa Principal", type="primary", use_container_width=True):
-            st.session_state.ade_view = 'dashboard'
+        st.info(f"**Análise Cognitiva:** {eval_data['feedback']}")
+        
+        if st.button("Avançar para próximo alvo da Missão", type="primary"):
+            st.session_state.ade_mission_index += 1
+            st.session_state.ade_view = 'mission'
             st.rerun()

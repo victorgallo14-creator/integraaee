@@ -12848,7 +12848,7 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             try:
                 self.db.table("attempts").insert(data).execute()
             except Exception as e:
-                pass # Silencia log para evitar poluição visual
+                st.error(f"Falha de sincronização (Attempts): {e}")
 
         def save_skill_state(self, state: SkillState):
             data = {
@@ -12868,7 +12868,7 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             try:
                 self.db.table("skill_states").upsert(data).execute()
             except Exception as e:
-                pass
+                st.error(f"Falha de sincronização (Skill States): {e}")
 
         def load_all_skill_states(self) -> dict:
             try:
@@ -12961,43 +12961,60 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         Competency("COMP.43", "Legislação e Publicações Institucionais", "Educação, Legislação e Publicações Institucionais", "Aplicações práticas da legislação educacional e guias institucionais.", "Legislação Federal e Municipal; Manuais MEC/INEP/SME", 0.9)
     ]
 
-    BIBLIOTECA_AULAS_MASTER = [
-        "COMP.09": {
-            "titulo": "A Didática Crítica de José Carlos Libâneo",
-            "pilula": "Para Libâneo, a Didática não é um simples manual de instruções, um 'receituário' de como dar aulas, ou um conjunto de técnicas neutras. Ela é a disciplina que estuda o processo de ensino e aprendizagem em sua totalidade (objetivos, conteúdos, métodos e avaliação), sempre vinculada a um propósito social e político.",
-            "cenario": "Imagine que um professor sugira criar turmas separadas, exclusivas para alunos com dificuldades de aprendizagem, sob a justificativa de facilitar a condução das aulas. Sob a ótica de Libâneo, a recusa à segregação não é apenas uma regra administrativa, mas uma postura didática: a escolha do método reflete uma intencionalidade de promover a equidade, demonstrando que a Didática envolve compromisso ético e político com a formação humana."
-        },
-        "COMP.04": {
-            "titulo": "Paulo Freire e a Pedagogia da Autonomia",
-            "pilula": "O pensamento de Paulo Freire propõe uma ruptura paradigmática com a educação tradicional ('bancária'), em que o conhecimento é depositado passivamente pelo professor. A prática emancipatória exige uma postura dialógica e problematizadora, onde o educando atua como sujeito histórico, construindo o próprio saber a partir de sua realidade.",
-            "cenario": "Em uma reunião de planejamento, um docente argumenta que suas aulas expositivas são perfeitas, mas os alunos não retêm matéria. Sob a ótica freireana, o erro reside em ver o saber como depósito estático. A mediação pedagógica exige transformar o conteúdo em objeto de investigação partindo da realidade dos discentes."
-        },
-        "COMP.02": {
-            "titulo": "Dermeval Saviani e a Pedagogia Histórico-Crítica",
-            "pilula": "Saviani fundamenta-se no materialismo histórico, compreendendo o conhecimento como produto do trabalho humano e da prática social. A função da escola é socializar o saber clássico e historicamente acumulado, indispensável para a emancipação das classes populares.",
-            "cenario": "Ao organizar o acervo da biblioteca escolar, a equipe realiza um filtro para garantir obras de alto valor científico e cultural. Para Saviani, essa curadoria é um ato pedagógico central: a escola não pode ser depósito de senso comum, mas o espaço de apropriação do saber sistematizado."
-        },
-        "COMP.21": {
-            "titulo": "Cipriano Luckesi: Examinar vs. Avaliar",
-            "pilula": "Luckesi separa radicalmente examinar de avaliar. O exame é classificatório, seletivo, excludente e punitivo. A avaliação é diagnóstica, inclusiva e processual, servindo de bússola para orientar a intervenção pedagógica em prol da aprendizagem.",
-            "cenario": "O uso de relatórios descritivos e pareceres qualitativos, em vez de notas frias e punitivas, materializa a visão de Luckesi: o foco deixa de ser a punição do erro (examinar) e passa a ser o diagnóstico e a superação da dificuldade (avaliar)."
-        },
-        "COMP.16": {
-            "titulo": "Heloísa Lück: Liderança e Gestão por Indicadores",
-            "pilula": "Lück supera o conceito do diretor burocrata. A liderança educacional é um processo social de mobilização e articulação em rede. O gestor utiliza indicadores institucionais (como IDEB e fluxo) não para punir, mas para fundamentar o planejamento participativo.",
-            "cenario": "Diante de dados de rendimento escolar extraídos de um sistema como o Integra, o gestor democrático não os utiliza para vigiar professores, mas convoca a equipe para desenhar intervenções pedagógicas coletivas e corresponsáveis."
-        },
-        "COMP.15": {
-            "titulo": "Vitor Paro: Administração Crítica e Gestão Democrática",
-            "pilula": "Paro combate a importação de modelos empresariais para a escola pública. Como a escola forma sujeitos e não mercadorias, sua natureza é política, exigindo descentralização de poder e conselhos escolares com caráter deliberativo.",
-            "cenario": "A decisão sobre a alocação de verbas e prioridades pedagógicas na escola passa obrigatoriamente pelo Conselho de Escola, materializando a gestão democrática e dividindo o poder de deliberação com a comunidade."
-        },
-        "COMP.29": {
-            "titulo": "LDB (Lei nº 9.394/96): Escola vs. Docente",
-            "pilula": "A LDB delimita responsabilidades precisas. Cabe aos estabelecimentos de ensino prover os meios físicos e logísticos (Art. 12) e aos docentes zelar pela aprendizagem e estabelecer as estratégias de recuperação (Art. 13).",
-            "cenario": "Identificar que a infraestrutura para o reforço é dever da escola, mas a metodologia aplicada em sala para recuperar o aluno cabe ao professor, garantindo o cumprimento legal da LDB."
-        }
-    ]
+    BIBLIOTECA_AULAS_MASTER = {}
+    BIBLIOTECA_AULAS_MASTER["COMP.09"] = {
+        "titulo": "A Didática Crítica de José Carlos Libâneo",
+        "pilula": "Para Libâneo, a Didática não é um simples manual de instruções, um 'receituário' de como dar aulas, ou um conjunto de técnicas neutras. Ela é a disciplina que estuda o processo de ensino e aprendizagem em sua totalidade (objetivos, conteúdos, métodos e avaliação), sempre vinculada a um propósito social e político.",
+        "cenario": "Imagine que um professor sugira criar turmas separadas, exclusivas para alunos com dificuldades de aprendizagem, sob a justificativa de facilitar a condução das aulas. Sob a ótica de Libâneo, a recusa à segregação não é apenas uma regra administrativa, mas uma postura didática: a escolha do método reflete uma intencionalidade de promover a equidade, demonstrando que a Didática envolve compromisso ético e político com a formação humana."
+    }
+    BIBLIOTECA_AULAS_MASTER["COMP.04"] = {
+        "titulo": "Paulo Freire e a Pedagogia da Autonomia",
+        "pilula": "O pensamento de Paulo Freire propõe uma ruptura paradigmática com a educação tradicional ('bancária'), em que o conhecimento é depositado passivamente pelo professor. A prática emancipatória exige uma postura dialógica e problematizadora, onde o educando atua como sujeito histórico, construindo o próprio saber a partir de sua realidade.",
+        "cenario": "Em uma reunião de planejamento, um docente argumenta que suas aulas expositivas são perfeitas, mas os alunos não retêm matéria. Sob a ótica freireana, o erro reside em ver o saber como depósito estático. A mediação pedagógica exige transformar o conteúdo em objeto de investigação partindo da realidade dos discentes."
+    }
+    BIBLIOTECA_AULAS_MASTER["COMP.02"] = {
+        "titulo": "Dermeval Saviani e a Pedagogia Histórico-Crítica",
+        "pilula": "Saviani fundamenta-se no materialismo histórico, compreendendo o conhecimento como produto do trabalho humano e da prática social. A função da escola é socializar o saber clássico e historicamente acumulado, indispensável para a emancipação das classes populares.",
+        "cenario": "Ao organizar o acervo da biblioteca escolar, a equipe realiza um filtro para garantir obras de alto valor científico e cultural. Para Saviani, essa curadoria é um ato pedagógico central: a escola não pode ser depósito de senso comum, mas o espaço de apropriação do saber sistematizado."
+    }
+    BIBLIOTECA_AULAS_MASTER["COMP.21"] = {
+        "titulo": "Cipriano Luckesi: Examinar vs. Avaliar",
+        "pilula": "Luckesi separa radicalmente examinar de avaliar. O exame é classificatório, seletivo, excludente e punitivo. A avaliação é diagnóstica, inclusiva e processual, servindo de bússola para orientar a intervenção pedagógica em prol da aprendizagem.",
+        "cenario": "O uso de relatórios descritivos e pareceres qualitativos, em vez de notas frias e punitivas, materializa a visão de Luckesi: o foco deixa de ser a punição do erro (examinar) e passa a ser o diagnóstico e a superação da dificuldade (avaliar)."
+    }
+    BIBLIOTECA_AULAS_MASTER["COMP.16"] = {
+        "titulo": "Heloísa Lück: Liderança e Gestão por Indicadores",
+        "pilula": "Lück supera o conceito do diretor burocrata. A liderança educacional é um processo social de mobilização e articulação em rede. O gestor utiliza indicadores institucionais (como IDEB e fluxo) não para punir, mas para fundamentar o planejamento participativo.",
+        "cenario": "Diante de dados de rendimento escolar extraídos de um sistema como o Integra, o gestor democrático não os utiliza para vigiar professores, mas convoca a equipe para desenhar intervenções pedagógicas coletivas e corresponsáveis."
+    }
+    BIBLIOTECA_AULAS_MASTER["COMP.15"] = {
+        "titulo": "Vitor Paro: Administração Crítica e Gestão Democrática",
+        "pilula": "Paro combate a importação de modelos empresariais para a escola pública. Como a escola forma sujeitos e não mercadorias, sua natureza é política, exigindo descentralização de poder e conselhos escolares com caráter deliberativo.",
+        "cenario": "A decisão sobre a alocação de verbas e prioridades pedagógicas na escola passa obrigatoriamente pelo Conselho de Escola, materializando a gestão democrática e dividindo o poder de deliberação com a comunidade."
+    }
+    BIBLIOTECA_AULAS_MASTER["COMP.29"] = {
+        "titulo": "LDB (Lei nº 9.394/96): Escola vs. Docente",
+        "pilula": "A LDB delimita responsabilidades precisas. Cabe aos estabelecimentos de ensino prover os meios físicos e logísticos (Art. 12) e aos docentes zelar pela aprendizagem e estabelecer as estratégias de recuperação (Art. 13).",
+        "cenario": "Identificar que a infraestrutura para o reforço é dever da escola, mas a metodologia aplicada em sala para recuperar o aluno cabe ao professor, garantindo o cumprimento legal da LDB."
+    }
+
+    BIBLIOTECA_TEORICA = {
+        "COMP.01": "A relação entre sociedade, escola e conhecimento exige compreender que a educação não é neutra. Cortella destaca que os fundamentos epistemológicos e políticos determinam o compromisso da escola com a emancipação humana, combatendo a alienação e promovendo o pensamento crítico frente à realidade social.",
+        "COMP.02": "A função social da escola pública na perspectiva histórico-crítica reside na socialização do saber sistematizado e universal, instrumentalizando as classes trabalhadoras para a intervenção transformadora na sociedade.",
+        "COMP.03": "A história da educação revela que a organização escolar foi moldada por disputas políticas e sociais. A pedagogia crítica contrapõe-se aos modelos seletivos do passado, buscando uma escola unitária voltada para a emancipação.",
+        "COMP.04": "Os grandes teóricos da educação convergem na defesa de que o ensino deve superar a memorização passiva. Freire enfatiza o diálogo; Saviani, a apropriação do saber clássico; Libâneo, a mediação didática consciente.",
+        "COMP.05": "A psicologia histórico-cultural (Vigotski e Martins) demonstra que o desenvolvimento do psiquismo humano é um processo eminentemente social, impulsionado pela educação escolar de qualidade.",
+        "COMP.10": "A BNCC estrutura o ensino por competências, definido como a mobilização complexa de conhecimentos, habilidades, atitudes e valores para resolver demandas da vida real.",
+        "COMP.15": "Vitor Paro defende que a administração escolar deve superar a lógica empresarial. A escola pública produz seres humanos emancipados, exigindo gestão democrática com instâncias deliberativas reais.",
+        "COMP.16": "Heloísa Lück define a liderança educacional como um processo de mobilização coletiva em rede, pautada em indicadores de desempenho para o planejamento participativo.",
+        "COMP.26": "A Política Nacional de Educação Digital (Lei nº 14.533/2023) e as diretrizes sobre o uso de telas (SECON/PR / CNE) exigem o letramento midiático crítico, assegurando que o aluno produza e analise informações com ética e segurança.",
+        "COMP.27": "A Lei Lucas (Lei nº 13.722/2018) obriga a capacitação de equipes escolares em primeiros socorros para agir de forma preventiva e imediata em situações de urgência até a chegada do socorro especializado.",
+        "COMP.29": "A LDB delimita com precisão as incumbências: a escola provê os meios físicos e logísticos para a recuperação (Art. 12), e o docente estabelece as estratégias pedagógicas e zela pela aprendizagem (Art. 13)."
+    }
+
+    for c in COMPETENCIAS_EDITAL:
+        if c.id not in BIBLIOTECA_TEORICA:
+            BIBLIOTECA_TEORICA[c.id] = f"Estudo analítico e aprofundado referente ao tema oficial: {c.name}. Baseado na bibliografia e legislação do edital: {c.reference}."
 
     BANCO_QUESTOES_REAIS = [
         {"id": "Q1", "competency_id": "COMP.04", "dificuldade": 6.5, "enunciado": "A obra de Paulo Freire critica fortemente a educação bancária. Nessa concepção tradicional, o educando é concebido fundamentalmente como:", "alternativas": ["Um sujeito ativo na construção do conhecimento.", "Um recipiente vazio a ser preenchido pelos depósitos do educador.", "Um investigador autônomo das realidades sociais.", "Um agente de transformação da sua realidade."], "gabarito": 1, "explicacao": "Na educação bancária, o aluno é um cofre passivo. As demais alternativas representam a educação problematizadora."},

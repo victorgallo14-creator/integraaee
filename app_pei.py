@@ -1254,7 +1254,7 @@ with st.sidebar:
         st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
         app_mode_adm = st.radio(
             "Navegação", 
-            ["🏷️ Patrimônio e Inventário", "📦 Almoxarifado Escolar", "🖨️ Emissão de Boletins"], 
+            ["🏷️ Patrimônio e Inventário", "📦 Almoxarifado Escolar", "🖨️ Emissão de Boletins", "📚 Preparatório ADE"], 
             label_visibility="collapsed",
             key="nav_adm"
         )
@@ -12646,3 +12646,172 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
         
                     else:
                         st.info("Nenhum bem cadastrado no inventário ainda para gerar relatórios.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ==============================================================================
+# VIEW: PLATAFORMA DE ESTUDOS - ADE (EXCLUSIVO)
+# ==============================================================================
+if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and app_mode_adm == "📚 Preparatório ADE":
+    
+    # Trava de Segurança Absoluta
+    if st.session_state.get('usuario_matricula') != "8829405":
+        st.markdown("""<div class="header-box" style="border-left-color: #ef4444;"><div class="header-title" style="color: #ef4444;">Acesso Negado</div></div>""", unsafe_allow_html=True)
+        st.error("Este ambiente é de uso estrito e exclusivo. Suas credenciais não possuem autorização para acessar a plataforma de preparação para o concurso de ADE.")
+        st.stop()
+
+    st.markdown("""<div class="header-box" style="border-left-color: #8b5cf6;"><div class="header-title">Plataforma de Estudos - ADE</div><div class="header-subtitle">Ambiente de treinamento avançado focado em habilidades e resolução de questões.</div></div>""", unsafe_allow_html=True)
+
+    # Banco de Dados Local Simulado (Você substituirá pelo seu material)
+    BANCO_QUESTOES = [
+        {
+            "id": 1,
+            "area": "Legislação Educacional",
+            "tema": "LDB - Lei de Diretrizes e Bases",
+            "habilidade": "Compreender os princípios e fins da educação nacional",
+            "enunciado": "O ensino será ministrado com base em diversos princípios estabelecidos pela LDB. Assinale a alternativa que apresenta corretamente um desses princípios fundamentais para a gestão escolar atual.",
+            "alternativas": [
+                "A) Uniformidade de ideias e concepções pedagógicas no ambiente escolar.",
+                "B) Gratuidade do ensino público em estabelecimentos oficiais.",
+                "C) Centralização da gestão do ensino público na figura do diretor escolar.",
+                "D) Desvinculação entre a educação escolar, o trabalho e as práticas sociais."
+            ],
+            "correta": "B) Gratuidade do ensino público em estabelecimentos oficiais.",
+            "feedback": "A gratuidade do ensino público em estabelecimentos oficiais é um princípio garantido pelo Artigo 3º, inciso VI da LDB. A gestão democrática pressupõe o pluralismo de ideias, rejeitando a uniformidade, e a educação escolar deve manter vínculo estreito com o trabalho e as práticas sociais, descentralizando as decisões de gestão."
+        },
+        {
+            "id": 2,
+            "area": "Conhecimentos Pedagógicos",
+            "tema": "Gestão Democrática",
+            "habilidade": "Analisar a função sociopolítica da escola e os mecanismos de participação",
+            "enunciado": "A gestão democrática do ensino público pressupõe a participação ativa da comunidade escolar e local. Qual mecanismo representa a principal instância colegiada para essa finalidade na unidade escolar?",
+            "alternativas": [
+                "A) O Conselho de Classe focado exclusivamente na progressão de notas.",
+                "B) A Associação de Pais e Mestres atuando apenas na arrecadação financeira.",
+                "C) O Conselho de Escola ou Conselho Escolar, com natureza deliberativa e consultiva.",
+                "D) A Secretaria Municipal de Educação como formuladora única das diretrizes locais."
+            ],
+            "correta": "C) O Conselho de Escola ou Conselho Escolar, com natureza deliberativa e consultiva.",
+            "feedback": "O Conselho Escolar é o órgão colegiado máximo dentro da escola, garantindo a representatividade de todos os segmentos da comunidade educativa. Sua natureza deliberativa, consultiva e fiscalizadora materializa o princípio da gestão democrática previsto na Constituição Federal e na LDB, superando o modelo de decisões concentradas exclusivamente na equipe gestora."
+        }
+    ]
+
+    # Inicialização de variáveis de controle de estudo
+    if 'historico_respostas' not in st.session_state:
+        st.session_state.historico_respostas = {}
+
+    tab_treino, tab_simulado, tab_revisao = st.tabs(["🎯 Treinamento por Habilidades", "⏱️ Simulado Completo", "📖 Caderno de Erros e Feedbacks"])
+
+    with tab_treino:
+        st.markdown("### Seleção de Foco")
+        st.write("Utilize os filtros abaixo para direcionar o seu estudo. O sistema isola as questões de acordo com a área de conhecimento, o tema central e a habilidade específica que você deseja aprimorar no momento.")
+        
+        # Filtros Dinâmicos
+        areas_disponiveis = sorted(list(set([q['area'] for q in BANCO_QUESTOES])))
+        area_sel = st.selectbox("Área de Conhecimento:", ["Selecione"] + areas_disponiveis)
+        
+        if area_sel != "Selecione":
+            temas_disponiveis = sorted(list(set([q['tema'] for q in BANCO_QUESTOES if q['area'] == area_sel])))
+            tema_sel = st.selectbox("Tema Específico:", ["Selecione"] + temas_disponiveis)
+            
+            if tema_sel != "Selecione":
+                hab_disponiveis = sorted(list(set([q['habilidade'] for q in BANCO_QUESTOES if q['tema'] == tema_sel])))
+                hab_sel = st.selectbox("Habilidade Avaliada:", ["Selecione"] + hab_disponiveis)
+                
+                if hab_sel != "Selecione":
+                    st.divider()
+                    questoes_filtradas = [q for q in BANCO_QUESTOES if q['habilidade'] == hab_sel]
+                    
+                    for q in questoes_filtradas:
+                        st.markdown(f"**Questão {q['id']}**")
+                        st.write(q['enunciado'])
+                        
+                        chave_resposta = f"resp_{q['id']}"
+                        resposta_usuario = st.radio("Selecione a alternativa:", q['alternativas'], index=None, key=f"radio_{q['id']}")
+                        
+                        if st.button("Confirmar Resposta", key=f"btn_{q['id']}"):
+                            if resposta_usuario:
+                                st.session_state.historico_respostas[q['id']] = {
+                                    "area": q['area'],
+                                    "tema": q['tema'],
+                                    "habilidade": q['habilidade'],
+                                    "acertou": resposta_usuario == q['correta'],
+                                    "feedback": q['feedback']
+                                }
+                                
+                                if resposta_usuario == q['correta']:
+                                    st.success("Alternativa Correta! Excelente linha de raciocínio.")
+                                    st.info(f"Reforço teórico: {q['feedback']}")
+                                else:
+                                    st.error("Alternativa Incorreta. É necessário revisar este conceito.")
+                                    st.warning(f"Análise do erro: {q['feedback']}")
+                            else:
+                                st.warning("Selecione uma alternativa antes de confirmar.")
+
+    with tab_simulado:
+        st.markdown("### Ambiente de Prova")
+        st.write("Esta seção compila um conjunto de questões mistas abrangendo todas as áreas e temas. O objetivo é simular a carga cognitiva e a alternância de disciplinas características da prova oficial do concurso.")
+        st.info("A funcionalidade de geração randômica de provas será ativada assim que o banco principal receber o volume completo de questões importadas.")
+
+    with tab_revisao:
+        st.markdown("### Acompanhamento de Desempenho")
+        st.write("O registro contínuo dos seus acertos e erros fundamenta a estratégia de revisão. Leia atentamente as justificativas das questões que apresentaram maior dificuldade para consolidar a fixação do conteúdo na memória de longo prazo.")
+        
+        erros_cometidos = {k: v for k, v in st.session_state.historico_respostas.items() if not v['acertou']}
+        
+        if erros_cometidos:
+            for q_id, dados in erros_cometidos.items():
+                st.markdown(f"**Referência:** {dados['area']} - {dados['tema']}")
+                st.markdown(f"**Habilidade fragilizada:** {dados['habilidade']}")
+                st.error(f"Apontamento de revisão: {dados['feedback']}")
+                st.divider()
+        else:
+            st.success("Não existem registros de falhas no seu caderno de erros neste momento. Continue avançando no treinamento por habilidades para mapear seu desempenho.")

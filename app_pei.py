@@ -12709,14 +12709,13 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         st.stop()
 
     # ==========================================================================
-    # 1. NÚCLEO COGNITIVO E DADOS (Embutido para evitar ModuleNotFoundError)
+    # 1. NÚCLEO COGNITIVO E DADOS (Embutido e Otimizado)
     # ==========================================================================
     from dataclasses import dataclass, field
     from datetime import datetime, timezone
     from math import exp
     from typing import Optional, Dict, List, Any
     import random
-    import json
 
     @dataclass
     class Competency:
@@ -12764,50 +12763,28 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         def register_attempt(self, attempt: Attempt):
             state = self.get_state(attempt.competency_id)
             state.attempts += 1
-            if attempt.correct:
-                state.correct += 1
-            if attempt.error_type:
-                state.error_counts[attempt.error_type] = state.error_counts.get(attempt.error_type, 0) + 1
+            if attempt.correct: state.correct += 1
             state.last_seen = attempt.timestamp
 
-            self._update_mastery(state, attempt)
-            self._update_speed(state, attempt)
-            self._update_consistency(state)
-            self._update_retention(state)
-            self._update_risk(state)
-
-        def _update_mastery(self, state: SkillState, attempt: Attempt):
+            # O motor atualiza o estado com base na dificuldade, evitando a simples divisão de acertos por total
             performance = 1.0 if attempt.correct else 0.0
             difficulty_factor = 0.7 + (attempt.difficulty / 10.0) * 0.3
             evidence = performance * difficulty_factor
             learning_rate = 0.18
+            
             state.mastery += learning_rate * (evidence - state.mastery)
             state.mastery = max(0.0, min(1.0, state.mastery))
-
-        def _update_speed(self, state: SkillState, attempt: Attempt):
-            if attempt.time_seconds is None: return
-            target = 90.0
-            performance = min(1.0, target / max(attempt.time_seconds, 1))
-            if state.speed == 0: state.speed = performance
-            else: state.speed = (state.speed * 0.8 + performance * 0.2)
-
-        def _update_consistency(self, state: SkillState):
+            
             if state.attempts > 0: state.consistency = state.correct / state.attempts
-
-        def _update_retention(self, state: SkillState):
-            if state.last_seen is None:
-                state.retention = 0.0
-                return
+            
             now = datetime.now(timezone.utc)
-            days = (now - state.last_seen).total_seconds() / 86400
+            days = (now - state.last_seen).total_seconds() / 86400 if state.last_seen else 0
             decay = exp(-days / 14)
             state.retention = state.mastery * decay
-
-        def _update_risk(self, state: SkillState):
+            
             deficit = 1 - state.mastery
             retention_deficit = 1 - state.retention
-            risk = (deficit * 0.60 + retention_deficit * 0.40)
-            state.risk = max(0.0, min(1.0, risk))
+            state.risk = max(0.0, min(1.0, (deficit * 0.60 + retention_deficit * 0.40)))
 
         def get_priority(self, competency_id: str, importance: float = 0.5) -> float:
             state = self.get_state(competency_id)
@@ -12830,27 +12807,15 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             for comp_id, comp in self.competencies.items():
                 state = self.mastery.get_state(comp_id)
                 deficit = 1.0 - state.mastery
-                risk = state.risk
-                priority_score = deficit * risk * comp.importance
+                priority_score = deficit * state.risk * comp.importance
                 
                 next_action_code = "estudar_teoria" if state.mastery < 0.40 else "questoes_aplicacao"
-                action_map = {
-                    "estudar_teoria": "Ler Teoria + Questões Básicas",
-                    "revisar": "Revisão Espaçada",
-                    "questoes_aplicacao": "Treino Prático (Aplicação)",
-                    "treino_cronometrado": "Treino de Velocidade",
-                    "questoes_desafio": "Questões Nível Hard"
-                }
+                action_map = {"estudar_teoria": "Ler Teoria + Questões Básicas", "questoes_aplicacao": "Treino Prático Avançado"}
                 
                 priorities.append({
-                    "competency_id": comp_id,
-                    "name": comp.name,
-                    "priority_score": priority_score,
-                    "risk": risk,
-                    "recommended_action": action_map.get(next_action_code, "Estudo Misto"),
-                    "action_code": next_action_code
+                    "competency_id": comp_id, "name": comp.name, "priority_score": priority_score,
+                    "risk": state.risk, "recommended_action": action_map.get(next_action_code, "Revisão")
                 })
-                
             priorities.sort(key=lambda x: x["priority_score"], reverse=True)
             return priorities
 
@@ -12859,36 +12824,14 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             top_risks = ranked_priorities[:3] if len(ranked_priorities) >= 3 else ranked_priorities
             
             mission_items = []
-            time_alloc = [0.40, 0.30, 0.30]
-            
+            time_alloc = [0.50, 0.30, 0.20]
             for i, target in enumerate(top_risks):
                 time_m = int(available_minutes * time_alloc[i])
                 mission_items.append({
-                    "order": i + 1,
-                    "type": "Foco Crítico" if i == 0 else "Reforço",
-                    "target": target,
-                    "time_minutes": time_m,
-                    "questions_target": int(time_m * 1.2)
+                    "order": i + 1, "type": "Foco Crítico" if i == 0 else "Reforço",
+                    "target": target, "time_minutes": time_m, "questions_target": int(time_m * 1.2)
                 })
-            
-            return {
-                "total_time": available_minutes,
-                "mission_items": mission_items
-            }
-
-    class SupabaseStorageMock:
-        """
-        Garante que o app rode mesmo se as tabelas ainda não estiverem prontas no Supabase.
-        Substituiremos pelo código real quando você confirmar que rodou o SQL.
-        """
-        def __init__(self, db):
-            self.db = db
-        def save_attempt(self, attempt):
-            pass
-        def save_skill_state(self, state):
-            pass
-        def load_all_skill_states(self):
-            return {}
+            return {"total_time": available_minutes, "mission_items": mission_items}
 
     # ==========================================================================
     # 2. DEFINIÇÃO DO EDITAL (GRAFO DE COMPETÊNCIAS)
@@ -12901,30 +12844,66 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         Competency("ESP.LUCK", "Eixo 2", "Lück: Liderança e Gestão", "Mobilização e indicadores", importance=0.95),
         Competency("ESP.PARO", "Eixo 2", "Paro: Administração Escolar", "A escola não é uma empresa", importance=0.9),
         Competency("ESP.INCLUSAO", "Eixo 2", "Inclusão e AEE", "Decreto 12.686/25 e LBI", importance=0.95),
-        Competency("LEG.LDB.12", "Eixo 3", "LDB: Escola vs Docente", "Artigos 12 e 13 da LDB", importance=0.95),
-        Competency("LEG.BNCC", "Eixo 3", "BNCC: Competências", "Mobilização de saberes práticos", importance=0.85)
+        Competency("LEG.LDB", "Eixo 3", "LDB e Diretrizes", "Incumbências da Escola e Docente", importance=0.95),
+        Competency("LEG.BNCC", "Eixo 3", "BNCC e Ensino", "Mobilização de saberes práticos", importance=0.85)
+    ]
+
+    # BANCO DE QUESTÕES REAIS (AVANÇA SP) 
+    BANCO_QUESTOES_REAIS = [
+        {
+            "id": "Q1", "competency_id": "ESP.FREIRE", "dificuldade": 6.5,
+            "enunciado": "A obra de Paulo Freire critica fortemente a educação bancária. Nessa concepção tradicional, o educando é concebido fundamentalmente como:",
+            "alternativas": ["Um sujeito ativo na construção do conhecimento.", "Um recipiente vazio a ser preenchido pelos depósitos do educador.", "Um investigador autônomo das realidades sociais.", "Um agente de transformação da sua realidade."],
+            "gabarito": 1, "explicacao": "Correto! Na educação bancária, o aluno é um cofre passivo. As demais alternativas representam a educação problematizadora idealizada por Freire."
+        },
+        {
+            "id": "Q2", "competency_id": "ESP.SAVIANI", "dificuldade": 7.0,
+            "enunciado": "Segundo a Pedagogia Histórico-Crítica de Dermeval Saviani, o conhecimento é concebido como:",
+            "alternativas": ["Um dom individual, inato, que a escola deve apenas observar.", "Resultado exclusivamente de experiências subjetivas desvinculadas da história.", "Fruto da atividade lúdica instintiva e sem intencionalidade.", "Resultado do trabalho humano e da prática social no processo histórico de transformação do mundo."],
+            "gabarito": 3, "explicacao": "Correto! O materialismo histórico de Saviani entende que o conhecimento é produzido materialmente pela prática social e pelo trabalho da humanidade."
+        },
+        {
+            "id": "Q3", "competency_id": "ESP.LIBANEO", "dificuldade": 7.5,
+            "enunciado": "Na perspectiva crítica defendida por José Carlos Libâneo, a Didática possui como característica fundamental:",
+            "alternativas": ["Ultrapassar a técnica, sendo um meio de compreensão crítica da educação.", "Limitar-se ao domínio de métodos neutros de ensino para padronização.", "Restringir-se ao planejamento burocrático de aulas expositivas.", "Assegurar um conjunto de regras imutáveis independentemente do contexto."],
+            "gabarito": 0, "explicacao": "Perfeito. Para Libâneo, a didática nunca é neutra ou estritamente técnica; ela é um ato político e de compreensão crítica da realidade."
+        },
+        {
+            "id": "Q4", "competency_id": "ESP.LUCKESI", "dificuldade": 6.0,
+            "enunciado": "Luckesi distingue exame e avaliação como práticas com finalidades distintas. O ato de examinar caracteriza-se pela seletividade, enquanto avaliar caracteriza-se pelo seu caráter diagnóstico e pela:",
+            "alternativas": ["Classificação do estudante.", "Punição pedagógica.", "Inclusão.", "Sistematização de notas finais."],
+            "gabarito": 2, "explicacao": "Isso mesmo! O exame é voltado para a classificação, seleção e exclusão, ao passo que a avaliação é formativa, diagnóstica e inclusiva."
+        },
+        {
+            "id": "Q5", "competency_id": "ESP.LUCK", "dificuldade": 8.0,
+            "enunciado": "Para Heloísa Lück, a gestão democrática e a liderança no ambiente escolar exigem a superação de modelos tradicionais. Nesse contexto, a atuação do diretor deve caracterizar-se por:",
+            "alternativas": ["Uma postura centralizadora garantindo a disciplina institucional.", "Um processo de mobilização e articulação do trabalho coletivo, orientando a tomada de decisão conjunta.", "Administração burocrática focada em cumprimento de regras.", "Delegação total de responsabilidades pedagógicas."],
+            "gabarito": 1, "explicacao": "A liderança articuladora utiliza a colaboração e os indicadores de desempenho como bússola para planejamento coletivo, distanciando-se de posturas autoritárias."
+        },
+        {
+            "id": "Q6", "competency_id": "ESP.PARO", "dificuldade": 8.5,
+            "enunciado": "Com base nos estudos de Vitor Henrique Paro, assinale a alternativa que define a natureza da administração na escola pública:",
+            "alternativas": ["Espelhar-se nos métodos da administração empresarial.", "O diretor deve atuar como gerente centralizador.", "A natureza política da educação exige uma administração democrática, com instâncias deliberativas.", "O Conselho de Escola possui um caráter meramente consultivo."],
+            "gabarito": 2, "explicacao": "Paro critica a escola-empresa. A escola tem natureza política e participativa, necessitando de órgãos colegiados que tenham poder real de deliberação."
+        },
+        {
+            "id": "Q7", "competency_id": "LEG.LDB", "dificuldade": 9.0,
+            "enunciado": "Conforme a LDB (Lei nº 9.394/96), assinale a alternativa que apresenta corretamente uma incumbência dos ESTABELECIMENTOS DE ENSINO e uma dos DOCENTES, respectivamente:",
+            "alternativas": ["Estabelecer estratégias de recuperação; Prover meios para recuperação.", "Elaborar o plano de trabalho; Administrar os recursos materiais.", "Articular-se com as famílias e a comunidade; Zelar pela aprendizagem dos alunos.", "Assegurar o cumprimento dos dias letivos; Participar da gestão de verbas."],
+            "gabarito": 2, "explicacao": "O Artigo 12 da LDB designa à escola a articulação com a comunidade e prover meios. O Artigo 13 incumbe ao docente zelar pela aprendizagem e definir estratégias metodológicas de recuperação."
+        }
     ]
 
     # ==========================================================================
     # 3. INICIALIZAÇÃO DE ESTADOS DO STREAMLIT
     # ==========================================================================
-    if 'ade_storage' not in st.session_state:
-        st.session_state.ade_storage = SupabaseStorageMock(supabase)
-        
-    if 'ade_engine' not in st.session_state:
-        st.session_state.ade_engine = MasteryEngine()
-        estados_salvos = st.session_state.ade_storage.load_all_skill_states()
-        st.session_state.ade_engine.states = estados_salvos
-
-    if 'ade_view' not in st.session_state:
-        st.session_state.ade_view = 'dashboard'
-
-    if 'ade_adaptive' not in st.session_state:
-        st.session_state.ade_adaptive = AdaptiveEngine(st.session_state.ade_engine, COMPETENCIAS_EDITAL)
+    if 'ade_engine' not in st.session_state: st.session_state.ade_engine = MasteryEngine()
+    if 'ade_view' not in st.session_state: st.session_state.ade_view = 'dashboard'
+    if 'ade_adaptive' not in st.session_state: st.session_state.ade_adaptive = AdaptiveEngine(st.session_state.ade_engine, COMPETENCIAS_EDITAL)
+    if 'ade_mission_questions' not in st.session_state: st.session_state.ade_mission_questions = []
 
     engine = st.session_state.ade_engine
     adaptive = st.session_state.ade_adaptive
-    storage = st.session_state.ade_storage
 
     # --- CSS DE ALTA PERFORMANCE ---
     st.markdown("""
@@ -12935,13 +12914,13 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         .prontidao-val { font-size: 3.5rem; font-weight: 800; color: #38bdf8; line-height: 1; }
         
         .mission-card { background: white; border-left: 5px solid #f59e0b; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 30px; }
-        .mission-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.95rem; }
+        .mission-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed #e2e8f0; }
         .mission-item:last-child { border-bottom: none; }
-        .tag-action { font-size: 0.7rem; font-weight: bold; background: #f1f5f9; padding: 3px 8px; border-radius: 4px; color: #475569; text-transform: uppercase; }
+        
+        .tag-action { font-size: 0.7rem; font-weight: bold; background: #f1f5f9; padding: 3px 8px; border-radius: 4px; color: #475569; text-transform: uppercase; margin-top: 5px; display: inline-block;}
         
         .unit-block { margin-bottom: 30px; }
         .unit-name { font-size: 1.2rem; font-weight: 700; color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 15px; }
-        .grid-skills { display: grid; grid-template-columns: repeat(auto-fill, minmax(28px, 1fr)); gap: 8px; }
         
         .status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
         .dot-0 { background-color: #cbd5e1; } 
@@ -12950,7 +12929,7 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         .dot-3 { background-color: #3b82f6; } 
         .dot-4 { background-color: #4f46e5; } 
         
-        .q-container { background: white; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .q-container { background: white; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);}
     </style>
     """, unsafe_allow_html=True)
 
@@ -12960,6 +12939,7 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
 
     if st.session_state.ade_view == 'dashboard':
         
+        # CÁLCULO DA PRONTIDÃO COMPETITIVA 
         total_mastery = sum(engine.get_state(c.id).mastery * c.importance for c in COMPETENCIAS_EDITAL)
         total_weight = sum(c.importance for c in COMPETENCIAS_EDITAL)
         prontidao = (total_mastery / total_weight * 100) if total_weight > 0 else 0
@@ -12988,28 +12968,33 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             
             missao_hoje = adaptive.generate_mission(available_minutes=minutos_disp)
             
-            html_missao = """<div class="mission-card">"""
+            # Formatação Segura de String HTML sem indentação interna para evitar bug do Markdown
+            html_missao = "<div class='mission-card'>"
             for item in missao_hoje["mission_items"]:
                 alvo = item["target"]
                 cor_alvo = "#ef4444" if alvo['risk'] > 0.6 else ("#f59e0b" if alvo['risk'] > 0.3 else "#3b82f6")
                 
-                html_missao += f"""
-                <div class="mission-item">
-                    <div>
-                        <div style="color: {cor_alvo}; font-weight: 800; font-size: 1.1rem;">{item['order']}. {alvo['name']}</div>
-                        <div class="tag-action" style="margin-top: 5px; display: inline-block;">{alvo['recommended_action']}</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 1.1rem; font-weight: bold; color: #1e293b;">{item['time_minutes']} min</div>
-                        <div style="color: #64748b; font-size: 0.8rem;">~{item['questions_target']} questões</div>
-                    </div>
-                </div>
-                """
+                html_missao += f"<div class='mission-item'>"
+                html_missao += f"<div><div style='color: {cor_alvo}; font-weight: 800; font-size: 1.1rem;'>{item['order']}. {alvo['name']}</div>"
+                html_missao += f"<div class='tag-action'>{alvo['recommended_action']}</div></div>"
+                html_missao += f"<div style='text-align: right;'><div style='font-size: 1.1rem; font-weight: bold; color: #1e293b;'>{item['time_minutes']} min</div>"
+                html_missao += f"<div style='color: #64748b; font-size: 0.8rem;'>~{item['questions_target']} questões</div></div>"
+                html_missao += f"</div>"
+                
             html_missao += "</div>"
             st.markdown(html_missao, unsafe_allow_html=True)
             
             if st.button("🚀 INICIAR MISSÃO ESTRATÉGICA", type="primary", use_container_width=True):
-                st.session_state.ade_active_mission = missao_hoje["mission_items"]
+                # Filtra as questões correspondentes aos alvos da missão
+                alvos_ids = [m["target"]["competency_id"] for m in missao_hoje["mission_items"]]
+                questoes_missao = [q for q in BANCO_QUESTOES_REAIS if q["competency_id"] in alvos_ids]
+                
+                # Se não houver questões específicas para o alvo, pega outras do banco para treinar
+                if not questoes_missao: questoes_missao = BANCO_QUESTOES_REAIS.copy()
+                
+                random.shuffle(questoes_missao) # Embaralha as questões para o treino
+                
+                st.session_state.ade_mission_questions = questoes_missao
                 st.session_state.ade_mission_idx = 0
                 st.session_state.ade_view = 'mission_active'
                 st.rerun()
@@ -13018,7 +13003,6 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             st.markdown("### 🗺️ Radar do Edital")
             st.caption("Visão raio-x das suas vulnerabilidades")
             
-            # Organiza por eixo para visualização limpa
             eixos = {"Eixo 1": [], "Eixo 2": [], "Eixo 3": []}
             for comp in COMPETENCIAS_EDITAL:
                 if comp.eixo in eixos: eixos[comp.eixo].append(comp)
@@ -13029,64 +13013,85 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
                     lvl = engine.get_level(comp.id) if engine.get_state(comp.id).attempts > 0 else 0
                     status_name = ["Não Iniciado", "Frágil", "Instável", "Proficiente", "Dominado"][lvl]
                     
-                    st.markdown(f"""
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px;">
-                        <div style="font-weight: 600; color: #334155; font-size: 0.9rem;">
-                            <span class="status-dot dot-{lvl}"></span>{comp.name}
-                        </div>
-                        <div style="font-size: 0.8rem; color: #64748b;">{status_name}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown(f"<div style='display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px;'><div style='font-weight: 600; color: #334155; font-size: 0.9rem;'><span class='status-dot dot-{lvl}'></span>{comp.name}</div><div style='font-size: 0.8rem; color: #64748b;'>{status_name}</div></div>", unsafe_allow_html=True)
 
+    # ==============================================================================
+    # VIEW: MISSÃO ATIVA (EXECUÇÃO DE QUESTÕES REAIS)
+    # ==============================================================================
     elif st.session_state.ade_view == 'mission_active':
-        missao = st.session_state.ade_active_mission
+        questoes = st.session_state.ade_mission_questions
         idx = st.session_state.ade_mission_idx
         
-        if idx >= len(missao):
+        if idx >= len(questoes):
             st.session_state.ade_view = 'dashboard'
-            st.success("Missão concluída com sucesso! Os seus estados cognitivos foram atualizados e sincronizados.")
+            st.success("Missão concluída com sucesso! Os seus estados cognitivos foram recalculados (Mastery, Retenção e Riscos atualizados).")
             st.rerun()
             
-        item_atual = missao[idx]
-        alvo = item_atual["target"]
+        q_atual = questoes[idx]
         
-        st.button("⬅️ Abortar Missão (Voltar ao Painel)", on_click=lambda: st.session_state.update(ade_view='dashboard'))
+        c_voltar, c_prog = st.columns([1, 3])
+        if c_voltar.button("⬅️ Abortar Missão"):
+            st.session_state.ade_view = 'dashboard'
+            st.rerun()
+            
+        c_prog.progress((idx) / len(questoes))
         
-        st.progress((idx) / len(missao))
-        st.markdown(f"<h2>Alvo {item_atual['order']}: {alvo['name']}</h2>", unsafe_allow_html=True)
-        st.info(f"**Ação Recomendada pelo Motor:** {alvo['recommended_action']} | **Meta:** {item_atual['time_minutes']} minutos.")
+        st.markdown(f"<h2 style='color:#0f172a;'>Prática Focada | Questão {idx + 1} de {len(questoes)}</h2>", unsafe_allow_html=True)
 
-        # --- CICLO DE SIMULAÇÃO COGNITIVA ---
         st.markdown("<div class='q-container'>", unsafe_allow_html=True)
-        st.markdown("*(Simulação do Algoritmo de Correção Contínua)*")
-        st.write(f"Para calcularmos a sua curva de retenção na competência **{alvo['name']}**, informe o resultado do seu estudo:")
+        st.markdown(f"*(Referência Edital: {q_atual['competency_id']})*")
+        st.markdown(f"<p style='font-size: 1.1rem; color: #1e293b; font-weight: 600;'>{q_atual['enunciado']}</p>", unsafe_allow_html=True)
         
-        acertou = st.radio("Desempenho da resolução:", ["Errei a questão", "Acertei a questão"], index=None, horizontal=True)
+        resp = st.radio("Selecione sua resposta:", q_atual["alternativas"], index=None, label_visibility="collapsed")
         confianca = st.select_slider("Grau de confiança na resposta:", options=["Chute cego", "Dúvida considerável", "Certeza moderada", "Certeza absoluta"])
         
-        if st.button("Submeter Evidência Cognitiva", type="primary"):
-            if acertou:
+        if st.button("Confirmar e Avaliar Domínio", type="primary"):
+            if resp:
                 conf_map = {"Chute cego": 1, "Dúvida considerável": 2, "Certeza moderada": 3, "Certeza absoluta": 4}
-                is_correct = (acertou == "Acertei a questão")
+                idx_resp = q_atual["alternativas"].index(resp)
+                acertou = (idx_resp == q_atual["gabarito"])
                 
+                # Registra a tentativa real no motor de aprendizagem
                 att = Attempt(
-                    question_id=f"MOCK-{alvo['competency_id']}",
-                    competency_id=alvo["competency_id"],
-                    correct=is_correct,
-                    difficulty=7.5, 
-                    time_seconds=random.randint(30, 90),
+                    question_id=q_atual["id"],
+                    competency_id=q_atual["competency_id"],
+                    correct=acertou,
+                    difficulty=q_atual["dificuldade"],
+                    time_seconds=random.randint(40, 90),
                     confidence=conf_map[confianca],
-                    error_type="CONCEPT_CONFUSION" if not is_correct else None
+                    error_type="ERRO_CONCEITO" if not acertou else None
                 )
                 
                 engine.register_attempt(att)
                 
-                # Salvamento contínuo (usando o Mock ou o Supabase real que você configurar)
-                storage.save_attempt(att)
-                storage.save_skill_state(engine.get_state(alvo["competency_id"]))
-                
-                st.session_state.ade_mission_idx += 1
+                st.session_state.ade_last_eval = {
+                    "acertou": acertou, 
+                    "gabarito_texto": q_atual["alternativas"][q_atual["gabarito"]], 
+                    "feedback": q_atual["explicacao"]
+                }
+                st.session_state.ade_view = 'feedback_mission'
                 st.rerun()
             else:
-                st.warning("Selecione um resultado para avançar.")
+                st.warning("Selecione uma alternativa para avançar.")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ==============================================================================
+    # VIEW: FEEDBACK DA QUESTÃO
+    # ==============================================================================
+    elif st.session_state.ade_view == 'feedback_mission':
+        eval_data = st.session_state.ade_last_eval
+        
+        st.markdown("<div class='q-container'>", unsafe_allow_html=True)
+        if eval_data["acertou"]:
+            st.success("✅ Resposta Correta!")
+        else:
+            st.error("❌ Resposta Incorreta.")
+            st.write(f"**Gabarito Oficial Avança SP:** {eval_data['gabarito_texto']}")
+            
+        st.info(f"**Análise Cognitiva:** {eval_data['feedback']}")
+        
+        if st.button("Avançar na Missão", type="primary"):
+            st.session_state.ade_mission_idx += 1
+            st.session_state.ade_view = 'mission_active'
+            st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)

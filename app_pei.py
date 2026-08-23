@@ -12897,7 +12897,7 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
                 return {}
 
     # ==========================================================================
-    # 2. MATRIZ EXHAUSTIVA DE 100% DO EDITAL (43 COMPETÊNCIAS OFICIAIS)[cite: 3]
+    # 2. MATRIZ EXHAUSTIVA DE 100% DO EDITAL (43 COMPETÊNCIAS)
     # ==========================================================================
     COMPETENCIAS_EDITAL = [
         Competency("COMP.01", "Fundamentos", "Fundamentos Filosóficos, Socioculturais e Pedagógicos", "Relação entre sociedade, escola e conhecimento.", "CORTELLA, M. S. A escola e o conhecimento", 0.9),
@@ -12934,57 +12934,111 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         Competency("COMP.32", "Legislação Federal", "Base Nacional Comum Curricular (BNCC)", "Competências gerais da educação básica, direitos de aprendizagem e organização curricular.", "MEC / BNCC", 0.9),
         Competency("COMP.33", "Legislação Federal", "Diretrizes Curriculares Nacionais Gerais para a Educação Básica", "Qualidade social da educação, diretrizes operacionais para tempo integral e educação infantil.", "Resoluções CNE/CEB nº 04/2010, nº 05/2009 e nº 07/2025", 0.85),
         Competency("COMP.34", "Legislação Federal", "BNC-Diretor Escolar", "Base Nacional Comum de Competências do Diretor Escolar.", "Parecer CNE/CP nº 4/2021", 0.9),
-        Competency("COMP.35", "Legislação Local", "Estatuto do Magistério Público de Limeira", "Direitos, deveres, plano de carreira e organização profissional.", "Lei Complementar Municipal nº 461/2009", 0.95),
+        Competency("COMP.35", "Legislação Local", "Estatuto do Magistério Público de Limeira", "Diretrizes estatutárias e plano de carreira do magistério municipal.", "Lei Complementar Municipal nº 461/2009", 0.95),
         Competency("COMP.36", "Legislação Local", "Estatuto dos Funcionários Públicos de Limeira", "Regime jurídico dos servidores públicos municipais.", "Lei Complementar Municipal nº 41/1991", 0.85),
-        Competency("COMP.37", "Legislação Local", "Currículo e Normativas da Rede Municipal de Limeira", "Currículo municipal (2019), Resolução SME nº 03/2026 e diretrizes locais de ensino.", "Currículo da Rede Municipal de Limeira; Resolução SME nº 03/2026", 0.95),
-        Competency("COMP.38", "Legislação Local", "Plano Municipal pela Primeira Infância de Limeira (PMPI)", "Diretrizes, metas e gestão intersetorial para a primeira infância no município.", "Lei Ordinária nº 7.257/2025 (PMPI Limeira)", 0.9),
-        Competency("COMP.39", "Legislação Local", "Normas de Educação Especial e Conselho de Escola em Limeira", "Regulamentação local para educação especial (Decreto Municipal nº 23/2026) e Conselho de Escola (Resolução SME nº 01/2020).", "Decreto Municipal nº 23/2026; Resolução SME nº 01/2020", 0.9),
-        Competency("COMP.40", "Fundamentos", "Construção do Conhecimento", "Processos de construção, mediação e apropriação do conhecimento na relação entre sujeito, escola, ensino e aprendizagem.", "CORTELLA, M. S. A escola e o conhecimento; FREIRE, P. Pedagogia da Autonomia; MARTINS, L. M. O desenvolvimento do psiquismo e a educação escolar", 0.9),
-        Competency("COMP.41", "Gestão Escolar", "Gestão Intersetorial e Instâncias Colegiadas", "Articulação entre educação, saúde, assistência social e demais políticas públicas; participação e funcionamento das instâncias colegiadas, Conselho de Escola, APM e comunidade escolar.", "LÜCK, H. Concepções e processos democráticos de gestão educacional; PARO, V. H. Gestão democrática da escola pública; LIMEIRA. Resolução SME nº 01/2020; LIMEIRA. Decreto nº 134/2022", 0.9),
-        Competency("COMP.42", "Avaliação e Indicadores", "Avaliação da Educação e Indicadores Educacionais", "Avaliação institucional e educacional, análise de indicadores de qualidade, rendimento, fluxo, aprendizagem e IDEB para diagnóstico, tomada de decisão e melhoria da escola.", "LÜCK, H. Gestão de pessoas nas escolas: resultados, indicadores e gestão de desempenho; MEC/INEP. Indicadores Educacionais; LUCKESI, C. C. Avaliação da aprendizagem escolar", 0.9),
-        Competency("COMP.43", "Legislação e Publicações Institucionais", "Educação, Legislação e Publicações Institucionais", "Conhecimento e aplicação da legislação educacional, diretrizes, pareceres, resoluções, decretos, planos, currículos, guias e demais publicações institucionais que orientam a educação básica e a gestão escolar.", "Constituição Federal; LDB; ECA; BNCC; PNE; Diretrizes e Resoluções do CNE; legislação educacional federal e municipal de Limeira; publicações institucionais do MEC, CNE, INEP e SME", 0.9)
+        Competency("COMP.37", "Legislação Local", "Currículo e Normativas da Rede Municipal de Limeira", "Currículo municipal (2019) e Resolução SME nº 03/2026.", "Currículo da Rede Municipal de Limeira; Resolução SME nº 03/2026", 0.95),
+        Competency("COMP.38", "Legislação Local", "Plano Municipal pela Primeira Infância de Limeira (PMPI)", "Diretrizes, metas e gestão intersetorial para a primeira infância.", "Lei Ordinária nº 7.257/2025 (PMPI Limeira)", 0.9),
+        Competency("COMP.39", "Legislação Local", "Normas de Educação Especial e Conselho de Escola em Limeira", "Decreto Municipal nº 23/2026 e Resolução SME nº 01/2020.", "Decreto Municipal nº 23/2026; Resolução SME nº 01/2020", 0.9),
+        Competency("COMP.40", "Fundamentos", "Construção do Conhecimento", "Mediação e apropriação do conhecimento na relação sujeito, escola e ensino.", "CORTELLA; FREIRE; MARTINS", 0.9),
+        Competency("COMP.41", "Gestão Escolar", "Gestão Intersetorial e Instâncias Colegiadas", "Articulação com redes de proteção e conselhos escolares.", "LÜCK; PARO; Resolução SME nº 01/2020", 0.9),
+        Competency("COMP.42", "Avaliação e Indicadores", "Avaliação da Educação e Indicadores Educacionais", "Análise de indicadores de qualidade, rendimento, fluxo e IDEB.", "LÜCK; MEC/INEP; LUCKESI", 0.9),
+        Competency("COMP.43", "Legislação e Publicações Institucionais", "Educação, Legislação e Publicações Institucionais", "Aplicações práticas da legislação educacional e guias institucionais.", "Legislação Federal e Municipal; Manuais MEC/INEP/SME", 0.9)
     ]
 
-    BIBLIOTECA_TEORICA = {
-        "COMP.01": "A relação entre sociedade, escola e conhecimento exige compreender que a educação não é neutra. Cortella destaca que os fundamentos epistemológicos e políticos determinam o compromisso da escola com a emancipação humana, combatendo a alienação e promovendo o pensamento crítico frente à realidade social[cite: 3].",
-        "COMP.02": "A função social da escola pública na perspectiva histórico-crítica reside na socialização do saber sistematizado e universal, instrumentalizando as classes trabalhadoras para a intervenção transformadora na sociedade[cite: 3].",
-        "COMP.03": "A história da educação revela que a organização escolar foi moldada por disputas políticas e sociais. A pedagogia crítica contrapõe-se aos modelos seletivos do passado, buscando uma escola unitária voltada para a emancipação[cite: 3].",
-        "COMP.04": "Os grandes teóricos da educação convergem na defesa de que o ensino deve superar a memorização passiva. Freire enfatiza o diálogo; Saviani, a apropriação do saber clássico; Libâneo, a mediação didática consciente[cite: 3].",
-        "COMP.05": "A psicologia histórico-cultural (Vigotski e Martins) demonstra que o desenvolvimento do psiquismo humano é um processo eminentemente social, impulsionado pela educação escolar de qualidade[cite: 3].",
-        "COMP.10": "A BNCC estrutura o ensino por competências, definido como a mobilização complexa de conhecimentos, habilidades, atitudes e valores para resolver demandas da vida real[cite: 3].",
-        "COMP.15": "Vitor Paro defende que a administração escolar deve superar a lógica empresarial. A escola pública produz seres humanos emancipados, exigindo gestão democrática com instâncias deliberativas reais[cite: 3].",
-        "COMP.16": "Heloísa Lück define a liderança educacional como um processo de mobilização coletiva em rede, pautada em indicadores de desempenho para o planejamento participativo[cite: 3].",
-        "COMP.26": "A Política Nacional de Educação Digital (Lei nº 14.533/2023) e as diretrizes sobre o uso de telas (SECON/PR / CNE) exigem o letramento midiático crítico, assegurando que o aluno produza e analise informações com ética e segurança[cite: 3].",
-        "COMP.27": "A Lei Lucas (Lei nº 13.722/2018) obriga a capacitação de equipes escolares em primeiros socorros para agir de forma preventiva e imediata em situações de urgência até a chegada do socorro especializado[cite: 3].",
-        "COMP.29": "A LDB delimita com precisão as incumbências: a escola provê os meios físicos e logísticos para a recuperação (Art. 12), e o docente estabelece as estratégias pedagógicas e zela pela aprendizagem (Art. 13)[cite: 3]."
+    # ==========================================================================
+    # 2. BIBLIOTECA MASTER DE AULAS PADRÃO KHAN (COM PÍLULA, CENÁRIO E DESAFIO)
+    # ==========================================================================
+    BIBLIOTECA_AULAS_MASTER = {
+        "COMP.09": {
+            "titulo": "A Didática Crítica de José Carlos Libâneo",
+            "pilula": "Para Libâneo, a Didática não é um simples manual de instruções, um 'receituário' de como dar aulas, ou um conjunto de técnicas neutras. Ela é a disciplina que estuda o processo de ensino e aprendizagem em sua totalidade (objetivos, conteúdos, métodos e avaliação), sempre vinculada a um propósito social e político.",
+            "cenario": "Imagine que um professor sugira criar turmas separadas, exclusivas para alunos com dificuldades de aprendizagem, sob a justificativa de facilitar a condução das aulas. Sob a ótica de Libâneo, a recusa à segregação não é apenas uma regra administrativa, mas uma postura didática: a escolha do método reflete uma intencionalidade de promover a equidade, demonstrando que a Didática envolve compromisso ético e político com a formação humana.",
+            "desafio": "A Didática ocupa papel central na formação docente, articulando teoria e prática no processo educativo. Assinale a alternativa que expressa corretamente a concepção atual da Didática segundo Libâneo:\n\n(A) Limita-se ao domínio de técnicas e métodos neutros de ensino.\n(B) Tem como objetivo os processos de ensino e aprendizagem, ultrapassando a técnica, sendo um meio de compreensão crítica da educação e da sociedade.\n(C) É um conjunto de regras fixas e imutáveis que garantem a disciplina.\n(D) Restringe-se ao planejamento burocrático e aulas expositivas.",
+            "gabarito_letra": "B",
+            "gabarito_idx": 1
+        },
+        "COMP.04": {
+            "titulo": "Paulo Freire e a Pedagogia da Autonomia",
+            "pilula": "O pensamento de Paulo Freire propõe uma ruptura paradigmática com a educação tradicional ('bancária'), em que o conhecimento é depositado passivamente pelo professor. A prática emancipatória exige uma postura dialógica e problematizadora, onde o educando atua como sujeito histórico, construindo o próprio saber a partir de sua realidade.",
+            "cenario": "Em uma reunião de planejamento, um docente argumenta que suas aulas expositivas são perfeitas, mas os alunos não retêm matéria. Sob a ótica freireana, o erro reside em ver o saber como depósito estático. A mediação pedagógica exige transformar o conteúdo em objeto de investigação partindo da realidade dos discentes.",
+            "desafio": "Em 'Pedagogia da Autonomia', Freire afirma que a prática educativa não pode se reduzir a depositar informações. O processo pedagógico caracteriza-se por ser:\n\n(A) Um mecanismo de transferência vertical de informações para garantir a disciplina.\n(B) Uma prática dialógica e problematizadora, criando possibilidades para a construção do conhecimento pelo educando.\n(C) Uma ação instrucional focada na memorização rigorosa do currículo.\n(D) Uma delegação de poder sem mediação do educador.",
+            "gabarito_letra": "B",
+            "gabarito_idx": 1
+        },
+        "COMP.02": {
+            "titulo": "Dermeval Saviani e a Pedagogia Histórico-Crítica",
+            "pilula": "Saviani fundamenta-se no materialismo histórico, compreendendo o conhecimento como produto do trabalho humano e da prática social. A função da escola é socializar o saber clássico e historicamente acumulado, indispensável para a emancipação das classes populares.",
+            "cenario": "Ao organizar o acervo da biblioteca escolar, a equipe realiza um filtro para garantir obras de alto valor científico e cultural. Para Saviani, essa curadoria é um ato pedagógico central: a escola não pode ser depósito de senso comum, mas o espaço de apropriação do saber sistematizado.",
+            "desafio": "Segundo a Pedagogia Histórico-Crítica de Dermeval Saviani, o conhecimento é concebido como:\n\n(A) Um dom individual e inato.\n(B) Fruto de experiências subjetivas desvinculadas da história.\n(C) Resultado do trabalho humano e da prática social no processo histórico de transformação do mundo.\n(D) Um conjunto de sabores espontâneos do senso comum.",
+            "gabarito_letra": "C",
+            "gabarito_idx": 3
+        },
+        "COMP.21": {
+            "titulo": "Cipriano Luckesi: Examinar vs. Avaliar",
+            "pilula": "Luckesi separa radicalmente examinar de avaliar. O exame é classificatório, seletivo, excludente e punitivo. A avaliação é diagnóstica, inclusiva e processual, servindo de bússola para orientar a intervenção pedagógica em prol da aprendizagem.",
+            "cenario": "O uso de relatórios descritivos e pareceres qualitativos, em vez de notas frias e punitivas, materializa a visão de Luckesi: o foco deixa de ser a punição do erro (examinar) e passa a ser o diagnóstico e a superação da dificuldade (avaliar).",
+            "desafio": "Luckesi distingue exame e avaliação. O ato de examinar caracteriza-se pela seletividade, enquanto avaliar caracteriza-se pelo seu caráter diagnóstico e pela:\n\n(A) Classificação do estudante.\n(B) Punição pedagógica.\n(C) Inclusão e mediação.\n(D) Sistematização arbitrária de notas finais.",
+            "gabarito_letra": "C",
+            "gabarito_idx": 2
+        },
+        "COMP.16": {
+            "titulo": "Heloísa Lück: Liderança e Gestão por Indicadores",
+            "pilula": "Lück supera o conceito do diretor burocrata. A liderança educacional é um processo social de mobilização e articulação em rede. O gestor utiliza indicadores institucionais (como IDEB e fluxo) não para punir, mas para fundamentar o planejamento participativo.",
+            "cenario": "Diante de dados de rendimento escolar extraídos de um sistema como o Integra, o gestor democrático não os utiliza para vigiar professores, mas convoca a equipe para desenhar intervenções pedagógicas coletivas e corresponsáveis.",
+            "desafio": "Para Heloísa Lück, a liderança no ambiente escolar exige:\n\n(A) Postura centralizadora e definidora de normas unilaterais.\n(B) Mobilização e articulação do trabalho coletivo, orientando decisões conjuntas por meio de indicadores.\n(C) Administração estritamente financeira desvinculada do pedagógico.\n(D) Delegação total de responsabilidades à Secretaria de Educação.",
+            "gabarito_letra": "B",
+            "gabarito_idx": 1
+        },
+        "COMP.15": {
+            "titulo": "Vitor Paro: Administração Crítica e Gestão Democrática",
+            "pilula": "Paro combate a importação de modelos empresariais para a escola pública. Como a escola forma sujeitos e não mercadorias, sua natureza é política, exigindo descentralização de poder e conselhos escolares com caráter deliberativo.",
+            "cenario": "A decisão sobre a alocação de verbas e prioridades pedagógicas na escola passa obrigatoriamente pelo Conselho de Escola, materializando a gestão democrática e dividindo o poder de deliberação com a comunidade.",
+            "desafio": "Com base nos estudos de Vitor Paro sobre administração escolar, assinale a correta:\n\n(A) A escola deve espelhar-se na eficiência empresarial e na subordinação hierárquica.\n(B) O diretor atua como gerente centralizador de ordens.\n(C) A natureza política da educação exige gestão democrática com instâncias deliberativas reais.\n(D) O Conselho Escolar deve ter função meramente consultiva.",
+            "gabarito_letra": "C",
+            "gabarito_idx": 2
+        },
+        "COMP.29": {
+            "titulo": "LDB (Lei nº 9.394/96): Escola vs. Docente",
+            "pilula": "A LDB delimita responsabilidades precisas. Cabe aos estabelecimentos de ensino prover os meios físicos e logísticos (Art. 12) e aos docentes zelar pela aprendizagem e estabelecer as estratégias de recuperação (Art. 13).",
+            "cenario": "Identificar que a infraestrutura para o reforço é dever da escola, mas a metodologia aplicada em sala para recuperar o aluno cabe ao professor, garantindo o cumprimento legal da LDB.",
+            "desafio": "Conforme a LDB, assinale uma incumbência da escola e uma dos docentes, respectivamente:\n\n(A) Estabelecer estratégias de recuperação; Prover meios para recuperação.\n(B) Articular-se com a comunidade; Zelar pela aprendizagem dos alunos.\n(C) Administrar verbas públicas; Elaborar o currículo nacional.\n(D) Ministrar aulas; Fiscalizar a frequência do Conselho Tutelar.",
+            "gabarito_letra": "B",
+            "gabarito_idx": 1
+        }
     }
 
-    for c in COMPETENCIAS_EDITAL:
-        if c.id not in BIBLIOTECA_TEORICA:
-            BIBLIOTECA_TEORICA[c.id] = f"Estudo analítico e aprofundado referente ao tema oficial: {c.name}. Baseado na bibliografia e legislação do edital: {c.reference}[cite: 3]."
-
+    # Banco de Questões de Segurança para todas as 43 competências
     BANCO_QUESTOES_REAIS = [
-        {"id": "Q1", "competency_id": "COMP.04", "dificuldade": 6.5, "enunciado": "A obra de Paulo Freire critica fortemente a educação bancária. Nessa concepção tradicional, o educando é concebido fundamentalmente como:", "alternativas": ["Um sujeito ativo na construção do conhecimento.", "Um recipiente vazio a ser preenchido pelos depósitos do educador.", "Um investigador autônomo das realidades sociais.", "Um agente de transformação da sua realidade."], "gabarito": 1, "explicacao": "Na educação bancária, o aluno é um cofre passivo[cite: 3]. As demais alternativas representam a educação problematizadora."},
-        {"id": "Q2", "competency_id": "COMP.02", "dificuldade": 7.0, "enunciado": "Segundo a Pedagogia Histórico-Crítica de Dermeval Saviani, o conhecimento é concebido como:", "alternativas": ["Um dom individual, inato, que a escola deve apenas observar.", "Resultado exclusivamente de experiências subjetivas desvinculadas da história.", "Fruto da atividade lúdica instintiva e sem intencionalidade.", "Resultado do trabalho humano e da prática social no processo histórico de transformação do mundo."], "gabarito": 3, "explicacao": "O materialismo histórico de Saviani entende que o conhecimento é produzido materialmente pela prática social e pelo trabalho da humanidade[cite: 3]."},
-        {"id": "Q3", "competency_id": "COMP.09", "dificuldade": 7.5, "enunciado": "Na perspectiva crítica defendida por José Carlos Libâneo, a Didática possui como característica fundamental:", "alternativas": ["Ultrapassar a técnica, sendo um meio de compreensão crítica da educação.", "Limitar-se ao domínio de métodos neutros de ensino para padronização.", "Restringir-se ao planejamento burocrático de aulas expositivas.", "Assegurar um conjunto de regras imutáveis independentemente do contexto."], "gabarito": 0, "explicacao": "Para Libâneo, a didática nunca é neutra ou estritamente técnica; ela é um ato político e de compreensão crítica da realidade[cite: 3]."},
-        {"id": "Q4", "competency_id": "COMP.21", "dificuldade": 6.0, "enunciado": "Luckesi distingue exame e avaliação como práticas com finalidades distintas. O ato de examinar caracteriza-se pela seletividade, enquanto avaliar caracteriza-se pelo seu caráter diagnóstico e pela:", "alternativas": ["Classificação do estudante.", "Punição pedagógica.", "Inclusão.", "Sistematização de notas finais."], "gabarito": 2, "explicacao": "O exame é voltado para a classificação, seleção e exclusão, ao passo que a avaliação é formativa, diagnóstica e inclusiva[cite: 3]."},
-        {"id": "Q5", "competency_id": "COMP.16", "dificuldade": 8.0, "enunciado": "Para Heloísa Lück, a gestão democrática e a liderança no ambiente escolar exigem a superação de modelos tradicionais. Nesse contexto, a atuação do diretor deve caracterizar-se por:", "alternativas": ["Uma postura centralizadora garantindo a disciplina institucional.", "Um processo de mobilização e articulação do trabalho coletivo, orientando a tomada de decisão conjunta.", "Administração burocrática focada em cumprimento de regras.", "Delegação total de responsabilidades pedagógicas."], "gabarito": 1, "explicacao": "A liderança articuladora utiliza a colaboração e os indicadores de desempenho como bússola para planejamento coletivo[cite: 3]."},
-        {"id": "Q6", "competency_id": "COMP.15", "dificuldade": 8.5, "enunciado": "Com base nos estudos de Vitor Henrique Paro, assinale a alternativa que define a natureza da administração na escola pública:", "alternativas": ["Espelhar-se nos métodos da administração empresarial.", "O diretor deve atuar como gerente centralizador.", "A natureza política da educação exige uma administração democrática, com instâncias deliberativas.", "O Conselho de Escola possui um caráter meramente consultivo."], "gabarito": 2, "explicacao": "Paro critica a escola-empresa. A escola tem natureza política e participativa, necessitando de órgãos colegiados com poder real de deliberação[cite: 3]."},
-        {"id": "Q7", "competency_id": "COMP.29", "dificuldade": 9.0, "enunciado": "Conforme a LDB (Lei nº 9.394/96), assinale a alternativa que apresenta corretamente uma incumbência dos ESTABELECIMENTOS DE ENSINO e uma dos DOCENTES, respectivamente:", "alternativas": ["Estabelecer estratégias de recuperação; Prover meios para recuperação.", "Elaborar o plano de trabalho; Administrar os recursos materiais.", "Articular-se com as famílias e a comunidade; Zelar pela aprendizagem dos alunos.", "Assegurar o cumprimento dos dias letivos; Participar da gestão de verbas."], "gabarito": 2, "explicacao": "O Artigo 12 da LDB designa à escola a articulação comunitária e prover meios. O Artigo 13 incumbe ao docente zelar pela aprendizagem e definir estratégias de recuperação[cite: 3]."}
+        {"id": "Q-MASTER-01", "competency_id": "COMP.04", "dificuldade": 6.5, "enunciado": "A obra de Paulo Freire critica fortemente a educação bancária. Nessa concepção tradicional, o educando é concebido fundamentalmente como:", "alternativas": ["Um sujeito ativo na construção do conhecimento.", "Um recipiente vazio a ser preenchido pelos depósitos do educador.", "Um investigador autônomo das realidades sociais.", "Um agente de transformação da sua realidade."], "gabarito": 1, "explicacao": "Na educação bancária, o aluno é um cofre passivo."},
+        {"id": "Q-MASTER-02", "competency_id": "COMP.02", "dificuldade": 7.0, "enunciado": "Segundo a Pedagogia Histórico-Crítica de Dermeval Saviani, o conhecimento é concebido como:", "alternativas": ["Um dom individual, inato, que a escola deve apenas observar.", "Resultado exclusivamente de experiências subjetivas desvinculadas da história.", "Fruto da atividade lúdica instintiva e sem intencionalidade.", "Resultado do trabalho humano e da prática social no processo histórico de transformação do mundo."], "gabarito": 3, "explicacao": "O materialismo histórico de Saviani entende que o conhecimento é produzido materialmente pela prática social."},
+        {"id": "Q-MASTER-03", "competency_id": "COMP.09", "dificuldade": 7.5, "enunciado": "Na perspectiva crítica defendida por José Carlos Libâneo, a Didática possui como característica fundamental:", "alternativas": ["Ultrapassar a técnica, sendo um meio de compreensão crítica da educação.", "Limitar-se ao domínio de métodos neutros de ensino para padronização.", "Restringir-se ao planejamento burocrático de aulas expositivas.", "Assegurar um conjunto de regras imutáveis independentemente do contexto."], "gabarito": 0, "explicacao": "Para Libâneo, a didática nunca é neutra; é um ato político e de compreensão crítica."},
+        {"id": "Q-MASTER-04", "competency_id": "COMP.21", "dificuldade": 6.0, "enunciado": "Luckesi distingue exame e avaliação como práticas com finalidades distintas. O ato de examinar caracteriza-se pela seletividade, enquanto avaliar caracteriza-se pelo seu caráter diagnóstico e pela:", "alternativas": ["Classificação do estudante.", "Punição pedagógica.", "Inclusão.", "Sistematização de notas finais."], "gabarito": 2, "explicacao": "O exame é seletivo/classificatório; a avaliação é diagnóstica, formativa e inclusiva."},
+        {"id": "Q-MASTER-05", "competency_id": "COMP.16", "dificuldade": 8.0, "enunciado": "Para Heloísa Lück, a gestão democrática e a liderança no ambiente escolar exigem a superação de modelos tradicionais. Nesse contexto, a atuação do diretor deve caracterizar-se por:", "alternativas": ["Uma postura centralizadora garantindo a disciplina institucional.", "Um processo de mobilização e articulação do trabalho coletivo, orientando a tomada de decisão conjunta.", "Administração burocrática focada em cumprimento de regras.", "Delegação total de responsabilidades pedagógicas."], "gabarito": 1, "explicacao": "Liderança articuladora utiliza a colaboração e indicadores para o planejamento participativo."},
+        {"id": "Q-MASTER-06", "competency_id": "COMP.15", "dificuldade": 8.5, "enunciado": "Com base nos estudos de Vitor Henrique Paro, assinale a alternativa que define a natureza da administração na escola pública:", "alternativas": ["Espelhar-se nos métodos da administração empresarial.", "O diretor deve atuar como gerente centralizador.", "A natureza política da educação exige uma administração democrática, com instâncias deliberativas.", "O Conselho de Escola possui um caráter meramente consultivo."], "gabarito": 2, "explicacao": "Paro defende que a escola pública possui natureza política e exige instâncias deliberativas."},
+        {"id": "Q-MASTER-07", "competency_id": "COMP.29", "dificuldade": 9.0, "enunciado": "Conforme a LDB (Lei nº 9.394/96), assinale a alternativa que apresenta corretamente uma incumbência dos ESTABELECIMENTOS DE ENSINO e uma dos DOCENTES, respectivamente:", "alternativas": ["Estabelecer estratégias de recuperação; Prover meios para recuperação.", "Elaborar o plano de trabalho; Administrar os recursos materiais.", "Articular-se com as famílias e a comunidade; Zelar pela aprendizagem dos alunos.", "Assegurar o cumprimento dos dias letivos; Participar da gestão de verbas."], "gabarito": 2, "explicacao": "Art. 12 (Escola provê meios e articula) e Art. 13 (Docente zela pela aprendizagem e define estratégias)."}
     ]
 
-    ids_questoes_criadas = [q["competency_id"] for q in BANCO_QUESTOES_REAIS]
+    # Preenche um template robusto para as demais competências que ainda não tenham questão customizada
+    ids_com_q = [q["competency_id"] for q in BANCO_QUESTOES_REAIS]
     for c in COMPETENCIAS_EDITAL:
-        if c.id not in ids_questoes_criadas:
+        if c.id not in ids_com_q:
             BANCO_QUESTOES_REAIS.append({
-                "id": f"Q-SAFE-{c.id}", "competency_id": c.id, "dificuldade": 7.0,
-                "enunciado": f"A respeito dos pressupostos teóricos e legais sobre '{c.name}', assinale a diretriz correta:",
-                "alternativas": ["Neutralidade sistêmica e isolamento acadêmico.", f"Abordagem crítica, inclusiva e focada na emancipação social, conforme os preceitos de {c.reference}.", "Centralização decisória e burocratização excessiva.", "Substituição do ensino reflexivo pelo treinamento técnico mercadológico."],
-                "gabarito": 1, "explicacao": f"As normativas e a bibliografia oficial ({c.reference}) repudiam a neutralidade e o tecnicismo, defendendo sempre uma educação emancipatória[cite: 3]."
+                "id": f"Q-AUTO-{c.id}",
+                "competency_id": c.id,
+                "dificuldade": 7.0,
+                "enunciado": f"A respeito dos pressupostos teóricos, práticos e legais sobre '{c.name}', assinale a alternativa correta conforme as diretrizes do edital:",
+                "alternativas": [
+                    "Adoção de métodos tradicionais focados na memorização passiva e na neutralidade burocrática.",
+                    f"Abordagem crítica, participativa e articulada aos princípios de {c. reference}, visando a emancipação e a garantia de direitos.",
+                    "Isolamento da instituição frente às demandas sociais e comunitárias do território.",
+                    "Transferência total das responsabilidades pedagógicas para o âmbito familiar."
+                ],
+                "gabarito": 1,
+                "explicacao": f"A bibliografia e a legislação oficial ({c.reference}) exigem uma postura crítica, participativa e articulada, repudiando o tecnicismo ou a neutralidade pedagógica."
             })
 
     # ==========================================================================
-    # 3. INICIALIZAÇÃO E CONEXÃO DE ESTADOS
+    # 3. INICIALIZAÇÃO DE ESTADOS
     # ==========================================================================
     if 'ade_storage' not in st.session_state:
         st.session_state.ade_storage = SupabaseStorageReal(supabase)
@@ -13027,13 +13081,14 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         
         .q-container { background: white; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);}
         .texto-teorico { font-size: 1.1rem; line-height: 1.8; color: #334155; text-align: justify; }
+        .cenario-pratico { background: #f8fafc; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 0 8px 8px 0; margin-top: 20px; font-style: italic; color: #1e293b;}
     </style>
     """, unsafe_allow_html=True)
 
     # ==============================================================================
     # 4. SISTEMA DE ABAS
     # ==============================================================================
-    aba_dashboard, aba_matriz = st.tabs(["⚡ Central de Missões & Estudo", "🗺️ Matriz e Radar do Edital"])
+    aba_dashboard, aba_matriz, aba_biblioteca = st.tabs(["⚡ Central de Missões & Estudo", "🗺️ Matriz e Radar do Edital", "📚 Biblioteca de Aulas Master"])
 
     with aba_dashboard:
         if st.session_state.ade_view == 'dashboard':
@@ -13052,7 +13107,7 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
                         <div class="prontidao-val">{prontidao:.1f}%</div>
                     </div>
                     <div style="margin-left: 20px; font-size: 0.95rem; color: #94a3b8; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 20px;">
-                        Seus acertos, erros e retenção estão salvos na nuvem[cite: 3].<br>O algoritmo varre suas fraquezas para o 1º lugar.
+                        Seus acertos, erros e retenção estão salvos na nuvem.<br>O algoritmo varre suas fraquezas para o 1º lugar.
                     </div>
                 </div>
             </div>
@@ -13106,7 +13161,7 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
                             st.markdown(f"<div style='display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px;'><div style='font-weight: 600; color: #334155; font-size: 0.9rem;'><span class='status-dot dot-{lvl}'></span>{comp.name}</div><div style='font-size: 0.8rem; color: #64748b;'>{status_name}</div></div>", unsafe_allow_html=True)
 
         # ==============================================================================
-        # VIEW: SALA DE ESTUDOS (TEORIA APROFUNDADA)
+        # VIEW: SALA DE ESTUDOS (PADRÃO AULA MASTER)
         # ==============================================================================
         elif st.session_state.ade_view == 'study_room':
             missao = st.session_state.ade_mission_items
@@ -13114,7 +13169,7 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             
             if idx >= len(missao):
                 st.session_state.ade_view = 'dashboard'
-                st.success("Missão diária concluída! Seu cérebro virtual sincronizou todos os dados com o Supabase[cite: 3].")
+                st.success("Missão diária concluída! Seu cérebro virtual sincronizou todos os dados com o Supabase.")
                 st.rerun()
                 
             item_atual = missao[idx]
@@ -13124,15 +13179,24 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             st.button("⬅️ Voltar ao Painel", on_click=lambda: st.session_state.update(ade_view='dashboard'))
             st.progress((idx) / len(missao))
             
+            # Se a aula estiver na nossa Biblioteca Master estruturada, exibe o formato avançado
+            aula_master = BIBLIOTECA_AULAS_MASTER.get(alvo_id)
+            
             st.markdown(f"<h2 style='color:#0f172a;'>📖 Sala de Estudos: {alvo_nome}</h2>", unsafe_allow_html=True)
-            st.info("Antes de enfrentar as questões da banca, consolide a base teórica estrutural através da leitura analítica abaixo[cite: 3].")
             
             st.markdown("<div class='q-container'>", unsafe_allow_html=True)
-            texto_estudo = BIBLIOTECA_TEORICA.get(alvo_id, "Conteúdo em elaboração.")
-            st.markdown(f"<div class='texto-teorico'>{texto_estudo}</div>", unsafe_allow_html=True)
+            if aula_master:
+                st.markdown(f"### 💡 Pílula Teórica: {aula_master['titulo']}")
+                st.markdown(f"<div class='texto-teorico'>{aula_master['pilula']}</div>", unsafe_allow_html=True)
+                
+                st.markdown("### 🏫 Cenário Prático no Chão da Escola")
+                st.markdown(f"<div class='cenario-pratico'>{aula_master['cenario']}</div>", unsafe_allow_html=True)
+            else:
+                texto_estudo = BIBLIOTECA_TEORICA.get(alvo_id, "Conteúdo em elaboração.")
+                st.markdown(f"<div class='texto-teorico'>{texto_estudo}</div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
             
-            if st.button("Avançar para Missão de Domínio (Prática) 🎯", type="primary"):
+            if st.button("Avançar para Desafio de Domínio (Prática) 🎯", type="primary"):
                 questoes_comp = [q for q in BANCO_QUESTOES_REAIS if q["competency_id"] == alvo_id]
                 random.shuffle(questoes_comp)
                 st.session_state.ade_current_questions = questoes_comp
@@ -13180,7 +13244,6 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
                     )
                     engine.register_attempt(att)
                     
-                    # SALVAMENTO REAL NO SUPABASE
                     storage.save_attempt(att)
                     storage.save_skill_state(engine.get_state(q_atual["competency_id"]))
                     
@@ -13217,11 +13280,11 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ==============================================================================
-    # ABA DE CONSULTA DA MATRIZ COMPLETA DO EDITAL (100% EXAUSTIVA)
+    # ABA DE CONSULTA DA MATRIZ COMPLETA DO EDITAL (43 COMPETÊNCIAS)
     # ==============================================================================
     with aba_matriz:
         st.subheader("🗺️ Matriz Curricular Completa e Auditoria de Domínio")
-        st.write("Abaixo consta a relação exata e exaustiva de **todas as 43 competências, eixos, referências bibliográficas e normativas** exigidas no edital do concurso de Agente de Desenvolvimento Educacional (ADE) da Prefeitura de Limeira[cite: 3]. Os dados são cruzados em tempo real com o seu histórico no Supabase[cite: 3].")
+        st.write("Abaixo consta a relação exata e exaustiva de **todas as 43 competências, eixos, referências bibliográficas e normativas** exigidas no edital do concurso de Agente de Desenvolvimento Educacional (ADE) da Prefeitura de Limeira. Os dados são cruzados em tempo real com o seu histórico no Supabase.")
         
         dados_matriz = []
         for c in COMPETENCIAS_EDITAL:
@@ -13242,6 +13305,48 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             
         df_matriz = pd.DataFrame(dados_matriz)
         st.dataframe(df_matriz, use_container_width=True, hide_index=True)
+
+    # ==============================================================================
+    # ABA DE BIBLIOTECA DE AULAS (LIBERDADE ABSOLUTA DE ESCOLHA)
+    # ==============================================================================
+    with aba_biblioteca:
+        st.subheader("📚 Biblioteca de Aulas Master (Livre Escolha)")
+        st.write("Aqui você tem **liberdade absoluta de escolha**. Como o conhecimento não é linear, você pode selecionar diretamente abaixo qualquer pílula teórica, estudar o cenário prático e resolver os desafios independentemente de missões ou cronogramas.")
         
         st.divider()
-        st.info("💡 **Garantia de Aprovação:** Nenhuma temática do edital ficou de fora[cite: 3]. Cada linha desta tabela representa um vetor de conhecimento monitorado pelo nosso motor cognitivo rumo ao seu 1º lugar[cite: 3]!")
+        
+        # Mapeia todas as competências disponíveis para escolha livre
+        opcoes_livres = {c.name: c.id for c in COMPETENCIAS_EDITAL}
+        escolha_usuario = st.selectbox("Selecione o tema que deseja estudar agora:", list(opcoes_livres.keys()))
+        
+        if escolha_usuario:
+            id_escolhido = opcoes_livres[escolha_usuario]
+            comp_obj = next((c for c in COMPETENCIAS_EDITAL if c.id == id_escolhido), None)
+            aula_livre = BIBLIOTECA_AULAS_MASTER.get(id_escolhido)
+            
+            st.markdown(f"### Tema: {escolha_usuario}")
+            st.caption(f"Eixo: {comp_obj.eixo} | Referência: {comp_obj.reference}")
+            
+            st.markdown("<div class='q-container'>", unsafe_allow_html=True)
+            if aula_livre:
+                st.markdown(f"#### 💡 Pílula Teórica: {aula_livre['titulo']}")
+                st.markdown(f"<div class='texto-teorico'>{aula_livre['pilula']}</div>", unsafe_allow_html=True)
+                
+                st.markdown("#### 🏫 Cenário Prático no Chão da Escola")
+                st.markdown(f"<div class='cenario-pratico'>{aula_livre['cenario']}</div>", unsafe_allow_html=True)
+                
+                st.markdown("#### 🎯 Desafio de Domínio (Estilo Avança SP)")
+                st.info(aula_livre['desafio'])
+                
+                resp_livre = st.radio("Escolha sua alternativa:", ["(A)", "(B)", "(C)", "(D)"], index=None, horizontal=True, key=f"livre_{id_escolhido}")
+                if resp_livre:
+                    letra_escolhida = resp_livre.replace("(", "").replace(")", "")
+                    if letra_escolhida == aula_livre['gabarito_letra']:
+                        st.success(f"✅ Resposta Correta! Gabarito: ({aula_livre['gabarito_letra']})")
+                    else:
+                        st.error(f"❌ Incorreto. O gabarito oficial é: ({aula_livre['gabarito_letra']})")
+            else:
+                texto_padrao = BIBLIOTECA_TEORICA.get(id_escolhido, f"Estudo analítico focado em {escolha_usuario}.")
+                st.markdown(f"<div class='texto-teorico'>{texto_padrao}</div>", unsafe_allow_html=True)
+                st.info("As pílulas interativas avançadas estão sendo expandidas para todas as 43 frentes da matriz. Utilize o Radar de Missões para focar nos pontos críticos.")
+            st.markdown("</div>", unsafe_allow_html=True)

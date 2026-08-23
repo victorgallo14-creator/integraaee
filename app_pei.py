@@ -12698,7 +12698,7 @@ if app_mode_adm == "🏷️ Patrimônio e Inventário":
 
 
 # ==============================================================================
-# VIEW: MASTER ADE - ALTA PERFORMANCE (MASTERY ENGINE)
+# VIEW: MASTER ADE - A PLATAFORMA DEFINITIVA (1º LUGAR)
 # ==============================================================================
 if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.session_state.get('nav_adm') == "📚 Preparatório ADE":
 
@@ -12708,402 +12708,211 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         st.error("Ambiente de uso estrito e exclusivo. Acesso bloqueado.")
         st.stop()
 
-    # --- 1. CORE: MOTOR COGNITIVO (MASTERY ENGINE) ---
-    from dataclasses import dataclass, field
-    from datetime import datetime, timezone
-    from math import exp
-    from typing import Optional, Dict, List
+    # --- IMPORTAÇÕES DA ARQUITETURA CORE ---
+    from core.models import Competency, Attempt
+    from core.mastery import MasteryEngine
+    from core.adaptive import AdaptiveEngine
+    from services.storage import SupabaseStorage
     import random
 
-    @dataclass
-    class Attempt:
-        question_id: str
-        competency_id: str
-        correct: bool
-        difficulty: float = 5.0
-        time_seconds: Optional[float] = None
-        confidence: Optional[int] = None
-        error_type: Optional[str] = None
-        timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-
-    @dataclass
-    class SkillState:
-        competency_id: str
-        mastery: float = 0.0
-        retention: float = 0.0
-        application: float = 0.0
-        speed: float = 0.0
-        consistency: float = 0.0
-        attempts: int = 0
-        correct: int = 0
-        risk: float = 1.0
-        last_seen: Optional[datetime] = None
-        next_review: Optional[datetime] = None
-        error_counts: Dict[str, int] = field(default_factory=dict)
-
-    class MasteryEngine:
-        def __init__(self):
-            self.states: Dict[str, SkillState] = {}
-
-        def get_state(self, competency_id: str) -> SkillState:
-            if competency_id not in self.states:
-                self.states[competency_id] = SkillState(competency_id=competency_id)
-            return self.states[competency_id]
-
-        def register_attempt(self, attempt: Attempt):
-            state = self.get_state(attempt.competency_id)
-            state.attempts += 1
-            if attempt.correct:
-                state.correct += 1
-            if attempt.error_type:
-                state.error_counts[attempt.error_type] = state.error_counts.get(attempt.error_type, 0) + 1
-            state.last_seen = attempt.timestamp
-
-            self._update_mastery(state, attempt)
-            self._update_speed(state, attempt)
-            self._update_consistency(state)
-            self._update_retention(state)
-            self._update_risk(state)
-
-        def _update_mastery(self, state: SkillState, attempt: Attempt):
-            performance = 1.0 if attempt.correct else 0.0
-            difficulty_factor = 0.7 + (attempt.difficulty / 10.0) * 0.3
-            evidence = performance * difficulty_factor
-            learning_rate = 0.18
-            state.mastery += learning_rate * (evidence - state.mastery)
-            state.mastery = max(0.0, min(1.0, state.mastery))
-
-        def _update_speed(self, state: SkillState, attempt: Attempt):
-            if attempt.time_seconds is None: return
-            target = 90.0
-            performance = min(1.0, target / max(attempt.time_seconds, 1))
-            if state.speed == 0: state.speed = performance
-            else: state.speed = (state.speed * 0.8 + performance * 0.2)
-
-        def _update_consistency(self, state: SkillState):
-            if state.attempts > 0: state.consistency = state.correct / state.attempts
-
-        def _update_retention(self, state: SkillState):
-            if state.last_seen is None:
-                state.retention = 0.0
-                return
-            now = datetime.now(timezone.utc)
-            days = (now - state.last_seen).total_seconds() / 86400
-            decay = exp(-days / 14)
-            state.retention = state.mastery * decay
-
-        def _update_risk(self, state: SkillState):
-            deficit = 1 - state.mastery
-            retention_deficit = 1 - state.retention
-            risk = (deficit * 0.60 + retention_deficit * 0.40)
-            state.risk = max(0.0, min(1.0, risk))
-
-        def get_priority(self, competency_id: str, importance: float = 0.5) -> float:
-            state = self.get_state(competency_id)
-            return state.risk * importance
-
-        def get_level(self, competency_id: str) -> int:
-            state = self.get_state(competency_id)
-            if state.mastery < 0.40: return 1  # Tentativa / Fragil
-            if state.mastery < 0.65: return 2  # Familiar / Instavel
-            if state.mastery < 0.85: return 3  # Proficiente
-            return 4  # Dominado
-
-    # --- 2. INICIALIZAÇÃO NO SESSION STATE ---
+    # --- INICIALIZAÇÃO DOS MOTORES E CONEXÃO SUPABASE ---
+    if 'ade_storage' not in st.session_state:
+        # Passamos a conexão Supabase que já existe no seu app_pei.py
+        st.session_state.ade_storage = SupabaseStorage(supabase)
+        
     if 'ade_engine' not in st.session_state:
         st.session_state.ade_engine = MasteryEngine()
+        # Restaura a memória cognitiva do banco de dados na inicialização
+        estados_salvos = st.session_state.ade_storage.load_all_skill_states()
+        st.session_state.ade_engine.states = estados_salvos
+
     if 'ade_view' not in st.session_state:
         st.session_state.ade_view = 'dashboard'
-    if 'ade_active_mission' not in st.session_state:
-        st.session_state.ade_active_mission = None
+
+    # --- DEFINIÇÃO DO EDITAL (GRAFO DE COMPETÊNCIAS) ---
+    # Em produção, isso viria do banco, mas mantemos aqui para inicialização imediata
+    COMPETENCIAS_EDITAL = [
+        Competency("ESP.FREIRE", "Eixo 1", "Paulo Freire: Autonomia", "Ruptura com educação bancária", importance=0.9),
+        Competency("ESP.SAVIANI", "Eixo 1", "Saviani: Histórico-Crítica", "Função social do saber clássico", importance=0.85),
+        Competency("ESP.LIBANEO", "Eixo 1", "Libâneo: Didática Crítica", "Autoridade pedagógica e mediação", importance=0.8),
+        Competency("ESP.LUCKESI", "Eixo 1", "Luckesi: Avaliação", "Avaliar vs Examinar", importance=0.9),
+        Competency("ESP.LUCK", "Eixo 2", "Lück: Liderança e Gestão", "Mobilização e indicadores", importance=0.95),
+        Competency("ESP.PARO", "Eixo 2", "Paro: Administração Escolar", "A escola não é uma empresa", importance=0.9),
+        Competency("ESP.INCLUSAO", "Eixo 2", "Inclusão e AEE", "Decreto 12.686/25 e LBI", importance=0.95),
+        Competency("LEG.LDB.12", "Eixo 3", "LDB: Escola vs Docente", "Artigos 12 e 13 da LDB", importance=0.95),
+        Competency("LEG.BNCC", "Eixo 3", "BNCC: Competências", "Mobilização de saberes práticos", importance=0.85)
+    ]
+
+    if 'ade_adaptive' not in st.session_state:
+        st.session_state.ade_adaptive = AdaptiveEngine(st.session_state.ade_engine, COMPETENCIAS_EDITAL)
 
     engine = st.session_state.ade_engine
+    adaptive = st.session_state.ade_adaptive
+    storage = st.session_state.ade_storage
 
-    # --- 3. DADOS (GRAFO DO EDITAL E QUESTÕES) ---
-    GRAFO_EDITAL = [
-        {
-            "id": "eixo1", "title": "Eixo 1: Fundamentos", 
-            "competencias": [
-                {"id": "ESP.FREIRE.01", "name": "Educação Bancária x Problematizadora", "importance": 0.9},
-                {"id": "ESP.SAVIANI.01", "name": "Pedagogia Histórico-Crítica", "importance": 0.85},
-                {"id": "ESP.LIBANEO.01", "name": "Didática e Prática Social", "importance": 0.8},
-                {"id": "ESP.LUCKESI.01", "name": "Avaliação Diagnóstica", "importance": 0.9}
-            ]
-        },
-        {
-            "id": "eixo2", "title": "Eixo 2: Gestão Democrática", 
-            "competencias": [
-                {"id": "ESP.LUCK.01", "name": "Liderança e Indicadores", "importance": 0.95},
-                {"id": "ESP.PARO.01", "name": "Administração Crítica", "importance": 0.9},
-                {"id": "ESP.INCLUSAO.01", "name": "Educação Especial e AEE", "importance": 0.95},
-                {"id": "ESP.TECNOLOGIA.01", "name": "Letramento Digital", "importance": 0.8}
-            ]
-        },
-        {
-            "id": "eixo3", "title": "Eixo 3: Legislação Nacional e Local", 
-            "competencias": [
-                {"id": "LEG.LDB.01", "name": "Incumbências: Escola vs Docente", "importance": 0.95},
-                {"id": "LEG.BNCC.01", "name": "Ensino por Competências", "importance": 0.85},
-                {"id": "LEG.RACIAL.01", "name": "Leis 10.639 e 11.645", "importance": 0.85},
-                {"id": "LIM.LEG.01", "name": "Estatuto do Magistério (Limeira)", "importance": 0.9}
-            ]
-        }
-    ]
-
-    # Assegura que todas as competências existam no motor
-    for eixo in GRAFO_EDITAL:
-        for comp in eixo["competencias"]:
-            engine.get_state(comp["id"])
-
-    # Banco de Questões Inteligente (Exemplo com 1 questão profunda por competência)
-    BANCO_QUESTOES = [
-        {
-            "id": "Q-ESP-FREIRE-001",
-            "competencias": ["ESP.FREIRE.01"],
-            "dificuldade": 6.5,
-            "enunciado": "A obra de Paulo Freire propõe uma ruptura com a educação bancária. Nesse modelo, o educando é concebido como:",
-            "alternativas": [
-                "A) Um investigador autônomo das realidades sociais.",
-                "B) Um recipiente vazio a ser preenchido passivamente pelos depósitos do educador.",
-                "C) Um sujeito ativo na construção coletiva do conhecimento.",
-                "D) Um agente de transformação da sua própria realidade."
-            ],
-            "gabarito": 1,
-            "explicacao": "A educação bancária trata o aluno como cofre passivo. As demais representam a educação problematizadora.",
-            "distratores": {0: "CONCEPT_CONFUSION", 2: "CONCEPT_CONFUSION", 3: "CONCEPT_CONFUSION"}
-        },
-        {
-            "id": "Q-LEG-LDB-001",
-            "competencias": ["LEG.LDB.01"],
-            "dificuldade": 8.0,
-            "enunciado": "Conforme a LDB (Lei nº 9.394/96), é incumbência exclusiva dos ESTABELECIMENTOS DE ENSINO:",
-            "alternativas": [
-                "A) Estabelecer estratégias de recuperação para alunos de menor rendimento.",
-                "B) Zelar pela aprendizagem contínua dos estudantes.",
-                "C) Prover meios para a recuperação dos alunos de menor rendimento e articular-se com a comunidade.",
-                "D) Elaborar o plano de trabalho diário."
-            ],
-            "gabarito": 2,
-            "explicacao": "Art. 12: A escola provê os meios e articula. Art. 13: O docente estabelece estratégias e zela pela aprendizagem.",
-            "distratores": {0: "CONFUSAO_ESCOLA_DOCENTE", 1: "CONFUSAO_ESCOLA_DOCENTE", 3: "CONFUSAO_ESCOLA_DOCENTE"}
-        }
-        # Novas questões podem ser adicionadas aqui no mesmo formato
-    ]
-
-    # --- CSS CUSTOMIZADO (MASTER UI) ---
+    # --- CSS DE ALTA PERFORMANCE ---
     st.markdown("""
     <style>
         .master-header { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); padding: 30px; border-radius: 12px; color: white; margin-bottom: 30px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2); }
         .master-title { font-size: 2.2rem; font-weight: 800; line-height: 1.1; margin-bottom: 5px; }
-        .master-subtitle { color: #94a3b8; font-size: 1rem; margin-bottom: 20px; }
-        .prontidao-box { display: flex; align-items: center; gap: 20px; background: rgba(255,255,255,0.1); padding: 15px 25px; border-radius: 8px; }
+        .prontidao-box { display: flex; align-items: center; gap: 20px; background: rgba(255,255,255,0.1); padding: 15px 25px; border-radius: 8px; margin-top: 15px; }
         .prontidao-val { font-size: 3.5rem; font-weight: 800; color: #38bdf8; line-height: 1; }
         
         .mission-card { background: white; border-left: 5px solid #f59e0b; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 30px; }
-        .mission-title { font-size: 1.2rem; font-weight: 800; color: #1e293b; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
-        .mission-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.95rem; }
+        .mission-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.95rem; }
         .mission-item:last-child { border-bottom: none; }
+        .tag-action { font-size: 0.7rem; font-weight: bold; background: #f1f5f9; padding: 3px 8px; border-radius: 4px; color: #475569; text-transform: uppercase; }
         
-        .unit-block { margin-bottom: 30px; }
-        .unit-name { font-size: 1.2rem; font-weight: 700; color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 15px; }
-        .grid-skills { display: grid; grid-template-columns: repeat(auto-fill, minmax(28px, 1fr)); gap: 8px; }
-        .box-skill { height: 28px; border-radius: 4px; border: 2px solid; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; cursor: pointer; transition: transform 0.1s; }
-        .box-skill:hover { transform: scale(1.15); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .skill-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px; }
+        .status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
         
-        /* Paleta de Níveis */
-        .lvl-0 { background: white; border-color: #cbd5e1; color: #cbd5e1; } /* Não Iniciado */
-        .lvl-1 { background: white; border-color: #ef4444; color: #ef4444; } /* Fragil / Tentativa */
-        .lvl-2 { background: #fef08a; border-color: #eab308; color: #854d0e; } /* Instavel / Familiar */
-        .lvl-3 { background: #93c5fd; border-color: #3b82f6; color: #1e40af; } /* Proficiente */
-        .lvl-4 { background: #4f46e5; border-color: #312e81; color: white; } /* Dominado */
+        .dot-0 { background-color: #cbd5e1; } /* Não Iniciado */
+        .dot-1 { background-color: #ef4444; } /* Fragil */
+        .dot-2 { background-color: #f59e0b; } /* Instavel */
+        .dot-3 { background-color: #3b82f6; } /* Proficiente */
+        .dot-4 { background-color: #4f46e5; } /* Dominado */
         
         .q-container { background: white; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
-    # --- 4. ADAPTIVE ENGINE (GERADOR DE MISSÕES) ---
-    def generate_mission():
-        priorities = []
-        for eixo in GRAFO_EDITAL:
-            for comp in eixo["competencias"]:
-                p = engine.get_priority(comp["id"], comp["importance"])
-                state = engine.get_state(comp["id"])
-                priorities.append({
-                    "id": comp["id"],
-                    "name": comp["name"],
-                    "priority": p,
-                    "mastery": state.mastery,
-                    "risk": state.risk
-                })
-        # Ordena pelo maior risco/prioridade
-        priorities.sort(key=lambda x: x["priority"], reverse=True)
-        return priorities[:4] # Top 4 prioridades
+    # ==============================================================================
+    # VIEWS DO SISTEMA
+    # ==============================================================================
 
-    # --- 5. ROTEAMENTO DE VIEWS ---
-    
     if st.session_state.ade_view == 'dashboard':
         
-        # Cálculo de Prontidão (Média Ponderada)
-        total_mastery = 0
-        total_weight = 0
-        for eixo in GRAFO_EDITAL:
-            for comp in eixo["competencias"]:
-                total_mastery += engine.get_state(comp["id"]).mastery * comp["importance"]
-                total_weight += comp["importance"]
-        
+        # --- CÁLCULO DA PRONTIDÃO COMPETITIVA ---
+        total_mastery = sum(engine.get_state(c.id).mastery * c.importance for c in COMPETENCIAS_EDITAL)
+        total_weight = sum(c.importance for c in COMPETENCIAS_EDITAL)
         prontidao = (total_mastery / total_weight * 100) if total_weight > 0 else 0
 
         st.markdown(f"""
         <div class="master-header">
             <div class="master-title">MASTER ADE</div>
-            <div class="master-subtitle">Inteligência Adaptativa para Aprovação em 1º Lugar</div>
+            <div style="color: #94a3b8; font-size: 1rem;">Otimização Adaptativa para o 1º Lugar</div>
             <div class="prontidao-box">
                 <div>
-                    <div style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: #cbd5e1;">Prontidão Competitiva</div>
+                    <div style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: #cbd5e1;">Prontidão para a Prova</div>
                     <div class="prontidao-val">{prontidao:.1f}%</div>
                 </div>
                 <div style="margin-left: 20px; font-size: 0.95rem; color: #94a3b8; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 20px;">
-                    O algoritmo cruza seu domínio, retenção e riscos<br>para estimar seu preparo em tempo real.
+                    O algoritmo cruza domínio, retenção, velocidade e riscos <br> para direcionar seus estudos com precisão cirúrgica.
                 </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        c_missao, c_malha = st.columns([1.2, 2])
+        c_missao, c_malha = st.columns([1.2, 1])
 
         with c_missao:
-            missao_atual = generate_mission()
-            html_missao = """<div class="mission-card"><div class="mission-title">⚡ Sua Missão Focada</div>"""
+            st.markdown("### ⚡ Sua Missão Hoje")
+            minutos_disp = st.slider("Tempo disponível agora (minutos):", min_value=15, max_value=120, value=45, step=5)
             
-            for i, m in enumerate(missao_atual):
-                cor_alerta = "#ef4444" if m['risk'] > 0.7 else ("#f59e0b" if m['risk'] > 0.4 else "#3b82f6")
+            # Gera a missão baseada no Adaptive Engine
+            missao_hoje = adaptive.generate_mission(available_minutes=minutos_disp)
+            
+            html_missao = """<div class="mission-card">"""
+            for item in missao_hoje["mission_items"]:
+                alvo = item["target"]
+                cor_alvo = "#ef4444" if alvo['risk'] > 0.6 else ("#f59e0b" if alvo['risk'] > 0.3 else "#3b82f6")
+                
                 html_missao += f"""
                 <div class="mission-item">
-                    <span><strong style="color: {cor_alerta};">①</strong> {m['name']}</span>
-                    <span style="color: #64748b; font-size: 0.8rem;">Risco {m['risk']*100:.0f}%</span>
+                    <div>
+                        <div style="color: {cor_alvo}; font-weight: 800; font-size: 1.1rem;">{item['order']}. {alvo['name']}</div>
+                        <div class="tag-action" style="margin-top: 5px; display: inline-block;">{alvo['recommended_action']}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 1.1rem; font-weight: bold; color: #1e293b;">{item['time_minutes']} min</div>
+                        <div style="color: #64748b; font-size: 0.8rem;">~{item['questions_target']} questões</div>
+                    </div>
                 </div>
                 """
             html_missao += "</div>"
             st.markdown(html_missao, unsafe_allow_html=True)
             
-            if st.button("COMEÇAR MISSÃO", type="primary", use_container_width=True):
-                st.session_state.ade_active_mission = missao_atual
-                st.session_state.ade_view = 'mission'
-                st.session_state.ade_mission_index = 0
-                st.session_state.ade_answers = {}
+            if st.button("🚀 INICIAR MISSÃO ESTRATÉGICA", type="primary", use_container_width=True):
+                st.session_state.ade_active_mission = missao_hoje["mission_items"]
+                st.session_state.ade_mission_idx = 0
+                st.session_state.ade_view = 'mission_active'
                 st.rerun()
 
         with c_malha:
-            st.markdown("<h3 style='color: #0f172a; margin-bottom: 15px;'>Mapeamento do Edital</h3>", unsafe_allow_html=True)
+            st.markdown("### 🗺️ Radar do Edital")
+            st.caption("Visão raio-x das suas vulnerabilidades")
             
-            for eixo in GRAFO_EDITAL:
-                st.markdown(f"<div class='unit-block'><div class='unit-name'>{eixo['title']}</div><div class='grid-skills'>", unsafe_allow_html=True)
+            # Mapeia as competências visualmente com a bolinha de cor indicando o nível
+            for comp in COMPETENCIAS_EDITAL:
+                lvl = engine.get_level(comp.id) if engine.get_state(comp.id).attempts > 0 else 0
+                status_name = ["Não Iniciado", "Frágil", "Instável", "Proficiente", "Dominado"][lvl]
                 
-                c_grid = st.container()
-                cols = c_grid.columns(len(eixo["competencias"]))
-                
-                for i, comp in enumerate(eixo["competencias"]):
-                    lvl = engine.get_level(comp["id"]) if engine.get_state(comp["id"]).attempts > 0 else 0
-                    icon = "👑" if lvl == 4 else ""
-                    
-                    if cols[i].button(icon if icon else " ", key=f"btn_{comp['id']}", help=f"{comp['name']} (Domínio: {int(engine.get_state(comp['id']).mastery*100)}%)"):
-                        st.toast("Para focar nesta competência, o algoritmo a priorizará na próxima missão.")
-                    
-                    st.markdown(f"""
-                    <style>
-                        div[data-testid="column"]:nth-child({i+1}) button {{
-                            background-color: {['white', 'white', '#fef08a', '#93c5fd', '#4f46e5'][lvl]} !important;
-                            border: 2px solid {['#cbd5e1', '#ef4444', '#eab308', '#3b82f6', '#312e81'][lvl]} !important;
-                            color: {['black', '#ef4444', '#854d0e', '#1e40af', 'white'][lvl]} !important;
-                            height: 28px; width: 100%; padding:0; border-radius: 4px;
-                        }}
-                    </style>
-                    """, unsafe_allow_html=True)
-                    
-                st.markdown("</div></div>", unsafe_allow_html=True)
+                st.markdown(f"""
+                <div class="skill-row">
+                    <div style="font-weight: 600; color: #334155; font-size: 0.9rem;">
+                        <span class="status-dot dot-{lvl}"></span>{comp.name}
+                    </div>
+                    <div style="font-size: 0.8rem; color: #64748b;">{status_name}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
-    # --- 6. RENDERIZAÇÃO DA MISSÃO (SIMULAÇÃO E CORREÇÃO) ---
-    elif st.session_state.ade_view == 'mission':
+    # ==============================================================================
+    # VIEW: MISSÃO ATIVA (EXECUÇÃO)
+    # ==============================================================================
+    elif st.session_state.ade_view == 'mission_active':
         missao = st.session_state.ade_active_mission
-        idx_atual = st.session_state.ade_mission_index
+        idx = st.session_state.ade_mission_idx
         
-        if idx_atual >= len(missao):
+        if idx >= len(missao):
             st.session_state.ade_view = 'dashboard'
-            st.success("Missão Concluída! O motor recalibrou sua prontidão.")
+            st.success("Missão concluída com sucesso! Os seus estados cognitivos foram atualizados e sincronizados com o banco de dados.")
             st.rerun()
             
-        comp_atual = missao[idx_atual]
+        item_atual = missao[idx]
+        alvo = item_atual["target"]
         
-        c_voltar, c_prog = st.columns([1, 3])
-        if c_voltar.button("⬅️ Abortar Missão"):
-            st.session_state.ade_view = 'dashboard'
-            st.rerun()
-            
-        c_prog.progress((idx_atual) / len(missao))
+        st.button("⬅️ Abortar Missão (Voltar ao Painel)", on_click=lambda: st.session_state.update(ade_view='dashboard'))
         
-        st.markdown(f"<h2 style='color:#0f172a;'>Foco: {comp_atual['name']}</h2>", unsafe_allow_html=True)
-        
-        # Filtra questões para esta competência
-        questoes_comp = [q for q in BANCO_QUESTOES if comp_atual["id"] in q["competencias"]]
-        
-        if not questoes_comp:
-            st.info("Banco de questões em processamento para esta competência. Avançando missão...")
-            if st.button("Continuar"):
-                st.session_state.ade_mission_index += 1
-                st.rerun()
-        else:
-            q = questoes_comp[0] # Pega a primeira questão como exemplo do ciclo
-            
-            st.markdown("<div class='q-container'>", unsafe_allow_html=True)
-            st.write(q["enunciado"])
-            
-            resp = st.radio("Selecione:", q["alternativas"], index=None, key=f"q_{q['id']}", label_visibility="collapsed")
-            confianca = st.select_slider("Qual seu nível de certeza?", options=["Chute", "Dúvida", "Razoável", "Certeza Absoluta"])
-            
-            if st.button("Confirmar Resposta", type="primary"):
-                if resp:
-                    idx_resp = q["alternativas"].index(resp)
-                    acertou = (idx_resp == q["gabarito"])
-                    
-                    # Converte confiança para peso
-                    conf_map = {"Chute": 1, "Dúvida": 2, "Razoável": 3, "Certeza Absoluta": 4}
-                    
-                    # Mapeia tipo de erro se houver
-                    error_type = q["distratores"].get(idx_resp) if not acertou else None
-                    
-                    # Registra a tentativa no motor
-                    att = Attempt(
-                        question_id=q["id"],
-                        competency_id=comp_atual["id"],
-                        correct=acertou,
-                        difficulty=q["dificuldade"],
-                        time_seconds=random.randint(40, 120), # Simulação de tempo
-                        confidence=conf_map[confianca],
-                        error_type=error_type
-                    )
-                    engine.register_attempt(att)
-                    
-                    st.session_state.ade_last_eval = {
-                        "acertou": acertou, "gabarito": q["alternativas"][q["gabarito"]], "feedback": q["explicacao"]
-                    }
-                    st.session_state.ade_view = 'feedback_mission'
-                    st.rerun()
-                else:
-                    st.warning("Selecione uma alternativa.")
-            st.markdown("</div>", unsafe_allow_html=True)
+        st.progress((idx) / len(missao))
+        st.markdown(f"<h2>Alvo {item_atual['order']}: {alvo['name']}</h2>", unsafe_allow_html=True)
+        st.info(f"**Ação Recomendada pelo Motor:** {alvo['recommended_action']} | **Meta:** {item_atual['time_minutes']} minutos.")
 
-    elif st.session_state.ade_view == 'feedback_mission':
-        eval_data = st.session_state.ade_last_eval
+        # --- SIMULAÇÃO DA BATERIA DE ESTUDO ---
+        # Aqui, a plataforma conectará ao banco de questões reais (que estruturamos no Models)
+        # Para o ciclo funcionar agora, faremos a submissão de uma evidência
         
-        if eval_data["acertou"]:
-            st.success("✅ Resposta Correta!")
-        else:
-            st.error("❌ Resposta Incorreta.")
-            st.write(f"**Gabarito Oficial:** {eval_data['gabarito']}")
-            
-        st.info(f"**Análise Cognitiva:** {eval_data['feedback']}")
+        st.markdown("<div class='q-container'>", unsafe_allow_html=True)
+        st.markdown("*(Simulação de Resolução de Questão - Padrão Avança SP)*")
+        st.write(f"**Competência Avaliada:** {alvo['name']}")
         
-        if st.button("Avançar para próximo alvo da Missão", type="primary"):
-            st.session_state.ade_mission_index += 1
-            st.session_state.ade_view = 'mission'
-            st.rerun()
+        acertou = st.radio("Selecione o resultado da sua resolução:", ["Errei a questão", "Acertei a questão"], index=None, horizontal=True)
+        confianca = st.select_slider("Grau de confiança na resposta:", options=["Chute cego", "Dúvida considerável", "Certeza moderada", "Certeza absoluta"])
+        
+        if st.button("Submeter Evidência Cognitiva", type="primary"):
+            if acertou:
+                conf_map = {"Chute cego": 1, "Dúvida considerável": 2, "Certeza moderada": 3, "Certeza absoluta": 4}
+                is_correct = (acertou == "Acertei a questão")
+                
+                # Registra a tentativa
+                att = Attempt(
+                    question_id=f"MOCK-{alvo['competency_id']}",
+                    competency_id=alvo["competency_id"],
+                    correct=is_correct,
+                    difficulty=7.5, # Dificuldade média
+                    time_seconds=random.randint(30, 90),
+                    confidence=conf_map[confianca],
+                    error_type="CONCEPT_CONFUSION" if not is_correct else None
+                )
+                
+                # O motor processa e recalcula a curva de esquecimento e o domínio
+                engine.register_attempt(att)
+                
+                # SALVA NO SUPABASE IMEDIATAMENTE (Persistência)
+                storage.save_attempt(att)
+                storage.save_skill_state(engine.get_state(alvo["competency_id"]))
+                
+                st.session_state.ade_mission_idx += 1
+                st.rerun()
+            else:
+                st.warning("Selecione um resultado para avançar.")
+        st.markdown("</div>", unsafe_allow_html=True)

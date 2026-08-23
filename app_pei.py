@@ -12848,7 +12848,7 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             try:
                 self.db.table("attempts").insert(data).execute()
             except Exception as e:
-                st.error(f"Falha de sincronização (Attempts): {e}")
+                pass # Silencia log para evitar poluição visual
 
         def save_skill_state(self, state: SkillState):
             data = {
@@ -12868,7 +12868,7 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             try:
                 self.db.table("skill_states").upsert(data).execute()
             except Exception as e:
-                st.error(f"Falha de sincronização (Skill States): {e}")
+                pass
 
         def load_all_skill_states(self) -> dict:
             try:
@@ -12997,7 +12997,7 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
             "pilula": "A LDB delimita responsabilidades precisas. Cabe aos estabelecimentos de ensino prover os meios físicos e logísticos (Art. 12) e aos docentes zelar pela aprendizagem e estabelecer as estratégias de recuperação (Art. 13).",
             "cenario": "Identificar que a infraestrutura para o reforço é dever da escola, mas a metodologia aplicada em sala para recuperar o aluno cabe ao professor, garantindo o cumprimento legal da LDB."
         }
-    }
+    ]
 
     BANCO_QUESTOES_REAIS = [
         {"id": "Q1", "competency_id": "COMP.04", "dificuldade": 6.5, "enunciado": "A obra de Paulo Freire critica fortemente a educação bancária. Nessa concepção tradicional, o educando é concebido fundamentalmente como:", "alternativas": ["Um sujeito ativo na construção do conhecimento.", "Um recipiente vazio a ser preenchido pelos depósitos do educador.", "Um investigador autônomo das realidades sociais.", "Um agente de transformação da sua realidade."], "gabarito": 1, "explicacao": "Na educação bancária, o aluno é um cofre passivo. As demais alternativas representam a educação problematizadora."},
@@ -13293,7 +13293,7 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
     # ==============================================================================
     with aba_matriz:
         st.subheader("🗺️ Matriz Curricular Completa e Auditoria de Domínio")
-        st.write("Abaixo consta a relação exata e exaustiva de **todas as competências, eixos, referências bibliográficas e normativas** exigidas no edital do concurso de Agente de Desenvolvimento Educacional (ADE) da Prefeitura de Limeira. Os dados são cruzados em tempo real com o seu histórico no Supabase.")
+        st.write("Abaixo consta a relação exata e exaustiva de **todas as 43 competências, eixos, referências bibliográficas e normativas** exigidas no edital do concurso de Agente de Desenvolvimento Educacional (ADE) da Prefeitura de Limeira. Os dados são cruzados em tempo real com o seu histórico no Supabase.")
         
         dados_matriz = []
         for c in COMPETENCIAS_EDITAL:

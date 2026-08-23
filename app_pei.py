@@ -12961,7 +12961,7 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
         Competency("COMP.43", "Legislação e Publicações Institucionais", "Educação, Legislação e Publicações Institucionais", "Aplicações práticas da legislação educacional e guias institucionais.", "Legislação Federal e Municipal; Manuais MEC/INEP/SME", 0.9)
     ]
 
-    BIBLIOTECA_AULAS_MASTER = {
+    BIBLIOTECA_AULAS_MASTER = [
         "COMP.09": {
             "titulo": "A Didática Crítica de José Carlos Libâneo",
             "pilula": "Para Libâneo, a Didática não é um simples manual de instruções, um 'receituário' de como dar aulas, ou um conjunto de técnicas neutras. Ela é a disciplina que estuda o processo de ensino e aprendizagem em sua totalidade (objetivos, conteúdos, métodos e avaliação), sempre vinculada a um propósito social e político.",

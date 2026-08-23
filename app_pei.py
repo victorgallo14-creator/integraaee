@@ -12962,7 +12962,7 @@ if st.session_state.get('modulo_atuacao') == "📂 Administrativo" and st.sessio
     ]
 
     # BIBLIOTECA MASTER FALLBACK (CASO O BANCO NÃO TENHA REGISTRO AINDA)
-    BIBLIOTECA_AULAS_MASTER = {
+    BIBLIOTECA_AULAS_MASTER = [
         "COMP.09": {
             "titulo": "A Didática Crítica de José Carlos Libâneo",
             "pilula": "Para Libâneo, a Didática não é um simples manual de instruções, um 'receituário' de como dar aulas, ou um conjunto de técnicas neutras. Ela é a disciplina que estuda o processo de ensino e aprendizagem em sua totalidade (objetivos, conteúdos, métodos e avaliação), sempre vinculada a um propósito social e político.",

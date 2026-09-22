@@ -252,7 +252,7 @@ def renderizar_modulo():
         col1, col2 = st.columns([1, 2])
         
         with col1:
-            st.subheader("Busca de Estudante")
+            st.subheader("Buscaa de Estudante")
             ra_busca = st.text_input("Número do RA (Ex: 123456)")
             btn_gerar = st.button("Processar Documento Oficial", type="primary")
             

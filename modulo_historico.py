@@ -51,7 +51,16 @@ def buscar_dados_historico(ra):
             "LINGUAGENS": ["P", "", "", "", ""],
             "ESPORTE E EDUCAÇÃO DO MOVIMENTO": ["P", "", "", "", ""]
         },
-        "ch_diversificada": "1000H/A"
+        "ch_diversificada": "1000H/A",
+        "aee": ["", "", "", "", ""],
+        "ch_total": "",
+        "estudos": [
+            ["2022", "1º ANO", "CEIEF RAFAEL AFFONSO LEITE", "LIMEIRA", "SP"],
+            ["", "", "", "", ""],
+            ["", "", "", "", ""],
+            ["", "", "", "", ""],
+            ["", "", "", "", ""]
+        ]
     }
 
 # ==========================================
@@ -146,7 +155,7 @@ def gerar_pdf(dados):
     t_sec1.setStyle([
         ('SPAN', (1,0), (5,0)), ('SPAN', (6,0), (7,0)),
         ('SPAN', (0,1), (4,1)), ('SPAN', (5,1), (7,1)),
-        ('SPAN', (0,2), (1,3)), # NASCIMENTO merge vertical/horizontal
+        ('SPAN', (0,2), (1,3)), 
         ('SPAN', (1,4), (4,4)), ('SPAN', (5,4), (7,4)),
         ('SPAN', (0,5), (2,5)), ('SPAN', (3,5), (4,5)), ('SPAN', (5,5), (7,5)),
         ('SPAN', (0,6), (7,6)),
@@ -167,7 +176,8 @@ def gerar_pdf(dados):
     dados_2 = [
         [celula("2", s_center), celula("RESULTADO DOS ESTUDOS REALIZADOS NO ENSINO FUNDAMENTAL", s_bold), "", "", "", "", ""],
         [celula("2.1", s_center), "", celula("2.2", s_center), celula("ESCOLARIDADE", s_bold), "", "", ""],
-        [celula("CURRÍCULO<br/>", s_bold) + celula(texto_legal, s_legal), "", celula("Anos Iniciais", s_bold), "", "", "", ""],
+        # AQUI FOI CORRIGIDA A CONCATENAÇÃO DOS PARÁGRAFOS USANDO UMA LISTA []
+        [[celula("CURRÍCULO", s_bold), celula(texto_legal, s_legal)], "", celula("Anos Iniciais", s_bold), "", "", "", ""],
         ["", "", celula("1º Ano", s_bold), celula("2º Ano", s_bold), celula("3º Ano", s_bold), celula("4º Ano", s_bold), celula("5º Ano", s_bold)]
     ]
     
@@ -187,8 +197,8 @@ def gerar_pdf(dados):
     ]
     styles_2 += [('SPAN', (0,r), (1,r)) for r in range(4, 11)]
     styles_2 += [
-        ('SPAN', (2,11), (6,11)), # Carga horária
-        ('SPAN', (0,12), (6,12)), # Texto Flexibilização
+        ('SPAN', (2,11), (6,11)), 
+        ('SPAN', (0,12), (6,12)), 
         ('BACKGROUND', (0,0), (6,0), colors.lightgrey),
         ('BACKGROUND', (0,1), (6,1), colors.lightgrey),
         ('BACKGROUND', (2,3), (6,3), colors.lightgrey),
@@ -225,17 +235,66 @@ def gerar_pdf(dados):
     elementos.append(t_sec3)
 
     # ---------------------------------------------------------
-    # FINALIZAÇÃO: ASSINATURAS
+    # 4, 5 e 6
     # ---------------------------------------------------------
-    elementos.append(Spacer(1, 5*mm))
-    elementos.append(Table([[celula("11 ASSINATURAS", s_bold)]], colWidths=[190*mm], style=[('GRID', (0,0), (-1,-1), 0.5, colors.black), ('BACKGROUND', (0,0), (-1,-1), colors.lightgrey)]))
+    matriz_456 = [
+        [celula("4 ENSINO RELIGIOSO (art.33-LDB e Deliberação CME nº 02/2016)", s_bold), celula("CARGA HORÁRIA", s_center), "", "", "", ""],
+        [celula("<b>5 EDUCAÇÃO ESPECIAL - ATENDIMENTO EDUCACIONAL ESPECIALIZADO</b><br/>Decreto Nº 12.686/2025 - Indicação Cme Nº02/2023 - Decreto Municipal Nº 23/2026<br/>Indicar a sigla AEE (Atendimento Educacional Especializado) para o estudante que frequentou esse tipo de atendimento no respectivo ano.", s_legal), celula("1º ano", s_center), celula("2º ano", s_center), celula("3º ano", s_center), celula("4º ano", s_center), celula("5º ano", s_center)],
+        [celula("", s_normal)] + [celula(n, s_center) for n in dados['aee']],
+        [celula("6 TOTAL DA CARGA HORÁRIA (CAMPO 2 + CAMPO 3)", s_bold), celula(dados['ch_total'], s_center), "", "", "", ""]
+    ]
+    t_456 = Table(matriz_456, colWidths=[100*mm, 18*mm, 18*mm, 18*mm, 18*mm, 18*mm])
+    t_456.setStyle(TableStyle([
+        ('SPAN', (1, 0), (-1, 0)),
+        ('SPAN', (1, 3), (-1, 3)),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('BACKGROUND', (0, 0), (0, 0), colors.lightgrey),
+        ('BACKGROUND', (0, 1), (-1, 1), colors.lightgrey),
+        ('BACKGROUND', (0, 3), (0, 3), colors.lightgrey),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+    ]))
+    elementos.append(t_456)
+    elementos.append(Spacer(1, 2*mm))
+
+    # ---------------------------------------------------------
+    # 7 ESTUDOS REALIZADOS
+    # ---------------------------------------------------------
+    matriz_7 = [
+        [celula("7 ESTUDOS REALIZADOS", s_bold), "", "", "", ""],
+        [celula("ANO", s_center), celula("CICLO/ANO", s_center), celula("ESTABELECIMENTO", s_center), celula("MUNICÍPIO", s_center), celula("ESTADO", s_center)]
+    ]
+    # CORREÇÃO DA SINTAXE DO FOR LOOP AQUI
+    for est in dados['estudos']:
+        matriz_7.append([celula(c, s_center) for c in est])
+        
+    t_7 = Table(matriz_7, colWidths=[20*mm, 30*mm, 80*mm, 40*mm, 20*mm])
+    t_7.setStyle(TableStyle([
+        ('SPAN', (0, 0), (-1, 0)),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('BACKGROUND', (0, 0), (-1, 1), colors.lightgrey),
+    ]))
+    elementos.append(t_7)
+    elementos.append(Spacer(1, 2*mm))
+
+    # ---------------------------------------------------------
+    # 9, 10 e 11
+    # ---------------------------------------------------------
+    elementos.append(Table([[celula("9 OBSERVAÇÕES", s_bold)]], colWidths=[190*mm], style=[('GRID', (0,0), (-1,-1), 0.5, colors.black), ('BACKGROUND', (0,0), (-1,-1), colors.lightgrey)]))
+    elementos.append(Table([["\n\n\n"]], colWidths=[190*mm], style=[('GRID', (0,0), (-1,-1), 0.5, colors.black)]))
     
-    matriz_assinaturas = [
+    matriz_10 = [
+        [celula("10 CERTIFICADO", s_bold)],
+        [celula("O diretor da __________________________________________________________________________________________<br/>de acordo com o Art.24, inciso VII, da Lei Federal 9394/96, certifica que ___________________________________<br/>R.A. ____________________________ concluiu o ______________________________________________________<br/>do Ensino Fundamental, no ano letivo de ______________", s_normal)]
+    ]
+    elementos.append(Table(matriz_10, colWidths=[190*mm], style=[('GRID', (0,0), (-1,-1), 0.5, colors.black), ('BACKGROUND', (0,0), (-1,0), colors.lightgrey)]))
+
+    elementos.append(Spacer(1, 4*mm))
+    
+    matriz_11 = [
+        [celula("11 ASSINATURAS", s_bold), "", ""],
         [celula(f"Limeira, {datetime.now().strftime('%d/%m/%Y')}", s_center), celula("\n\n________________________________\nSECRETÁRIO (A) DE ESCOLA", s_center), celula("\n\n________________________________\nDIRETOR DE ESCOLA", s_center)]
     ]
-    t_ass = Table(matriz_assinaturas, colWidths=[50*mm, 70*mm, 70*mm])
-    t_ass.setStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black), ('VALIGN', (0,0), (-1,-1), 'BOTTOM'), ('BOTTOMPADDING', (0,0), (-1,-1), 5)])
-    elementos.append(t_ass)
+    elementos.append(Table(matriz_11, colWidths=[60*mm, 65*mm, 65*mm], style=[('SPAN', (0,0), (-1,0)), ('GRID', (0,0), (-1,-1), 0.5, colors.black), ('BACKGROUND', (0,0), (-1,0), colors.lightgrey), ('VALIGN', (0,1), (-1,1), 'BOTTOM')]))
 
     doc.build(elementos)
     buffer.seek(0)

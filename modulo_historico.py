@@ -5,8 +5,9 @@ Uso no aplicativo principal:
     renderizar_modulo()
 
 Arquivo autônomo: não requer pasta de assets, XLS, fontes ou outros módulos locais.
-O formulário PDF é desenhado vetorialmente pelo próprio Python e o pequeno brasão
-é incorporado como bytes hexadecimais (não Base64).
+O formulário PDF é desenhado vetorialmente pelo próprio Python. Para o brasão da
+Prefeitura, o módulo procura o arquivo existente `logo_prefeitura.png` ao lado do
+próprio módulo ou na pasta de execução da aplicação.
 Use HISTORICO_DB_PATH ou renderizar_modulo(banco_path=...) para definir o SQLite.
 Em hospedagens com disco efêmero, exporte JSON/PDF; o SQLite não substitui um
 banco persistente. Não há conexão automática com Supabase ou cadastro externo.
@@ -30,9 +31,24 @@ DIV = ['EIXO INTELECTUAL', 'EIXO ESPORTIVO', 'EIXO CULTURAL', 'LINGUAGENS E TECN
 MODOS = ['Parcial', 'APC', 'Complementação extracurricular', 'Integral', 'Bilíngue parcial', 'Bilíngue integral', 'Outra rede / matriz documentada']
 SITUACOES = ['Não cursado', 'Concluído', 'Em curso']
 
+# Dados institucionais do CEIEF Rafael Affonso Leite. Novos registros já
+# são iniciados com estas informações, que continuam editáveis na interface.
+ESCOLA_PADRAO = {
+    'nome': 'CEIEF "Rafael Affonso Leite"',
+    'ato': 'Decreto nº 416 de 19 de outubro de 2011.',
+    'endereco': 'Rua Antonio Alves de Oliveira',
+    'bairro': 'Jardim Presidente Dutra',
+    'municipio': 'Limeira',
+    'cep': '13.485-046',
+    'telefone': '(19) 3495-5390',
+    'email': 'ceief.rafaelaffonso@edu.limeira.sp.gov.br',
+    'secretario': 'Clair Aparecido Mendes Filho - RG 40.034.491-9',
+    'diretor': 'José Victor Souza Gallo - RG 55.735.978-8',
+}
+
 def novo():
     return {'versao': 1, 'demonstracao': False,
-        'escola': {k: '' for k in ['nome','ato','endereco','bairro','municipio','cep','telefone','email','secretario','diretor']},
+        'escola': deepcopy(ESCOLA_PADRAO),
         'aluno': {k: '' for k in ['nome','ra','ra_escolar','localidade','uf','nacionalidade','nascimento','distrito','livro','cidade_certidao','uf_certidao','matricula_certidao','documento_estrangeiro']},
         'anos': [{'serie': n, 'ano_letivo': '', 'situacao': 'Não cursado', 'modalidade': 'Parcial',
             'conceitos': {k: '' for k in BASE}, 'participacao': {k: '' for k in DIV},
@@ -194,7 +210,7 @@ def exemplo():
     d.update(certificar=True,serie_certificada=1,ano_certificado='2026',data_emissao='2026-12-18',observacoes='DOCUMENTO DE DEMONSTRAÇÃO. Dados fictícios, sem validade escolar.\nCargas usadas apenas no teste: 1.120 H/A + 80 H/A = 1.200 H/A. Não representam a vida escolar de um estudante real.')
     return d
 
-"""PDF vetorial de duas páginas, sem XLS, fontes ou assets externos."""
+"""PDF vetorial de duas páginas, sem XLS ou fontes externas. Usa logo_prefeitura.png se disponível."""
 from io import BytesIO
 from datetime import date
 from xml.sax.saxutils import escape
@@ -214,28 +230,23 @@ FILLS_63=[(40.0, 799.995, 1.024, 11.895, 0.753, 0.753, 0.753), (49.724, 799.995,
 LINES_63=[(40.0, 811.89, 555.276, 811.89), (40.0, 799.995, 555.276, 799.995), (40.0, 796.564, 555.276, 796.564), (40.0, 784.669, 555.276, 784.669), (84.523, 772.316, 136.722, 772.316), (293.318, 772.316, 337.781, 772.316), (503.077, 772.316, 555.276, 772.316), (275.918, 753.101, 302.018, 753.101), (302.981, 753.101, 329.081, 753.101), (337.781, 753.101, 389.979, 753.101), (84.523, 733.886, 136.722, 733.886), (197.62, 733.886, 249.819, 733.886), (363.88, 733.886, 416.079, 733.886), (503.077, 733.886, 555.276, 733.886), (40.0, 721.534, 555.276, 721.534), (40.0, 709.639, 555.276, 709.639), (40.0, 697.972, 555.276, 697.972), (40.0, 685.62, 555.276, 685.62), (40.0, 673.267, 555.276, 673.267), (40.0, 660.915, 555.276, 660.915), (40.0, 648.562, 555.276, 648.562), (40.0, 636.21, 555.276, 636.21), (40.0, 623.857, 555.276, 623.857), (40.0, 611.505, 555.276, 611.505), (40.0, 599.152, 555.276, 599.152), (40.0, 586.8, 555.276, 586.8), (40.0, 574.447, 555.276, 574.447), (40.0, 562.095, 555.276, 562.095), (40.0, 549.742, 555.276, 549.742), (40.0, 537.847, 555.276, 537.847), (40.0, 525.952, 555.276, 525.952), (40.0, 514.057, 555.276, 514.057), (40.0, 503.077, 555.276, 503.077), (40.0, 492.189, 555.276, 492.189), (40.0, 481.3, 555.276, 481.3), (40.0, 470.412, 555.276, 470.412), (40.0, 459.523, 555.276, 459.523), (40.0, 448.635, 555.276, 448.635), (40.0, 437.746, 555.276, 437.746), (40.0, 426.858, 555.276, 426.858), (40.0, 415.969, 555.276, 415.969), (40.0, 405.081, 555.276, 405.081), (40.0, 394.192, 555.276, 394.192), (40.0, 383.304, 555.276, 383.304), (40.0, 372.415, 555.276, 372.415), (40.0, 361.527, 555.276, 361.527), (40.0, 350.638, 555.276, 350.638), (40.0, 339.658, 555.276, 339.658), (40.0, 327.763, 555.276, 327.763), (162.821, 307.267, 555.276, 307.267), (311.681, 286.771, 555.276, 286.771), (58.423, 266.047, 206.32, 266.047), (468.278, 266.047, 546.576, 266.047), (40.0, 254.38, 555.276, 254.38), (40.0, 246.832, 555.276, 246.832), (40.0, 234.937, 555.276, 234.937), (84.523, 211.604, 188.92, 211.604), (206.32, 211.604, 372.58, 211.604), (381.28, 211.604, 555.276, 211.604), (40.0, 177.841, 555.276, 177.841), (40.0, 177.841, 40.0, 246.832), (40.0, 254.38, 40.0, 339.658), (40.0, 350.638, 40.0, 514.057), (40.0, 525.952, 40.0, 611.505), (40.0, 623.857, 40.0, 721.534), (40.0, 784.669, 40.0, 796.564), (40.0, 799.995, 40.0, 811.89), (49.724, 234.937, 49.724, 246.832), (49.724, 327.763, 49.724, 339.658), (49.724, 503.077, 49.724, 514.057), (49.724, 709.639, 49.724, 721.534), (49.724, 784.669, 49.724, 796.564), (49.724, 799.995, 49.724, 811.89), (555.276, 177.841, 555.276, 246.832), (555.276, 254.38, 555.276, 339.658), (555.276, 350.638, 555.276, 503.077), (555.276, 525.952, 555.276, 611.505), (555.276, 623.857, 555.276, 721.534), (555.276, 784.669, 555.276, 796.564), (555.276, 799.995, 555.276, 811.89), (346.48, 525.952, 346.48, 599.152), (346.48, 623.857, 346.48, 721.534), (416.079, 525.952, 416.079, 599.152), (416.079, 623.857, 416.079, 721.534), (485.677, 525.952, 485.677, 599.152), (485.677, 623.857, 485.677, 721.534)]
 TEXTS_63=[('8', 40.0, 799.995, 9.724, 11.895, 8.235, 0, 1, 0, 4.7), ('TRANSFERÊNCIA  DURANTE O ANO LETIVO', 49.724, 799.995, 505.552, 11.895, 9.15, 1, 1, 0, 4.7), ('8.1', 40.0, 784.669, 9.724, 11.895, 8.235, 0, 1, 0, 4.7), ('Ensino Fundamental', 49.724, 784.669, 505.552, 11.895, 9.15, 1, 1, 0, 4.7), ('Ano:', 40.0, 772.316, 44.523, 12.352, 9.15, 0, 1, 0, 4.7), ('Turma:', 258.519, 772.316, 166.26, 12.352, 9.15, 0, 0, 0, 4.7), ('Nº de chamada:', 424.779, 772.316, 69.598, 12.352, 9.15, 0, 1, 0, 4.7), ('TRANSFERIDO EM: ', 171.521, 753.101, 95.698, 12.352, 9.15, 0, 1, 0, 4.7), ('/', 302.018, 753.101, 27.063, 12.352, 10.98, 0, 0, 0, 4.7), ('/', 329.081, 753.101, 226.195, 12.352, 10.98, 0, 0, 0, 4.7), ('Dias Letivos:', 40.0, 733.886, 44.523, 12.352, 9.15, 0, 1, 0, 4.7), ('Ausências:', 145.421, 733.886, 52.199, 12.352, 9.15, 0, 1, 0, 4.7), ('Ausências Compensadas:', 258.519, 733.886, 105.361, 12.352, 9.15, 0, 1, 0, 4.7), ('Frequência (%):', 424.779, 733.886, 69.598, 12.352, 9.15, 0, 1, 0, 4.7), ('8.2', 40.0, 709.639, 9.724, 11.895, 8.235, 0, 1, 0, 4.7), ('CURRICULO', 49.724, 709.639, 296.757, 11.895, 9.15, 1, 1, 0, 4.7), ('1º TRIMESTRE', 346.48, 709.639, 69.598, 11.895, 7.32, 1, 1, 0, 4.7), ('2º TRIMESTRE', 416.079, 709.639, 69.598, 11.895, 7.32, 1, 1, 0, 4.7), ('3º TRIMESTRE', 485.677, 709.639, 69.598, 11.895, 7.32, 1, 1, 0, 4.7), ('LÍNGUA PORTUGUESA', 40.0, 697.972, 306.48, 11.666, 9.15, 0, 0, 0, 4.7), ('GEOGRAFIA', 40.0, 685.62, 306.48, 12.352, 9.15, 0, 0, 0, 4.7), ('MATEMÁTICA', 40.0, 673.267, 306.48, 12.352, 9.15, 0, 0, 0, 4.7), ('CIÊNCIAS', 40.0, 660.915, 306.48, 12.352, 9.15, 0, 0, 0, 4.7), ('HISTÓRIA', 40.0, 648.562, 306.48, 12.352, 9.15, 0, 0, 0, 4.7), ('ED. FÍSICA', 40.0, 636.21, 306.48, 12.352, 9.15, 0, 0, 0, 4.7), ('ARTE', 40.0, 623.857, 306.48, 12.352, 9.15, 0, 0, 0, 4.7), ('PARTE DIVERSIFICADA ', 40.0, 599.152, 515.276, 12.352, 9.15, 1, 0, 1, 4.7), ('LINGUAGENS E TECNOLOGIAS', 40.0, 586.8, 306.48, 12.352, 9.15, 0, 0, 0, 4.7), ('ACOMPANHAMENTO PEDAGÓGICO', 40.0, 574.447, 306.48, 12.352, 9.15, 0, 0, 0, 4.7), ('PRÁTICAS EXPERIMENTAIS E DE TUTORIA DE ESTUDO', 40.0, 562.095, 306.48, 12.352, 9.15, 0, 0, 0, 4.7), ('PRÁTICAS DE ESTUDO', 40.0, 549.742, 306.48, 12.352, 9.15, 0, 0, 0, 4.7), ('LINGUAGENS ', 40.0, 537.847, 306.48, 11.895, 9.15, 0, 0, 0, 4.7), ('ESPORTE E EDUCAÇÃO DO MOVIMENTO', 40.0, 525.952, 306.48, 11.895, 9.15, 0, 0, 0, 4.7), ('9', 40.0, 503.077, 9.724, 10.98, 8.235, 0, 1, 0, 4.7), ('OBSERVAÇÕES', 49.724, 503.077, 505.552, 10.98, 8.235, 1, 1, 0, 4.7), ('10', 40.0, 327.763, 9.724, 11.895, 8.235, 0, 1, 0, 4.7), ('CERTIFICADO', 49.724, 327.763, 505.552, 11.895, 9.15, 1, 1, 0, 4.7), ('            O diretor da', 40.0, 307.267, 114.121, 11.666, 9.15, 0, 1, 0, 4.7), ('de acordo com o Art.24, inciso VII, da Lei Federal 9394/96, certifica que', 40.0, 286.771, 271.681, 11.666, 8.693, 0, 0, 0, 4.7), ('R.A.', 40.0, 266.047, 18.423, 11.895, 8.235, 0, 1, 0, 4.7), ('11', 40.0, 234.937, 9.724, 11.895, 8.235, 0, 1, 0, 4.7), ('ASSINATURAS', 49.724, 234.937, 505.552, 11.895, 9.15, 1, 1, 0, 4.7), ('Limeira,', 41.024, 211.604, 43.499, 11.666, 9.15, 0, 1, 0, 4.7), ('  ', 180.221, 198.337, 375.055, 13.267, 9.15, 0, 0, 0, 4.7), ('SECRETÁRIO (A) DE ESCOLA', 206.32, 186.67, 166.26, 11.666, 9.15, 0, 1, 0, 4.7), ('DIRETOR DE ESCOLA', 381.28, 186.67, 173.996, 11.666, 9.15, 0, 1, 0, 4.7)]
 
-_BRASAO_HEX = (
-    '89504e470d0a1a0a0000000d49484452000000550000003b08030000003dd5364200000060504c5445fffffffffffdfffefefcfffffafffffafefffcfefbf9fefff9fffcf8fefbf3fef8fafdfefbfbfdfafbfafafbf6f6fbfaf1'
-    'fbf6f9f7faf5f6f6eef6f3eaedebd3d7d3c2c1c2aeb7b8aaa4af8a979a68819a9c6f72646c6da045413a5f8723322dbf250317000006404944415478daed98e976e3360c4627f694b2242e2209aea2a3f77fcb7ea0bc2499b463'
-    'b5e7f457112fa2ec5c41d808f8c78fffe5bf94b31cf5341aa3bdb7de9b2ee38565dc65d8e58f879c5fa09e84d6d334fac543f0b24ccbf42fa9a793144a9b857c2ca194d45a4a3107683b42fdb1bf1fa74aa55c2ab1b5505bdbb6'
-    '5602c06d2bc545ef9cff87d410ac4b5bdb5a2aad6cadae29b75671056a067710e975ea1b2c2994f5a95069c042bb94a3eb4296824da134500d3e209a26e3cc2ce5fc3baad6dab9088dcaba1672e49c950f8de6d918471493f38d'
-    'b6d22a812a5fa04a45a10498af15f2ce5a8be7936acc0c8e7386ba55e262c85ce6f96fa9028ab9087fc49ca3d6e364e611ff323fadc7ab99430af480eb9ad82604dcd3b2df53436ca185149cb612b41e9b974f3e996fe28c0f9e'
-    '5af025f86138ff05f504f3f8d2722e117a6a25d95e5dadaeef3cdc717cf2321ba98cd2a1e4dab644e6e7b07ffe95aa9cc53db558a27d83ec0101008cd8edbb2c4ee3083e37fa1e51838163b7ad6ec19ba15beb2b553bf6516864'
-    'd587301370ba274f21c440ce7be797c570c2dea8f834205eb6324181afd493543a72563a2bacbc292f941a0de582c0cd35979aa99492235719ad772a875a8fdd9c6899be52954372e29ac1c9c739eb2864c47c46a2d6c2524b4e'
-    '15899b89dccd04b3189d096baab84dff0bd546d8b4057da3b2619d6be080874f6a6e5bae787daf38915b7c50e1d8d1bac2014e97cb172a8cb38580743ded31a6c54fe350a958cbadebca36a8ef2d555c2418241c020f96bc2074'
-    '676963dc92475a7ea23a0efde0eece47e20a5455f80f52515e70ef39af1c7619aec9decfdd5de3e591753050cbee33d5263ea53f502f43d862cbd0b2a648b802d2ce87982b8aa3f7c94c1368f7fce0a48006e4cc27aa949ab410'
-    '0faa10f3809a0a17bc7f968aa7a5ba35f21ec1744b667c1d19e4f5e56b6409c853d7f338cb0c6aa37ae76d0fb22394dd5051079f54d177b4f973c6ca1353df1ed419490e6a8b0feab6532b3c462d36445bc41e36dca917ae66f3'
-    'fcb50ebcdde4566754604de1d7fae1ee41641320ca10da312dfae00e23b467b36ee4eb4ddeebe308e9bb210cc3f2b0c0cb5464148c677c4988a99c12272bdeb06a2e50c5f642c7a91186dc825e7cd999ac784bfdb8858d13a1e5'
-    'e9e81e2b1d47007235b186b95ba363a12d4e365cb3146cdd9783544227c0e0c2a0ed2639755d3dec9a43fa07d4c8210023941453be530b772f2d1742d1a05efa8e516d2771cbd26d99736564372cd7a1869a13fd228fd9f5241d'
-    'fa1f06d7bc07c13bdf3e1ed015d50bf15190a1f298ae27ab1762276183c8ac64cf02561676a5c0a91ce3723406c4e22dd7d5b5d47b5579168448284fda93924723cbc2f7bb87debf4a29a8917c277a198f7aeb7a5df7d82f2146'
-    'dc7a79878571147de4cdaf5daf5722ad5ea7a2710d2bfeebdaddb5a264a3177099d00f2c7ef2b80766e2b291a623549baebb807a0ddcbbf39e8876ce2f6145b081c88ff50855a05389eb75ff639dd6f5ba719bbdf1d1f57eea0a'
-    'eded01bb9e4ec25166e813c2820df17e02cf304d4a1e8b2c7456e03e8595bb23fb3a10f62d7d8c8a564e32f703e7a3a0a787ad0773df625ea4bef1263ba07b08282671dd3ea8d8e07a6b066e44317d1da29e67de1d47650db701'
-    '849eadf5d40fde735f8f6e80fbb669fa6d6e097112dd532ce79f1d2bccc4d366e0c1889b9386490b73cba8c4384dbc71cf2f50e583fae3dce5e7c09d241abbc25915d16966b4bf5dbee9edff867a37c12e98a52ccf81b0439f67'
-    'd0178fc7a8d259c582294e09698c1afb52f120648064ff98f16eca7d42fe2d1579ea9cb29a270dad70e3ca1914806961f1067829e6a77a2f514f278b190b9b7fc4808a263062ca8c3c0c785e670c0618d8bca13ed30f0804ec84'
-    '86088fc18f582e3831ff4a15163bd44a193d67421f15037c83e6312fb920660386f9d0563401688fabc1170042e806de19d13cd75431897c478d31640a2e479e0cd1fb7bee2e121a6eac01232a0e875c5bb1c212235c8b982672'
-    '5b3142370c7edf51211808f90f8ec79bc25af74116465efa53f1d2f0cf1ad3d2e764678927716ce3317afdfd6c2885940856b90b37b4bb4c3c0cf248389f95b8fd36c2bf66205ed43cec5f565a8b6fe3953b66717e7bbbd1f804'
-    'b6857144ba238da4c6463d77bf734a49cc62189e39c32457ae11a5e6c55f73fe9dfc091a1fd6d5960697260000000049454e44ae426082'
-)
+_LOGO_ARQUIVO = 'logo_prefeitura.png'
+
+def _caminho_logo_prefeitura():
+    """Localiza o logo já existente no projeto, sem incorporar bytes ao módulo."""
+    candidatos = []
+    try:
+        candidatos.append(Path(__file__).resolve().with_name(_LOGO_ARQUIVO))
+    except NameError:
+        pass
+    candidatos.append(Path.cwd() / _LOGO_ARQUIVO)
+    vistos = set()
+    for caminho in candidatos:
+        chave = str(caminho)
+        if chave not in vistos and caminho.is_file():
+            return caminho
+        vistos.add(chave)
+    return None
 
 _FORM_FONT = 'Helvetica'
 _FORM_BOLD = 'Helvetica-Bold'
@@ -329,14 +340,16 @@ class Formulario:
         if start == 0:
             x, y, w, h = self.rect(43, 0, 45, 61)
             c.rect(x, y, w, h, stroke=1, fill=0)
-            try:
-                imagem = ImageReader(BytesIO(bytes.fromhex(''.join(_BRASAO_HEX))))
-                x, y, w, h = self.rect(0, 0, 6, 12)
-                c.drawImage(imagem, x + 4, y + 1, w - 8, h - 2, preserveAspectRatio=True, anchor='c', mask='auto')
-            except Exception:
-                # O restante do histórico continua emitível mesmo se o decodificador
-                # de imagem da instalação estiver indisponível.
-                pass
+            logo = _caminho_logo_prefeitura()
+            if logo is not None:
+                try:
+                    imagem = ImageReader(str(logo))
+                    x, y, w, h = self.rect(0, 0, 6, 12)
+                    c.drawImage(imagem, x + 4, y + 1, w - 8, h - 2, preserveAspectRatio=True, anchor='c', mask='auto')
+                except Exception:
+                    # O restante do histórico continua emitível caso a imagem esteja
+                    # corrompida ou o decodificador da instalação esteja indisponível.
+                    pass
 
 def gerar_pdf(dados, rascunho=False):
     erros, _ = validar(dados, exigir_conferencia=not rascunho)
@@ -359,6 +372,7 @@ def gerar_pdf(dados, rascunho=False):
             c.drawCentredString(A4[0] / 2, 15, 'DEMONSTRAÇÃO - SEM VALIDADE' if dados['demonstracao'] else 'RASCUNHO - NÃO EMITIDO')
             c.restoreState()
 
+    # FRENTE: campos 1 a 7. O campo 8 não é desenhado nesta página.
     f.pagina(0, 63)
     for k, r, col, end_col in [('nome',0,21,52),('ato',1,21,52),('endereco',2,21,52),('bairro',3,18,36),('municipio',3,44,61),('cep',4,15,23),('telefone',4,33,52),('email',5,17,52)]:
         t(e[k], r, col, r + 1, end_col, size=7.4)
@@ -400,6 +414,7 @@ def gerar_pdf(dados, rascunho=False):
     marca()
     c.showPage()
 
+    # VERSO: inicia obrigatoriamente pelo campo 8 (Transferência).
     f.pagina(63, 120)
     tr = dados['transferencia']
     if tr['ativa']:

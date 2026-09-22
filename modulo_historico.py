@@ -5,7 +5,7 @@ from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 
@@ -60,7 +60,28 @@ def buscar_dados_historico(ra):
             ["", "", "", "", ""],
             ["", "", "", "", ""],
             ["", "", "", "", ""]
-        ]
+        ],
+        "transferencia": {
+            "ano": "", "turma": "", "chamada": "", "transferido_em": "",
+            "dias_letivos": "", "ausencias": "", "compensadas": "", "frequencia": "",
+            "curriculo": {
+                "LÍNGUA PORTUGUESA": ["", "", ""],
+                "GEOGRAFIA": ["", "", ""],
+                "MATEMÁTICA": ["", "", ""],
+                "CIÊNCIAS": ["", "", ""],
+                "HISTÓRIA": ["", "", ""],
+                "ED. FÍSICA": ["", "", ""],
+                "ARTE": ["", "", ""]
+            },
+            "diversificada": {
+                "LINGUAGENS E TECNOLOGIAS": ["", "", ""],
+                "ACOMPANHAMENTO PEDAGÓGICO": ["", "", ""],
+                "PRÁTICAS EXPERIMENTAIS E DE TUTORIA DE ESTUDO": ["", "", ""],
+                "PRÁTICAS DE ESTUDO": ["", "", ""],
+                "LINGUAGENS": ["", "", ""],
+                "ESPORTE E EDUCAÇÃO DO MOVIMENTO": ["", "", ""]
+            }
+        }
     }
 
 # ==========================================
@@ -176,7 +197,6 @@ def gerar_pdf(dados):
     dados_2 = [
         [celula("2", s_center), celula("RESULTADO DOS ESTUDOS REALIZADOS NO ENSINO FUNDAMENTAL", s_bold), "", "", "", "", ""],
         [celula("2.1", s_center), "", celula("2.2", s_center), celula("ESCOLARIDADE", s_bold), "", "", ""],
-        # AQUI FOI CORRIGIDA A CONCATENAÇÃO DOS PARÁGRAFOS USANDO UMA LISTA []
         [[celula("CURRÍCULO", s_bold), celula(texto_legal, s_legal)], "", celula("Anos Iniciais", s_bold), "", "", "", ""],
         ["", "", celula("1º Ano", s_bold), celula("2º Ano", s_bold), celula("3º Ano", s_bold), celula("4º Ano", s_bold), celula("5º Ano", s_bold)]
     ]
@@ -263,7 +283,6 @@ def gerar_pdf(dados):
         [celula("7 ESTUDOS REALIZADOS", s_bold), "", "", "", ""],
         [celula("ANO", s_center), celula("CICLO/ANO", s_center), celula("ESTABELECIMENTO", s_center), celula("MUNICÍPIO", s_center), celula("ESTADO", s_center)]
     ]
-    # CORREÇÃO DA SINTAXE DO FOR LOOP AQUI
     for est in dados['estudos']:
         matriz_7.append([celula(c, s_center) for c in est])
         
@@ -274,6 +293,48 @@ def gerar_pdf(dados):
         ('BACKGROUND', (0, 0), (-1, 1), colors.lightgrey),
     ]))
     elementos.append(t_7)
+
+    # QUEBRA DE PÁGINA (VERSO: CAMPOS 8 AO 11)
+    elementos.append(PageBreak())
+
+    # ---------------------------------------------------------
+    # 8 TRANSFERÊNCIA DURANTE O ANO LETIVO
+    # ---------------------------------------------------------
+    t = dados['transferencia']
+    dados_8 = [
+        [celula("8", s_center), celula("TRANSFERÊNCIA DURANTE O ANO LETIVO", s_bold), "", "", ""],
+        [celula("8.1", s_center), celula(f"Ano: {t['ano']} Ensino Fundamental   Turma: {t['turma']}   Nº de chamada: {t['chamada']}   TRANSFERIDO EM: {t['transferido_em']}<br/>Dias Letivos: {t['dias_letivos']}   Ausências: {t['ausencias']}   Ausências Compensadas: {t['compensadas']}   Frequência (%): {t['frequencia']}", s_normal), "", "", ""],
+        [celula("8.2", s_center), celula("CURRÍCULO", s_bold), celula("1º TRIMESTRE", s_center), celula("2º TRIMESTRE", s_center), celula("3º TRIMESTRE", s_center)]
+    ]
+    
+    for disc, notas in t['curriculo'].items():
+        dados_8.append([celula(disc, s_normal), ""] + [celula(regra_do_traco(n), s_center) for n in notas])
+        
+    dados_8.append([celula("PARTE DIVERSIFICADA", s_bold), "", "", "", ""])
+    
+    for disc, notas in t['diversificada'].items():
+        dados_8.append([celula(disc, s_normal), ""] + [celula(regra_do_traco(n), s_center) for n in notas])
+
+    t_sec8 = Table(dados_8, colWidths=[10*mm, 90*mm, 30*mm, 30*mm, 30*mm])
+    styles_8 = [
+        ('SPAN', (1,0), (4,0)),
+        ('SPAN', (1,1), (4,1)),
+        ('SPAN', (0,2), (1,2)), # Merge 8.2 e CURRICULO - Ajuste para caber igual o original
+        ('SPAN', (0,10), (4,10)), # PARTE DIVERSIFICADA
+        ('BACKGROUND', (0,0), (4,0), colors.lightgrey),
+        ('BACKGROUND', (0,2), (4,2), colors.lightgrey),
+        ('BACKGROUND', (0,10), (4,10), colors.lightgrey),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+    ]
+    # Mesclar as duas primeiras colunas das disciplinas de curriculo e diversificada
+    for r in range(3, 10):
+        styles_8.append(('SPAN', (0,r), (1,r)))
+    for r in range(11, 17):
+        styles_8.append(('SPAN', (0,r), (1,r)))
+
+    t_sec8.setStyle(TableStyle(styles_8))
+    elementos.append(t_sec8)
     elementos.append(Spacer(1, 2*mm))
 
     # ---------------------------------------------------------
@@ -305,7 +366,7 @@ def gerar_pdf(dados):
 # ==========================================
 def renderizar_modulo():
     st.markdown('<div class="header-box"><div class="header-title">📜 Emissão de Histórico Escolar</div></div>', unsafe_allow_html=True)
-    st.warning("⚠️ **Regra de Ouro:** Documento gerado seguindo estritamente as resoluções vigentes (Espelho da Imagem Original).")
+    st.warning("⚠️ **Regra de Ouro:** Documento gerado seguindo estritamente as resoluções vigentes (Frente: Campos 1 ao 7 | Verso: Campos 8 ao 11).")
     
     with st.container():
         col1, col2 = st.columns([1, 2])
@@ -317,7 +378,7 @@ def renderizar_modulo():
             
         with col2:
             if btn_gerar and ra_busca:
-                with st.spinner("Estruturando matriz oficial com textos legais..."):
+                with st.spinner("Estruturando matriz oficial com quebra de página (frente e verso)..."):
                     try:
                         dados = buscar_dados_historico(ra_busca)
                         pdf_buffer = gerar_pdf(dados)

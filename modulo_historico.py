@@ -1,5 +1,7 @@
 """Módulo de histórico escolar para integração em aplicação Streamlit.
 
+Versão revisada em 2026-09-22: ajustes de paginação do PDF e dados institucionais padrão.
+
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
     renderizar_modulo()

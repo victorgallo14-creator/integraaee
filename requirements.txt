@@ -14,3 +14,4 @@ opencv-python-headless
 pytesseract
 Pillow
 reportlab
+xlrd

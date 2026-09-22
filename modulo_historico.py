@@ -419,16 +419,114 @@ class Formulario:
         if start == 0:
             x, y, w, h = self.rect(43, 0, 45, 61)
             c.rect(x, y, w, h, stroke=1, fill=0)
-            logo = _caminho_logo_prefeitura()
-            if logo is not None:
-                try:
-                    imagem = ImageReader(str(logo))
-                    x, y, w, h = self.rect(0, 0, 6, 12)
-                    c.drawImage(imagem, x + 4, y + 1, w - 8, h - 2, preserveAspectRatio=True, anchor='c', mask='auto')
-                except Exception:
-                    # O restante do histórico continua emitível caso a imagem esteja
-                    # corrompida ou o decodificador da instalação esteja indisponível.
-                    pass
+
+def _desenhar_cabecalho_oficial(c, escola):
+    """Redesenha o cabeçalho da 1ª página com layout institucional limpo."""
+    c.saveState()
+    # Apaga o cabeçalho antigo com linhas guia e redesenha uma versão mais formal.
+    area_x, area_y, area_w, area_h = 40.0, 720.0, 515.276, 91.5
+    c.setFillColorRGB(1, 1, 1)
+    c.setStrokeColorRGB(0, 0, 0)
+    c.rect(area_x, area_y, area_w, area_h, stroke=0, fill=1)
+
+    # Bloco do brasão.
+    logo_x, logo_y, logo_w, logo_h = 44.0, 748.5, 102.0, 59.0
+    c.setLineWidth(0.6)
+    c.rect(logo_x, logo_y, logo_w, logo_h, stroke=0, fill=0)
+    logo = _caminho_logo_prefeitura()
+    if logo is not None:
+        try:
+            imagem = ImageReader(str(logo))
+            c.drawImage(imagem, logo_x + 4, logo_y + 4, logo_w - 8, logo_h - 8,
+                        preserveAspectRatio=True, anchor='c', mask='auto')
+        except Exception:
+            pass
+
+    # Quadro de identificação institucional.
+    box_x, box_y, box_w, box_h = 158.0, 748.5, 397.276, 59.0
+    c.setLineWidth(0.7)
+    c.rect(box_x, box_y, box_w, box_h, stroke=1, fill=0)
+    row_h = box_h / 6.0
+    for i in range(1, 6):
+        y = box_y + i * row_h
+        c.line(box_x, y, box_x + box_w, y)
+
+    # Faixas cinza sutis nos rótulos.
+    label_fill = (0.93, 0.93, 0.93)
+    c.setFillColorRGB(*label_fill)
+    for i in range(6):
+        y = box_y + box_h - (i + 1) * row_h
+        c.rect(box_x, y, 92, row_h, stroke=0, fill=1)
+    # Recortes especiais para linhas divididas.
+    y4 = box_y + box_h - 4 * row_h
+    y5 = box_y + box_h - 5 * row_h
+    c.rect(box_x + 184, y4, 88, row_h, stroke=0, fill=1)
+    c.rect(box_x + 146, y5, 106, row_h, stroke=0, fill=1)
+    c.setFillColorRGB(0, 0, 0)
+
+    # Divisórias verticais específicas.
+    c.line(box_x + 92, box_y, box_x + 92, box_y + box_h)
+    c.line(box_x + 184, y4, box_x + 184, y4 + row_h)
+    c.line(box_x + 272, y4, box_x + 272, y4 + row_h)
+    c.line(box_x + 146, y5, box_x + 146, y5 + row_h)
+    c.line(box_x + 252, y5, box_x + 252, y5 + row_h)
+
+    def cell_label(txt, x, y, w, h):
+        c.setFont(_FORM_BOLD, 6.9)
+        c.drawString(x + 4, y + h/2 - 2.2, txt)
+
+    def cell_value(txt, x, y, w, h, size=7.3, bold=False, align=0):
+        font = _FORM_BOLD if bold else _FORM_FONT
+        tx = str(txt or '')
+        # Ajuste simples do corpo para caber visualmente bem.
+        measured = max(pdfmetrics.stringWidth(tx, font, 1), 0.001)
+        draw_size = min(size, max((w - 8) / measured, 5.4))
+        draw_size = max(draw_size, 5.4)
+        c.setFont(font, draw_size)
+        yy = y + h/2 - draw_size/2 + draw_size*0.18
+        if align == 1:
+            c.drawCentredString(x + w/2, yy, tx)
+        elif align == 2:
+            c.drawRightString(x + w - 4, yy, tx)
+        else:
+            c.drawString(x + 4, yy, tx)
+
+    rows = [box_y + box_h - (i + 1) * row_h for i in range(6)]
+    # Linha 1
+    cell_label('ESCOLA', box_x, rows[0], 92, row_h)
+    cell_value(escola.get('nome', ''), box_x + 92, rows[0], box_w - 92, row_h, size=7.5, bold=False)
+    # Linha 2
+    cell_label('ATO DE CRIAÇÃO', box_x, rows[1], 92, row_h)
+    cell_value(escola.get('ato', ''), box_x + 92, rows[1], box_w - 92, row_h, size=7.1)
+    # Linha 3
+    cell_label('ENDEREÇO', box_x, rows[2], 92, row_h)
+    cell_value(escola.get('endereco', ''), box_x + 92, rows[2], box_w - 92, row_h, size=7.3)
+    # Linha 4 - bairro/município
+    cell_label('BAIRRO', box_x, rows[3], 92, row_h)
+    cell_value(escola.get('bairro', ''), box_x + 92, rows[3], 92, row_h, size=7.0, align=1)
+    cell_label('MUNICÍPIO', box_x + 184, rows[3], 88, row_h)
+    cell_value(escola.get('municipio', ''), box_x + 272, rows[3], box_w - 272, row_h, size=7.2)
+    # Linha 5 - cep/telefone
+    cell_label('CEP', box_x, rows[4], 92, row_h)
+    cell_value(escola.get('cep', ''), box_x + 92, rows[4], 54, row_h, size=7.0, align=1)
+    cell_label('TELEFONE', box_x + 146, rows[4], 106, row_h)
+    cell_value(escola.get('telefone', ''), box_x + 252, rows[4], box_w - 252, row_h, size=7.2)
+    # Linha 6 - email
+    cell_label('E-MAIL', box_x, rows[5], 92, row_h)
+    cell_value(escola.get('email', ''), box_x + 92, rows[5], box_w - 92, row_h, size=7.0)
+
+    # Títulos centrais reprojetados para dar acabamento melhor.
+    c.setFillColorRGB(1, 1, 1)
+    c.rect(40.0, 723.5, 515.276, 17.5, stroke=0, fill=1)
+    c.setFont(_FORM_BOLD, 10.1)
+    c.drawCentredString(297.638, 729.8, 'SECRETARIA MUNICIPAL DE EDUCAÇÃO DE LIMEIRA/SP')
+
+    c.setFillColorRGB(0.88, 0.88, 0.88)
+    c.rect(40.0, 708.7, 515.276, 13.8, stroke=1, fill=1)
+    c.setFillColorRGB(0, 0, 0)
+    c.setFont(_FORM_BOLD, 11.3)
+    c.drawCentredString(297.638, 712.5, 'HISTÓRICO ESCOLAR')
+    c.restoreState()
 
 def gerar_pdf(dados, rascunho=False):
     erros, _ = validar(dados, exigir_conferencia=not rascunho)
@@ -453,8 +551,7 @@ def gerar_pdf(dados, rascunho=False):
 
     # FRENTE: campos 1 a 7. O campo 8 não é desenhado nesta página.
     f.pagina(0, 63)
-    for k, r, col, end_col in [('nome',0,21,52),('ato',1,21,52),('endereco',2,21,52),('bairro',3,18,36),('municipio',3,44,61),('cep',4,15,23),('telefone',4,33,52),('email',5,17,52)]:
-        t(e[k], r, col, r + 1, end_col, size=7.4)
+    _desenhar_cabecalho_oficial(c, e)
     t(a['ra'], 9, 52, 10, 61, size=7.6, align=1)
     t(a['nome'], 10, 9, 11, 40, size=8, bold=True)
     t(a['ra_escolar'], 10, 48, 11, 61, size=8)

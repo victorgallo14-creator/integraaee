@@ -34,6 +34,8 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 
+import modulo_historico
+
 
 
 
@@ -1254,7 +1256,7 @@ with st.sidebar:
         st.markdown('<p class="section-label">📌 Navegação</p>', unsafe_allow_html=True)
         app_mode_adm = st.radio(
             "Navegação", 
-            ["🏷️ Patrimônio e Inventário", "📦 Almoxarifado Escolar", "🖨️ Emissão de Boletins", "📚 Preparatório ADE"], 
+            ["🏷️ Patrimônio e Inventário", "📦 Almoxarifado Escolar", "🖨️ Emissão de Boletins", "📜 Histórico Escolar"], 
             label_visibility="collapsed",
             key="nav_adm"
         )
@@ -10490,7 +10492,9 @@ if st.session_state.get("modulo_atuacao") in ["📚  Sala de Leitura", "📚 Sal
 
 
 
-
+elif app_mode_adm == "📜 Histórico Escolar":
+    # Chama a função principal do arquivo modulo_historico.py
+    modulo_historico.renderizar_modulo()
 
 
 elif app_mode_adm == "🖨️ Emissão de Boletins":

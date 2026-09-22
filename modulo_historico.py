@@ -253,6 +253,52 @@ def _caminho_logo_prefeitura():
 _FORM_FONT = 'Helvetica'
 _FORM_BOLD = 'Helvetica-Bold'
 
+# Ajustes geométricos para reproduzir a grade do impresso oficial.
+# O modelo original usa larguras diferentes entre as áreas do formulário;
+# em especial, a coluna dos números (1.1, 2.4, 3...) é mais larga e as
+# cinco colunas de escolaridade têm larguras regulares.
+def _interp_x(valor, origem, destino):
+    valor = float(valor)
+    if valor <= origem[0]:
+        return destino[0] + (valor - origem[0])
+    if valor >= origem[-1]:
+        return destino[-1] + (valor - origem[-1])
+    for i in range(len(origem) - 1):
+        a, b = origem[i], origem[i + 1]
+        if a <= valor <= b:
+            da, db = destino[i], destino[i + 1]
+            if b == a:
+                return da
+            return da + (valor - a) * (db - da) / (b - a)
+    return valor
+
+_X_STUDENT_OLD = [40.0, 49.724, 136.722, 311.681, 372.58, 468.278, 494.377, 520.476, 555.276]
+_X_STUDENT_NEW = [40.0, 58.0, 144.25, 325.78, 383.30, 472.58, 497.15, 521.72, 555.276]
+_X_ACAD_OLD = [40.0, 49.724, 302.018, 346.48, 398.679, 450.878, 503.077, 555.276]
+_X_ACAD_NEW = [40.0, 58.0, 309.0, 358.12, 407.25, 456.38, 505.51, 555.276]
+_X_SUBHEAD_OLD = [40.0, 49.724, 302.018, 311.681, 555.276]
+_X_SUBHEAD_NEW = [40.0, 58.0, 309.0, 358.12, 555.276]
+
+def _ajustar_x_frente(x, y=None, grupo=None):
+    if grupo == 'student':
+        return _interp_x(x, _X_STUDENT_OLD, _X_STUDENT_NEW)
+    if grupo == 'academic':
+        return _interp_x(x, _X_ACAD_OLD, _X_ACAD_NEW)
+    if grupo == 'subhead':
+        return _interp_x(x, _X_SUBHEAD_OLD, _X_SUBHEAD_NEW)
+    if y is None:
+        return x
+    # Coordenadas Y abaixo correspondem ao espaço absoluto do PDF.
+    if 623.0 <= y <= 711.0:
+        return _interp_x(x, _X_STUDENT_OLD, _X_STUDENT_NEW)
+    if 586.0 <= y <= 604.0:
+        # Linha 2.1 / 2.2: no impresso, o bloco 2.2 ocupa a mesma largura
+        # da primeira coluna de escolaridade.
+        return _interp_x(x, _X_SUBHEAD_OLD, _X_SUBHEAD_NEW)
+    if 100.0 <= y < 623.0:
+        return _interp_x(x, _X_ACAD_OLD, _X_ACAD_NEW)
+    return x
+
 class Formulario:
     def __init__(self, c):
         self.c = c
@@ -266,10 +312,23 @@ class Formulario:
     def rect(self, r, col, r1=None, c1=None):
         if r1 is None:
             r1, c1 = r + 1, col + 1
+        x0 = self.x[col]
+        x1 = self.x[c1]
+        if self.start == 0:
+            grupo = None
+            if 9 <= r <= 16:
+                grupo = 'student'
+            elif r in (20,):
+                grupo = 'subhead'
+            elif r >= 17:
+                grupo = 'academic'
+            if grupo:
+                x0 = _ajustar_x_frente(x0, grupo=grupo)
+                x1 = _ajustar_x_frente(x1, grupo=grupo)
         return (
-            self.x[col],
+            x0,
             A4[1] - self.top - (self.y[r1] - self.y[self.start]),
-            self.x[c1] - self.x[col],
+            x1 - x0,
             self.y[r1] - self.y[r],
         )
 
@@ -326,13 +385,31 @@ class Formulario:
         texts = TEXTS_0 if start == 0 else TEXTS_63
         c = self.c
         for x, y, w, h, rr, gg, bb in fills:
+            if start == 0:
+                yy = y + h / 2
+                nx0 = _ajustar_x_frente(x, yy)
+                nx1 = _ajustar_x_frente(x + w, yy)
+                x, w = nx0, nx1 - nx0
             c.setFillColorRGB(rr, gg, bb)
             c.rect(x, y, w, h, stroke=0, fill=1)
+        if start == 0:
+            # Faixa do título principal conforme o impresso oficial.
+            c.setFillColorRGB(.75, .75, .75)
+            c.rect(40.0, 728.625, 515.276, 12.81, stroke=0, fill=1)
         c.setStrokeColorRGB(0, 0, 0)
         c.setLineWidth(.4)
         for x1, y1, x2, y2 in lines:
+            if start == 0:
+                yy = (y1 + y2) / 2
+                x1 = _ajustar_x_frente(x1, yy)
+                x2 = _ajustar_x_frente(x2, yy)
             c.line(x1, y1, x2, y2)
         for texto, x, y, w, h, size, bold, align, mode, minsize in texts:
+            if start == 0:
+                yy = y + h / 2
+                nx0 = _ajustar_x_frente(x, yy)
+                nx1 = _ajustar_x_frente(x + w, yy)
+                x, w = nx0, nx1 - nx0
             if mode == 2:
                 c.setFillColorRGB(0, 0, 0)
                 c.setFont(_FORM_BOLD if bold else _FORM_FONT, size)

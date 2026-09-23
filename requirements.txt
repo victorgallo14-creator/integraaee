@@ -15,3 +15,8 @@ pytesseract
 Pillow
 reportlab
 xlrd
+streamlit
+pandas
+reportlab
+SQLAlchemy
+psycopg2-binary

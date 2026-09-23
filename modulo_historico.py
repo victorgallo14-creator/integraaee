@@ -6,8 +6,8 @@ Currículo e AEE mescladas verticalmente, textos legais justificados,
 fontes de dados de nascimento igualadas, logotipo aumentado, valores do
 cabeçalho perfeitamente alinhados verticalmente numa coluna guia,
 padronização de tamanhos e alinhamentos no bloco 8 (Transferência),
-reordenação das disciplinas da base comum e integração de seletor rápido
-de Observações Padronizadas no sistema.
+reordenação das disciplinas da base comum, seletor de observações e
+correção do visualizador inline de PDF via Base64.
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -29,6 +29,7 @@ from copy import deepcopy
 from datetime import date
 from decimal import Decimal, InvalidOperation
 import re
+import base64
 
 # Disciplinas reordenadas conforme solicitado
 BASE = ['LÍNGUA PORTUGUESA', 'MATEMÁTICA', 'CIÊNCIAS', 'HISTÓRIA', 'GEOGRAFIA', 'ARTE', 'ED. FÍSICA']
@@ -367,12 +368,11 @@ def _header(p,e):
     logo=_caminho_logo_prefeitura()
     if logo:
         try:
-            # Logotipo aumentado
             c.drawImage(ImageReader(str(logo)),LEFT+5,A4[1]-95,85,85,preserveAspectRatio=True,anchor='c',mask='auto')
         except Exception: pass
     
     ox = LEFT + 100
-    val_x = ox + 80 # Coluna guia para alinhamento perfeito de todos os valores
+    val_x = ox + 80 
     lh = 11 
     cy = 15
     
@@ -1009,17 +1009,15 @@ def renderizar_modulo(banco_path=None):
         if result and result[0]==assinatura:
             _,pdf,tipo=result;ra=re.sub(r'[^\w-]','',d['aluno']['ra'])[:40] or 'rascunho'
             st.download_button('Baixar PDF',pdf,file_name=f'{tipo}_{ra}.pdf',mime='application/pdf',type='primary')
+            
+            # Novo visualizador inline seguro usando base64
             try:
-                visualizador = getattr(st, 'pdf')
-            except AttributeError:
-                visualizador = None
-            if visualizador is not None:
-                try:
-                    visualizador(pdf, height=820)
-                except TypeError:
-                    visualizador(pdf)
-            else:
-                st.caption('A prévia inline requer uma versão do Streamlit com st.pdf. O botão “Baixar PDF” continua disponível.')
+                base64_pdf = base64.b64encode(pdf).decode('utf-8')
+                pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="820" type="application/pdf"></iframe>'
+                st.markdown(pdf_display, unsafe_allow_html=True)
+            except Exception as e:
+                st.caption(f'Não foi possível carregar a visualização inline: {e}')
+                
         elif result:st.info('Os dados mudaram. Gere uma nova prévia ou emissão.')
         if estado_historico.get('ident'):
             with st.expander('Emissões anteriores deste registro'):

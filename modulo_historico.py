@@ -4,8 +4,8 @@ Versão revisada: adequação estrita do layout vetorial (frente e verso)
 ao padrão de formulário monocromático/tabular da Prefeitura. Células de
 Currículo e AEE mescladas verticalmente, textos legais justificados,
 fontes de dados de nascimento igualadas, linha removida do cabeçalho,
-correção da sobreposição das linhas verticais nas tabelas e bloco 6 
-ajustado para se desenvolver numa única linha.
+correção da sobreposição das linhas verticais nas tabelas e bloco 8.2 
+(Trimestres) corrigido para evitar repetição de cabeçalho.
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -541,9 +541,8 @@ def gerar_pdf(dados, rascunho=False):
         
     y += 14
     
-    y += 14 # Quebra de linha adicionada entre o bloco 5 e 6
+    y += 14 
     
-    # Bloco 6 desenhado numa única linha com fundo cinza na esquerda e branco na direita
     p.box(LEFT, y, WIDTH, 14, PAPER, LINE) 
     p.box(LEFT, y, 300, 14, PALE, LINE) 
     p.box(LEFT, y, 20, 14, None, LINE)  
@@ -566,11 +565,9 @@ def gerar_pdf(dados, rascunho=False):
     cw=[45, 60, 215, 115, 89]; labels=['ANO', 'CICLO/ANO', 'ESTABELECIMENTO', 'MUNICÍPIO', 'ESTADO']
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     
-    # Desenha primeiro o fundo branco das 5 linhas 
     for i in range(5):
         p.box(LEFT, y+14+i*14, WIDTH, 14, PAPER, LINE)
         
-    # Depois desenha o texto e as divisórias verticais por cima
     off=0
     for w, label in zip(cw, labels):
         p.text(label, LEFT+off, y+3, w, 8, True, 'center')
@@ -607,7 +604,6 @@ def gerar_pdf(dados, rascunho=False):
                 ('Nº DE CHAMADA', tr['chamada'] if on else ''), 
                 ('DATA', _date(tr['data']) if on else '')]
     
-    # Desenha texto e divisórias do 8.1 
     off = 0
     for w, (label, val) in zip(cw81, labels81):
         p.text(f"{label}:", LEFT+off+2, y+3, 60, 8, True)
@@ -637,35 +633,48 @@ def gerar_pdf(dados, rascunho=False):
         result=[]
         for i in range(3): result.append({k:(tr['conceitos'][k][i] if on else '') for k in keys})
         return result
-
-    def trimester(y,keys,values):
-        labw = WIDTH - 3*83
-        p.box(LEFT, y, WIDTH, 14, PALE, LINE)
-        p.text('BASE COMUM CURRICULAR', LEFT+2, y+3, labw-4, 8, True)
-        
-        # Desenha primeiro o fundo branco
-        for j in range(len(keys)):
-            p.box(LEFT, y+14+j*14, WIDTH, 14, PAPER, LINE)
-            
-        # Depois desenha o texto dos cabeçalhos e as divisórias verticais
+    
+    y += 14
+    labw = WIDTH - 3*83
+    
+    p.box(LEFT, y, WIDTH, 14, PALE, LINE)
+    p.text('BASE COMUM CURRICULAR', LEFT+2, y+3, labw-4, 8, True)
+    for i in range(3):
+        x = LEFT + labw + i*83
+        p.rule(x, y, x, y+14)
+        p.text(f'{i+1}º TRIMESTRE', x, y+3, 83, 8, True, 'center')
+    y += 14
+    
+    t_base = trimvals(BASE)
+    for j, k in enumerate(BASE):
+        p.box(LEFT, y+j*14, WIDTH, 14, PAPER, LINE)
+        p.text(k, LEFT+2, y+j*14+3, labw-4, 8)
         for i in range(3):
-            x = LEFT + labw + i*83
-            p.rule(x, y, x, y+14+len(keys)*14)
-            p.text(f'{i+1}º TRIMESTRE', x, y+3, 83, 8, True, 'center')
+            p.text(t_base[i].get(k, ''), LEFT+labw+i*83, y+j*14+3, 83, 8, True, 'center')
+    
+    for i in range(3):
+        x = LEFT + labw + i*83
+        p.rule(x, y, x, y + len(BASE)*14)
+        
+    y += len(BASE)*14
+    
+    p.box(LEFT, y, WIDTH, 14, PALE, LINE)
+    p.text('PARTE DIVERSIFICADA', LEFT+2, y+3, WIDTH-4, 8.5, True)
+    y += 14
+    
+    keys_div = DIV[3:]
+    t_div = trimvals(keys_div)
+    for j, k in enumerate(keys_div):
+        p.box(LEFT, y+j*14, WIDTH, 14, PAPER, LINE)
+        p.text(k, LEFT+2, y+j*14+3, labw-4, 8)
+        for i in range(3):
+            p.text(t_div[i].get(k, ''), LEFT+labw+i*83, y+j*14+3, 83, 8, True, 'center')
             
-        y += 14
-        for j,k in enumerate(keys):
-            p.text(k, LEFT+2, y+j*14+3, labw-4, 8)
-            for i in range(3):
-                p.text(values[i].get(k,''), LEFT+labw+i*83, y+j*14+3, 83, 8, True, 'center')
-        return y+len(keys)*14
-    
-    y += 14
-    y = trimester(y, BASE, trimvals(BASE))
-    
-    p.band(None, 'PARTE DIVERSIFICADA', y, 14)
-    y += 14
-    y = trimester(y, DIV[3:], trimvals(DIV[3:]))
+    for i in range(3):
+        x = LEFT + labw + i*83
+        p.rule(x, y, x, y + len(keys_div)*14)
+        
+    y += len(keys_div)*14
     
     y += 14 
     p.band('9', 'OBSERVAÇÕES', y, 14)

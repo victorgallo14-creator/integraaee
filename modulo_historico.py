@@ -3,9 +3,8 @@
 Versão revisada: adequação estrita do layout vetorial (frente e verso) 
 ao padrão de formulário monocromático/tabular da Prefeitura. Células de
 Currículo e AEE mescladas verticalmente, textos legais justificados,
-fontes de dados de nascimento igualadas, linha removida do cabeçalho,
-correção da sobreposição das linhas verticais nas tabelas e bloco 8.2 
-(Trimestres) corrigido para evitar repetição de cabeçalho.
+fontes de dados de nascimento igualadas, logotipo aumentado e valores do
+cabeçalho perfeitamente alinhados verticalmente numa coluna guia.
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -348,33 +347,35 @@ def _header(p,e):
     logo=_caminho_logo_prefeitura()
     if logo:
         try:
-            c.drawImage(ImageReader(str(logo)),LEFT+5,A4[1]-75,70,60,preserveAspectRatio=True,anchor='c',mask='auto')
+            # Logotipo aumentado
+            c.drawImage(ImageReader(str(logo)),LEFT+5,A4[1]-95,85,85,preserveAspectRatio=True,anchor='c',mask='auto')
         except Exception: pass
     
-    ox = LEFT + 90
+    ox = LEFT + 100
+    val_x = ox + 80 # Coluna guia para alinhamento perfeito de todos os valores
     lh = 11 
     cy = 15
     
     label_color = HexColor('#444444')
     
     p.text('SECRETARIA MUNICIPAL DE EDUCAÇÃO DE LIMEIRA/SP', ox, cy, WIDTH-90, 9.5, True)
-    cy+=14
+    cy+=16
     
-    p.text('ESCOLA:', ox, cy, 60, 7.5, True, color=label_color); p.text(e['nome'], ox+45, cy, 330, 8.5, True)
+    p.text('ESCOLA:', ox, cy, 75, 7.5, True, color=label_color); p.text(e['nome'], val_x, cy, 330, 8.5, True)
     cy+=lh
-    p.text('ATO DE CRIAÇÃO:', ox, cy, 80, 7.5, True, color=label_color); p.text(e['ato'], ox+75, cy, 310, 8.5)
+    p.text('ATO DE CRIAÇÃO:', ox, cy, 75, 7.5, True, color=label_color); p.text(e['ato'], val_x, cy, 310, 8.5)
     cy+=lh
-    p.text('ENDEREÇO:', ox, cy, 60, 7.5, True, color=label_color); p.text(e['endereco'], ox+55, cy, 330, 8.5)
+    p.text('ENDEREÇO:', ox, cy, 75, 7.5, True, color=label_color); p.text(e['endereco'], val_x, cy, 330, 8.5)
     cy+=lh
-    p.text('BAIRRO:', ox, cy, 45, 7.5, True, color=label_color); p.text(e['bairro'], ox+40, cy, 180, 8.5)
-    p.text('MUNICÍPIO:', ox+230, cy, 55, 7.5, True, color=label_color); p.text(e['municipio'], ox+280, cy, 105, 8.5)
+    p.text('BAIRRO:', ox, cy, 45, 7.5, True, color=label_color); p.text(e['bairro'], val_x, cy, 180, 8.5)
+    p.text('MUNICÍPIO:', ox+230, cy, 55, 7.5, True, color=label_color); p.text(e['municipio'], ox+285, cy, 105, 8.5)
     cy+=lh
-    p.text('CEP:', ox, cy, 30, 7.5, True, color=label_color); p.text(e['cep'], ox+25, cy, 80, 8.5)
-    p.text('TELEFONES:', ox+115, cy, 65, 7.5, True, color=label_color); p.text(e['telefone'], ox+170, cy, 210, 8.5)
+    p.text('CEP:', ox, cy, 30, 7.5, True, color=label_color); p.text(e['cep'], val_x, cy, 80, 8.5)
+    p.text('TELEFONES:', ox+130, cy, 65, 7.5, True, color=label_color); p.text(e['telefone'], ox+190, cy, 210, 8.5)
     cy+=lh
-    p.text('E-MAIL:', ox, cy, 40, 7.5, True, color=label_color); p.text(e['email'], ox+35, cy, 350, 8.5)
+    p.text('E-MAIL:', ox, cy, 40, 7.5, True, color=label_color); p.text(e['email'], val_x, cy, 350, 8.5)
     
-    cy+=14
+    cy+=16
     p.band(None, 'HISTÓRICO ESCOLAR', cy, 14)
 
 def gerar_pdf(dados, rascunho=False):
@@ -393,7 +394,7 @@ def gerar_pdf(dados, rascunho=False):
     # ========================== FRENTE ==========================
     _header(p,e)
     
-    y = 122
+    y = 126
     
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     p.box(LEFT, y, 20, 14, None, LINE)

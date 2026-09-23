@@ -462,7 +462,7 @@ def gerar_pdf(dados, rascunho=False):
     y += 14
     p.box(LEFT, y, WIDTH, 35, PAPER, LINE)
     p.text('CURRÍCULO', LEFT+2, y+3, 280, 8.5, True)
-    legal=('Lei Federal nº 9.394/1996, art. 26; Deliberação CME nº 02/2016; ')
+    legal=('Lei Federal nº 9.394/1996')
     p.fit_lines(legal, LEFT+2, y+14, 290, 21, 4.5, 5) 
     
     p.rule(LEFT+300, y, LEFT+300, y+35)

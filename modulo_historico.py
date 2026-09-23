@@ -459,7 +459,7 @@ def gerar_pdf(dados, rascunho=False):
     y += 14
     p.box(LEFT, y, WIDTH, 35, PAPER, LINE)
     p.text('CURRÍCULO', LEFT+2, y+3, 280, 8.5, True)
-    legal=('Lei Federal nº 9.394/1996, art. 26; Deliberação CME nº 02/2016; Resolução SME nº 11/2016; Resolução CNE/CP nº 02/2017; Resolução SME nº 06/2020; Resolução CNE/CEB nº 01/2022; Lei nº 14.640/2023; Resolução CNE/CEB nº 02/2025; Resolução CNE/CEB nº 07/2025; Decreto Municipal nº 405/2022; Resolução SME nº 03/2026')
+    legal=('')
     p.fit_lines(legal, LEFT+2, y+14, 290, 21, 4.5, 5) 
     
     p.rule(LEFT+300, y, LEFT+300, y+35)

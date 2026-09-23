@@ -1,28 +1,14 @@
 """Módulo de histórico escolar para integração em aplicação Streamlit.
 
-Versão revisada: adequação estrita do layout vetorial (frente e verso) 
-ao padrão de formulário monocromático/tabular da Prefeitura. Células de
-Currículo e AEE mescladas verticalmente, textos legais justificados,
-fontes de dados de nascimento igualadas, logotipo aumentado, valores do
-cabeçalho perfeitamente alinhados verticalmente numa coluna guia,
-padronização de tamanhos e alinhamentos no bloco 8 (Transferência),
-reordenação das disciplinas da base comum, correção do visualizador inline 
-de PDF via Base64 e novo sistema de observações em formato de Checkbox.
+Versão revisada: Arquitetura de Painel (Dashboard). Adição de roteamento
+para Auditoria de Notas, Emissão em Lote (via ZIP), Consulta e Edição Individual.
+O layout do PDF vetorial está travado e finalizado.
 
-Uso no aplicativo principal:
-    from modulo_historico import renderizar_modulo
-    renderizar_modulo()
-
-Arquivo autônomo: não requer pasta de assets, XLS, fontes ou outros módulos locais.
-O formulário PDF é desenhado vetorialmente pelo próprio Python. Para o brasão da
-Prefeitura, o módulo procura o arquivo existente `logo_prefeitura.png` ao lado do
-próprio módulo ou na pasta de execução da aplicação.
-Use HISTORICO_DB_PATH ou renderizar_modulo(banco_path=...) para definir o SQLite.
-Em hospedagens com disco efêmero, exporte JSON/PDF; o SQLite não substitui um
-banco persistente. Não há conexão automática com Supabase ou cadastro externo.
+Dependências adicionais para o lote: módulo nativo 'zipfile'.
 """
 import os
 import tempfile
+import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 from copy import deepcopy
@@ -30,14 +16,35 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 import re
 import base64
+import json
+import sqlite3
+import uuid
+from datetime import datetime, timezone
+from contextlib import contextmanager
 
-# Disciplinas reordenadas conforme solicitado
+import pandas as pd
+import streamlit as st
+from io import BytesIO
+from xml.sax.saxutils import escape
+
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import Paragraph
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT
+from reportlab.lib.utils import ImageReader, simpleSplit
+from reportlab.lib.colors import HexColor
+from reportlab.pdfbase.ttfonts import TTFont
+
+# ==============================================================================
+# 1. CONSTANTES E REGRAS DE NEGÓCIO
+# ==============================================================================
 BASE = ['LÍNGUA PORTUGUESA', 'MATEMÁTICA', 'CIÊNCIAS', 'HISTÓRIA', 'GEOGRAFIA', 'ARTE', 'ED. FÍSICA']
 DIV = ['EIXO INTELECTUAL', 'EIXO ESPORTIVO', 'EIXO CULTURAL', 'LINGUAGENS E TECNOLOGIAS', 'ACOMPANHAMENTO PEDAGÓGICO', 'PRÁTICAS EXPERIMENTAIS E DE TUTORIA DE ESTUDO', 'PRÁTICAS DE ESTUDO', 'LINGUAGENS', 'ESPORTE E EDUCAÇÃO DO MOVIMENTO']
 MODOS = ['Parcial', 'APC', 'Complementação extracurricular', 'Integral', 'Bilíngue parcial', 'Bilíngue integral', 'Outra rede / matriz documentada']
 SITUACOES = ['Não cursado', 'Concluído', 'Em curso']
 
-# Textos padronizados para o campo de Observações
 OPCOES_OBSERVACOES = {
     'Controle do Desempenho': 'O Controle do Desempenho no Sistema Municipal de Ensino de Limeira adota os seguintes conceitos: A (Avançado) - AD (Adequado) - B (Básico) – AB (Abaixo do Básico).',
     'Progressão Continuada': 'O Sistema Municipal de Ensino de Limeira adota o regime de Progressão Continuada, conforme disposto no § 2º do Artigo 32 da Lei Federal nº 9394/96 e no Parecer CME 4/99.',
@@ -53,7 +60,6 @@ OPCOES_OBSERVACOES = {
     'Reclassificação': '[ano civil / ano de escolaridade] - “Estudante reclassificado do ___º ano para o ___º ano, mediante avaliação de competência realizada nos termos do Regimento Comum das Escolas Municipais de Limeira/SP. Processo arquivado no prontuário do estudante”.'
 }
 
-# Dados institucionais padrão
 ESCOLA_PADRAO = {
     'nome': 'CEIEF "Rafael Affonso Leite"',
     'ato': 'Decreto nº 416 de 19 de outubro de 2011.',
@@ -80,7 +86,7 @@ def novo():
         'transferencia': {'ativa': False, 'serie': 1, 'turma': '', 'chamada': '', 'data': '',
             'dias': '', 'ausencias': '', 'compensadas': '', 'frequencia': '',
             'conceitos': {k: ['', '', ''] for k in BASE + DIV[3:]}},
-        'obs_padrao': {}, # Novo dicionário para armazenar o estado das observações padronizadas
+        'obs_padrao': {},
         'observacoes': '', 'certificar': False, 'serie_certificada': 5, 'ano_certificado': '',
         'data_emissao': date.today().isoformat(), 'conferido': False}
 
@@ -231,29 +237,18 @@ def exemplo():
     d.update(certificar=True,serie_certificada=1,ano_certificado='2026',data_emissao='2026-12-18',observacoes='DOCUMENTO DE DEMONSTRAÇÃO. Dados fictícios, sem validade escolar.\nCargas usadas apenas no teste: 1.120 H/A + 80 H/A = 1.200 H/A. Não representam a vida escolar de um estudante real.')
     return d
 
-"""PDF vetorial de duas páginas, sem XLS ou fontes externas. Usa logo_prefeitura.png se disponível."""
-from io import BytesIO
-from xml.sax.saxutils import escape
-from reportlab.pdfgen import canvas
-from reportlab.pdfbase import pdfmetrics
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import Paragraph
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT
-from reportlab.lib.utils import ImageReader, simpleSplit
-from reportlab.lib.colors import HexColor
-from reportlab.pdfbase.ttfonts import TTFont
-
+# ==============================================================================
+# 2. GERAÇÃO VETORIAL DO PDF
+# ==============================================================================
 _LOGO_ARQUIVO = 'logo_prefeitura.png'
 def _caminho_logo_prefeitura():
     for p in (Path(__file__).resolve().with_name(_LOGO_ARQUIVO), Path.cwd() / _LOGO_ARQUIVO):
         if p.is_file(): return p
     return None
 
-# Cores monocromáticas para o layout oficial tabular
 INK = HexColor('#000000')
 BLUE = HexColor('#000000') 
-PALE = HexColor('#D9D9D9') # Fundo cinza das faixas
+PALE = HexColor('#D9D9D9')
 PAPER = HexColor('#FFFFFF')
 LINE = HexColor('#000000')
 MUTED = HexColor('#000000')
@@ -294,20 +289,11 @@ class Page:
         if align=='center': c.drawCentredString(x+w/2,baseline,value)
         elif align=='right': c.drawRightString(x+w-2,baseline,value)
         else: c.drawString(x+2,baseline,value)
-    
     def paragraph(self, text, x, y, w, h, size=7, leading=9, color=INK, justify=False):
-        style = ParagraphStyle(
-            name='ParaStyle', 
-            fontName=_REG, 
-            fontSize=size, 
-            leading=leading, 
-            alignment=TA_JUSTIFY if justify else TA_LEFT, 
-            textColor=color
-        )
+        style = ParagraphStyle(name='ParaStyle', fontName=_REG, fontSize=size, leading=leading, alignment=TA_JUSTIFY if justify else TA_LEFT, textColor=color)
         p = Paragraph(text, style)
         aw, ah = p.wrap(w - 6, h) 
         p.drawOn(self.c, x + 3, A4[1] - y - ah - 3) 
-        
     def fit_lines(self,value,x,y,w,h,size=7.1,leading=9,color=INK):
         rows=[]
         for paragraph in str(value or '').split('\n'):
@@ -369,7 +355,6 @@ def _header(p,e):
     logo=_caminho_logo_prefeitura()
     if logo:
         try:
-            # Logotipo aumentado
             c.drawImage(ImageReader(str(logo)),LEFT+5,A4[1]-95,85,85,preserveAspectRatio=True,anchor='c',mask='auto')
         except Exception: pass
     
@@ -377,7 +362,6 @@ def _header(p,e):
     val_x = ox + 80 
     lh = 11 
     cy = 15
-    
     label_color = HexColor('#444444')
     
     p.text('SECRETARIA MUNICIPAL DE EDUCAÇÃO DE LIMEIRA/SP', ox, cy, WIDTH-90, 9.5, True)
@@ -413,11 +397,9 @@ def gerar_pdf(dados, rascunho=False):
             if rascunho:return ''
             raise
 
-    # ========================== FRENTE ==========================
+    # FRENTE
     _header(p,e)
-    
     y = 126
-    
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     p.box(LEFT, y, 20, 14, None, LINE)
     p.text('1.', LEFT, y+3, 20, 8.5, True, 'center') 
@@ -436,20 +418,16 @@ def gerar_pdf(dados, rascunho=False):
     y += 14
     p.box(LEFT, y, WIDTH, 24, PAPER, LINE) 
     p.text('NASCIMENTO:', LEFT+2, y+8, 90, 8, True)
-    
     col_w = (WIDTH - 90 - 75) / 3 
     c1 = LEFT + 90
     p.box(c1, y, col_w, 12, None, LINE); p.text('LOCALIDADE', c1, y+2, col_w, 8, True, 'center')
     p.box(c1, y+12, col_w, 12, None, LINE); p.text(a['localidade'], c1, y+14, col_w, 8, align='center')
-    
     c2 = c1 + col_w
     p.box(c2, y, col_w, 12, None, LINE); p.text('ESTADO', c2, y+2, col_w, 8, True, 'center')
     p.box(c2, y+12, col_w, 12, None, LINE); p.text(a['uf'], c2, y+14, col_w, 8, align='center')
-    
     c3 = c2 + col_w
     p.box(c3, y, col_w, 12, None, LINE); p.text('NACIONALIDADE', c3, y+2, col_w, 8, True, 'center')
     p.box(c3, y+12, col_w, 12, None, LINE); p.text(a['nacionalidade'], c3, y+14, col_w, 8, align='center')
-    
     c_date = c3 + col_w
     d_day, d_month, d_year = _date_parts(a['nascimento'])
     p.box(c_date, y, 25, 12, None, LINE); p.text('DIA', c_date, y+2, 25, 8, True, 'center')
@@ -484,10 +462,8 @@ def gerar_pdf(dados, rascunho=False):
     p.text('ESTRANGEIRO - DOCUMENTO:', LEFT+2, y+3, 160, 8, True); p.text(a['documento_estrangeiro'], LEFT+165, y+3, 300, 8.5)
     
     y += 24
-    
     p.band('2', 'RESULTADO DOS ESTUDOS REALIZADOS NO ENSINO FUNDAMENTAL', y, 14)
     y += 14
-    
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     p.box(LEFT, y, 20, 14, None, LINE); p.text('2.1', LEFT, y+3, 20, 8.5, True, 'center')
     p.text('CURRÍCULO', LEFT+24, y+3, 270, 8.5, True) 
@@ -495,30 +471,23 @@ def gerar_pdf(dados, rascunho=False):
     p.text('ESCOLARIDADE', LEFT+320, y+3, WIDTH-320, 8.5, True, 'center')
     
     y += 14
-    
     p.box(LEFT, y, 300, 49, PALE, LINE)
     p.box(LEFT+300, y, WIDTH-300, 35, PAPER, LINE) 
-    
     legal = ('Lei Federal nº 9.394/1996, art. 26; Deliberação CME nº 02/2016; Resolução SME nº 11/2016; Resolução CNE/CP '
              'nº 02/2017; Resolução SME nº 06/2020; Resolução CNE/CEB nº 01/2022; Lei nº 14.640/2023; Resolução '
              'CNE/CEB nº 02/2025; Resolução CNE/CEB nº 07/2025; Decreto Municipal nº 405/2022; Resolução SME nº 03/2026')
     p.paragraph(legal, LEFT, y, 300, 49, size=5.5, leading=7, justify=True)
-    
     p.text('Anos Iniciais', LEFT+300, y+15, WIDTH-300, 9, True, 'center')
-    
     cols=[LEFT+300+i*(WIDTH-300)/5 for i in range(6)]
     for j in range(5):
         p.box(cols[j], y+35, cols[j+1]-cols[j], 14, PALE, LINE)
         p.text(f'{j+1}º Ano', cols[j], y+35+3, cols[j+1]-cols[j], 8.5, True, 'center')
         
     y += 49
-    
     y = p.matrix(y, BASE, [x['conceitos'] if x['situacao']=='Concluído' else {} for x in anos], heading=False, row_h=12, col0=300)
-    
     p.load_row(y, 'CARGA HORÁRIA', [v(x, lambda z: carga(z,'base')) for x in anos], h=14, col0=300, num='2.3', align_title='left')
     
     y += 24 
-    
     p.band('3', 'PARTE DIVERSIFICADA', y, 14)
     y += 14
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
@@ -528,33 +497,27 @@ def gerar_pdf(dados, rascunho=False):
     
     y += 14
     y = p.matrix(y, DIV, [x['participacao'] if x['situacao']=='Concluído' else {} for x in anos], heading=False, row_h=12, col0=300)
-    
     p.load_row(y, 'CARGA HORÁRIA', [v(x, lambda z: carga(z,'div')) for x in anos], h=14, col0=300, num='3.1')
     
     y += 24 
-    
     p.band('4', 'ENSINO RELIGIOSO (art. 33-LDB e Deliberação CME nº 02/2016)', y, 14)
     y += 14
     p.load_row(y, 'CARGA HORÁRIA', [v(x, lambda z: z['ch_religioso']) for x in anos], h=14, col0=300)
     
     y += 24 
-    
     p.box(LEFT, y, WIDTH, 24, PALE, LINE)
     p.box(LEFT, y, 20, 24, None, LINE); p.text('5', LEFT, y+8, 20, 8.5, True, 'center')
     p.text('EDUCAÇÃO ESPECIAL - ATENDIMENTO EDUCACIONAL ESPECIALIZADO', LEFT+24, y+4, WIDTH-24, 8.5, True)
     p.text('Decreto Nº 12.686/2025- Indicação Cme Nº02/2023 -Decreto Municipal Nº 23/2026', LEFT+24, y+14, WIDTH-24, 6, True)
     
     y += 24
-    
     p.box(LEFT, y, 300, 30, PAPER, LINE)
     p.paragraph('Indicar a sigla AEE (Atendimento Educacional Especializado) para o estudante que frequentou esse tipo de atendimento no respectivo ano.', LEFT, y, 300, 30, size=6.5, leading=8.5, justify=False)
-    
     for j in range(5):
         p.box(cols[j], y, cols[j+1]-cols[j], 16, PALE, LINE)
         p.text(f'{j+1}º ano', cols[j], y+4, cols[j+1]-cols[j], 8.5, True, 'center')
     
     y += 16
-    
     cw_aee = (WIDTH - 300) / 5
     aee_values = [v(x, lambda z: 'AEE' if z['aee'] else '-') for x in anos]
     for j, val in enumerate(aee_values):
@@ -563,9 +526,7 @@ def gerar_pdf(dados, rascunho=False):
         p.text(val, x_pos, y+3, cw_aee, 8, True, 'center')
         
     y += 14
-    
     y += 14 
-    
     p.box(LEFT, y, WIDTH, 14, PAPER, LINE) 
     p.box(LEFT, y, 300, 14, PALE, LINE) 
     p.box(LEFT, y, 20, 14, None, LINE)  
@@ -579,18 +540,13 @@ def gerar_pdf(dados, rascunho=False):
         p.text(tot_values[j] if j < len(tot_values) else '', cols[j], y+3, cols[j+1]-cols[j], 8, True, 'center')
         
     y += 14
-    
     y += 24 
-    
     p.band('7', 'ESTUDOS REALIZADOS', y, 14)
     y += 14
-    
     cw=[45, 60, 215, 115, 89]; labels=['ANO', 'CICLO/ANO', 'ESTABELECIMENTO', 'MUNICÍPIO', 'ESTADO']
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
-    
     for i in range(5):
         p.box(LEFT, y+14+i*14, WIDTH, 14, PAPER, LINE)
-        
     off=0
     for w, label in zip(cw, labels):
         p.text(label, LEFT+off, y+3, w, 8, True, 'center')
@@ -610,7 +566,7 @@ def gerar_pdf(dados, rascunho=False):
     y += 14 + 5*14
     p.footer(1); _mark(c, dados, rascunho); c.showPage()
 
-    # ========================== VERSO ==========================
+    # VERSO
     y = 35
     p.band('8','TRANSFERÊNCIA DURANTE O ANO LETIVO',y)
     tr=dados['transferencia'];on=tr['ativa']
@@ -626,7 +582,6 @@ def gerar_pdf(dados, rascunho=False):
                 ('TURMA', tr['turma'] if on else ''), 
                 ('Nº DE CHAMADA', tr['chamada'] if on else ''), 
                 ('DATA', _date(tr['data']) if on else '')]
-    
     off = 0
     for w, (label, val) in zip(cw81, labels81):
         p.text(f"{label}:", LEFT+off+2, y+3, 60, 8, True)
@@ -659,8 +614,6 @@ def gerar_pdf(dados, rascunho=False):
     
     y += 14
     labw = WIDTH - 3*83
-    
-    # 8.2 Base Comum Curricular - Alinhamento padronizado
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     p.text('BASE COMUM CURRICULAR', LEFT+2, y+3, labw-4, 8.5, True)
     for i in range(3):
@@ -675,14 +628,11 @@ def gerar_pdf(dados, rascunho=False):
         p.text(k, LEFT+2, y+j*14+3, labw-4, 8)
         for i in range(3):
             p.text(t_base[i].get(k, ''), LEFT+labw+i*83, y+j*14+3, 83, 8, True, 'center')
-    
     for i in range(3):
         x = LEFT + labw + i*83
         p.rule(x, y, x, y + len(BASE)*14)
-        
     y += len(BASE)*14
     
-    # 8.2 Parte Diversificada - Alinhada à esquerda, sem repetição de cabeçalho
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     p.text('PARTE DIVERSIFICADA', LEFT+2, y+3, WIDTH-4, 8.5, True)
     y += 14
@@ -694,22 +644,18 @@ def gerar_pdf(dados, rascunho=False):
         p.text(k, LEFT+2, y+j*14+3, labw-4, 8)
         for i in range(3):
             p.text(t_div[i].get(k, ''), LEFT+labw+i*83, y+j*14+3, 83, 8, True, 'center')
-            
     for i in range(3):
         x = LEFT + labw + i*83
         p.rule(x, y, x, y + len(keys_div)*14)
-        
     y += len(keys_div)*14
     
     y += 14 
     p.band('9', 'OBSERVAÇÕES', y, 14)
     y += 14
     height = 150
+    # Caixa principal externa sem pautas horizontais
     p.box(LEFT, y, WIDTH, height, PAPER, LINE)
-    for j in range(1, 15):
-        p.rule(LEFT, y+j*10, RIGHT, y+j*10, PALE, 0.5)
-        
-    # Agrupa observações marcadas e observações de texto livre para o PDF
+    
     obs_list = []
     for titulo, obj in dados.get('obs_padrao', {}).items():
         if obj.get('ativa') and obj.get('texto'):
@@ -717,23 +663,25 @@ def gerar_pdf(dados, rascunho=False):
     if dados.get('observacoes', '').strip():
         obs_list.append(dados['observacoes'].strip())
     texto_final_obs = "\n\n".join(obs_list)
-        
     p.fit_lines(texto_final_obs, LEFT+5, y+2, WIDTH-10, height-4, 8, 10)
     
     y += height + 14 
     p.band('10', 'CERTIFICADO', y, 14)
     y += 14
     p.box(LEFT, y, WIDTH, 56, PAPER, LINE)
-    p.text('O diretor da', LEFT+5, y+8, 91, 8.5)
+    
+    # Certificado Atualizado
+    p.text('O diretor da', LEFT+5, y+8, 65, 8.5)
     p.text(e['nome'] if dados['certificar'] else '', LEFT+70, y+8, WIDTH-75, 9, True)
     p.rule(LEFT+68, y+18, RIGHT-5, y+18, LINE, 0.5)
     
-    p.text('de acordo com o art. 24, inciso VII, da Lei Federal nº 9.394/1996, certifica que', LEFT+5, y+22, WIDTH-10, 8.5)
+    p.text('de acordo com o art. 24, inciso VII, da Lei Federal nº 9.394/96, certifica que', LEFT+5, y+22, WIDTH-10, 8.5)
+    
     p.text(a['nome'] if dados['certificar'] else '', LEFT+5, y+34, WIDTH-10, 9, True)
     p.rule(LEFT+5, y+44, RIGHT-5, y+44, LINE, 0.5)
     
-    cert = (f"R.M. {a['ra']}  ·  concluiu o {dados['serie_certificada']}º ano do Ensino Fundamental em {dados['ano_certificado']}." if dados['certificar'] else 'R.M.:                                                               Conclusão:                                                                                 Ano letivo:')
-    p.text(cert, LEFT+5, y+46, WIDTH-10, 8.5)
+    cert = (f"R.A. {a['ra']}  concluiu o {dados['serie_certificada']}º ano do Ensino Fundamental, no ano letivo de {dados['ano_certificado']}." if dados['certificar'] else 'R.A. _________________________ concluiu o ______ do Ensino Fundamental, no ano letivo de _____.')
+    p.text(cert, LEFT+5, y+48, WIDTH-10, 8.5)
     
     y += 66 + 10 
     p.band('11', 'ASSINATURAS', y, 14)
@@ -743,25 +691,17 @@ def gerar_pdf(dados, rascunho=False):
     
     p.rule(LEFT+40, y+50, LEFT+240, y+50, INK, 0.8)
     p.rule(LEFT+280, y+50, RIGHT-40, y+50, INK, 0.8)
-    
     p.text(e['secretario'], LEFT+40, y+53, 200, 7.5, True, 'center')
     p.text(e['diretor'], LEFT+280, y+53, WIDTH-320, 7.5, True, 'center')
-    
     p.text('SECRETÁRIO(A) DE ESCOLA', LEFT+40, y+62, 200, 7, align='center')
     p.text('DIRETOR(A) DE ESCOLA', LEFT+280, y+62, WIDTH-320, 7, align='center')
     
     p.footer(2); _mark(c, dados, rascunho)
     c.save(); buf.seek(0); return buf
 
-
-"""Persistência local e arquivo imutável de cada emissão, separado da edição."""
-import hashlib
-import json
-import sqlite3
-import uuid
-from datetime import datetime, timezone
-from contextlib import contextmanager
-
+# ==============================================================================
+# 3. BANCO DE DADOS E PERSISTÊNCIA
+# ==============================================================================
 @contextmanager
 def _repo_conectar(caminho):
     db=sqlite3.connect(caminho)
@@ -800,16 +740,19 @@ def _repo_arquivar(caminho,registro_id,dados,pdf):
 def _repo_emissoes(caminho,ident):
     with _repo_conectar(caminho) as db:return db.execute('SELECT id,emitido,sha256,pdf FROM _repo_emissoes WHERE registro_id=? ORDER BY emitido DESC',(ident,)).fetchall()
 
-repo=SimpleNamespace(conectar=_repo_conectar,salvar=_repo_salvar,listar=_repo_listar,carregar=_repo_carregar,arquivar=_repo_arquivar,emissoes=_repo_emissoes)
+def _repo_obter_todos(caminho):
+    with _repo_conectar(caminho) as db:
+        rows = db.execute('SELECT id, ra, nome, dados, atualizado FROM registros').fetchall()
+    return rows
 
-"""Execute: streamlit run app.py (uso local, um operador)."""
-import pandas as pd
-import streamlit as st
+repo=SimpleNamespace(conectar=_repo_conectar,salvar=_repo_salvar,listar=_repo_listar,carregar=_repo_carregar,arquivar=_repo_arquivar,emissoes=_repo_emissoes,obter_todos=_repo_obter_todos)
 
+# ==============================================================================
+# 4. INTERFACE STREAMLIT E PAINEL (DASHBOARD)
+# ==============================================================================
 DB=Path(os.environ.get('HISTORICO_DB_PATH', str(Path(tempfile.gettempdir())/'historicos_escolares.sqlite3')))
 
 class _EstadoHistorico:
-    """Isola o estado do módulo e preserva login/menu do aplicativo principal."""
     prefixo = 'modulo_historico__'
     def __contains__(self, key): return self.prefixo+key in st.session_state
     def __getattr__(self, key): return st.session_state[self.prefixo+key]
@@ -856,7 +799,7 @@ def importar(raw):
         if isinstance(ref,dict):
             if not isinstance(valor,dict):raise ValueError('Campos incompatíveis em '+path)
             for k in ref:
-                if k not in valor: valor[k] = deepcopy(ref[k]) # Mantém compatibilidade com registros antigos
+                if k not in valor: valor[k] = deepcopy(ref[k])
                 estrutura(ref[k],valor[k],path+'/'+k)
         elif isinstance(ref,list):
             if not isinstance(valor,list) or len(ref)!=len(valor):raise ValueError('Quantidade de itens inválida em '+path)
@@ -871,31 +814,118 @@ def trocar(d,ident=None):
     estado_historico.dados=d;estado_historico.ident=ident
     st.rerun()
 
-def renderizar_modulo(banco_path=None):
-    """Renderiza o módulo; banco_path opcional aponta para SQLite persistente."""
-    global DB
-    if banco_path is not None: DB=Path(banco_path)
-    DB.parent.mkdir(parents=True,exist_ok=True)
-    if 'dados' not in estado_historico:estado_historico.dados=novo()
-    d=estado_historico.dados
-    st.title('Emissão de histórico escolar')
+# ----------------- TELAS DO SISTEMA -----------------
+
+def renderizar_auditoria():
+    st.title("📊 Painel de Auditoria e Progresso")
+    st.markdown("Verifique o status de preenchimento dos históricos escolares cadastrados no banco de dados.")
+    
+    registros = repo.obter_todos(DB)
+    if not registros:
+        st.info("Nenhum histórico salvo ainda. Crie um novo registro no menu lateral.")
+        return
+
+    dados_tabela = []
+    for reg in registros:
+        ident, ra, nome, json_str, atualizado = reg
+        dados_aluno = json.loads(json_str)
+        
+        erros, avisos = validar(dados_aluno, exigir_conferencia=True)
+        if not erros:
+            status = "✅ Completo / Pronto"
+        else:
+            status = f"⚠️ Pendente ({len(erros)} erros)"
+            
+        dados_tabela.append({
+            "RA": ra,
+            "Nome do Estudante": nome,
+            "Status": status,
+            "Última Atualização": atualizado[:10]
+        })
+        
+    df = pd.DataFrame(dados_tabela)
+    st.dataframe(df, use_container_width=True, hide_index=True)
+
+def renderizar_lote():
+    st.title("📚 Emissão em Lote")
+    st.markdown("Selecione os estudantes prontos para gerar um arquivo ZIP contendo todos os PDFs de uma vez.")
+    
+    registros = repo.obter_todos(DB)
+    prontos = []
+    
+    for reg in registros:
+        ident, ra, nome, json_str, atualizado = reg
+        dados_aluno = json.loads(json_str)
+        erros, _ = validar(dados_aluno, exigir_conferencia=True)
+        if not erros:
+            prontos.append((ident, ra, nome, dados_aluno))
+            
+    if not prontos:
+        st.warning("Nenhum estudante está com o status 'Pronto' para emissão. Preencha todos os dados e marque a conferência na aba de Edição.")
+        return
+        
+    st.success(f"{len(prontos)} histórico(s) pronto(s) para emissão em lote.")
+    
+    if st.button("Gerar ZIP com Históricos", type="primary", use_container_width=True):
+        with st.spinner("Gerando PDFs..."):
+            zip_buffer = BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                for ident, ra, nome, dados_aluno in prontos:
+                    try:
+                        pdf_bytes = gerar_pdf(dados_aluno).getvalue()
+                        nome_arquivo = f"Historico_{ra}_{re.sub(r'[^A-Za-z0-9]', '', nome)}.pdf"
+                        zip_file.writestr(nome_arquivo, pdf_bytes)
+                        # Salva cópia na tabela de emissões do banco também
+                        repo.arquivar(DB, ident, dados_aluno, pdf_bytes)
+                    except Exception as e:
+                        st.error(f"Erro ao gerar PDF de {nome}: {e}")
+                        
+            st.download_button(
+                label="📦 Baixar Arquivo ZIP",
+                data=zip_buffer.getvalue(),
+                file_name=f"Lote_Historicos_{date.today().isoformat()}.zip",
+                mime="application/zip"
+            )
+
+def renderizar_consulta():
+    st.title("🔍 Consultar Registros")
+    st.markdown("Busque e selecione um estudante para visualizar o histórico de emissões ou enviá-lo para a tela de edição.")
+    
+    registros = repo.listar(DB)
+    if not registros:
+        st.info("Nenhum histórico encontrado.")
+        return
+        
+    pesquisa = st.text_input("Buscar por Nome ou RA", placeholder="Digite para filtrar...")
+    
+    filtrados = [x for x in registros if pesquisa.lower() in x[1].lower() or pesquisa.lower() in x[2].lower()]
+    
+    if filtrados:
+        for ident, ra, nome, atualizado in filtrados:
+            with st.expander(f"RA: {ra} | {nome}"):
+                st.caption(f"Última atualização: {atualizado}")
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("Editar este estudante", key=f"edit_{ident}", use_container_width=True):
+                        trocar(repo.carregar(DB, ident), ident)
+                with c2:
+                    emissoes = repo.emissoes(DB, ident)
+                    if emissoes:
+                        st.write("Emissões arquivadas:")
+                        for eid, dt, digest, pdf in emissoes:
+                            st.download_button(f"📄 Baixar ({dt[:10]})", pdf, file_name=f"Historico_{ra}.pdf", key=f"dl_{eid}")
+                    else:
+                        st.caption("Nenhuma emissão PDF salva para este estudante.")
+    else:
+        st.warning("Nenhum registro corresponde à sua busca.")
+
+def renderizar_edicao(d):
+    st.title('Emissão de Histórico Individual')
     st.caption('Ensino Fundamental • Anos iniciais • Modelo municipal 2026')
-    with st.sidebar:
-        st.header('Registros locais')
-        if st.button('Novo estudante',width='stretch'):trocar(novo())
-        registros=repo.listar(DB)
-        selecao=st.selectbox('Estudantes salvos',[None]+[x[0] for x in registros],format_func=lambda v:'Selecione' if v is None else next(x[2]+' · RA '+x[1] for x in registros if x[0]==v))
-        if st.button('Abrir registro',disabled=selecao is None,width='stretch'):trocar(repo.carregar(DB,selecao),selecao)
-        with st.expander('Importar / testar'):
-            arquivo=st.file_uploader('Registro JSON',type=['json'])
-            if st.button('Importar registro',disabled=arquivo is None):
-                try:novo_d=importar(arquivo.getvalue())
-                except (ValueError,TypeError,KeyError) as exc:st.error(str(exc))
-                else:trocar(novo_d)
-            if st.button('Carregar exemplo fictício'):trocar(exemplo())
-        st.caption('Registros salvos no disco da instância que executa o sistema. Em hospedagem, esse disco pode ser temporário. Exporte JSON/PDF ou configure armazenamento persistente.')
-    if d['demonstracao']:st.warning('Demonstração: todos os PDFs deste registro terão a marca SEM VALIDADE. Crie um novo estudante para uso real.')
-    tabs=st.tabs(['1 · Escola e estudante','2 · Vida escolar','3 · Transferência','4 · Fechamento','5 · Conferir e emitir'])
+    
+    if d.get('demonstracao'): st.warning('Demonstração: todos os PDFs deste registro terão a marca SEM VALIDADE. Crie um novo estudante para uso real.')
+    
+    tabs=st.tabs(['1 · Escola e estudante','2 · Vida escolar','3 · Transferência','4 · Observações e Fechamento','5 · Conferir e emitir'])
     with tabs[0]:
         with st.expander('Identificação da escola e responsáveis',expanded=True):
             labels={'nome':'Nome da escola','ato':'Ato de criação','endereco':'Endereço','bairro':'Bairro','municipio':'Município','cep':'CEP','telefone':'Telefone','email':'E-mail','secretario':'Secretário(a) de escola','diretor':'Diretor(a) de escola'}
@@ -907,6 +937,7 @@ def renderizar_modulo(banco_path=None):
         cs=st.columns(2)
         for i,(k,label) in enumerate(labels.items()):
             with cs[i%2]:texto(d['aluno'],k,label,id='aluno_'+k)
+            
     with tabs[1]:
         st.info('Cada coluna corresponde ao ano de escolaridade. O ano letivo determina a matriz de referência. Transcreva resultados e cargas dos registros escolares; o sistema não atribui conceitos nem participação automaticamente.')
         for ano in d['anos']:
@@ -948,6 +979,7 @@ def renderizar_modulo(banco_path=None):
                     if ano['relatorio_fc']:st.caption('Anexe o relatório à documentação entregue. O sistema não gera nem incorpora esse relatório automaticamente.')
                     ano['justificativa_matriz']=st.text_area('Orientação documentada para divergência de matriz (quando houver)',value=ano['justificativa_matriz'],key=prefix+'justificativa')
                 elif ano['situacao']=='Em curso':st.caption('Preencha os resultados trimestrais na aba Transferência; não lance resultados anuais ainda.')
+                
     with tabs[2]:
         tr=d['transferencia'];tr['ativa']=st.checkbox('Emitir transferência durante o ano letivo',value=tr['ativa'])
         if tr['ativa']:
@@ -957,24 +989,19 @@ def renderizar_modulo(banco_path=None):
                 with cs[i%3]:texto(tr,k,label,id='tr_'+k)
             st.caption('A frequência deve ser transcrita do registro escolar. Dias letivos e ausências podem ter unidades diferentes, portanto não se presume uma fórmula.')
             tabela(tr,'conceitos',BASE+DIV[3:],['1º trimestre','2º trimestre','3º trimestre'],'tr_notas')
+            
     with tabs[3]:
         st.subheader('Observações Padronizadas')
-        st.caption('Marque as opções desejadas. Se houver espaços como "xx", "___" ou "[ano civil]", edite o texto na caixa que aparecerá abaixo após marcar a opção.')
+        st.caption('Marque as opções desejadas. Se houver espaços como "xx", "___" ou "[ano civil]", edite o texto na caixa correspondente.')
         
-        if 'obs_padrao' not in d: 
-            d['obs_padrao'] = {}
-        
+        if 'obs_padrao' not in d: d['obs_padrao'] = {}
         for titulo, texto_base in OPCOES_OBSERVACOES.items():
-            # Mostra o checkbox de cada observação
             ativo = st.checkbox(titulo, value=d['obs_padrao'].get(titulo, {}).get('ativa', False))
-            
             if ativo:
-                # Se selecionada, cria uma text area com o texto base para preenchimento de lacunas
                 texto_atual = d['obs_padrao'].get(titulo, {}).get('texto', texto_base)
                 novo_texto = st.text_area(f'Editar: {titulo}', value=texto_atual, height=68, label_visibility='collapsed')
                 d['obs_padrao'][titulo] = {'ativa': True, 'texto': novo_texto}
             else:
-                # Se não selecionada, guarda desativado
                 d['obs_padrao'][titulo] = {'ativa': False, 'texto': texto_base}
 
         st.divider()
@@ -982,13 +1009,13 @@ def renderizar_modulo(banco_path=None):
         d['observacoes'] = st.text_area('Digite aqui qualquer outra observação que precise constar e não esteja na lista acima.', value=d.get('observacoes', ''), height=100)
         
         st.divider()
-
         d['certificar']=st.checkbox('Preencher certificado de conclusão do ano',value=d['certificar'])
         if d['certificar']:
             d['serie_certificada']=st.selectbox('Ano concluído a certificar',[1,2,3,4,5],index=d['serie_certificada']-1,format_func=lambda x:f'{x}º ano')
             texto(d,'ano_certificado','Ano letivo da conclusão')
             st.caption('O texto certifica o ano de escolaridade indicado; não declara conclusão de todo o Ensino Fundamental ao concluir o 5º ano.')
         texto(d,'data_emissao','Data da emissão (AAAA-MM-DD)')
+        
     with tabs[4]:
         erros,avisos=validar(d,exigir_conferencia=False)
         for aviso in avisos:st.warning(aviso)
@@ -996,10 +1023,12 @@ def renderizar_modulo(banco_path=None):
             st.error(f'{len(erros)} pendência(s) para emissão')
             for erro in erros:st.write('• '+erro)
         else:st.success('Campos obrigatórios e consistência dos registros conferidos pelo sistema.')
+        
         conteudo={k:v for k,v in d.items() if k!='conferido'}
         chave_conferencia='confirmacao_'+hashlib.sha256(json.dumps(conteudo,sort_keys=True).encode()).hexdigest()
         d['conferido']=st.checkbox('Conferi os dados com os documentos escolares e a matriz aplicável. Os responsáveis assinarão o histórico.',value=False,key=chave_conferencia)
         assinatura=hashlib.sha256(json.dumps(d,sort_keys=True).encode()).hexdigest()
+        
         cs=st.columns(3)
         with cs[0]:
             if st.button('Salvar registro',width='stretch'):
@@ -1019,27 +1048,59 @@ def renderizar_modulo(banco_path=None):
                     repo.arquivar(DB,ident,d,pdf)
                     estado_historico.pdf=(assinatura,pdf,'Historico');st.success('PDF emitido e cópia arquivada nesta instância.')
                 except (ValueError,sqlite3.IntegrityError) as exc:st.error(str(exc))
+                
         st.download_button('Exportar registro editável (JSON)',json.dumps(d,ensure_ascii=False,indent=2),file_name='registro_historico.json',mime='application/json')
         result=estado_historico.get('pdf')
         if result and result[0]==assinatura:
             _,pdf,tipo=result;ra=re.sub(r'[^\w-]','',d['aluno']['ra'])[:40] or 'rascunho'
             st.download_button('Baixar PDF',pdf,file_name=f'{tipo}_{ra}.pdf',mime='application/pdf',type='primary')
             
-            # Novo visualizador inline seguro usando base64
             try:
                 base64_pdf = base64.b64encode(pdf).decode('utf-8')
                 pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="820" type="application/pdf"></iframe>'
                 st.markdown(pdf_display, unsafe_allow_html=True)
             except Exception as e:
                 st.caption(f'Não foi possível carregar a visualização inline: {e}')
-                
-        elif result:st.info('Os dados mudaram. Gere uma nova prévia ou emissão.')
-        if estado_historico.get('ident'):
-            with st.expander('Emissões anteriores deste registro'):
-                for ident,dt,digest,pdf in repo.emissoes(DB,estado_historico.ident):
-                    st.download_button(dt+' · baixar cópia',pdf,file_name='Historico_'+ident+'.pdf',mime='application/pdf',key=ident)
-                    st.caption('SHA-256: '+digest)
+        elif result:
+            st.info('Os dados mudaram. Gere uma nova prévia ou emissão.')
+
+def renderizar_modulo(banco_path=None):
+    """Função Principal: Define Banco, Roteamento do Menu e Renderiza Tela."""
+    global DB
+    if banco_path is not None: DB=Path(banco_path)
+    DB.parent.mkdir(parents=True,exist_ok=True)
+    if 'dados' not in estado_historico:estado_historico.dados=novo()
+    
+    st.sidebar.title("SGE Integra • Históricos")
+    menu = st.sidebar.radio("Navegação do Sistema", ["📝 Edição Individual", "📊 Auditoria e Progresso", "📚 Emissão em Lote", "🔍 Consultar Registros"])
+    
+    st.sidebar.divider()
+    st.sidebar.header("Ações Rápidas")
+    if st.sidebar.button("Novo estudante", width='stretch'):
+        trocar(novo())
+        
+    with st.sidebar.expander('Importar Backup / Testar'):
+        arquivo=st.file_uploader('Registro JSON',type=['json'])
+        if st.button('Importar registro',disabled=arquivo is None):
+            try:
+                novo_d=importar(arquivo.getvalue())
+                trocar(novo_d)
+            except Exception as exc:
+                st.error(str(exc))
+        if st.button('Carregar exemplo fictício'):
+            trocar(exemplo())
+            
+    st.sidebar.caption("Armazenamento local configurado.")
+
+    if menu == "📊 Auditoria e Progresso":
+        renderizar_auditoria()
+    elif menu == "📚 Emissão em Lote":
+        renderizar_lote()
+    elif menu == "🔍 Consultar Registros":
+        renderizar_consulta()
+    else:
+        renderizar_edicao(estado_historico.dados)
 
 if __name__=='__main__':
-    st.set_page_config(page_title='Histórico Escolar | Limeira',page_icon='📄',layout='wide')
+    st.set_page_config(page_title='Histórico Escolar | Integra',page_icon='📄',layout='wide')
     renderizar_modulo()

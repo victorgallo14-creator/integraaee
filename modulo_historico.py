@@ -480,7 +480,7 @@ def gerar_pdf(dados, rascunho=False):
     legal = ('Lei Federal nº 9.394/1996, art. 26; Deliberação CME nº 02/2016; Resolução SME nº 11/2016; Resolução CNE/CP '
              'nº 02/2017; Resolução SME nº 06/2020; Resolução CNE/CEB nº 01/2022; Lei nº 14.640/2023; Resolução '
              'CNE/CEB nº 02/2025; Resolução CNE/CEB nº 07/2025; Decreto Municipal nº 405/2022; Resolução SME nº 03/2026')
-    p.paragraph(legal, LEFT, y, 300, 49, size=5.5, leading=7, justify=True)
+    p.paragraph(legal, LEFT, y, 300, 49, size=7, leading=8, justify=True)
     
     p.text('Anos Iniciais', LEFT+300, y+15, WIDTH-300, 9, True, 'center')
     
@@ -525,7 +525,7 @@ def gerar_pdf(dados, rascunho=False):
     y += 24
     
     p.box(LEFT, y, 300, 30, PAPER, LINE)
-    p.paragraph('Indicar a sigla AEE (Atendimento Educacional Especializado) para o estudante que frequentou esse tipo de atendimento no respectivo ano.', LEFT, y, 300, 30, size=6.5, leading=8.5, justify=False)
+    p.paragraph('Indicar a sigla AEE (Atendimento Educacional Especializado) para o estudante que frequentou esse tipo de atendimento no respectivo ano.', LEFT, y, 300, 30, size=7, leading=8.5, justify=False)
     
     for j in range(5):
         p.box(cols[j], y, cols[j+1]-cols[j], 16, PALE, LINE)
@@ -558,7 +558,7 @@ def gerar_pdf(dados, rascunho=False):
         
     y += 14
     
-    y += 24 
+    y += 14 
     
     p.band('7', 'ESTUDOS REALIZADOS', y, 14)
     y += 14

@@ -1,7 +1,7 @@
 """Módulo de histórico escolar para integração em aplicação Streamlit.
 
 Versão revisada: adequação estrita do layout vetorial (frente e verso) 
-ao padrão de formulário monocromático/tabular da Prefeitura com margens de texto corrigidas.
+ao padrão de formulário monocromático/tabular da Prefeitura, com cabeçalho limpo sem linhas.
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -272,7 +272,6 @@ class Page:
         rows=[]
         for paragraph in str(value or '').split('\n'):
             rows.extend(simpleSplit(paragraph,_REG,size,w-6) if paragraph else [''])
-        # A tolerância foi ajustada (+2) para evitar o erro strict height limitation
         if len(rows)*leading > h + 2:
             raise ValueError('Texto excede o espaço reservado no PDF: '+str(value)[:65])
         for i,line in enumerate(rows): self.text(line,x+2,y+2+i*leading,w-4,size,color=color,minsize=5.2)
@@ -333,42 +332,39 @@ def _header(p,e):
             c.drawImage(ImageReader(str(logo)),LEFT+5,A4[1]-75,70,60,preserveAspectRatio=True,anchor='c',mask='auto')
         except Exception: pass
     
-    # Textos do cabeçalho alinhados à direita do brasão
+    # Textos do cabeçalho alinhados à direita do brasão, layout limpo sem linhas
     ox = LEFT + 90
-    lh = 10 # line height
-    cy = 20
+    lh = 11 # line height com maior respiro
+    cy = 15
     
-    p.text('ESCOLA:', ox, cy, 60, 7.5, True); p.text(e['nome'], ox+60, cy, 330, 8.5, True)
-    p.rule(ox+60, cy+9, RIGHT, cy+9, LINE, 0.5)
+    # Hierarquia tipográfica com cor ligeiramente suavizada para os rótulos
+    label_color = HexColor('#444444')
     
-    cy+=lh
-    p.text('ATO DE CRIAÇÃO:', ox, cy, 80, 7.5, True); p.text(e['ato'], ox+80, cy, 310, 8.5)
-    p.rule(ox+80, cy+9, RIGHT, cy+9, LINE, 0.5)
+    p.text('ESCOLA:', ox, cy, 60, 7.5, True, color=label_color); p.text(e['nome'], ox+45, cy, 330, 8.5, True)
     
     cy+=lh
-    p.text('ENDEREÇO:', ox, cy, 60, 7.5, True); p.text(e['endereco'], ox+60, cy, 330, 8.5)
-    p.rule(ox+60, cy+9, RIGHT, cy+9, LINE, 0.5)
+    p.text('ATO DE CRIAÇÃO:', ox, cy, 80, 7.5, True, color=label_color); p.text(e['ato'], ox+75, cy, 310, 8.5)
     
     cy+=lh
-    p.text('BAIRRO:', ox, cy, 45, 7.5, True); p.text(e['bairro'], ox+45, cy, 180, 8.5)
-    p.rule(ox+45, cy+9, ox+225, cy+9, LINE, 0.5)
-    p.text('MUNICÍPIO:', ox+230, cy, 55, 7.5, True); p.text(e['municipio'], ox+285, cy, 105, 8.5)
-    p.rule(ox+285, cy+9, RIGHT, cy+9, LINE, 0.5)
+    p.text('ENDEREÇO:', ox, cy, 60, 7.5, True, color=label_color); p.text(e['endereco'], ox+55, cy, 330, 8.5)
     
     cy+=lh
-    p.text('CEP:', ox, cy, 30, 7.5, True); p.text(e['cep'], ox+30, cy, 80, 8.5)
-    p.rule(ox+30, cy+9, ox+110, cy+9, LINE, 0.5)
-    p.text('TELEFONES:', ox+115, cy, 65, 7.5, True); p.text(e['telefone'], ox+180, cy, 210, 8.5)
-    p.rule(ox+180, cy+9, RIGHT, cy+9, LINE, 0.5)
+    p.text('BAIRRO:', ox, cy, 45, 7.5, True, color=label_color); p.text(e['bairro'], ox+40, cy, 180, 8.5)
+    p.text('MUNICÍPIO:', ox+230, cy, 55, 7.5, True, color=label_color); p.text(e['municipio'], ox+280, cy, 105, 8.5)
     
     cy+=lh
-    p.text('E-MAIL:', ox, cy, 40, 7.5, True); p.text(e['email'], ox+40, cy, 350, 8.5, color=HexColor('#0000EE'))
-    p.rule(ox+40, cy+9, RIGHT, cy+9, LINE, 0.5)
+    p.text('CEP:', ox, cy, 30, 7.5, True, color=label_color); p.text(e['cep'], ox+25, cy, 80, 8.5)
+    p.text('TELEFONES:', ox+115, cy, 65, 7.5, True, color=label_color); p.text(e['telefone'], ox+170, cy, 210, 8.5)
     
-    p.text('SECRETARIA MUNICIPAL DE EDUCAÇÃO DE LIMEIRA/SP', ox, cy+14, WIDTH-90, 9.5, True, 'center')
-    p.rule(ox, cy+25, RIGHT, cy+25, LINE, 1.2)
+    cy+=lh
+    p.text('E-MAIL:', ox, cy, 40, 7.5, True, color=label_color); p.text(e['email'], ox+35, cy, 350, 8.5)
     
-    p.band(None, 'HISTÓRICO ESCOLAR', cy+27, 14)
+    cy+=16
+    p.text('SECRETARIA MUNICIPAL DE EDUCAÇÃO DE LIMEIRA/SP', ox, cy, WIDTH-90, 9.5, True, 'center')
+    p.rule(ox, cy+5, RIGHT, cy+5, LINE, 1.2)
+    
+    cy+=9
+    p.band(None, 'HISTÓRICO ESCOLAR', cy, 14)
 
 def gerar_pdf(dados, rascunho=False):
     erros,_=validar(dados,exigir_conferencia=not rascunho)
@@ -385,7 +381,8 @@ def gerar_pdf(dados, rascunho=False):
 
     # ========================== FRENTE ==========================
     _header(p,e)
-    y = 104
+    y = 109 # Início ajustado para corresponder ao novo cabeçalho dinâmico
+    
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     p.box(LEFT, y, 20, 14, None, LINE)
     p.text('1.1', LEFT, y+3, 20, 8.5, True, 'center')
@@ -462,7 +459,7 @@ def gerar_pdf(dados, rascunho=False):
     y += 14
     p.box(LEFT, y, WIDTH, 35, PAPER, LINE)
     p.text('CURRÍCULO', LEFT+2, y+3, 280, 8.5, True)
-    legal=('')
+    legal=('Lei Federal nº 9.394/1996, art. 26; Deliberação CME nº 02/2016; Resolução SME nº 11/2016; Resolução CNE/CP nº 02/2017; Resolução SME nº 06/2020; Resolução CNE/CEB nº 01/2022; Lei nº 14.640/2023; Resolução CNE/CEB nº 02/2025; Resolução CNE/CEB nº 07/2025; Decreto Municipal nº 405/2022; Resolução SME nº 03/2026')
     p.fit_lines(legal, LEFT+2, y+14, 290, 21, 4.5, 5) 
     
     p.rule(LEFT+300, y, LEFT+300, y+35)

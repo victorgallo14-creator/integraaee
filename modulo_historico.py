@@ -2,7 +2,8 @@
 
 Versão revisada: adequação estrita do layout vetorial (frente e verso) 
 ao padrão de formulário monocromático/tabular da Prefeitura, com cabeçalho limpo,
-remoção de notas de rodapé (2.4 e obs 3.1) e adição de quebras de seção.
+remoção de notas de rodapé (2.4 e obs 3.1), adição de quebras de seção e 
+margens de tolerância corrigidas para textos longos (Leis).
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -272,9 +273,10 @@ class Page:
         rows=[]
         for paragraph in str(value or '').split('\n'):
             rows.extend(simpleSplit(paragraph,_REG,size,w-6) if paragraph else [''])
-        if len(rows)*leading > h + 2:
+        # Tolerância aumentada (+5) para evitar erros com descrições muito compridas em caixas estáticas
+        if len(rows)*leading > h + 5:
             raise ValueError('Texto excede o espaço reservado no PDF: '+str(value)[:65])
-        for i,line in enumerate(rows): self.text(line,x+2,y+2+i*leading,w-4,size,color=color,minsize=5.2)
+        for i,line in enumerate(rows): self.text(line,x+2,y+2+i*leading,w-4,size,color=color,minsize=4)
         return len(rows)
     def band(self,num,title,y,h=14):
         self.box(LEFT,y,WIDTH,h,PALE,LINE)
@@ -455,7 +457,7 @@ def gerar_pdf(dados, rascunho=False):
     p.box(LEFT, y, WIDTH, 35, PAPER, LINE)
     p.text('CURRÍCULO', LEFT+2, y+3, 280, 8.5, True)
     legal=('Lei Federal nº 9.394/1996, art. 26; Deliberação CME nº 02/2016; Resolução SME nº 11/2016; Resolução CNE/CP nº 02/2017; Resolução SME nº 06/2020; Resolução CNE/CEB nº 01/2022; Lei nº 14.640/2023; Resolução CNE/CEB nº 02/2025; Resolução CNE/CEB nº 07/2025; Decreto Municipal nº 405/2022; Resolução SME nº 03/2026')
-    p.fit_lines(legal, LEFT+2, y+14, 290, 21, 4.5, 5) 
+    p.fit_lines(legal, LEFT+2, y+12, 290, 23, 5.0, 4.8) # Ajustado margens e entrelinhas para não exceder 
     
     p.rule(LEFT+300, y, LEFT+300, y+35)
     p.text('Anos Iniciais', LEFT+300, y+15, WIDTH-300, 9, True, 'center')
@@ -473,7 +475,7 @@ def gerar_pdf(dados, rascunho=False):
     
     p.load_row(y, 'CARGA HORÁRIA', [v(x, lambda z: carga(z,'base')) for x in anos], h=14, col0=300, num='2.3', align_title='left')
     
-    y += 24 # Quebra para Bloco 3, 2.4 excluído
+    y += 24 # Quebra para Bloco 3, item 2.4 excluído
     
     p.band('3', 'PARTE DIVERSIFICADA', y, 14)
     y += 14
@@ -487,7 +489,7 @@ def gerar_pdf(dados, rascunho=False):
     
     p.load_row(y, 'CARGA HORÁRIA', [v(x, lambda z: carga(z,'div')) for x in anos], h=14, col0=300, num='3.1')
     
-    y += 24 # Quebra para Bloco 4, notas longas excluídas
+    y += 24 # Quebra para Bloco 4, notas de observações 3.1 excluídas
     
     p.band('4', 'ENSINO RELIGIOSO (art. 33-LDB e Deliberação CME nº 02/2016)', y, 14)
     y += 14

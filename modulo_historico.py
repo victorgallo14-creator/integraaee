@@ -6,8 +6,8 @@ Currículo e AEE mescladas verticalmente, textos legais justificados,
 fontes de dados de nascimento igualadas, logotipo aumentado, valores do
 cabeçalho perfeitamente alinhados verticalmente numa coluna guia,
 padronização de tamanhos e alinhamentos no bloco 8 (Transferência),
-reordenação das disciplinas da base comum, seletor de observações,
-linhas de observações removidas e texto do certificado atualizado.
+reordenação das disciplinas da base comum, correção do visualizador inline 
+de PDF via Base64 e novo sistema de observações em formato de Checkbox.
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -374,7 +374,7 @@ def _header(p,e):
         except Exception: pass
     
     ox = LEFT + 100
-    val_x = ox + 80 # Coluna guia para alinhamento perfeito de todos os valores
+    val_x = ox + 80 
     lh = 11 
     cy = 15
     
@@ -706,8 +706,10 @@ def gerar_pdf(dados, rascunho=False):
     y += 14
     height = 150
     p.box(LEFT, y, WIDTH, height, PAPER, LINE)
-    
-    # Agrupa observações marcadas e observações de texto livre para o PDF (SEM LINHAS / PAUTAS)
+    for j in range(1, 15):
+        p.rule(LEFT, y+j*10, RIGHT, y+j*10, PALE, 0.5)
+        
+    # Agrupa observações marcadas e observações de texto livre para o PDF
     obs_list = []
     for titulo, obj in dados.get('obs_padrao', {}).items():
         if obj.get('ativa') and obj.get('texto'):
@@ -722,19 +724,16 @@ def gerar_pdf(dados, rascunho=False):
     p.band('10', 'CERTIFICADO', y, 14)
     y += 14
     p.box(LEFT, y, WIDTH, 56, PAPER, LINE)
-    
-    # Atualizado com o texto do certificado solicitado
-    p.text('O diretor da', LEFT+5, y+8, 65, 8.5)
+    p.text('O diretor da', LEFT+5, y+8, 91, 8.5)
     p.text(e['nome'] if dados['certificar'] else '', LEFT+70, y+8, WIDTH-75, 9, True)
     p.rule(LEFT+68, y+18, RIGHT-5, y+18, LINE, 0.5)
     
-    p.text('de acordo com o art. 24, inciso VII, da Lei Federal nº 9.394/96, certifica que', LEFT+5, y+22, WIDTH-10, 8.5)
-    
+    p.text('de acordo com o art. 24, inciso VII, da Lei Federal nº 9.394/1996, certifica que', LEFT+5, y+22, WIDTH-10, 8.5)
     p.text(a['nome'] if dados['certificar'] else '', LEFT+5, y+34, WIDTH-10, 9, True)
     p.rule(LEFT+5, y+44, RIGHT-5, y+44, LINE, 0.5)
     
-    cert = (f"R.A. {a['ra']}  concluiu o {dados['serie_certificada']}º ano do Ensino Fundamental, no ano letivo de {dados['ano_certificado']}." if dados['certificar'] else 'R.A. _________________________ concluiu o ______ do Ensino Fundamental, no ano letivo de _____.')
-    p.text(cert, LEFT+5, y+48, WIDTH-10, 8.5)
+    cert = (f"R.M. {a['ra']}  ·  concluiu o {dados['serie_certificada']}º ano do Ensino Fundamental em {dados['ano_certificado']}." if dados['certificar'] else 'R.M.:                                                               Conclusão:                                                                                 Ano letivo:')
+    p.text(cert, LEFT+5, y+46, WIDTH-10, 8.5)
     
     y += 66 + 10 
     p.band('11', 'ASSINATURAS', y, 14)

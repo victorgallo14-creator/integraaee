@@ -4,8 +4,8 @@ Versão revisada: adequação estrita do layout vetorial (frente e verso)
 ao padrão de formulário monocromático/tabular da Prefeitura. Células de
 Currículo e AEE mescladas verticalmente, textos legais justificados,
 fontes de dados de nascimento igualadas, linha removida do cabeçalho,
-remoção de quebra/espaçamento entre os blocos 5 e 6 e correção da
-sobreposição das linhas verticais (z-index) nas tabelas 7 e 8.
+correção da sobreposição das linhas verticais (z-index) nas tabelas 
+e quebra de linha restaurada entre os blocos 5 e 6.
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -541,7 +541,8 @@ def gerar_pdf(dados, rascunho=False):
         
     y += 14
     
-    # Bloco 6 desenhado logo após as notas do Bloco 5 (sem acréscimo de 'y += 24' antes)
+    y += 14 # Quebra de linha adicionada entre o bloco 5 e 6
+    
     p.band('6', 'TOTAL DA CARGA HORÁRIA (CAMPO 2 + CAMPO 3)', y, 14)
     y += 14
     p.load_row(y, '', [v(x, total) for x in anos], h=14, col0=300)

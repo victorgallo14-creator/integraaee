@@ -3,8 +3,9 @@
 Versão revisada: adequação estrita do layout vetorial (frente e verso) 
 ao padrão de formulário monocromático/tabular da Prefeitura. Células de
 Currículo e AEE mescladas verticalmente, textos legais justificados,
-fontes de dados de nascimento igualadas, logotipo aumentado e valores do
-cabeçalho perfeitamente alinhados verticalmente numa coluna guia.
+fontes de dados de nascimento igualadas, logotipo aumentado, valores do
+cabeçalho perfeitamente alinhados verticalmente numa coluna guia e
+padronização de tamanhos e alinhamentos no bloco 8 (Transferência).
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -603,7 +604,7 @@ def gerar_pdf(dados, rascunho=False):
     labels81 = [('ANO', str(tr['serie'])+'º' if on else ''), 
                 ('TURMA', tr['turma'] if on else ''), 
                 ('Nº DE CHAMADA', tr['chamada'] if on else ''), 
-                ('TRANSFERIDO EM', _date(tr['data']) if on else '')]
+                ('DATA', _date(tr['data']) if on else '')]
     
     off = 0
     for w, (label, val) in zip(cw81, labels81):
@@ -638,12 +639,13 @@ def gerar_pdf(dados, rascunho=False):
     y += 14
     labw = WIDTH - 3*83
     
+    # 8.2 Base Comum Curricular - Alinhamento padronizado
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
-    p.text('BASE COMUM CURRICULAR', LEFT+2, y+3, labw-4, 8, True)
+    p.text('BASE COMUM CURRICULAR', LEFT+2, y+3, labw-4, 8.5, True)
     for i in range(3):
         x = LEFT + labw + i*83
         p.rule(x, y, x, y+14)
-        p.text(f'{i+1}º TRIMESTRE', x, y+3, 83, 8, True, 'center')
+        p.text(f'{i+1}º TRIMESTRE', x, y+3, 83, 8.5, True, 'center')
     y += 14
     
     t_base = trimvals(BASE)
@@ -659,6 +661,7 @@ def gerar_pdf(dados, rascunho=False):
         
     y += len(BASE)*14
     
+    # 8.2 Parte Diversificada - Alinhada à esquerda, sem repetição de cabeçalho
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     p.text('PARTE DIVERSIFICADA', LEFT+2, y+3, WIDTH-4, 8.5, True)
     y += 14

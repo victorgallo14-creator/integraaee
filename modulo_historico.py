@@ -2,8 +2,8 @@
 
 Versão revisada: adequação estrita do layout vetorial (frente e verso) 
 ao padrão de formulário monocromático/tabular da Prefeitura. Células de
-Currículo e AEE mescladas verticalmente, textos legais justificados e
-fontes de dados de nascimento igualadas e espaçadas.
+Currículo e AEE mescladas verticalmente, textos legais justificados,
+fontes de dados de nascimento igualadas e linha removida do cabeçalho.
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -272,7 +272,6 @@ class Page:
         elif align=='right': c.drawRightString(x+w-2,baseline,value)
         else: c.drawString(x+2,baseline,value)
     
-    # Novo método para alinhar e justificar textos em blocos longos
     def paragraph(self, text, x, y, w, h, size=7, leading=9, color=INK, justify=False):
         style = ParagraphStyle(
             name='ParaStyle', 
@@ -283,9 +282,8 @@ class Page:
             textColor=color
         )
         p = Paragraph(text, style)
-        aw, ah = p.wrap(w - 6, h) # Deixa margem de 3pt de cada lado
-        # O Paragraph é desenhado a partir da base no ReportLab
-        p.drawOn(self.c, x + 3, A4[1] - y - ah - 3) # Margem de 3pt no topo
+        aw, ah = p.wrap(w - 6, h) 
+        p.drawOn(self.c, x + 3, A4[1] - y - ah - 3) 
         
     def fit_lines(self,value,x,y,w,h,size=7.1,leading=9,color=INK):
         rows=[]
@@ -373,7 +371,6 @@ def _header(p,e):
     
     cy+=16
     p.text('SECRETARIA MUNICIPAL DE EDUCAÇÃO DE LIMEIRA/SP', ox, cy, WIDTH-90, 9.5, True, 'center')
-    p.rule(ox, cy+5, RIGHT, cy+5, LINE, 1.2)
     
     cy+=9
     p.band(None, 'HISTÓRICO ESCOLAR', cy, 14)
@@ -398,7 +395,7 @@ def gerar_pdf(dados, rascunho=False):
     
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     p.box(LEFT, y, 20, 14, None, LINE)
-    p.text('1.', LEFT, y+3, 20, 8.5, True, 'center') # Substituído 1.1 por 1.
+    p.text('1.', LEFT, y+3, 20, 8.5, True, 'center') 
     p.text('DADOS DO ESTUDANTE', LEFT+24, y+3, 200, 8.5, True)
     p.box(RIGHT-150, y, 150, 14, None, LINE)
     p.text('RA', RIGHT-150, y+3, 150, 8.5, True, 'center')
@@ -408,12 +405,10 @@ def gerar_pdf(dados, rascunho=False):
     p.text('NOME DO ALUNO:', LEFT+2, y+3, 100, 8, True)
     p.text(a['nome'], LEFT+90, y+3, 250, 9)
     p.box(RIGHT-150, y, 150, 14, None, LINE)
-    # Substituído RA ESCOLAR por R.M. e reposicionado 
     p.text('R.M.:', RIGHT-148, y+3, 140, 8, True); p.text(a['ra_escolar'], RIGHT-115, y+3, 75, 8.5)
     p.text(a['ra'], RIGHT-150, y-11, 150, 9, align='center') 
     
     y += 14
-    # Aumentado o espaço e as fontes da linha de Nascimento para igualar ao resto
     p.box(LEFT, y, WIDTH, 24, PAPER, LINE) 
     p.text('NASCIMENTO:', LEFT+2, y+8, 90, 8, True)
     
@@ -468,29 +463,24 @@ def gerar_pdf(dados, rascunho=False):
     p.band('2', 'RESULTADO DOS ESTUDOS REALIZADOS NO ENSINO FUNDAMENTAL', y, 14)
     y += 14
     
-    # 2.1 (Fundo Cinza) - Currículo a frente do número (conforme a imagem enviada)
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     p.box(LEFT, y, 20, 14, None, LINE); p.text('2.1', LEFT, y+3, 20, 8.5, True, 'center')
-    p.text('CURRÍCULO', LEFT+24, y+3, 270, 8.5, True) # Movido pra cima
+    p.text('CURRÍCULO', LEFT+24, y+3, 270, 8.5, True) 
     p.box(LEFT+300, y, 20, 14, None, LINE); p.text('2.2', LEFT+300, y+3, 20, 8.5, True, 'center')
     p.text('ESCOLARIDADE', LEFT+320, y+3, WIDTH-320, 8.5, True, 'center')
     
     y += 14
     
-    # Textos da Lei - Mesclagem da célula com a linha vazia logo abaixo
-    # 35pts (Lei) + 14pts (Linha Vazia) = 49pts totais para os textos legais
     p.box(LEFT, y, 300, 49, PALE, LINE)
     p.box(LEFT+300, y, WIDTH-300, 35, PAPER, LINE) 
     
     legal = ('Lei Federal nº 9.394/1996, art. 26; Deliberação CME nº 02/2016; Resolução SME nº 11/2016; Resolução CNE/CP '
              'nº 02/2017; Resolução SME nº 06/2020; Resolução CNE/CEB nº 01/2022; Lei nº 14.640/2023; Resolução '
              'CNE/CEB nº 02/2025; Resolução CNE/CEB nº 07/2025; Decreto Municipal nº 405/2022; Resolução SME nº 03/2026')
-    # Aplicando Justificação Paragráfica de acordo com o pedido
     p.paragraph(legal, LEFT, y, 300, 49, size=5.5, leading=7, justify=True)
     
     p.text('Anos Iniciais', LEFT+300, y+15, WIDTH-300, 9, True, 'center')
     
-    # Renderização exclusiva da linha direita inferior mantendo a esquerda vazada e cinza
     cols=[LEFT+300+i*(WIDTH-300)/5 for i in range(6)]
     for j in range(5):
         p.box(cols[j], y+35, cols[j+1]-cols[j], 14, PALE, LINE)
@@ -531,7 +521,6 @@ def gerar_pdf(dados, rascunho=False):
     
     y += 24
     
-    # Bloco AEE - Mesclagem da célula lateral esquerda acompanhando a altura combinada (16 + 14 = 30)
     p.box(LEFT, y, 300, 30, PAPER, LINE)
     p.paragraph('Indicar a sigla AEE (Atendimento Educacional Especializado) para o estudante que frequentou esse tipo de atendimento no respectivo ano.', LEFT, y, 300, 30, size=6.5, leading=8.5, justify=False)
     

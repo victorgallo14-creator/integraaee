@@ -631,7 +631,7 @@ def gerar_pdf(dados, rascunho=False):
         
     y += 14
     p.box(LEFT, y, WIDTH, 14, PAPER, LINE)
-    p.text('8.2  CURRÍCULO - RESULTADOS TRIMESTRAIS', LEFT+2, y+3, WIDTH-4, 8.5, True)
+    p.text('8.2  CURRÍCULO', LEFT+2, y+3, WIDTH-4, 8.5, True)
     
     def trimvals(keys):
         result=[]
@@ -641,7 +641,7 @@ def gerar_pdf(dados, rascunho=False):
     def trimester(y,keys,values):
         labw = WIDTH - 3*83
         p.box(LEFT, y, WIDTH, 14, PALE, LINE)
-        p.text('COMPONENTE CURRICULAR', LEFT+2, y+3, labw-4, 8, True)
+        p.text('BASE COMUM CURRICULAR', LEFT+2, y+3, labw-4, 8, True)
         
         # Desenha primeiro o fundo branco
         for j in range(len(keys)):

@@ -3,8 +3,9 @@
 Versão revisada: adequação estrita do layout vetorial (frente e verso) 
 ao padrão de formulário monocromático/tabular da Prefeitura. Células de
 Currículo e AEE mescladas verticalmente, textos legais justificados,
-fontes de dados de nascimento igualadas, linha removida do cabeçalho
-e remoção de quebra/espaçamento entre os blocos 5 e 6.
+fontes de dados de nascimento igualadas, linha removida do cabeçalho,
+remoção de quebra/espaçamento entre os blocos 5 e 6 e título da Secretaria
+movido para o topo do cabeçalho.
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -356,6 +357,9 @@ def _header(p,e):
     
     label_color = HexColor('#444444')
     
+    p.text('SECRETARIA MUNICIPAL DE EDUCAÇÃO DE LIMEIRA/SP', ox, cy, WIDTH-90, 9.5, True)
+    cy+=14
+    
     p.text('ESCOLA:', ox, cy, 60, 7.5, True, color=label_color); p.text(e['nome'], ox+45, cy, 330, 8.5, True)
     cy+=lh
     p.text('ATO DE CRIAÇÃO:', ox, cy, 80, 7.5, True, color=label_color); p.text(e['ato'], ox+75, cy, 310, 8.5)
@@ -370,10 +374,7 @@ def _header(p,e):
     cy+=lh
     p.text('E-MAIL:', ox, cy, 40, 7.5, True, color=label_color); p.text(e['email'], ox+35, cy, 350, 8.5)
     
-    cy+=16
-    p.text('SECRETARIA MUNICIPAL DE EDUCAÇÃO DE LIMEIRA/SP', ox, cy, WIDTH-90, 9.5, True, 'center')
-    
-    cy+=9
+    cy+=14
     p.band(None, 'HISTÓRICO ESCOLAR', cy, 14)
 
 def gerar_pdf(dados, rascunho=False):
@@ -392,7 +393,7 @@ def gerar_pdf(dados, rascunho=False):
     # ========================== FRENTE ==========================
     _header(p,e)
     
-    y = 117
+    y = 122
     
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     p.box(LEFT, y, 20, 14, None, LINE)
@@ -540,6 +541,7 @@ def gerar_pdf(dados, rascunho=False):
         
     y += 14
     
+    # Bloco 6 posicionado imediatamente abaixo do Bloco 5, sem quebras/espaçamentos adicionais.
     p.band('6', 'TOTAL DA CARGA HORÁRIA (CAMPO 2 + CAMPO 3)', y, 14)
     y += 14
     p.load_row(y, '', [v(x, total) for x in anos], h=14, col0=300)

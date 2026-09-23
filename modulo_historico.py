@@ -1,7 +1,8 @@
 """Módulo de histórico escolar para integração em aplicação Streamlit.
 
 Versão revisada: adequação estrita do layout vetorial (frente e verso) 
-ao padrão de formulário monocromático/tabular da Prefeitura, com cabeçalho limpo sem linhas.
+ao padrão de formulário monocromático/tabular da Prefeitura, com cabeçalho limpo,
+remoção de notas de rodapé (2.4 e obs 3.1) e adição de quebras de seção.
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -29,8 +30,7 @@ DIV = ['EIXO INTELECTUAL', 'EIXO ESPORTIVO', 'EIXO CULTURAL', 'LINGUAGENS E TECN
 MODOS = ['Parcial', 'APC', 'Complementação extracurricular', 'Integral', 'Bilíngue parcial', 'Bilíngue integral', 'Outra rede / matriz documentada']
 SITUACOES = ['Não cursado', 'Concluído', 'Em curso']
 
-# Dados institucionais do CEIEF Rafael Affonso Leite. Novos registros já
-# são iniciados com estas informações, que continuam editáveis na interface.
+# Dados institucionais padrão
 ESCOLA_PADRAO = {
     'nome': 'CEIEF "Rafael Affonso Leite"',
     'ato': 'Decreto nº 416 de 19 de outubro de 2011.',
@@ -332,30 +332,23 @@ def _header(p,e):
             c.drawImage(ImageReader(str(logo)),LEFT+5,A4[1]-75,70,60,preserveAspectRatio=True,anchor='c',mask='auto')
         except Exception: pass
     
-    # Textos do cabeçalho alinhados à direita do brasão, layout limpo sem linhas
     ox = LEFT + 90
-    lh = 11 # line height com maior respiro
+    lh = 11 
     cy = 15
     
-    # Hierarquia tipográfica com cor ligeiramente suavizada para os rótulos
     label_color = HexColor('#444444')
     
     p.text('ESCOLA:', ox, cy, 60, 7.5, True, color=label_color); p.text(e['nome'], ox+45, cy, 330, 8.5, True)
-    
     cy+=lh
     p.text('ATO DE CRIAÇÃO:', ox, cy, 80, 7.5, True, color=label_color); p.text(e['ato'], ox+75, cy, 310, 8.5)
-    
     cy+=lh
     p.text('ENDEREÇO:', ox, cy, 60, 7.5, True, color=label_color); p.text(e['endereco'], ox+55, cy, 330, 8.5)
-    
     cy+=lh
     p.text('BAIRRO:', ox, cy, 45, 7.5, True, color=label_color); p.text(e['bairro'], ox+40, cy, 180, 8.5)
     p.text('MUNICÍPIO:', ox+230, cy, 55, 7.5, True, color=label_color); p.text(e['municipio'], ox+280, cy, 105, 8.5)
-    
     cy+=lh
     p.text('CEP:', ox, cy, 30, 7.5, True, color=label_color); p.text(e['cep'], ox+25, cy, 80, 8.5)
     p.text('TELEFONES:', ox+115, cy, 65, 7.5, True, color=label_color); p.text(e['telefone'], ox+170, cy, 210, 8.5)
-    
     cy+=lh
     p.text('E-MAIL:', ox, cy, 40, 7.5, True, color=label_color); p.text(e['email'], ox+35, cy, 350, 8.5)
     
@@ -381,7 +374,8 @@ def gerar_pdf(dados, rascunho=False):
 
     # ========================== FRENTE ==========================
     _header(p,e)
-    y = 109 # Início ajustado para corresponder ao novo cabeçalho dinâmico
+    
+    y = 117 # Quebra adicionada entre o cabeçalho e o bloco 1.1
     
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     p.box(LEFT, y, 20, 14, None, LINE)
@@ -448,7 +442,8 @@ def gerar_pdf(dados, rascunho=False):
     p.box(LEFT, y, WIDTH, 14, PAPER, LINE)
     p.text('ESTRANGEIRO - DOCUMENTO:', LEFT+2, y+3, 160, 8, True); p.text(a['documento_estrangeiro'], LEFT+165, y+3, 300, 8.5)
     
-    y += 18
+    y += 24 # Quebra para Bloco 2
+    
     p.band('2', 'RESULTADO DOS ESTUDOS REALIZADOS NO ENSINO FUNDAMENTAL', y, 14)
     y += 14
     p.box(LEFT, y, WIDTH, 14, PAPER, LINE)
@@ -459,7 +454,7 @@ def gerar_pdf(dados, rascunho=False):
     y += 14
     p.box(LEFT, y, WIDTH, 35, PAPER, LINE)
     p.text('CURRÍCULO', LEFT+2, y+3, 280, 8.5, True)
-    legal=('')
+    legal=('Lei Federal nº 9.394/1996, art. 26; Deliberação CME nº 02/2016; Resolução SME nº 11/2016; Resolução CNE/CP nº 02/2017; Resolução SME nº 06/2020; Resolução CNE/CEB nº 01/2022; Lei nº 14.640/2023; Resolução CNE/CEB nº 02/2025; Resolução CNE/CEB nº 07/2025; Decreto Municipal nº 405/2022; Resolução SME nº 03/2026')
     p.fit_lines(legal, LEFT+2, y+14, 290, 21, 4.5, 5) 
     
     p.rule(LEFT+300, y, LEFT+300, y+35)
@@ -477,14 +472,9 @@ def gerar_pdf(dados, rascunho=False):
     y = p.matrix(y, BASE, [x['conceitos'] if x['situacao']=='Concluído' else {} for x in anos], heading=False, row_h=12, col0=300)
     
     p.load_row(y, 'CARGA HORÁRIA', [v(x, lambda z: carga(z,'base')) for x in anos], h=14, col0=300, num='2.3', align_title='left')
-    y += 14
     
-    p.box(LEFT, y, WIDTH, 24, PAPER, LINE)
-    p.box(LEFT, y, 20, 24, None, LINE); p.text('2.4', LEFT, y+8, 20, 8.5, True, 'center')
-    fc=('Flexibilização Curricular (FC): nomenclatura que deve ser utilizada para o estudante da educação especial cuja avaliação pedagógica identificou necessidade significativa de adequação curricular e diante disso o conteúdo trabalhado foi compatível aos seus processos de aprendizagem e desenvolvimento e não ao previsto para o seu ano de escolaridade. Deverá ser anexado relatório pedagógico anual.')
-    p.fit_lines(fc, LEFT+22, y+2, WIDTH-24, 22, 5.5, 6.5)
+    y += 24 # Quebra para Bloco 3, 2.4 excluído
     
-    y += 24
     p.band('3', 'PARTE DIVERSIFICADA', y, 14)
     y += 14
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
@@ -496,18 +486,15 @@ def gerar_pdf(dados, rascunho=False):
     y = p.matrix(y, DIV, [x['participacao'] if x['situacao']=='Concluído' else {} for x in anos], heading=False, row_h=12, col0=300)
     
     p.load_row(y, 'CARGA HORÁRIA', [v(x, lambda z: carga(z,'div')) for x in anos], h=14, col0=300, num='3.1')
-    y += 14
     
-    p.box(LEFT, y, WIDTH, 24, PAPER, LINE)
-    obs_txt = ('OBS: As escolas de atendimento integral deverão considerar os eixos intelectual, esportivo e cultural até o ano de 2025. A partir do ano de 2026, para preenchimento deste campo da Parte Diversificada, considerar os anexos da Resolução SME nº 03/26 que trata da Matriz Curricular. Os campos de disciplinas que não correspondem ao modelo de atendimento adotado pela escola deverão ser preenchido com traço. Para o estudante que frequentou a parte diversificada, indicar P de participação.')
-    p.fit_lines(obs_txt, LEFT+2, y+2, WIDTH-4, 22, 5.5, 6.5)
+    y += 24 # Quebra para Bloco 4, notas longas excluídas
     
-    y += 24
     p.band('4', 'ENSINO RELIGIOSO (art. 33-LDB e Deliberação CME nº 02/2016)', y, 14)
     y += 14
     p.load_row(y, 'CARGA HORÁRIA', [v(x, lambda z: z['ch_religioso']) for x in anos], h=14, col0=300)
     
-    y += 16
+    y += 24 # Quebra para Bloco 5
+    
     p.box(LEFT, y, WIDTH, 24, PALE, LINE)
     p.box(LEFT, y, 20, 24, None, LINE); p.text('5', LEFT, y+8, 20, 8.5, True, 'center')
     p.text('EDUCAÇÃO ESPECIAL - ATENDIMENTO EDUCACIONAL ESPECIALIZADO', LEFT+24, y+4, WIDTH-24, 8.5, True)
@@ -524,12 +511,14 @@ def gerar_pdf(dados, rascunho=False):
     y += 16
     p.load_row(y, '', [v(x, lambda z: 'AEE' if z['aee'] else '-') for x in anos], h=14, col0=300)
     
-    y += 16
+    y += 24 # Quebra para Bloco 6
+    
     p.band('6', 'TOTAL DA CARGA HORÁRIA (CAMPO 2 + CAMPO 3)', y, 14)
     y += 14
     p.load_row(y, '', [v(x, total) for x in anos], h=14, col0=300)
     
-    y += 16
+    y += 24 # Quebra para Bloco 7
+    
     p.band('7', 'ESTUDOS REALIZADOS', y, 14)
     y += 14
     
@@ -625,7 +614,7 @@ def gerar_pdf(dados, rascunho=False):
     y += 14
     y = trimester(y, DIV[3:], trimvals(DIV[3:]))
     
-    y += 10
+    y += 14 # Margem antes de Observações
     p.band('9', 'OBSERVAÇÕES', y, 14)
     y += 14
     height = 150
@@ -634,7 +623,7 @@ def gerar_pdf(dados, rascunho=False):
         p.rule(LEFT, y+j*10, RIGHT, y+j*10, PALE, 0.5)
     p.fit_lines(dados['observacoes'], LEFT+5, y+2, WIDTH-10, height-4, 8, 10)
     
-    y += height + 10
+    y += height + 14 # Margem antes de Certificado
     p.band('10', 'CERTIFICADO', y, 14)
     y += 14
     p.box(LEFT, y, WIDTH, 56, PAPER, LINE)
@@ -649,7 +638,7 @@ def gerar_pdf(dados, rascunho=False):
     cert = (f"RA {a['ra']}  ·  concluiu o {dados['serie_certificada']}º ano do Ensino Fundamental em {dados['ano_certificado']}." if dados['certificar'] else 'RA:                                                               Conclusão:                                                                                 Ano letivo:')
     p.text(cert, LEFT+5, y+46, WIDTH-10, 8.5)
     
-    y += 66
+    y += 66 + 10 # Margem de Assinatura
     p.band('11', 'ASSINATURAS', y, 14)
     y += 14
     p.box(LEFT, y, WIDTH, 70, PAPER, LINE)

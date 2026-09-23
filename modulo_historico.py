@@ -6,8 +6,8 @@ Currículo e AEE mescladas verticalmente, textos legais justificados,
 fontes de dados de nascimento igualadas, logotipo aumentado, valores do
 cabeçalho perfeitamente alinhados verticalmente numa coluna guia,
 padronização de tamanhos e alinhamentos no bloco 8 (Transferência),
-reordenação das disciplinas da base comum, seletor de observações e
-correção do visualizador inline de PDF via Base64.
+reordenação das disciplinas da base comum, correção do visualizador inline 
+de PDF via Base64 e novo sistema de observações em formato de Checkbox.
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -80,6 +80,7 @@ def novo():
         'transferencia': {'ativa': False, 'serie': 1, 'turma': '', 'chamada': '', 'data': '',
             'dias': '', 'ausencias': '', 'compensadas': '', 'frequencia': '',
             'conceitos': {k: ['', '', ''] for k in BASE + DIV[3:]}},
+        'obs_padrao': {}, # Novo dicionário para armazenar o estado das observações padronizadas
         'observacoes': '', 'certificar': False, 'serie_certificada': 5, 'ano_certificado': '',
         'data_emissao': date.today().isoformat(), 'conferido': False}
 
@@ -368,6 +369,7 @@ def _header(p,e):
     logo=_caminho_logo_prefeitura()
     if logo:
         try:
+            # Logotipo aumentado
             c.drawImage(ImageReader(str(logo)),LEFT+5,A4[1]-95,85,85,preserveAspectRatio=True,anchor='c',mask='auto')
         except Exception: pass
     
@@ -706,7 +708,17 @@ def gerar_pdf(dados, rascunho=False):
     p.box(LEFT, y, WIDTH, height, PAPER, LINE)
     for j in range(1, 15):
         p.rule(LEFT, y+j*10, RIGHT, y+j*10, PALE, 0.5)
-    p.fit_lines(dados['observacoes'], LEFT+5, y+2, WIDTH-10, height-4, 8, 10)
+        
+    # Agrupa observações marcadas e observações de texto livre para o PDF
+    obs_list = []
+    for titulo, obj in dados.get('obs_padrao', {}).items():
+        if obj.get('ativa') and obj.get('texto'):
+            obs_list.append(obj['texto'].strip())
+    if dados.get('observacoes', '').strip():
+        obs_list.append(dados['observacoes'].strip())
+    texto_final_obs = "\n\n".join(obs_list)
+        
+    p.fit_lines(texto_final_obs, LEFT+5, y+2, WIDTH-10, height-4, 8, 10)
     
     y += height + 14 
     p.band('10', 'CERTIFICADO', y, 14)
@@ -842,8 +854,10 @@ def importar(raw):
     d=json.loads(raw)
     def estrutura(ref,valor,path=''):
         if isinstance(ref,dict):
-            if not isinstance(valor,dict) or set(ref)!=set(valor):raise ValueError('Campos incompatíveis em '+path)
-            for k in ref:estrutura(ref[k],valor[k],path+'/'+k)
+            if not isinstance(valor,dict):raise ValueError('Campos incompatíveis em '+path)
+            for k in ref:
+                if k not in valor: valor[k] = deepcopy(ref[k]) # Mantém compatibilidade com registros antigos
+                estrutura(ref[k],valor[k],path+'/'+k)
         elif isinstance(ref,list):
             if not isinstance(valor,list) or len(ref)!=len(valor):raise ValueError('Quantidade de itens inválida em '+path)
             for i,x in enumerate(ref):estrutura(x,valor[i],path+'/'+str(i))
@@ -944,27 +958,28 @@ def renderizar_modulo(banco_path=None):
             st.caption('A frequência deve ser transcrita do registro escolar. Dias letivos e ausências podem ter unidades diferentes, portanto não se presume uma fórmula.')
             tabela(tr,'conceitos',BASE+DIV[3:],['1º trimestre','2º trimestre','3º trimestre'],'tr_notas')
     with tabs[3]:
-        st.subheader('Lançamento de Observações')
+        st.subheader('Observações Padronizadas')
+        st.caption('Marque as opções desejadas. Se houver espaços como "xx", "___" ou "[ano civil]", edite o texto na caixa que aparecerá abaixo após marcar a opção.')
         
-        c1, c2 = st.columns([3, 1])
-        with c1:
-            obs_sel = st.selectbox('Textos padronizados', ['Selecione uma observação para inserir...'] + list(OPCOES_OBSERVACOES.keys()), label_visibility='collapsed')
-        with c2:
-            if st.button('Inserir no texto', use_container_width=True):
-                if obs_sel != 'Selecione uma observação para inserir...':
-                    if d['observacoes'].strip():
-                        d['observacoes'] += '\n' + OPCOES_OBSERVACOES[obs_sel]
-                    else:
-                        d['observacoes'] = OPCOES_OBSERVACOES[obs_sel]
-                    
-                    # Limpar cache do widget para garantir renderização instantânea do texto injetado
-                    k = 'modulo_historico__widget_Observações (até 14 linhas no formulário)'
-                    if k in st.session_state:
-                        del st.session_state[k]
-                    st.rerun()
+        if 'obs_padrao' not in d: 
+            d['obs_padrao'] = {}
+        
+        for titulo, texto_base in OPCOES_OBSERVACOES.items():
+            # Mostra o checkbox de cada observação
+            ativo = st.checkbox(titulo, value=d['obs_padrao'].get(titulo, {}).get('ativa', False))
+            
+            if ativo:
+                # Se selecionada, cria uma text area com o texto base para preenchimento de lacunas
+                texto_atual = d['obs_padrao'].get(titulo, {}).get('texto', texto_base)
+                novo_texto = st.text_area(f'Editar: {titulo}', value=texto_atual, height=68, label_visibility='collapsed')
+                d['obs_padrao'][titulo] = {'ativa': True, 'texto': novo_texto}
+            else:
+                # Se não selecionada, guarda desativado
+                d['obs_padrao'][titulo] = {'ativa': False, 'texto': texto_base}
 
-        d['observacoes']=st.text_area('Observações (até 14 linhas no formulário)',value=d['observacoes'],height=180)
-        st.caption('Edite o texto inserido acima conforme necessário (preencha "xx", "___", ou "[ano civil]").')
+        st.divider()
+        st.subheader('Observações Adicionais (Texto Livre)')
+        d['observacoes'] = st.text_area('Digite aqui qualquer outra observação que precise constar e não esteja na lista acima.', value=d.get('observacoes', ''), height=100)
         
         st.divider()
 

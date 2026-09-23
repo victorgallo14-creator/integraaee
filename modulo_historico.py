@@ -4,8 +4,8 @@ Versão revisada: adequação estrita do layout vetorial (frente e verso)
 ao padrão de formulário monocromático/tabular da Prefeitura. Células de
 Currículo e AEE mescladas verticalmente, textos legais justificados,
 fontes de dados de nascimento igualadas, linha removida do cabeçalho,
-remoção de quebra/espaçamento entre os blocos 5 e 6 e título da Secretaria
-movido para o topo do cabeçalho.
+remoção de quebra/espaçamento entre os blocos 5 e 6 e correção da
+sobreposição das linhas verticais (z-index) nas tabelas 7 e 8.
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -541,7 +541,7 @@ def gerar_pdf(dados, rascunho=False):
         
     y += 14
     
-    # Bloco 6 posicionado imediatamente abaixo do Bloco 5, sem quebras/espaçamentos adicionais.
+    # Bloco 6 desenhado logo após as notas do Bloco 5 (sem acréscimo de 'y += 24' antes)
     p.band('6', 'TOTAL DA CARGA HORÁRIA (CAMPO 2 + CAMPO 3)', y, 14)
     y += 14
     p.load_row(y, '', [v(x, total) for x in anos], h=14, col0=300)
@@ -553,25 +553,29 @@ def gerar_pdf(dados, rascunho=False):
     
     cw=[45, 60, 215, 115, 89]; labels=['ANO', 'CICLO/ANO', 'ESTABELECIMENTO', 'MUNICÍPIO', 'ESTADO']
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
+    
+    # Desenha primeiro o fundo branco das 5 linhas 
+    for i in range(5):
+        p.box(LEFT, y+14+i*14, WIDTH, 14, PAPER, LINE)
+        
+    # Depois desenha o texto e as divisórias verticais por cima
     off=0
     for w, label in zip(cw, labels):
         p.text(label, LEFT+off, y+3, w, 8, True, 'center')
         off+=w
         if off<WIDTH: p.rule(LEFT+off, y, LEFT+off, y+14+5*14)
     
-    y += 14
     estudos=[x for x in anos if x['situacao']!='Não cursado']
     for i in range(5):
         row=estudos[i] if i<len(estudos) else None
-        p.box(LEFT, y+i*14, WIDTH, 14, PAPER, LINE)
         if row:
             vals=[row['ano_letivo'], str(row['serie'])+'º ano', row['estabelecimento'], row['municipio'], row['uf']]
             off=0
             for w, val in zip(cw, vals):
-                p.text(val, LEFT+off, y+i*14+3, w, 8, align='center')
+                p.text(val, LEFT+off, y+14+i*14+3, w, 8, align='center')
                 off+=w
                 
-    y += 5*14
+    y += 14 + 5*14
     p.footer(1); _mark(c, dados, rascunho); c.showPage()
 
     # ========================== VERSO ==========================
@@ -590,6 +594,8 @@ def gerar_pdf(dados, rascunho=False):
                 ('TURMA', tr['turma'] if on else ''), 
                 ('Nº DE CHAMADA', tr['chamada'] if on else ''), 
                 ('DATA', _date(tr['data']) if on else '')]
+    
+    # Desenha texto e divisórias do 8.1 
     off = 0
     for w, (label, val) in zip(cw81, labels81):
         p.text(f"{label}:", LEFT+off+2, y+3, 60, 8, True)
@@ -624,13 +630,19 @@ def gerar_pdf(dados, rascunho=False):
         labw = WIDTH - 3*83
         p.box(LEFT, y, WIDTH, 14, PALE, LINE)
         p.text('COMPONENTE CURRICULAR', LEFT+2, y+3, labw-4, 8, True)
+        
+        # Desenha primeiro o fundo branco
+        for j in range(len(keys)):
+            p.box(LEFT, y+14+j*14, WIDTH, 14, PAPER, LINE)
+            
+        # Depois desenha o texto dos cabeçalhos e as divisórias verticais
         for i in range(3):
             x = LEFT + labw + i*83
             p.rule(x, y, x, y+14+len(keys)*14)
             p.text(f'{i+1}º TRIMESTRE', x, y+3, 83, 8, True, 'center')
+            
         y += 14
         for j,k in enumerate(keys):
-            p.box(LEFT, y+j*14, WIDTH, 14, PAPER, LINE)
             p.text(k, LEFT+2, y+j*14+3, labw-4, 8)
             for i in range(3):
                 p.text(values[i].get(k,''), LEFT+labw+i*83, y+j*14+3, 83, 8, True, 'center')

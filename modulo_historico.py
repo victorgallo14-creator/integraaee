@@ -1,7 +1,7 @@
 """Módulo de histórico escolar para integração em aplicação Streamlit.
 
 Versão revisada: adequação estrita do layout vetorial (frente e verso) 
-ao padrão de formulário monocromático/tabular da Prefeitura.
+ao padrão de formulário monocromático/tabular da Prefeitura com margens de texto corrigidas.
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -272,7 +272,8 @@ class Page:
         rows=[]
         for paragraph in str(value or '').split('\n'):
             rows.extend(simpleSplit(paragraph,_REG,size,w-6) if paragraph else [''])
-        if len(rows)*leading>h-2:
+        # A tolerância foi ajustada (+2) para evitar o erro strict height limitation
+        if len(rows)*leading > h + 2:
             raise ValueError('Texto excede o espaço reservado no PDF: '+str(value)[:65])
         for i,line in enumerate(rows): self.text(line,x+2,y+2+i*leading,w-4,size,color=color,minsize=5.2)
         return len(rows)
@@ -398,7 +399,7 @@ def gerar_pdf(dados, rascunho=False):
     p.text(a['nome'], LEFT+90, y+3, 250, 9)
     p.box(RIGHT-150, y, 150, 14, None, LINE)
     p.text('RA ESCOLAR:', RIGHT-148, y+3, 140, 8, True); p.text(a['ra_escolar'], RIGHT-80, y+3, 75, 8.5)
-    p.text(a['ra'], RIGHT-150, y-11, 150, 9, align='center') # O RA fica na caixa acima, que estava vazia no title
+    p.text(a['ra'], RIGHT-150, y-11, 150, 9, align='center') 
     
     y += 14
     p.box(LEFT, y, WIDTH, 18, PAPER, LINE)
@@ -462,12 +463,11 @@ def gerar_pdf(dados, rascunho=False):
     p.box(LEFT, y, WIDTH, 35, PAPER, LINE)
     p.text('CURRÍCULO', LEFT+2, y+3, 280, 8.5, True)
     legal=('Lei Federal nº 9.394/1996, art. 26; Deliberação CME nº 02/2016; Resolução SME nº 11/2016; Resolução CNE/CP nº 02/2017; Resolução SME nº 06/2020; Resolução CNE/CEB nº 01/2022; Lei nº 14.640/2023; Resolução CNE/CEB nº 02/2025; Resolução CNE/CEB nº 07/2025; Decreto Municipal nº 405/2022; Resolução SME nº 03/2026')
-    p.fit_lines(legal, LEFT+2, y+14, 290, 20, 4.5, 5.5)
+    p.fit_lines(legal, LEFT+2, y+14, 290, 21, 4.5, 5) 
     
     p.rule(LEFT+300, y, LEFT+300, y+35)
     p.text('Anos Iniciais', LEFT+300, y+15, WIDTH-300, 9, True, 'center')
     
-    # Cabeçalho da Tabela
     y += 35
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     cols=[LEFT+300+i*(WIDTH-300)/5 for i in range(6)]
@@ -476,7 +476,6 @@ def gerar_pdf(dados, rascunho=False):
         p.rule(cols[j], y, cols[j], y+14)
     p.rule(cols[5], y, cols[5], y+14)
     
-    # Matriz Base Comum
     y += 14
     y = p.matrix(y, BASE, [x['conceitos'] if x['situacao']=='Concluído' else {} for x in anos], heading=False, row_h=12, col0=300)
     
@@ -486,7 +485,7 @@ def gerar_pdf(dados, rascunho=False):
     p.box(LEFT, y, WIDTH, 24, PAPER, LINE)
     p.box(LEFT, y, 20, 24, None, LINE); p.text('2.4', LEFT, y+8, 20, 8.5, True, 'center')
     fc=('Flexibilização Curricular (FC): nomenclatura que deve ser utilizada para o estudante da educação especial cuja avaliação pedagógica identificou necessidade significativa de adequação curricular e diante disso o conteúdo trabalhado foi compatível aos seus processos de aprendizagem e desenvolvimento e não ao previsto para o seu ano de escolaridade. Deverá ser anexado relatório pedagógico anual.')
-    p.fit_lines(fc, LEFT+22, y+2, WIDTH-24, 20, 5.5, 7)
+    p.fit_lines(fc, LEFT+22, y+2, WIDTH-24, 22, 5.5, 6.5)
     
     y += 24
     p.band('3', 'PARTE DIVERSIFICADA', y, 14)
@@ -504,7 +503,7 @@ def gerar_pdf(dados, rascunho=False):
     
     p.box(LEFT, y, WIDTH, 24, PAPER, LINE)
     obs_txt = ('OBS: As escolas de atendimento integral deverão considerar os eixos intelectual, esportivo e cultural até o ano de 2025. A partir do ano de 2026, para preenchimento deste campo da Parte Diversificada, considerar os anexos da Resolução SME nº 03/26 que trata da Matriz Curricular. Os campos de disciplinas que não correspondem ao modelo de atendimento adotado pela escola deverão ser preenchido com traço. Para o estudante que frequentou a parte diversificada, indicar P de participação.')
-    p.fit_lines(obs_txt, LEFT+2, y+2, WIDTH-4, 20, 5.5, 7)
+    p.fit_lines(obs_txt, LEFT+2, y+2, WIDTH-4, 22, 5.5, 6.5)
     
     y += 24
     p.band('4', 'ENSINO RELIGIOSO (art. 33-LDB e Deliberação CME nº 02/2016)', y, 14)

@@ -5,8 +5,9 @@ ao padrão de formulário monocromático/tabular da Prefeitura. Células de
 Currículo e AEE mescladas verticalmente, textos legais justificados,
 fontes de dados de nascimento igualadas, logotipo aumentado, valores do
 cabeçalho perfeitamente alinhados verticalmente numa coluna guia,
-padronização de tamanhos e alinhamentos no bloco 8 (Transferência) e
-reordenação das disciplinas da base comum.
+padronização de tamanhos e alinhamentos no bloco 8 (Transferência),
+reordenação das disciplinas da base comum e integração de seletor rápido
+de Observações Padronizadas no sistema.
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -34,6 +35,22 @@ BASE = ['LÍNGUA PORTUGUESA', 'MATEMÁTICA', 'CIÊNCIAS', 'HISTÓRIA', 'GEOGRAFI
 DIV = ['EIXO INTELECTUAL', 'EIXO ESPORTIVO', 'EIXO CULTURAL', 'LINGUAGENS E TECNOLOGIAS', 'ACOMPANHAMENTO PEDAGÓGICO', 'PRÁTICAS EXPERIMENTAIS E DE TUTORIA DE ESTUDO', 'PRÁTICAS DE ESTUDO', 'LINGUAGENS', 'ESPORTE E EDUCAÇÃO DO MOVIMENTO']
 MODOS = ['Parcial', 'APC', 'Complementação extracurricular', 'Integral', 'Bilíngue parcial', 'Bilíngue integral', 'Outra rede / matriz documentada']
 SITUACOES = ['Não cursado', 'Concluído', 'Em curso']
+
+# Textos padronizados para o campo de Observações
+OPCOES_OBSERVACOES = {
+    'Controle do Desempenho': 'O Controle do Desempenho no Sistema Municipal de Ensino de Limeira adota os seguintes conceitos: A (Avançado) - AD (Adequado) - B (Básico) – AB (Abaixo do Básico).',
+    'Progressão Continuada': 'O Sistema Municipal de Ensino de Limeira adota o regime de Progressão Continuada, conforme disposto no § 2º do Artigo 32 da Lei Federal nº 9394/96 e no Parecer CME 4/99.',
+    'Ensino Religioso': 'O Ensino Religioso, no Ciclo I do Ensino Fundamental, é tratado como tema transversal conforme Artigo 33 da LDB, Deliberação CME nº 02/2016 e Parecer CME 02/2002.',
+    'Educação de Jovens e Adultos (EJA) - Antes de 2021': 'A Educação de Jovens e Adultos segue o disposto na Deliberação CME nº 01/2016.',
+    'Educação de Jovens e Adultos (EJA) - A partir de 2021': 'A Educação de Jovens e Adultos segue o disposto na Resolução SME/CME nº 02/2021.',
+    'Matriz Curricular': 'Resolução SME nº 03/2026- Matriz Curricular',
+    'Educação Integral': 'A Educação Integral segue o disposto na Lei Federal nº 14.640/2023, Lei Municipal nº 7366/2026 e no Decreto Municipal nº 118/2024.',
+    'Educação Especial': 'Estudante atendido na Educação Especial no(s) ano(s) xx, nos termos da Resolução SME nº 7/2014, Decreto Federal nº 12.686/2025 (Política Nacional de Educação Especial Inclusiva, atualizada pelo Decreto nº 12.773/2025) e Decreto Municipal nº 23/2026.',
+    'Ação Pedagógica Complementar (APC)': 'Estudante atendido em Ação Pedagógica Complementar- APC- envolvendo recuperação de aprendizagem no(s) ano(s) xx.',
+    'Regularização da Vida Escolar': '[ano civil / ano de escolaridade] - “Estudante submetido a processo de Regularização de Vida Escolar de acordo com a Deliberação CME nº 02/2010. Processo arquivado no prontuário do estudante”.',
+    'Classificação (sem comprovante)': '[ano civil / ano de escolaridade] - “Estudante classificado no ___º ano mediante avaliação de competência realizada nos termos da Lei Federal nº 9394/96 e do Regimento Comum das Escolas Municipais de Limeira/SP. Processo arquivado no prontuário do estudante”.',
+    'Reclassificação': '[ano civil / ano de escolaridade] - “Estudante reclassificado do ___º ano para o ___º ano, mediante avaliação de competência realizada nos termos do Regimento Comum das Escolas Municipais de Limeira/SP. Processo arquivado no prontuário do estudante”.'
+}
 
 # Dados institucionais padrão
 ESCOLA_PADRAO = {
@@ -927,7 +944,30 @@ def renderizar_modulo(banco_path=None):
             st.caption('A frequência deve ser transcrita do registro escolar. Dias letivos e ausências podem ter unidades diferentes, portanto não se presume uma fórmula.')
             tabela(tr,'conceitos',BASE+DIV[3:],['1º trimestre','2º trimestre','3º trimestre'],'tr_notas')
     with tabs[3]:
+        st.subheader('Lançamento de Observações')
+        
+        c1, c2 = st.columns([3, 1])
+        with c1:
+            obs_sel = st.selectbox('Textos padronizados', ['Selecione uma observação para inserir...'] + list(OPCOES_OBSERVACOES.keys()), label_visibility='collapsed')
+        with c2:
+            if st.button('Inserir no texto', use_container_width=True):
+                if obs_sel != 'Selecione uma observação para inserir...':
+                    if d['observacoes'].strip():
+                        d['observacoes'] += '\n' + OPCOES_OBSERVACOES[obs_sel]
+                    else:
+                        d['observacoes'] = OPCOES_OBSERVACOES[obs_sel]
+                    
+                    # Limpar cache do widget para garantir renderização instantânea do texto injetado
+                    k = 'modulo_historico__widget_Observações (até 14 linhas no formulário)'
+                    if k in st.session_state:
+                        del st.session_state[k]
+                    st.rerun()
+
         d['observacoes']=st.text_area('Observações (até 14 linhas no formulário)',value=d['observacoes'],height=180)
+        st.caption('Edite o texto inserido acima conforme necessário (preencha "xx", "___", ou "[ano civil]").')
+        
+        st.divider()
+
         d['certificar']=st.checkbox('Preencher certificado de conclusão do ano',value=d['certificar'])
         if d['certificar']:
             d['serie_certificada']=st.selectbox('Ano concluído a certificar',[1,2,3,4,5],index=d['serie_certificada']-1,format_func=lambda x:f'{x}º ano')

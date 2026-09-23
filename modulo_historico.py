@@ -1,8 +1,7 @@
 """Módulo de histórico escolar para integração em aplicação Streamlit.
 
-Versão revisada: Arquitetura de Painel (Dashboard) na Tela Principal.
-Módulo de Banco de Dados totalmente reescrito para consultar as tabelas
-relacionais nativas do PostgreSQL (Supabase) via st.connection.
+Versão revisada: Retorno ao banco SQLite local persistente com interface 
+de Painel (Dashboard) na tela principal e sincronização de dados.
 """
 import os
 import tempfile
@@ -15,12 +14,13 @@ from decimal import Decimal, InvalidOperation
 import re
 import base64
 import json
+import sqlite3
 import uuid
 from datetime import datetime, timezone
+from contextlib import contextmanager
 
 import pandas as pd
 import streamlit as st
-from sqlalchemy import text
 from io import BytesIO
 from xml.sax.saxutils import escape
 
@@ -644,7 +644,6 @@ def gerar_pdf(dados, rascunho=False):
     p.band('9', 'OBSERVAÇÕES', y, 14)
     y += 14
     height = 150
-    # Caixa principal externa sem pautas horizontais
     p.box(LEFT, y, WIDTH, height, PAPER, LINE)
     
     obs_list = []
@@ -690,126 +689,52 @@ def gerar_pdf(dados, rascunho=False):
     c.save(); buf.seek(0); return buf
 
 # ==============================================================================
-# 3. BANCO DE DADOS (POSTGRESQL / SUPABASE NATIVO)
+# 3. BANCO DE DADOS LOCAL (SQLITE)
 # ==============================================================================
+DB=Path(os.environ.get('HISTORICO_DB_PATH', str(Path(tempfile.gettempdir())/'historicos_escolares.sqlite3')))
 
-def _repo_salvar(d, ra_antigo=None):
-    conn = st.connection("postgresql", type="sql")
-    ra = d['aluno']['ra']
-    
-    with conn.session as s:
-        # Upsert Aluno
-        s.execute(text("""
-            INSERT INTO alunos (ra, nome, nascimento) 
-            VALUES (:ra, :nome, :nasc)
-            ON CONFLICT (ra) DO UPDATE SET 
-                nome = EXCLUDED.nome, 
-                nascimento = EXCLUDED.nascimento
-        """), {"ra": ra, "nome": d['aluno']['nome'], "nasc": d['aluno']['nascimento'] or None})
-        
-        # Limpa matriculas antigas deste RA
-        s.execute(text("DELETE FROM matriculas WHERE ra_aluno = :ra"), {"ra": ra})
-        
-        for i, ano in enumerate(d['anos']):
-            if ano['situacao'] == 'Não cursado' and not ano['ano_letivo']: continue
-            
-            res = s.execute(text("""
-                INSERT INTO matriculas (ra_aluno, serie, ano_letivo, situacao, modalidade, ch_base, ch_div)
-                VALUES (:ra, :serie, :ano_letivo, :situacao, :modalidade, :ch_base, :ch_div)
-                RETURNING id
-            """), {
-                "ra": ra, "serie": i+1, 
-                "ano_letivo": int(ano['ano_letivo']) if str(ano['ano_letivo']).isdigit() else None,
-                "situacao": ano['situacao'], "modalidade": ano['modalidade'],
-                "ch_base": ano['ch_base'] or None, "ch_div": ano['ch_div'] or None
-            })
-            mat_id = res.fetchone()[0]
-            
-            if ano['situacao'] == 'Concluído':
-                for comp, conc in ano['conceitos'].items():
-                    if conc.strip():
-                        s.execute(text("INSERT INTO resultados_finais (matricula_id, tipo, componente, conceito) VALUES (:mid, 'BASE', :comp, :conc)"), {"mid": mat_id, "comp": comp, "conc": conc})
-                        
-                for comp, conc in ano['participacao'].items():
-                    if conc.strip():
-                        s.execute(text("INSERT INTO resultados_finais (matricula_id, tipo, componente, conceito) VALUES (:mid, 'DIVERSIFICADA', :comp, :conc)"), {"mid": mat_id, "comp": comp, "conc": conc})
-        s.commit()
-    return ra
+@contextmanager
+def _repo_conectar():
+    db=sqlite3.connect(DB)
+    db.execute('CREATE TABLE IF NOT EXISTS registros (id TEXT PRIMARY KEY, ra TEXT NOT NULL UNIQUE, nome TEXT NOT NULL, dados TEXT NOT NULL, atualizado TEXT NOT NULL)')
+    db.execute('CREATE TABLE IF NOT EXISTS _repo_emissoes (id TEXT PRIMARY KEY, registro_id TEXT NOT NULL, emitido TEXT NOT NULL, dados TEXT NOT NULL, sha256 TEXT NOT NULL, pdf BLOB NOT NULL)')
+    db.commit()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:db.close()
+
+def _repo_salvar(dados,registro_id=None):
+    ident=registro_id or str(uuid.uuid4());agora=datetime.now(timezone.utc).isoformat()
+    with _repo_conectar() as db:
+        db.execute('INSERT INTO registros VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET ra=excluded.ra,nome=excluded.nome,dados=excluded.dados,atualizado=excluded.atualizado',(ident,dados['aluno']['ra'],dados['aluno']['nome'],json.dumps(dados,ensure_ascii=False),agora))
+    return ident
 
 def _repo_listar():
-    conn = st.connection("postgresql", type="sql")
-    df = conn.query("SELECT ra, nome FROM alunos ORDER BY nome")
-    res = []
-    for _, row in df.iterrows():
-        res.append((row['ra'], row['ra'], row['nome'], ''))
-    return res
+    with _repo_conectar() as db:return db.execute('SELECT id,ra,nome,atualizado FROM registros ORDER BY nome').fetchall()
+
+def _repo_carregar(ident):
+    with _repo_conectar() as db:
+        row=db.execute('SELECT dados FROM registros WHERE id=?',(ident,)).fetchone()
+    if not row:raise ValueError('Registro não encontrado.')
+    return json.loads(row[0])
+
+def _repo_arquivar(registro_id,dados,pdf):
+    ident=str(uuid.uuid4());digest=hashlib.sha256(pdf).hexdigest()
+    with _repo_conectar() as db:
+        db.execute('INSERT INTO _repo_emissoes VALUES (?,?,?,?,?,?)',(ident,registro_id,datetime.now(timezone.utc).isoformat(),json.dumps(dados,ensure_ascii=False),digest,pdf))
+    return ident,digest
+
+def _repo_emissoes(ident):
+    with _repo_conectar() as db:return db.execute('SELECT id,emitido,sha256,pdf FROM _repo_emissoes WHERE registro_id=? ORDER BY emitido DESC',(ident,)).fetchall()
 
 def _repo_obter_todos():
-    conn = st.connection("postgresql", type="sql")
-    df_alunos = conn.query("SELECT ra, nome FROM alunos ORDER BY nome")
-    registros = []
-    for _, row in df_alunos.iterrows():
-        ra = row['ra']
-        nome = row['nome']
-        d = _repo_carregar(ra)
-        registros.append((ra, ra, nome, json.dumps(d), ''))
-    return registros
-
-def _repo_carregar(ra):
-    conn = st.connection("postgresql", type="sql")
-    df_aluno = conn.query("SELECT * FROM alunos WHERE ra = :ra", params={"ra": ra})
-    if df_aluno.empty: raise ValueError('Estudante não encontrado.')
-    aluno = df_aluno.iloc[0]
-    
-    d = novo()
-    d['aluno']['ra'] = str(aluno['ra'] or '')
-    d['aluno']['nome'] = str(aluno['nome'] or '')
-    d['aluno']['nascimento'] = str(aluno['nascimento'])[:10] if pd.notnull(aluno['nascimento']) else ''
-    
-    df_mats = conn.query("""
-        SELECT m.*, r.componente, r.conceito, r.tipo 
-        FROM matriculas m 
-        LEFT JOIN resultados_finais r ON m.id = r.matricula_id 
-        WHERE m.ra_aluno = :ra
-    """, params={"ra": ra})
-    
-    for _, row in df_mats.iterrows():
-        idx = int(row['serie']) - 1
-        if 0 <= idx <= 4:
-            d['anos'][idx]['situacao'] = row['situacao'] if pd.notnull(row['situacao']) else 'Não cursado'
-            if pd.notnull(row['ano_letivo']): d['anos'][idx]['ano_letivo'] = str(int(row['ano_letivo']))
-            if pd.notnull(row['modalidade']): d['anos'][idx]['modalidade'] = row['modalidade']
-            if pd.notnull(row['ch_base']): d['anos'][idx]['ch_base'] = str(row['ch_base'])
-            if pd.notnull(row['ch_div']): d['anos'][idx]['ch_div'] = str(row['ch_div'])
-            
-            # Notas
-            if pd.notnull(row['componente']) and pd.notnull(row['conceito']):
-                comp = row['componente']
-                conc = row['conceito']
-                if comp in BASE:
-                    d['anos'][idx]['conceitos'][comp] = conc
-                elif comp in DIV:
-                    d['anos'][idx]['participacao'][comp] = conc
-    return d
-
-def _repo_arquivar(ra, dados, pdf):
-    conn = st.connection("postgresql", type="sql")
-    ident = str(uuid.uuid4())
-    with conn.session as s:
-        s.execute(text("""
-            INSERT INTO emissoes_pdf (id, ra_aluno, dados, pdf) 
-            VALUES (:id, :ra, :dados, :pdf)
-        """), {"id": ident, "ra": ra, "dados": json.dumps(dados, ensure_ascii=False), "pdf": pdf})
-        s.commit()
-    return ident, ""
-
-def _repo_emissoes(ra):
-    conn = st.connection("postgresql", type="sql")
-    df = conn.query("SELECT id, emitido, pdf FROM emissoes_pdf WHERE ra_aluno = :ra ORDER BY emitido DESC", params={"ra": ra})
-    res = []
-    for _, row in df.iterrows():
-        res.append((str(row['id']), str(row['emitido']), '', row['pdf']))
-    return res
+    with _repo_conectar() as db:
+        rows = db.execute('SELECT id, ra, nome, dados, atualizado FROM registros').fetchall()
+    return rows
 
 repo=SimpleNamespace(salvar=_repo_salvar,listar=_repo_listar,carregar=_repo_carregar,arquivar=_repo_arquivar,emissoes=_repo_emissoes,obter_todos=_repo_obter_todos)
 
@@ -883,7 +808,7 @@ def trocar(d,ident=None):
 
 def renderizar_dashboard():
     st.title("🎓 Gestão de Históricos Escolares")
-    st.markdown("Bem-vindo ao painel principal. Selecione abaixo a operação desejada:")
+    st.markdown("Painel principal unificado. Escolha abaixo a operação desejada:")
     st.divider()
     
     c1, c2 = st.columns(2)
@@ -903,6 +828,16 @@ def renderizar_dashboard():
         if st.button("📦 Emissão de Históricos em Lote (ZIP)", use_container_width=True):
             estado_historico.pagina_atual = 'lote'
             st.rerun()
+            
+    st.divider()
+    with st.expander("Importar Backup de Registros (JSON)"):
+        arquivo = st.file_uploader("Arquivo JSON", type=['json'])
+        if st.button("Importar Dados", disabled=arquivo is None):
+            try:
+                novo_d = importar(arquivo.getvalue())
+                trocar(novo_d)
+            except Exception as exc:
+                st.error(str(exc))
 
 def renderizar_auditoria():
     if st.button("⬅️ Voltar ao Painel Principal"):
@@ -910,16 +845,11 @@ def renderizar_auditoria():
         st.rerun()
         
     st.title("📊 Painel de Auditoria e Progresso")
-    st.markdown("Verifique o status de preenchimento dos históricos escolares cadastrados no banco de dados.")
+    st.markdown("Verifique o status de preenchimento dos históricos escolares salvos.")
     
-    try:
-        registros = repo.obter_todos()
-    except Exception as e:
-        st.error(f"Erro de conexão com o banco de dados. Configure o secrets.toml. Detalhes: {e}")
-        return
-
+    registros = repo.obter_todos()
     if not registros:
-        st.info("Nenhum histórico encontrado no Banco de Dados.")
+        st.info("Nenhum histórico encontrado no banco local.")
         return
 
     dados_tabela = []
@@ -950,13 +880,9 @@ def renderizar_lote():
     st.title("📚 Emissão em Lote")
     st.markdown("Gere um arquivo ZIP com os PDFs de todos os estudantes que estão com o cadastro completo.")
     
-    try:
-        registros = repo.obter_todos()
-    except Exception as e:
-        st.error(f"Erro de conexão: {e}")
-        return
-        
+    registros = repo.obter_todos()
     prontos = []
+    
     for reg in registros:
         ident, ra, nome, json_str, atualizado = reg
         dados_aluno = json.loads(json_str)
@@ -979,7 +905,7 @@ def renderizar_lote():
                         pdf_bytes = gerar_pdf(dados_aluno).getvalue()
                         nome_arquivo = f"Historico_{ra}_{re.sub(r'[^A-Za-z0-9]', '', nome)}.pdf"
                         zip_file.writestr(nome_arquivo, pdf_bytes)
-                        repo.arquivar(ra, dados_aluno, pdf_bytes)
+                        repo.arquivar(ident, dados_aluno, pdf_bytes)
                     except Exception as e:
                         st.error(f"Erro ao gerar PDF de {nome}: {e}")
                         
@@ -998,14 +924,9 @@ def renderizar_consulta():
     st.title("🔍 Consultar Registros")
     st.markdown("Pesquise pelo nome ou RA do estudante para abrir a ficha e editar os dados.")
     
-    try:
-        registros = repo.listar()
-    except Exception as e:
-        st.error(f"Erro de conexão com o banco de dados. Configure o secrets.toml. Detalhes: {e}")
-        return
-        
+    registros = repo.listar()
     if not registros:
-        st.info("Nenhum histórico encontrado no Banco de Dados.")
+        st.info("Nenhum histórico encontrado no banco local.")
         return
         
     pesquisa = st.text_input("Pesquisar Estudante", placeholder="Digite o nome ou RA...")
@@ -1018,9 +939,9 @@ def renderizar_consulta():
                 c1, c2 = st.columns(2)
                 with c1:
                     if st.button("✏️ Abrir e Editar Ficha", key=f"edit_{ident}", use_container_width=True):
-                        trocar(repo.carregar(ra), ra)
+                        trocar(repo.carregar(ident), ident)
                 with c2:
-                    emissoes = repo.emissoes(ra)
+                    emissoes = repo.emissoes(ident)
                     if emissoes:
                         for eid, dt, digest, pdf in emissoes:
                             st.download_button(f"📄 Baixar PDF ({dt[:10]})", pdf, file_name=f"Historico_{ra}.pdf", key=f"dl_{eid}", use_container_width=True)
@@ -1152,7 +1073,7 @@ def renderizar_edicao(d):
                 else:
                     try:
                         repo.salvar(d,estado_historico.get('ident'))
-                        st.success('Registro salvo no Supabase!')
+                        st.success('Registro salvo com sucesso!')
                     except Exception as exc:
                         st.error(str(exc))
         with cs[1]:
@@ -1164,7 +1085,7 @@ def renderizar_edicao(d):
                 try:
                     pdf=gerar_pdf(d).getvalue()
                     ident=repo.salvar(d,estado_historico.get('ident'));estado_historico.ident=ident
-                    repo.arquivar(d['aluno']['ra'],d,pdf)
+                    repo.arquivar(ident,d,pdf)
                     estado_historico.pdf=(assinatura,pdf,'Historico');st.success('PDF emitido e cópia arquivada nesta instância.')
                 except Exception as exc:st.error(str(exc))
                 
@@ -1183,7 +1104,11 @@ def renderizar_edicao(d):
         elif result:
             st.info('Os dados mudaram. Gere uma nova prévia ou emissão.')
 
-def renderizar_modulo(banco_path=None):    
+def renderizar_modulo(banco_path=None):
+    global DB
+    if banco_path is not None: DB=Path(banco_path)
+    DB.parent.mkdir(parents=True,exist_ok=True)
+    
     if not estado_historico.get('pagina_atual'):
         estado_historico.pagina_atual = 'dashboard'
         

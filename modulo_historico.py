@@ -3,7 +3,7 @@
 Versão revisada: adequação estrita do layout vetorial (frente e verso) 
 ao padrão de formulário monocromático/tabular da Prefeitura, com cabeçalho limpo,
 remoção de notas de rodapé (2.4 e obs 3.1), adição de quebras de seção e 
-margens de tolerância corrigidas para textos longos (Leis).
+ajuste nas cores/posicionamento do bloco de currículo e escolaridade (2.1/2.2).
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -448,18 +448,21 @@ def gerar_pdf(dados, rascunho=False):
     
     p.band('2', 'RESULTADO DOS ESTUDOS REALIZADOS NO ENSINO FUNDAMENTAL', y, 14)
     y += 14
-    p.box(LEFT, y, WIDTH, 14, PAPER, LINE)
+    # Linha 2.1 (Fundo Cinza) - Currículo a frente do número
+    p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     p.box(LEFT, y, 20, 14, None, LINE); p.text('2.1', LEFT, y+3, 20, 8.5, True, 'center')
+    p.text('CURRÍCULO', LEFT+24, y+3, 270, 8.5, True)
     p.box(LEFT+300, y, 20, 14, None, LINE); p.text('2.2', LEFT+300, y+3, 20, 8.5, True, 'center')
     p.text('ESCOLARIDADE', LEFT+320, y+3, WIDTH-320, 8.5, True, 'center')
     
     y += 14
-    p.box(LEFT, y, WIDTH, 35, PAPER, LINE)
-    p.text('CURRÍCULO', LEFT+2, y+3, 280, 8.5, True)
-    legal=('Lei Federal nº 9.394/1996, art. 26; Deliberação CME nº 02/2016; Resolução SME nº 11/2016; Resolução CNE/CP nº 02/2017; Resolução SME nº 06/2020; Resolução CNE/CEB nº 01/2022; Lei nº 14.640/2023; Resolução CNE/CEB nº 02/2025; Resolução CNE/CEB nº 07/2025; Decreto Municipal nº 405/2022; Resolução SME nº 03/2026')
-    p.fit_lines(legal, LEFT+2, y+12, 290, 23, 5.0, 4.8) # Ajustado margens e entrelinhas para não exceder 
+    # Linha de baixo: Lado Esquerdo Cinza, Lado Direito Branco
+    p.box(LEFT, y, 300, 35, PALE, LINE)
+    p.box(LEFT+300, y, WIDTH-300, 35, PAPER, LINE)
     
-    p.rule(LEFT+300, y, LEFT+300, y+35)
+    legal=('Lei Federal nº 9.394/1996, art. 26; Deliberação CME nº 02/2016; Resolução SME nº 11/2016; Resolução CNE/CP nº 02/2017; Resolução SME nº 06/2020; Resolução CNE/CEB nº 01/2022; Lei nº 14.640/2023; Resolução CNE/CEB nº 02/2025; Resolução CNE/CEB nº 07/2025; Decreto Municipal nº 405/2022; Resolução SME nº 03/2026')
+    p.fit_lines(legal, LEFT+2, y+3, 290, 29, 5.5, 6.5) 
+    
     p.text('Anos Iniciais', LEFT+300, y+15, WIDTH-300, 9, True, 'center')
     
     y += 35

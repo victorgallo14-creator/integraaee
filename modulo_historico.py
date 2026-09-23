@@ -477,7 +477,7 @@ def gerar_pdf(dados, rascunho=False):
     legal = ('Lei Federal nº 9.394/1996, art. 26; Deliberação CME nº 02/2016; Resolução SME nº 11/2016; Resolução CNE/CP '
              'nº 02/2017; Resolução SME nº 06/2020; Resolução CNE/CEB nº 01/2022; Lei nº 14.640/2023; Resolução '
              'CNE/CEB nº 02/2025; Resolução CNE/CEB nº 07/2025; Decreto Municipal nº 405/2022; Resolução SME nº 03/2026')
-    p.paragraph(legal, LEFT, y, 300, 49, size=8, leading=7, justify=True)
+    p.paragraph(legal, LEFT, y, 300, 49, size=8, leading=9, justify=True)
     
     p.text('Anos Iniciais', LEFT+300, y+15, WIDTH-300, 9, True, 'center')
     

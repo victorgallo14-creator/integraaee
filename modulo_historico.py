@@ -1,9 +1,9 @@
 """Módulo de histórico escolar para integração em aplicação Streamlit.
 
 Versão revisada: adequação estrita do layout vetorial (frente e verso) 
-ao padrão de formulário monocromático/tabular da Prefeitura, com cabeçalho limpo,
-remoção de notas de rodapé (2.4 e obs 3.1), adição de quebras de seção e 
-ajuste nas cores/posicionamento do bloco de currículo e escolaridade (2.1/2.2).
+ao padrão de formulário monocromático/tabular da Prefeitura. Células de
+Currículo e AEE mescladas verticalmente, textos legais justificados e
+fontes de dados de nascimento igualadas e espaçadas.
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -215,6 +215,8 @@ from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import Paragraph
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT
 from reportlab.lib.utils import ImageReader, simpleSplit
 from reportlab.lib.colors import HexColor
 from reportlab.pdfbase.ttfonts import TTFont
@@ -269,11 +271,26 @@ class Page:
         if align=='center': c.drawCentredString(x+w/2,baseline,value)
         elif align=='right': c.drawRightString(x+w-2,baseline,value)
         else: c.drawString(x+2,baseline,value)
+    
+    # Novo método para alinhar e justificar textos em blocos longos
+    def paragraph(self, text, x, y, w, h, size=7, leading=9, color=INK, justify=False):
+        style = ParagraphStyle(
+            name='ParaStyle', 
+            fontName=_REG, 
+            fontSize=size, 
+            leading=leading, 
+            alignment=TA_JUSTIFY if justify else TA_LEFT, 
+            textColor=color
+        )
+        p = Paragraph(text, style)
+        aw, ah = p.wrap(w - 6, h) # Deixa margem de 3pt de cada lado
+        # O Paragraph é desenhado a partir da base no ReportLab
+        p.drawOn(self.c, x + 3, A4[1] - y - ah - 3) # Margem de 3pt no topo
+        
     def fit_lines(self,value,x,y,w,h,size=7.1,leading=9,color=INK):
         rows=[]
         for paragraph in str(value or '').split('\n'):
             rows.extend(simpleSplit(paragraph,_REG,size,w-6) if paragraph else [''])
-        # Tolerância aumentada (+5) para evitar erros com descrições muito compridas em caixas estáticas
         if len(rows)*leading > h + 5:
             raise ValueError('Texto excede o espaço reservado no PDF: '+str(value)[:65])
         for i,line in enumerate(rows): self.text(line,x+2,y+2+i*leading,w-4,size,color=color,minsize=4)
@@ -287,7 +304,7 @@ class Page:
         else:
             self.text(title,LEFT,y+3,WIDTH,8.5,True,'center')
     def footer(self,page):
-        pass # Sem rodapé no padrão visual fornecido
+        pass
     def matrix(self,y,rows,values,heading=True,row_h=12,col0=282,headers=None):
         cols=[LEFT+col0+i*(WIDTH-col0)/5 for i in range(6)]
         for i,name in enumerate(rows):
@@ -377,11 +394,11 @@ def gerar_pdf(dados, rascunho=False):
     # ========================== FRENTE ==========================
     _header(p,e)
     
-    y = 117 # Quebra adicionada entre o cabeçalho e o bloco 1.1
+    y = 117
     
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     p.box(LEFT, y, 20, 14, None, LINE)
-    p.text('1.1', LEFT, y+3, 20, 8.5, True, 'center')
+    p.text('1.', LEFT, y+3, 20, 8.5, True, 'center') # Substituído 1.1 por 1.
     p.text('DADOS DO ESTUDANTE', LEFT+24, y+3, 200, 8.5, True)
     p.box(RIGHT-150, y, 150, 14, None, LINE)
     p.text('RA', RIGHT-150, y+3, 150, 8.5, True, 'center')
@@ -391,36 +408,38 @@ def gerar_pdf(dados, rascunho=False):
     p.text('NOME DO ALUNO:', LEFT+2, y+3, 100, 8, True)
     p.text(a['nome'], LEFT+90, y+3, 250, 9)
     p.box(RIGHT-150, y, 150, 14, None, LINE)
-    p.text('RA ESCOLAR:', RIGHT-148, y+3, 140, 8, True); p.text(a['ra_escolar'], RIGHT-80, y+3, 75, 8.5)
+    # Substituído RA ESCOLAR por R.M. e reposicionado 
+    p.text('R.M.:', RIGHT-148, y+3, 140, 8, True); p.text(a['ra_escolar'], RIGHT-115, y+3, 75, 8.5)
     p.text(a['ra'], RIGHT-150, y-11, 150, 9, align='center') 
     
     y += 14
-    p.box(LEFT, y, WIDTH, 18, PAPER, LINE)
-    p.text('NASCIMENTO:', LEFT+2, y+5, 90, 8, True)
+    # Aumentado o espaço e as fontes da linha de Nascimento para igualar ao resto
+    p.box(LEFT, y, WIDTH, 24, PAPER, LINE) 
+    p.text('NASCIMENTO:', LEFT+2, y+8, 90, 8, True)
     
     col_w = (WIDTH - 90 - 75) / 3 
     c1 = LEFT + 90
-    p.box(c1, y, col_w, 9, None, LINE); p.text('LOCALIDADE', c1, y+1, col_w, 6, True, 'center')
-    p.box(c1, y+9, col_w, 9, None, LINE); p.text(a['localidade'], c1, y+10, col_w, 8, align='center')
+    p.box(c1, y, col_w, 12, None, LINE); p.text('LOCALIDADE', c1, y+2, col_w, 8, True, 'center')
+    p.box(c1, y+12, col_w, 12, None, LINE); p.text(a['localidade'], c1, y+14, col_w, 8, align='center')
     
     c2 = c1 + col_w
-    p.box(c2, y, col_w, 9, None, LINE); p.text('ESTADO', c2, y+1, col_w, 6, True, 'center')
-    p.box(c2, y+9, col_w, 9, None, LINE); p.text(a['uf'], c2, y+10, col_w, 8, align='center')
+    p.box(c2, y, col_w, 12, None, LINE); p.text('ESTADO', c2, y+2, col_w, 8, True, 'center')
+    p.box(c2, y+12, col_w, 12, None, LINE); p.text(a['uf'], c2, y+14, col_w, 8, align='center')
     
     c3 = c2 + col_w
-    p.box(c3, y, col_w, 9, None, LINE); p.text('NACIONALIDADE', c3, y+1, col_w, 6, True, 'center')
-    p.box(c3, y+9, col_w, 9, None, LINE); p.text(a['nacionalidade'], c3, y+10, col_w, 8, align='center')
+    p.box(c3, y, col_w, 12, None, LINE); p.text('NACIONALIDADE', c3, y+2, col_w, 8, True, 'center')
+    p.box(c3, y+12, col_w, 12, None, LINE); p.text(a['nacionalidade'], c3, y+14, col_w, 8, align='center')
     
     c_date = c3 + col_w
     d_day, d_month, d_year = _date_parts(a['nascimento'])
-    p.box(c_date, y, 25, 9, None, LINE); p.text('DIA', c_date, y+1, 25, 6, True, 'center')
-    p.box(c_date, y+9, 25, 9, None, LINE); p.text(d_day, c_date, y+10, 25, 8, align='center')
-    p.box(c_date+25, y, 25, 9, None, LINE); p.text('MÊS', c_date+25, y+1, 25, 6, True, 'center')
-    p.box(c_date+25, y+9, 25, 9, None, LINE); p.text(d_month, c_date+25, y+10, 25, 8, align='center')
-    p.box(c_date+50, y, 25, 9, None, LINE); p.text('ANO', c_date+50, y+1, 25, 6, True, 'center')
-    p.box(c_date+50, y+9, 25, 9, None, LINE); p.text(d_year, c_date+50, y+10, 25, 8, align='center')
+    p.box(c_date, y, 25, 12, None, LINE); p.text('DIA', c_date, y+2, 25, 8, True, 'center')
+    p.box(c_date, y+12, 25, 12, None, LINE); p.text(d_day, c_date, y+14, 25, 8, align='center')
+    p.box(c_date+25, y, 25, 12, None, LINE); p.text('MÊS', c_date+25, y+2, 25, 8, True, 'center')
+    p.box(c_date+25, y+12, 25, 12, None, LINE); p.text(d_month, c_date+25, y+14, 25, 8, align='center')
+    p.box(c_date+50, y, 25, 12, None, LINE); p.text('ANO', c_date+50, y+2, 25, 8, True, 'center')
+    p.box(c_date+50, y+12, 25, 12, None, LINE); p.text(d_year, c_date+50, y+14, 25, 8, align='center')
     
-    y += 18
+    y += 24
     p.box(LEFT, y, WIDTH, 14, PAPER, LINE)
     p.box(LEFT, y, 20, 14, None, LINE)
     p.text('1.2', LEFT, y+3, 20, 8.5, True, 'center')
@@ -444,41 +463,46 @@ def gerar_pdf(dados, rascunho=False):
     p.box(LEFT, y, WIDTH, 14, PAPER, LINE)
     p.text('ESTRANGEIRO - DOCUMENTO:', LEFT+2, y+3, 160, 8, True); p.text(a['documento_estrangeiro'], LEFT+165, y+3, 300, 8.5)
     
-    y += 24 # Quebra para Bloco 2
+    y += 24
     
     p.band('2', 'RESULTADO DOS ESTUDOS REALIZADOS NO ENSINO FUNDAMENTAL', y, 14)
     y += 14
-    # Linha 2.1 (Fundo Cinza) - Currículo a frente do número
+    
+    # 2.1 (Fundo Cinza) - Currículo a frente do número (conforme a imagem enviada)
     p.box(LEFT, y, WIDTH, 14, PALE, LINE)
     p.box(LEFT, y, 20, 14, None, LINE); p.text('2.1', LEFT, y+3, 20, 8.5, True, 'center')
-    p.text('CURRÍCULO', LEFT+24, y+3, 270, 8.5, True)
+    p.text('CURRÍCULO', LEFT+24, y+3, 270, 8.5, True) # Movido pra cima
     p.box(LEFT+300, y, 20, 14, None, LINE); p.text('2.2', LEFT+300, y+3, 20, 8.5, True, 'center')
     p.text('ESCOLARIDADE', LEFT+320, y+3, WIDTH-320, 8.5, True, 'center')
     
     y += 14
-    # Linha de baixo: Lado Esquerdo Cinza, Lado Direito Branco
-    p.box(LEFT, y, 300, 35, PALE, LINE)
-    p.box(LEFT+300, y, WIDTH-300, 35, PAPER, LINE)
     
-    legal=('Lei Federal nº 9.394/1996, art. 26; Deliberação CME nº 02/2016; Resolução SME nº 11/2016; Resolução CNE/CP nº 02/2017; Resolução SME nº 06/2020; Resolução CNE/CEB nº 01/2022; Lei nº 14.640/2023; Resolução CNE/CEB nº 02/2025; Resolução CNE/CEB nº 07/2025; Decreto Municipal nº 405/2022; Resolução SME nº 03/2026')
-    p.fit_lines(legal, LEFT+2, y+3, 290, 29, 5.5, 6.5) 
+    # Textos da Lei - Mesclagem da célula com a linha vazia logo abaixo
+    # 35pts (Lei) + 14pts (Linha Vazia) = 49pts totais para os textos legais
+    p.box(LEFT, y, 300, 49, PALE, LINE)
+    p.box(LEFT+300, y, WIDTH-300, 35, PAPER, LINE) 
+    
+    legal = ('Lei Federal nº 9.394/1996, art. 26; Deliberação CME nº 02/2016; Resolução SME nº 11/2016; Resolução CNE/CP '
+             'nº 02/2017; Resolução SME nº 06/2020; Resolução CNE/CEB nº 01/2022; Lei nº 14.640/2023; Resolução '
+             'CNE/CEB nº 02/2025; Resolução CNE/CEB nº 07/2025; Decreto Municipal nº 405/2022; Resolução SME nº 03/2026')
+    # Aplicando Justificação Paragráfica de acordo com o pedido
+    p.paragraph(legal, LEFT, y, 300, 49, size=5.5, leading=7, justify=True)
     
     p.text('Anos Iniciais', LEFT+300, y+15, WIDTH-300, 9, True, 'center')
     
-    y += 35
-    p.box(LEFT, y, WIDTH, 14, PALE, LINE)
+    # Renderização exclusiva da linha direita inferior mantendo a esquerda vazada e cinza
     cols=[LEFT+300+i*(WIDTH-300)/5 for i in range(6)]
     for j in range(5):
-        p.text(f'{j+1}º Ano', cols[j], y+3, cols[j+1]-cols[j], 8.5, True, 'center')
-        p.rule(cols[j], y, cols[j], y+14)
-    p.rule(cols[5], y, cols[5], y+14)
+        p.box(cols[j], y+35, cols[j+1]-cols[j], 14, PALE, LINE)
+        p.text(f'{j+1}º Ano', cols[j], y+35+3, cols[j+1]-cols[j], 8.5, True, 'center')
+        
+    y += 49
     
-    y += 14
     y = p.matrix(y, BASE, [x['conceitos'] if x['situacao']=='Concluído' else {} for x in anos], heading=False, row_h=12, col0=300)
     
     p.load_row(y, 'CARGA HORÁRIA', [v(x, lambda z: carga(z,'base')) for x in anos], h=14, col0=300, num='2.3', align_title='left')
     
-    y += 24 # Quebra para Bloco 3, item 2.4 excluído
+    y += 24 
     
     p.band('3', 'PARTE DIVERSIFICADA', y, 14)
     y += 14
@@ -492,13 +516,13 @@ def gerar_pdf(dados, rascunho=False):
     
     p.load_row(y, 'CARGA HORÁRIA', [v(x, lambda z: carga(z,'div')) for x in anos], h=14, col0=300, num='3.1')
     
-    y += 24 # Quebra para Bloco 4, notas de observações 3.1 excluídas
+    y += 24 
     
     p.band('4', 'ENSINO RELIGIOSO (art. 33-LDB e Deliberação CME nº 02/2016)', y, 14)
     y += 14
     p.load_row(y, 'CARGA HORÁRIA', [v(x, lambda z: z['ch_religioso']) for x in anos], h=14, col0=300)
     
-    y += 24 # Quebra para Bloco 5
+    y += 24 
     
     p.box(LEFT, y, WIDTH, 24, PALE, LINE)
     p.box(LEFT, y, 20, 24, None, LINE); p.text('5', LEFT, y+8, 20, 8.5, True, 'center')
@@ -506,23 +530,33 @@ def gerar_pdf(dados, rascunho=False):
     p.text('Decreto Nº 12.686/2025- Indicação Cme Nº02/2023 -Decreto Municipal Nº 23/2026', LEFT+24, y+14, WIDTH-24, 6, True)
     
     y += 24
-    p.box(LEFT, y, WIDTH, 16, PAPER, LINE)
-    p.fit_lines('Indicar a sigla AEE (Atendimento Educacional Especializado) para o estudante que frequentou esse tipo de atendimento no respectivo ano.', LEFT+2, y+2, 296, 14, 5.5, 6.5)
+    
+    # Bloco AEE - Mesclagem da célula lateral esquerda acompanhando a altura combinada (16 + 14 = 30)
+    p.box(LEFT, y, 300, 30, PAPER, LINE)
+    p.paragraph('Indicar a sigla AEE (Atendimento Educacional Especializado) para o estudante que frequentou esse tipo de atendimento no respectivo ano.', LEFT, y, 300, 30, size=6.5, leading=8.5, justify=False)
+    
     for j in range(5):
-        p.rule(cols[j], y, cols[j], y+16)
-        p.box(cols[j], y, cols[j+1]-cols[j], 16, PALE, None)
+        p.box(cols[j], y, cols[j+1]-cols[j], 16, PALE, LINE)
         p.text(f'{j+1}º ano', cols[j], y+4, cols[j+1]-cols[j], 8.5, True, 'center')
     
     y += 16
-    p.load_row(y, '', [v(x, lambda z: 'AEE' if z['aee'] else '-') for x in anos], h=14, col0=300)
     
-    y += 24 # Quebra para Bloco 6
+    cw_aee = (WIDTH - 300) / 5
+    aee_values = [v(x, lambda z: 'AEE' if z['aee'] else '-') for x in anos]
+    for j, val in enumerate(aee_values):
+        x_pos = cols[j]
+        p.box(x_pos, y, cw_aee, 14, PAPER, LINE)
+        p.text(val, x_pos, y+3, cw_aee, 8, True, 'center')
+        
+    y += 14
+    
+    y += 24 
     
     p.band('6', 'TOTAL DA CARGA HORÁRIA (CAMPO 2 + CAMPO 3)', y, 14)
     y += 14
     p.load_row(y, '', [v(x, total) for x in anos], h=14, col0=300)
     
-    y += 24 # Quebra para Bloco 7
+    y += 24 
     
     p.band('7', 'ESTUDOS REALIZADOS', y, 14)
     y += 14
@@ -619,7 +653,7 @@ def gerar_pdf(dados, rascunho=False):
     y += 14
     y = trimester(y, DIV[3:], trimvals(DIV[3:]))
     
-    y += 14 # Margem antes de Observações
+    y += 14 
     p.band('9', 'OBSERVAÇÕES', y, 14)
     y += 14
     height = 150
@@ -628,7 +662,7 @@ def gerar_pdf(dados, rascunho=False):
         p.rule(LEFT, y+j*10, RIGHT, y+j*10, PALE, 0.5)
     p.fit_lines(dados['observacoes'], LEFT+5, y+2, WIDTH-10, height-4, 8, 10)
     
-    y += height + 14 # Margem antes de Certificado
+    y += height + 14 
     p.band('10', 'CERTIFICADO', y, 14)
     y += 14
     p.box(LEFT, y, WIDTH, 56, PAPER, LINE)
@@ -640,10 +674,10 @@ def gerar_pdf(dados, rascunho=False):
     p.text(a['nome'] if dados['certificar'] else '', LEFT+5, y+34, WIDTH-10, 9, True)
     p.rule(LEFT+5, y+44, RIGHT-5, y+44, LINE, 0.5)
     
-    cert = (f"RA {a['ra']}  ·  concluiu o {dados['serie_certificada']}º ano do Ensino Fundamental em {dados['ano_certificado']}." if dados['certificar'] else 'RA:                                                               Conclusão:                                                                                 Ano letivo:')
+    cert = (f"R.M. {a['ra']}  ·  concluiu o {dados['serie_certificada']}º ano do Ensino Fundamental em {dados['ano_certificado']}." if dados['certificar'] else 'R.M.:                                                               Conclusão:                                                                                 Ano letivo:')
     p.text(cert, LEFT+5, y+46, WIDTH-10, 8.5)
     
-    y += 66 + 10 # Margem de Assinatura
+    y += 66 + 10 
     p.band('11', 'ASSINATURAS', y, 14)
     y += 14
     p.box(LEFT, y, WIDTH, 70, PAPER, LINE)
@@ -809,7 +843,7 @@ def renderizar_modulo(banco_path=None):
             for i,(k,label) in enumerate(labels.items()):
                 with cs[i%2]:texto(d['escola'],k,label,id='escola_'+k)
         st.subheader('Estudante')
-        labels={'nome':'Nome completo','ra':'RA','ra_escolar':'RA escolar (se houver)','nascimento':'Nascimento (AAAA-MM-DD)','localidade':'Localidade de nascimento','uf':'UF de nascimento','nacionalidade':'Nacionalidade','distrito':'(Sub)distrito da certidão antiga','livro':'Livro da certidão antiga','cidade_certidao':'Cidade da certidão antiga','uf_certidao':'UF da certidão antiga','matricula_certidao':'Matrícula da certidão nova','documento_estrangeiro':'Documento estrangeiro (quando aplicável)'}
+        labels={'nome':'Nome completo','ra':'RA','ra_escolar':'R.M. (se houver)','nascimento':'Nascimento (AAAA-MM-DD)','localidade':'Localidade de nascimento','uf':'UF de nascimento','nacionalidade':'Nacionalidade','distrito':'(Sub)distrito da certidão antiga','livro':'Livro da certidão antiga','cidade_certidao':'Cidade da certidão antiga','uf_certidao':'UF da certidão antiga','matricula_certidao':'Matrícula da certidão nova','documento_estrangeiro':'Documento estrangeiro (quando aplicável)'}
         cs=st.columns(2)
         for i,(k,label) in enumerate(labels.items()):
             with cs[i%2]:texto(d['aluno'],k,label,id='aluno_'+k)

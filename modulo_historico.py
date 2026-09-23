@@ -1,10 +1,8 @@
 """Módulo de histórico escolar para integração em aplicação Streamlit.
 
-Versão revisada: Arquitetura de Painel (Dashboard). Adição de roteamento
-para Auditoria de Notas, Emissão em Lote (via ZIP), Consulta e Edição Individual.
-O layout do PDF vetorial está travado e finalizado.
-
-Dependências adicionais para o lote: módulo nativo 'zipfile'.
+Versão revisada: Arquitetura de Painel (Dashboard) na Tela Principal.
+Navegação via botões centrais, remoção completa da sidebar e roteamento 
+baseado em estado. O layout do PDF permanece inalterado e travado.
 """
 import os
 import tempfile
@@ -238,7 +236,7 @@ def exemplo():
     return d
 
 # ==============================================================================
-# 2. GERAÇÃO VETORIAL DO PDF
+# 2. GERAÇÃO VETORIAL DO PDF (Travado)
 # ==============================================================================
 _LOGO_ARQUIVO = 'logo_prefeitura.png'
 def _caminho_logo_prefeitura():
@@ -247,11 +245,9 @@ def _caminho_logo_prefeitura():
     return None
 
 INK = HexColor('#000000')
-BLUE = HexColor('#000000') 
 PALE = HexColor('#D9D9D9')
 PAPER = HexColor('#FFFFFF')
 LINE = HexColor('#000000')
-MUTED = HexColor('#000000')
 
 LEFT, RIGHT = 36, A4[0] - 36
 WIDTH = RIGHT - LEFT
@@ -357,16 +353,13 @@ def _header(p,e):
         try:
             c.drawImage(ImageReader(str(logo)),LEFT+5,A4[1]-95,85,85,preserveAspectRatio=True,anchor='c',mask='auto')
         except Exception: pass
-    
     ox = LEFT + 100
     val_x = ox + 80 
     lh = 11 
     cy = 15
     label_color = HexColor('#444444')
-    
     p.text('SECRETARIA MUNICIPAL DE EDUCAÇÃO DE LIMEIRA/SP', ox, cy, WIDTH-90, 9.5, True)
     cy+=16
-    
     p.text('ESCOLA:', ox, cy, 75, 7.5, True, color=label_color); p.text(e['nome'], val_x, cy, 330, 8.5, True)
     cy+=lh
     p.text('ATO DE CRIAÇÃO:', ox, cy, 75, 7.5, True, color=label_color); p.text(e['ato'], val_x, cy, 310, 8.5)
@@ -380,7 +373,6 @@ def _header(p,e):
     p.text('TELEFONES:', ox+130, cy, 65, 7.5, True, color=label_color); p.text(e['telefone'], ox+190, cy, 210, 8.5)
     cy+=lh
     p.text('E-MAIL:', ox, cy, 40, 7.5, True, color=label_color); p.text(e['email'], val_x, cy, 350, 8.5)
-    
     cy+=16
     p.band(None, 'HISTÓRICO ESCOLAR', cy, 14)
 
@@ -748,7 +740,7 @@ def _repo_obter_todos(caminho):
 repo=SimpleNamespace(conectar=_repo_conectar,salvar=_repo_salvar,listar=_repo_listar,carregar=_repo_carregar,arquivar=_repo_arquivar,emissoes=_repo_emissoes,obter_todos=_repo_obter_todos)
 
 # ==============================================================================
-# 4. INTERFACE STREAMLIT E PAINEL (DASHBOARD)
+# 4. INTERFACE STREAMLIT (TELA PRINCIPAL / DASHBOARD)
 # ==============================================================================
 DB=Path(os.environ.get('HISTORICO_DB_PATH', str(Path(tempfile.gettempdir())/'historicos_escolares.sqlite3')))
 
@@ -758,9 +750,6 @@ class _EstadoHistorico:
     def __getattr__(self, key): return st.session_state[self.prefixo+key]
     def __setattr__(self, key, value): st.session_state[self.prefixo+key]=value
     def get(self, key, default=None): return st.session_state.get(self.prefixo+key,default)
-    def clear(self):
-        for key in list(st.session_state):
-            if str(key).startswith(self.prefixo): del st.session_state[key]
 
 estado_historico=_EstadoHistorico()
 
@@ -799,7 +788,7 @@ def importar(raw):
         if isinstance(ref,dict):
             if not isinstance(valor,dict):raise ValueError('Campos incompatíveis em '+path)
             for k in ref:
-                if k not in valor: valor[k] = deepcopy(ref[k])
+                if k not in valor: valor[k] = deepcopy(ref[k]) 
                 estrutura(ref[k],valor[k],path+'/'+k)
         elif isinstance(ref,list):
             if not isinstance(valor,list) or len(ref)!=len(valor):raise ValueError('Quantidade de itens inválida em '+path)
@@ -810,19 +799,63 @@ def importar(raw):
     return d
 
 def trocar(d,ident=None):
-    estado_historico.clear()
-    estado_historico.dados=d;estado_historico.ident=ident
+    # Limpa apenas chaves antigas de formulário
+    for key in list(st.session_state):
+        if str(key).startswith('modulo_historico__'):
+            del st.session_state[key]
+    estado_historico.dados=d
+    estado_historico.ident=ident
+    estado_historico.pagina_atual = 'edicao'
     st.rerun()
 
 # ----------------- TELAS DO SISTEMA -----------------
 
+def renderizar_dashboard():
+    st.title("🎓 Histórico Escolar")
+    st.markdown("Bem-vindo ao módulo de gestão de históricos escolares. Escolha uma das opções abaixo para começar:")
+    st.divider()
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        st.subheader("📝 Gestão de Estudantes")
+        if st.button("Novo Histórico Escolar", use_container_width=True):
+            trocar(novo())
+        if st.button("🔍 Consultar e Editar Registros", use_container_width=True):
+            estado_historico.pagina_atual = 'consulta'
+            st.rerun()
+            
+    with c2:
+        st.subheader("📚 Emissão e Controle")
+        if st.button("📊 Auditoria e Progresso das Turmas", use_container_width=True):
+            estado_historico.pagina_atual = 'auditoria'
+            st.rerun()
+        if st.button("📦 Emissão em Lote (ZIP)", use_container_width=True):
+            estado_historico.pagina_atual = 'lote'
+            st.rerun()
+            
+    st.divider()
+    with st.expander("Ferramentas Avançadas / Backup"):
+        arquivo=st.file_uploader('Importar Registro JSON',type=['json'])
+        if st.button('Importar registro',disabled=arquivo is None):
+            try:
+                novo_d=importar(arquivo.getvalue())
+                trocar(novo_d)
+            except Exception as exc:
+                st.error(str(exc))
+        if st.button('Carregar exemplo fictício'):
+            trocar(exemplo())
+
 def renderizar_auditoria():
+    if st.button("⬅️ Voltar ao Painel"):
+        estado_historico.pagina_atual = 'dashboard'
+        st.rerun()
+        
     st.title("📊 Painel de Auditoria e Progresso")
     st.markdown("Verifique o status de preenchimento dos históricos escolares cadastrados no banco de dados.")
     
     registros = repo.obter_todos(DB)
     if not registros:
-        st.info("Nenhum histórico salvo ainda. Crie um novo registro no menu lateral.")
+        st.info("Nenhum histórico salvo ainda. Crie um novo registro no menu principal.")
         return
 
     dados_tabela = []
@@ -847,6 +880,10 @@ def renderizar_auditoria():
     st.dataframe(df, use_container_width=True, hide_index=True)
 
 def renderizar_lote():
+    if st.button("⬅️ Voltar ao Painel"):
+        estado_historico.pagina_atual = 'dashboard'
+        st.rerun()
+        
     st.title("📚 Emissão em Lote")
     st.markdown("Selecione os estudantes prontos para gerar um arquivo ZIP contendo todos os PDFs de uma vez.")
     
@@ -875,7 +912,6 @@ def renderizar_lote():
                         pdf_bytes = gerar_pdf(dados_aluno).getvalue()
                         nome_arquivo = f"Historico_{ra}_{re.sub(r'[^A-Za-z0-9]', '', nome)}.pdf"
                         zip_file.writestr(nome_arquivo, pdf_bytes)
-                        # Salva cópia na tabela de emissões do banco também
                         repo.arquivar(DB, ident, dados_aluno, pdf_bytes)
                     except Exception as e:
                         st.error(f"Erro ao gerar PDF de {nome}: {e}")
@@ -888,6 +924,10 @@ def renderizar_lote():
             )
 
 def renderizar_consulta():
+    if st.button("⬅️ Voltar ao Painel"):
+        estado_historico.pagina_atual = 'dashboard'
+        st.rerun()
+        
     st.title("🔍 Consultar Registros")
     st.markdown("Busque e selecione um estudante para visualizar o histórico de emissões ou enviá-lo para a tela de edição.")
     
@@ -920,6 +960,12 @@ def renderizar_consulta():
         st.warning("Nenhum registro corresponde à sua busca.")
 
 def renderizar_edicao(d):
+    c1, c2 = st.columns([1, 5])
+    with c1:
+        if st.button("⬅️ Voltar ao Painel", use_container_width=True):
+            estado_historico.pagina_atual = 'dashboard'
+            st.rerun()
+            
     st.title('Emissão de Histórico Individual')
     st.caption('Ensino Fundamental • Anos iniciais • Modelo municipal 2026')
     
@@ -1065,40 +1111,26 @@ def renderizar_edicao(d):
             st.info('Os dados mudaram. Gere uma nova prévia ou emissão.')
 
 def renderizar_modulo(banco_path=None):
-    """Função Principal: Define Banco, Roteamento do Menu e Renderiza Tela."""
     global DB
     if banco_path is not None: DB=Path(banco_path)
     DB.parent.mkdir(parents=True,exist_ok=True)
-    if 'dados' not in estado_historico:estado_historico.dados=novo()
     
-    st.sidebar.title("SGE Integra • Históricos")
-    menu = st.sidebar.radio("Navegação do Sistema", ["📝 Edição Individual", "📊 Auditoria e Progresso", "📚 Emissão em Lote", "🔍 Consultar Registros"])
-    
-    st.sidebar.divider()
-    st.sidebar.header("Ações Rápidas")
-    if st.sidebar.button("Novo estudante", width='stretch'):
-        trocar(novo())
+    # Roteamento pela Tela Principal
+    if not estado_historico.get('pagina_atual'):
+        estado_historico.pagina_atual = 'dashboard'
         
-    with st.sidebar.expander('Importar Backup / Testar'):
-        arquivo=st.file_uploader('Registro JSON',type=['json'])
-        if st.button('Importar registro',disabled=arquivo is None):
-            try:
-                novo_d=importar(arquivo.getvalue())
-                trocar(novo_d)
-            except Exception as exc:
-                st.error(str(exc))
-        if st.button('Carregar exemplo fictício'):
-            trocar(exemplo())
-            
-    st.sidebar.caption("Armazenamento local configurado.")
-
-    if menu == "📊 Auditoria e Progresso":
-        renderizar_auditoria()
-    elif menu == "📚 Emissão em Lote":
-        renderizar_lote()
-    elif menu == "🔍 Consultar Registros":
+    pag = estado_historico.pagina_atual
+    
+    if pag == 'dashboard':
+        renderizar_dashboard()
+    elif pag == 'consulta':
         renderizar_consulta()
-    else:
+    elif pag == 'auditoria':
+        renderizar_auditoria()
+    elif pag == 'lote':
+        renderizar_lote()
+    elif pag == 'edicao':
+        if 'dados' not in estado_historico: estado_historico.dados = novo()
         renderizar_edicao(estado_historico.dados)
 
 if __name__=='__main__':

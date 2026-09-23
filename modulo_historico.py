@@ -3,7 +3,8 @@
 Versão revisada: adequação estrita do layout vetorial (frente e verso) 
 ao padrão de formulário monocromático/tabular da Prefeitura. Células de
 Currículo e AEE mescladas verticalmente, textos legais justificados,
-fontes de dados de nascimento igualadas e linha removida do cabeçalho.
+fontes de dados de nascimento igualadas, linha removida do cabeçalho
+e remoção de quebra/espaçamento entre os blocos 5 e 6.
 
 Uso no aplicativo principal:
     from modulo_historico import renderizar_modulo
@@ -355,9 +356,6 @@ def _header(p,e):
     
     label_color = HexColor('#444444')
     
-    cy+=16
-    p.text('SECRETARIA MUNICIPAL DE EDUCAÇÃO DE LIMEIRA/SP', ox, cy, WIDTH-90, 9.5, True, 'center')
-    cy+=lh
     p.text('ESCOLA:', ox, cy, 60, 7.5, True, color=label_color); p.text(e['nome'], ox+45, cy, 330, 8.5, True)
     cy+=lh
     p.text('ATO DE CRIAÇÃO:', ox, cy, 80, 7.5, True, color=label_color); p.text(e['ato'], ox+75, cy, 310, 8.5)
@@ -371,6 +369,9 @@ def _header(p,e):
     p.text('TELEFONES:', ox+115, cy, 65, 7.5, True, color=label_color); p.text(e['telefone'], ox+170, cy, 210, 8.5)
     cy+=lh
     p.text('E-MAIL:', ox, cy, 40, 7.5, True, color=label_color); p.text(e['email'], ox+35, cy, 350, 8.5)
+    
+    cy+=16
+    p.text('SECRETARIA MUNICIPAL DE EDUCAÇÃO DE LIMEIRA/SP', ox, cy, WIDTH-90, 9.5, True, 'center')
     
     cy+=9
     p.band(None, 'HISTÓRICO ESCOLAR', cy, 14)
@@ -477,7 +478,7 @@ def gerar_pdf(dados, rascunho=False):
     legal = ('Lei Federal nº 9.394/1996, art. 26; Deliberação CME nº 02/2016; Resolução SME nº 11/2016; Resolução CNE/CP '
              'nº 02/2017; Resolução SME nº 06/2020; Resolução CNE/CEB nº 01/2022; Lei nº 14.640/2023; Resolução '
              'CNE/CEB nº 02/2025; Resolução CNE/CEB nº 07/2025; Decreto Municipal nº 405/2022; Resolução SME nº 03/2026')
-    p.paragraph(legal, LEFT, y, 300, 49, size=8, leading=9, justify=True)
+    p.paragraph(legal, LEFT, y, 300, 49, size=5.5, leading=7, justify=True)
     
     p.text('Anos Iniciais', LEFT+300, y+15, WIDTH-300, 9, True, 'center')
     
@@ -538,7 +539,6 @@ def gerar_pdf(dados, rascunho=False):
         p.text(val, x_pos, y+3, cw_aee, 8, True, 'center')
         
     y += 14
-    
     
     p.band('6', 'TOTAL DA CARGA HORÁRIA (CAMPO 2 + CAMPO 3)', y, 14)
     y += 14

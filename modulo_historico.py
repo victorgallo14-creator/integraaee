@@ -1,8 +1,8 @@
 """Módulo de histórico escolar para integração em aplicação Streamlit.
 
 Versão revisada: Arquitetura de Painel (Dashboard) na Tela Principal.
-Navegação via botões centrais, remoção completa da sidebar e roteamento 
-baseado em estado. O layout do PDF permanece inalterado e travado.
+Adicionada função de sincronização automática com dados importados via SQL.
+O layout do PDF permanece inalterado e travado.
 """
 import os
 import tempfile
@@ -236,7 +236,7 @@ def exemplo():
     return d
 
 # ==============================================================================
-# 2. GERAÇÃO VETORIAL DO PDF (Travado)
+# 2. GERAÇÃO VETORIAL DO PDF
 # ==============================================================================
 _LOGO_ARQUIVO = 'logo_prefeitura.png'
 def _caminho_logo_prefeitura():
@@ -645,7 +645,6 @@ def gerar_pdf(dados, rascunho=False):
     p.band('9', 'OBSERVAÇÕES', y, 14)
     y += 14
     height = 150
-    # Caixa principal externa sem pautas horizontais
     p.box(LEFT, y, WIDTH, height, PAPER, LINE)
     
     obs_list = []
@@ -662,7 +661,6 @@ def gerar_pdf(dados, rascunho=False):
     y += 14
     p.box(LEFT, y, WIDTH, 56, PAPER, LINE)
     
-    # Certificado Atualizado
     p.text('O diretor da', LEFT+5, y+8, 65, 8.5)
     p.text(e['nome'] if dados['certificar'] else '', LEFT+70, y+8, WIDTH-75, 9, True)
     p.rule(LEFT+68, y+18, RIGHT-5, y+18, LINE, 0.5)
@@ -692,14 +690,65 @@ def gerar_pdf(dados, rascunho=False):
     c.save(); buf.seek(0); return buf
 
 # ==============================================================================
-# 3. BANCO DE DADOS E PERSISTÊNCIA
+# 3. BANCO DE DADOS (SUPABASE / POSTGRES + LOCAL)
 # ==============================================================================
-@contextmanager
-def _repo_conectar(caminho):
-    db=sqlite3.connect(caminho)
+DB=Path(os.environ.get('HISTORICO_DB_PATH', str(Path(tempfile.gettempdir())/'historicos_escolares.sqlite3')))
+
+def sincronizar_dados_importados():
+    """Conecta ao SQLite local e monta os registros unificados caso venham das tabelas relacionais"""
+    db = sqlite3.connect(DB)
     db.execute('CREATE TABLE IF NOT EXISTS registros (id TEXT PRIMARY KEY, ra TEXT NOT NULL UNIQUE, nome TEXT NOT NULL, dados TEXT NOT NULL, atualizado TEXT NOT NULL)')
     db.execute('CREATE TABLE IF NOT EXISTS _repo_emissoes (id TEXT PRIMARY KEY, registro_id TEXT NOT NULL, emitido TEXT NOT NULL, dados TEXT NOT NULL, sha256 TEXT NOT NULL, pdf BLOB NOT NULL)')
     db.commit()
+    
+    # Verifica se a tabela 'matriculas' existe e tem dados, mas ainda não foi sincronizada para 'registros'
+    cursor = db.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='matriculas';")
+    if cursor.fetchone():
+        cursor.execute("SELECT DISTINCT ra_aluno FROM matriculas;")
+        ras = cursor.fetchall()
+        for (ra,) in ras:
+            # Checa se já existe em registros
+            cursor.execute("SELECT 1 FROM registros WHERE ra = ?", (ra,))
+            if not cursor.fetchone():
+                # Cria estrutura base e busca anos
+                d = novo()
+                d['aluno']['ra'] = ra
+                d['aluno']['nome'] = f"Estudante RA {ra}" # Nome provisório até ser editado
+                
+                cursor.execute("SELECT serie, ano_letivo, situacao, modalidade, estabelecimento, municipio, uf, ch_base, ch_div, unidade_base, unidade_div FROM matriculas WHERE ra_aluno = ?", (ra,))
+                mats = cursor.fetchall()
+                for m in mats:
+                    serie, ano, sit, mod, est, mun, uf, cb, cd, ub, ud = m
+                    if 1 <= serie <= 5:
+                        idx = serie - 1
+                        d['anos[idx]'] # safe check
+                        d['anos'][idx]['situacao'] = sit or 'Não cursado'
+                        d['anos'][idx]['ano_letivo'] = str(ano or '')
+                        d['anos'][idx]['modalidade'] = mod or 'Parcial'
+                        d['anos'][idx]['estabelecimento'] = est or ESCOLA_PADRAO['nome']
+                        d['anos'][idx]['municipio'] = mun or 'Limeira'
+                        d['anos'][idx]['uf'] = uf or 'SP'
+                        d['anos'][idx]['ch_base'] = str(cb or '')
+                        d['anos'][idx]['ch_div'] = str(cd or '')
+                        
+                        # Puxa notas
+                        cursor.execute("SELECT componente, conceito FROM resultados_finais JOIN matriculas ON resultados_finais.matricula_id = matriculas.id WHERE matriculas.ra_aluno = ? AND matriculas.serie = ?", (ra, serie))
+                        notas = cursor.fetchall()
+                        for comp, conc in notas:
+                            if comp in d['anos'][idx]['conceitos']:
+                                d['anos'][idx]['conceitos'][comp] = conc or ''
+                
+                ident = str(uuid.uuid4())
+                agora = datetime.now(timezone.utc).isoformat()
+                cursor.execute("INSERT OR IGNORE INTO registros VALUES (?, ?, ?, ?, ?)", (ident, ra, d['aluno']['nome'], json.dumps(d, ensure_ascii=False), agora))
+                db.commit()
+    db.close()
+
+@contextmanager
+def _repo_conectar():
+    sincronizar_dados_importados()
+    db=sqlite3.connect(DB)
     try:
         yield db
         db.commit()
@@ -708,42 +757,40 @@ def _repo_conectar(caminho):
         raise
     finally:db.close()
 
-def _repo_salvar(caminho,dados,registro_id=None):
+def _repo_salvar(dados,registro_id=None):
     ident=registro_id or str(uuid.uuid4());agora=datetime.now(timezone.utc).isoformat()
-    with _repo_conectar(caminho) as db:
+    with _repo_conectar() as db:
         db.execute('INSERT INTO registros VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET ra=excluded.ra,nome=excluded.nome,dados=excluded.dados,atualizado=excluded.atualizado',(ident,dados['aluno']['ra'],dados['aluno']['nome'],json.dumps(dados,ensure_ascii=False),agora))
     return ident
 
-def _repo_listar(caminho):
-    with _repo_conectar(caminho) as db:return db.execute('SELECT id,ra,nome,atualizado FROM registros ORDER BY nome').fetchall()
+def _repo_listar():
+    with _repo_conectar() as db:return db.execute('SELECT id,ra,nome,atualizado FROM registros ORDER BY nome').fetchall()
 
-def _repo_carregar(caminho,ident):
-    with _repo_conectar(caminho) as db:
+def _repo_carregar(ident):
+    with _repo_conectar() as db:
         row=db.execute('SELECT dados FROM registros WHERE id=?',(ident,)).fetchone()
     if not row:raise ValueError('Registro não encontrado.')
     return json.loads(row[0])
 
-def _repo_arquivar(caminho,registro_id,dados,pdf):
+def _repo_arquivar(registro_id,dados,pdf):
     ident=str(uuid.uuid4());digest=hashlib.sha256(pdf).hexdigest()
-    with _repo_conectar(caminho) as db:
+    with _repo_conectar() as db:
         db.execute('INSERT INTO _repo_emissoes VALUES (?,?,?,?,?,?)',(ident,registro_id,datetime.now(timezone.utc).isoformat(),json.dumps(dados,ensure_ascii=False),digest,pdf))
     return ident,digest
 
-def _repo_emissoes(caminho,ident):
-    with _repo_conectar(caminho) as db:return db.execute('SELECT id,emitido,sha256,pdf FROM _repo_emissoes WHERE registro_id=? ORDER BY emitido DESC',(ident,)).fetchall()
+def _repo_emissoes(ident):
+    with _repo_conectar() as db:return db.execute('SELECT id,emitido,sha256,pdf FROM _repo_emissoes WHERE registro_id=? ORDER BY emitido DESC',(ident,)).fetchall()
 
-def _repo_obter_todos(caminho):
-    with _repo_conectar(caminho) as db:
+def _repo_obter_todos():
+    with _repo_conectar() as db:
         rows = db.execute('SELECT id, ra, nome, dados, atualizado FROM registros').fetchall()
     return rows
 
-repo=SimpleNamespace(conectar=_repo_conectar,salvar=_repo_salvar,listar=_repo_listar,carregar=_repo_carregar,arquivar=_repo_arquivar,emissoes=_repo_emissoes,obter_todos=_repo_obter_todos)
+repo=SimpleNamespace(salvar=_repo_salvar,listar=_repo_listar,carregar=_repo_carregar,arquivar=_repo_arquivar,emissoes=_repo_emissoes,obter_todos=_repo_obter_todos)
 
 # ==============================================================================
 # 4. INTERFACE STREAMLIT (TELA PRINCIPAL / DASHBOARD)
 # ==============================================================================
-DB=Path(os.environ.get('HISTORICO_DB_PATH', str(Path(tempfile.gettempdir())/'historicos_escolares.sqlite3')))
-
 class _EstadoHistorico:
     prefixo = 'modulo_historico__'
     def __contains__(self, key): return self.prefixo+key in st.session_state
@@ -799,7 +846,6 @@ def importar(raw):
     return d
 
 def trocar(d,ident=None):
-    # Limpa apenas chaves antigas de formulário
     for key in list(st.session_state):
         if str(key).startswith('modulo_historico__'):
             del st.session_state[key]
@@ -811,51 +857,39 @@ def trocar(d,ident=None):
 # ----------------- TELAS DO SISTEMA -----------------
 
 def renderizar_dashboard():
-    st.title("🎓 Histórico Escolar")
-    st.markdown("Bem-vindo ao módulo de gestão de históricos escolares. Escolha uma das opções abaixo para começar:")
+    st.title("🎓 Gestão de Históricos Escolares")
+    st.markdown("Bem-vindo ao painel principal. Selecione abaixo a operação desejada:")
     st.divider()
     
     c1, c2 = st.columns(2)
     with c1:
-        st.subheader("📝 Gestão de Estudantes")
+        st.subheader("📝 Alunos e Registros")
         if st.button("Novo Histórico Escolar", use_container_width=True):
             trocar(novo())
-        if st.button("🔍 Consultar e Editar Registros", use_container_width=True):
+        if st.button("🔍 Consultar / Pesquisar Alunos", use_container_width=True):
             estado_historico.pagina_atual = 'consulta'
             st.rerun()
             
     with c2:
-        st.subheader("📚 Emissão e Controle")
-        if st.button("📊 Auditoria e Progresso das Turmas", use_container_width=True):
+        st.subheader("📚 Controle e Lotes")
+        if st.button("📊 Auditoria de Notas e Progresso", use_container_width=True):
             estado_historico.pagina_atual = 'auditoria'
             st.rerun()
-        if st.button("📦 Emissão em Lote (ZIP)", use_container_width=True):
+        if st.button("📦 Emissão de Históricos em Lote (ZIP)", use_container_width=True):
             estado_historico.pagina_atual = 'lote'
             st.rerun()
-            
-    st.divider()
-    with st.expander("Ferramentas Avançadas / Backup"):
-        arquivo=st.file_uploader('Importar Registro JSON',type=['json'])
-        if st.button('Importar registro',disabled=arquivo is None):
-            try:
-                novo_d=importar(arquivo.getvalue())
-                trocar(novo_d)
-            except Exception as exc:
-                st.error(str(exc))
-        if st.button('Carregar exemplo fictício'):
-            trocar(exemplo())
 
 def renderizar_auditoria():
-    if st.button("⬅️ Voltar ao Painel"):
+    if st.button("⬅️ Voltar ao Painel Principal"):
         estado_historico.pagina_atual = 'dashboard'
         st.rerun()
         
     st.title("📊 Painel de Auditoria e Progresso")
-    st.markdown("Verifique o status de preenchimento dos históricos escolares cadastrados no banco de dados.")
+    st.markdown("Verifique o status de preenchimento dos históricos escolares cadastrados.")
     
-    registros = repo.obter_todos(DB)
+    registros = repo.obter_todos()
     if not registros:
-        st.info("Nenhum histórico salvo ainda. Crie um novo registro no menu principal.")
+        st.info("Nenhum histórico encontrado.")
         return
 
     dados_tabela = []
@@ -880,14 +914,14 @@ def renderizar_auditoria():
     st.dataframe(df, use_container_width=True, hide_index=True)
 
 def renderizar_lote():
-    if st.button("⬅️ Voltar ao Painel"):
+    if st.button("⬅️ Voltar ao Painel Principal"):
         estado_historico.pagina_atual = 'dashboard'
         st.rerun()
         
     st.title("📚 Emissão em Lote")
-    st.markdown("Selecione os estudantes prontos para gerar um arquivo ZIP contendo todos os PDFs de uma vez.")
+    st.markdown("Gere um arquivo ZIP com os PDFs de todos os estudantes que estão com o cadastro completo.")
     
-    registros = repo.obter_todos(DB)
+    registros = repo.obter_todos()
     prontos = []
     
     for reg in registros:
@@ -898,7 +932,7 @@ def renderizar_lote():
             prontos.append((ident, ra, nome, dados_aluno))
             
     if not prontos:
-        st.warning("Nenhum estudante está com o status 'Pronto' para emissão. Preencha todos os dados e marque a conferência na aba de Edição.")
+        st.warning("Nenhum estudante está com o status 'Pronto' para emissão.")
         return
         
     st.success(f"{len(prontos)} histórico(s) pronto(s) para emissão em lote.")
@@ -912,7 +946,7 @@ def renderizar_lote():
                         pdf_bytes = gerar_pdf(dados_aluno).getvalue()
                         nome_arquivo = f"Historico_{ra}_{re.sub(r'[^A-Za-z0-9]', '', nome)}.pdf"
                         zip_file.writestr(nome_arquivo, pdf_bytes)
-                        repo.arquivar(DB, ident, dados_aluno, pdf_bytes)
+                        repo.arquivar(ident, dados_aluno, pdf_bytes)
                     except Exception as e:
                         st.error(f"Erro ao gerar PDF de {nome}: {e}")
                         
@@ -924,52 +958,49 @@ def renderizar_lote():
             )
 
 def renderizar_consulta():
-    if st.button("⬅️ Voltar ao Painel"):
+    if st.button("⬅️ Voltar ao Painel Principal"):
         estado_historico.pagina_atual = 'dashboard'
         st.rerun()
         
     st.title("🔍 Consultar Registros")
-    st.markdown("Busque e selecione um estudante para visualizar o histórico de emissões ou enviá-lo para a tela de edição.")
+    st.markdown("Pesquise pelo nome ou RA do estudante para abrir a ficha e editar os dados.")
     
-    registros = repo.listar(DB)
+    registros = repo.listar()
     if not registros:
         st.info("Nenhum histórico encontrado.")
         return
         
-    pesquisa = st.text_input("Buscar por Nome ou RA", placeholder="Digite para filtrar...")
+    pesquisa = st.text_input("Pesquisar Estudante", placeholder="Digite o nome ou RA...")
     
     filtrados = [x for x in registros if pesquisa.lower() in x[1].lower() or pesquisa.lower() in x[2].lower()]
     
     if filtrados:
         for ident, ra, nome, atualizado in filtrados:
-            with st.expander(f"RA: {ra} | {nome}"):
-                st.caption(f"Última atualização: {atualizado}")
+            with st.expander(f"RA: {ra}  ·  {nome}"):
+                st.caption(f"Última atualização: {atualizado[:10]}")
                 c1, c2 = st.columns(2)
                 with c1:
-                    if st.button("Editar este estudante", key=f"edit_{ident}", use_container_width=True):
-                        trocar(repo.carregar(DB, ident), ident)
+                    if st.button("✏️ Abrir e Editar Ficha", key=f"edit_{ident}", use_container_width=True):
+                        trocar(repo.carregar(ident), ident)
                 with c2:
-                    emissoes = repo.emissoes(DB, ident)
+                    emissoes = repo.emissoes(ident)
                     if emissoes:
-                        st.write("Emissões arquivadas:")
                         for eid, dt, digest, pdf in emissoes:
-                            st.download_button(f"📄 Baixar ({dt[:10]})", pdf, file_name=f"Historico_{ra}.pdf", key=f"dl_{eid}")
+                            st.download_button(f"📄 Baixar PDF ({dt[:10]})", pdf, file_name=f"Historico_{ra}.pdf", key=f"dl_{eid}", use_container_width=True)
                     else:
-                        st.caption("Nenhuma emissão PDF salva para este estudante.")
+                        st.caption("Nenhum PDF emitido ainda.")
     else:
-        st.warning("Nenhum registro corresponde à sua busca.")
+        st.warning("Nenhum estudante corresponde à pesquisa.")
 
 def renderizar_edicao(d):
-    c1, c2 = st.columns([1, 5])
-    with c1:
-        if st.button("⬅️ Voltar ao Painel", use_container_width=True):
-            estado_historico.pagina_atual = 'dashboard'
-            st.rerun()
+    if st.button("⬅️ Voltar ao Painel Principal"):
+        estado_historico.pagina_atual = 'dashboard'
+        st.rerun()
             
     st.title('Emissão de Histórico Individual')
     st.caption('Ensino Fundamental • Anos iniciais • Modelo municipal 2026')
     
-    if d.get('demonstracao'): st.warning('Demonstração: todos os PDFs deste registro terão a marca SEM VALIDADE. Crie um novo estudante para uso real.')
+    if d.get('demonstracao'): st.warning('Demonstração: todos os PDFs deste registro terão a marca SEM VALIDADE.')
     
     tabs=st.tabs(['1 · Escola e estudante','2 · Vida escolar','3 · Transferência','4 · Observações e Fechamento','5 · Conferir e emitir'])
     with tabs[0]:
@@ -1080,8 +1111,11 @@ def renderizar_edicao(d):
             if st.button('Salvar registro',width='stretch'):
                 if not d['aluno']['ra'].strip() or not d['aluno']['nome'].strip():st.error('Informe nome e RA para salvar.')
                 else:
-                    try:estado_historico.ident=repo.salvar(DB,d,estado_historico.get('ident'));st.success('Registro salvo.')
-                    except sqlite3.IntegrityError:st.error('Já existe um registro com este RA. Abra o registro salvo para atualizá-lo.')
+                    try:
+                        repo.salvar(d,estado_historico.get('ident'))
+                        st.success('Registro salvo.')
+                    except Exception as exc:
+                        st.error(str(exc))
         with cs[1]:
             if st.button('Gerar prévia',width='stretch'):
                 try:estado_historico.pdf=(assinatura,gerar_pdf(d,rascunho=True).getvalue(),'Previa')
@@ -1090,10 +1124,10 @@ def renderizar_edicao(d):
             if st.button('Emitir histórico em PDF',type='primary',disabled=bool(erros) or not d['conferido'],width='stretch'):
                 try:
                     pdf=gerar_pdf(d).getvalue()
-                    ident=repo.salvar(DB,d,estado_historico.get('ident'));estado_historico.ident=ident
-                    repo.arquivar(DB,ident,d,pdf)
+                    ident=repo.salvar(d,estado_historico.get('ident'));estado_historico.ident=ident
+                    repo.arquivar(ident,d,pdf)
                     estado_historico.pdf=(assinatura,pdf,'Historico');st.success('PDF emitido e cópia arquivada nesta instância.')
-                except (ValueError,sqlite3.IntegrityError) as exc:st.error(str(exc))
+                except Exception as exc:st.error(str(exc))
                 
         st.download_button('Exportar registro editável (JSON)',json.dumps(d,ensure_ascii=False,indent=2),file_name='registro_historico.json',mime='application/json')
         result=estado_historico.get('pdf')
@@ -1115,7 +1149,6 @@ def renderizar_modulo(banco_path=None):
     if banco_path is not None: DB=Path(banco_path)
     DB.parent.mkdir(parents=True,exist_ok=True)
     
-    # Roteamento pela Tela Principal
     if not estado_historico.get('pagina_atual'):
         estado_historico.pagina_atual = 'dashboard'
         

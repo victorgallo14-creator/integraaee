@@ -603,7 +603,7 @@ def gerar_pdf(dados, rascunho=False):
     labels81 = [('ANO', str(tr['serie'])+'º' if on else ''), 
                 ('TURMA', tr['turma'] if on else ''), 
                 ('Nº DE CHAMADA', tr['chamada'] if on else ''), 
-                ('DATA', _date(tr['data']) if on else '')]
+                ('TRANSFERIDO EM', _date(tr['data']) if on else '')]
     
     off = 0
     for w, (label, val) in zip(cw81, labels81):

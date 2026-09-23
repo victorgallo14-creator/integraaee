@@ -539,7 +539,6 @@ def gerar_pdf(dados, rascunho=False):
         
     y += 14
     
-    y += 24 
     
     p.band('6', 'TOTAL DA CARGA HORÁRIA (CAMPO 2 + CAMPO 3)', y, 14)
     y += 14

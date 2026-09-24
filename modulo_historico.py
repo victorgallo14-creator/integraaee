@@ -34,6 +34,38 @@ from reportlab.lib.utils import ImageReader, simpleSplit
 from reportlab.lib.colors import HexColor
 from reportlab.pdfbase.ttfonts import TTFont
 
+import os
+import tempfile
+import zipfile
+from pathlib import Path
+from types import SimpleNamespace
+from copy import deepcopy
+from datetime import date
+from decimal import Decimal, InvalidOperation
+import re
+import base64
+import json
+import sqlite3
+import uuid
+import hashlib
+from datetime import datetime, timezone
+from contextlib import contextmanager
+
+import pandas as pd
+import streamlit as st
+from io import BytesIO
+from xml.sax.saxutils import escape
+
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import Paragraph
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT
+from reportlab.lib.utils import ImageReader, simpleSplit
+from reportlab.lib.colors import HexColor
+from reportlab.pdfbase.ttfonts import TTFont
+
 # ==============================================================================
 # 1. CONSTANTES E REGRAS DE NEGÓCIO
 # ==============================================================================

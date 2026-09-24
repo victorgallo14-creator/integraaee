@@ -1,0 +1,96 @@
+"""Dados curriculares do módulo Avaliação do Integra.
+
+Fonte: Kit do Professor Polivalente - 5º ano - 1º trimestre, construído a partir
+dos Currículos e Metas de Aprendizagem 2019 da Rede Municipal de Limeira.
+A estrutura é extensível para os demais anos/trimestres sem alterar o motor do módulo.
+"""
+
+AVALIACAO_DB = {5: {1: {'Língua Portuguesa': {'slug': 'LP',
+                               'curriculo_chegada': 'Leitura fluente e compreensiva; estratégias de leitura; '
+                                                    'oralidade/argumentação; análise discursiva e textual; '
+                                                    'conhecimentos linguísticos; produção escrita; leitura literária.',
+                               'nucleo_estruturante': 'Fluência/compreensão, inferência, produção textual e domínio do '
+                                                      'sistema linguístico esperado.',
+                               'pre_requisitos_principais': '4º: leitura autônoma e inferencial, comparação de textos, '
+                                                            'fato/opinião, produção/revisão. 3º: fluência, informações '
+                                                            'explícitas, sequência, estrutura básica e coesão.',
+                               'ancora': 'ÂNCORA PARA A SÍNTESE LP1, LP2 e LP6 são dimensões estruturantes para a '
+                                         'síntese do componente.',
+                               'dimensoes': [{'codigo': 'LP1',
+                                              'nome': 'Leitura fluente e autônoma',
+                                              'demonstrar': 'Lê silenciosamente e em voz alta com fluência, precisão, '
+                                                            'entonação e compreensão. A meta anual indica 140 '
+                                                            'palavras/minuto como referência, sempre articulada à '
+                                                            'compreensão.',
+                                              'focos': 'Fluência; autonomia; compreensão global; leitura expressiva.',
+                                              'peso': 'ESTRUTURANTE'},
+                                             {'codigo': 'LP2',
+                                              'nome': 'Compreensão e estratégias de leitura',
+                                              'demonstrar': 'Localiza informações explícitas e nucleares, infere '
+                                                            'informações implícitas, identifica tema/finalidade, '
+                                                            'compara textos e distingue fatos/opiniões, mobilizando '
+                                                            'elementos verbais e não verbais.',
+                                              'focos': 'Inferência; comparação; finalidade; tema; fato/opinião; '
+                                                       'informações relevantes; material gráfico.',
+                                              'peso': 'ESTRUTURANTE'},
+                                             {'codigo': 'LP3',
+                                              'nome': 'Oralidade, escuta e argumentação',
+                                              'demonstrar': 'Produz e compreende gêneros orais do período, respeita '
+                                                            'turnos, adequa vocabulário e sustenta pontos de vista com '
+                                                            'informações estudadas.',
+                                              'focos': 'Regra de jogo, poema e outras situações orais previstas; '
+                                                       'interação discursiva; argumentação.',
+                                              'peso': 'REGULAR'},
+                                             {'codigo': 'LP4',
+                                              'nome': 'Discursividade e textualidade',
+                                              'demonstrar': 'Reconhece contexto de produção, finalidade, estrutura dos '
+                                                            'gêneros e utiliza coesão, coerência, paragrafação e '
+                                                            'pontuação para construir sentidos.',
+                                              'focos': 'Contexto de produção; estrutura composicional; coesão; '
+                                                       'coerência; parágrafo; pontuação.',
+                                              'peso': 'REGULAR'},
+                                             {'codigo': 'LP5',
+                                              'nome': 'Análise linguística e ortografia',
+                                              'demonstrar': 'Analisa e emprega conhecimentos gramaticais e '
+                                                            'ortográficos previstos no período, sem dissociá-los do '
+                                                            'uso real da língua.',
+                                              'focos': 'Concordância; acentuação/paroxítonas; substantivos/adjetivos; '
+                                                       'ortografia e consulta ao dicionário, conforme o período.',
+                                              'peso': 'REGULAR'},
+                                             {'codigo': 'LP6',
+                                              'nome': 'Produção escrita e revisão',
+                                              'demonstrar': 'Planeja, produz, revisa e reescreve textos considerando '
+                                                            'interlocutor, finalidade, gênero, organização, coesão, '
+                                                            'coerência e convenções da escrita.',
+                                              'focos': 'Texto instrucional e gêneros do período; verbete/relato de '
+                                                       'experimento quando trabalhados; revisão e reescrita.',
+                                              'peso': 'ESTRUTURANTE'},
+                                             {'codigo': 'LP7',
+                                              'nome': 'Leitura literária e efeitos de sentido',
+                                              'demonstrar': 'Aprecia textos literários e interpreta linguagem '
+                                                            'figurada, humor/ironia, relações entre texto e leitor e '
+                                                            'elementos narrativos.',
+                                              'focos': 'Conto, mito, poema, HQ e outros gêneros literários previstos '
+                                                       'no trimestre.',
+                                              'peso': 'REGULAR'}],
+                               'pre_requisitos': [{'codigo': 'LP1',
+                                                   'pre_4ano': '4º ano: leitura fluente e autônoma com compreensão '
+                                                               '(meta anual: 125 palavras/minuto).',
+                                                   'pre_antigo': '3º ano: leitura fluente e autônoma (meta anual: 110 '
+                                                                 'palavras/minuto); reconhecimento de palavras e '
+                                                                 'estruturas silábicas não canônicas.',
+                                                   'diagnostico': 'Amostra curta de leitura oral + perguntas de '
+                                                                  'compreensão; observar precisão, ritmo e manutenção '
+                                                                  'de sentido.',
+                                                   'recomposicao': 'Recompor decodificação/fluência sem abandonar '
+                                                                   'textos do 5º ano: leitura assistida, repetida e '
+                                                                   'compartilhada, com progressiva autonomia.'},
+                                                  {'codigo': 'LP2',
+                                                   'pre_4ano': '4º ano: inferir, localizar explícitas, comparar '
+                                                               'textos, distinguir fato/opinião, identificar '
+                                                               'tema/finalidade e aspectos nucleares.',
+                                                   'pre_antigo': '3º ano: localizar explícitas e sequência temporal, '
+                                                                 'comparar textos, inferir significados, identificar '
+                                                                 'tema e causa/consequência.',
+                                                   'diagnostico': 'Texto narrativo + texto informativo curto: '
+                                                                  'localizar, inferir, explicar finalidade e comparar '

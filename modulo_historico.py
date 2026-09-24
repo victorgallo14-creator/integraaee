@@ -1,7 +1,7 @@
 """Módulo de histórico escolar para integração em aplicação Streamlit.
 
-Versão revisada: Retorno ao banco SQLite local persistente com interface 
-de Painel (Dashboard) na tela principal e sincronização de dados.
+Versão revisada: Arquitetura de Painel (Dashboard) na Tela Principal.
+Consulta e salvamento direcionados 100% às tabelas relacionais do Supabase.
 """
 import os
 import tempfile
@@ -14,42 +14,9 @@ from decimal import Decimal, InvalidOperation
 import re
 import base64
 import json
-import sqlite3
-import uuid
-from datetime import datetime, timezone
-from contextlib import contextmanager
-
-import pandas as pd
-import streamlit as st
-from io import BytesIO
-from xml.sax.saxutils import escape
-
-from reportlab.pdfgen import canvas
-from reportlab.pdfbase import pdfmetrics
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import Paragraph
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT
-from reportlab.lib.utils import ImageReader, simpleSplit
-from reportlab.lib.colors import HexColor
-from reportlab.pdfbase.ttfonts import TTFont
-
-import os
-import tempfile
-import zipfile
-from pathlib import Path
-from types import SimpleNamespace
-from copy import deepcopy
-from datetime import date
-from decimal import Decimal, InvalidOperation
-import re
-import base64
-import json
-import sqlite3
 import uuid
 import hashlib
 from datetime import datetime, timezone
-from contextlib import contextmanager
 
 import pandas as pd
 import streamlit as st
@@ -66,9 +33,6 @@ from reportlab.lib.utils import ImageReader, simpleSplit
 from reportlab.lib.colors import HexColor
 from reportlab.pdfbase.ttfonts import TTFont
 
-# ==============================================================================
-# 1. CONSTANTES E REGRAS DE NEGÓCIO
-# ==============================================================================
 BASE = ['LÍNGUA PORTUGUESA', 'MATEMÁTICA', 'CIÊNCIAS', 'HISTÓRIA', 'GEOGRAFIA', 'ARTE', 'ED. FÍSICA']
 DIV = ['EIXO INTELECTUAL', 'EIXO ESPORTIVO', 'EIXO CULTURAL', 'LINGUAGENS E TECNOLOGIAS', 'ACOMPANHAMENTO PEDAGÓGICO', 'PRÁTICAS EXPERIMENTAIS E DE TUTORIA DE ESTUDO', 'PRÁTICAS DE ESTUDO', 'LINGUAGENS', 'ESPORTE E EDUCAÇÃO DO MOVIMENTO']
 MODOS = ['Parcial', 'APC', 'Complementação extracurricular', 'Integral', 'Bilíngue parcial', 'Bilíngue integral', 'Outra rede / matriz documentada']
@@ -721,52 +685,131 @@ def gerar_pdf(dados, rascunho=False):
     c.save(); buf.seek(0); return buf
 
 # ==============================================================================
-# 3. BANCO DE DADOS LOCAL (SQLITE)
+# 3. CONEXÃO COM O SUPABASE (USANDO O CLIENTE OFICIAL DO SUPABASE)
 # ==============================================================================
-DB=Path(os.environ.get('HISTORICO_DB_PATH', str(Path(tempfile.gettempdir())/'historicos_escolares.sqlite3')))
+def get_supabase_client():
+    from supabase import create_client, Client
+    url = st.secrets.get("SUPABASE_URL", "")
+    key = st.secrets.get("SUPABASE_KEY", "")
+    if not url or not key:
+        st.error("As chaves SUPABASE_URL e SUPABASE_KEY não foram encontradas nos secrets.")
+        st.stop()
+    return create_client(url, key)
 
-@contextmanager
-def _repo_conectar():
-    db=sqlite3.connect(DB)
-    db.execute('CREATE TABLE IF NOT EXISTS registros (id TEXT PRIMARY KEY, ra TEXT NOT NULL UNIQUE, nome TEXT NOT NULL, dados TEXT NOT NULL, atualizado TEXT NOT NULL)')
-    db.execute('CREATE TABLE IF NOT EXISTS _repo_emissoes (id TEXT PRIMARY KEY, registro_id TEXT NOT NULL, emitido TEXT NOT NULL, dados TEXT NOT NULL, sha256 TEXT NOT NULL, pdf BLOB NOT NULL)')
-    db.commit()
-    try:
-        yield db
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
-    finally:db.close()
-
-def _repo_salvar(dados,registro_id=None):
-    ident=registro_id or str(uuid.uuid4());agora=datetime.now(timezone.utc).isoformat()
-    with _repo_conectar() as db:
-        db.execute('INSERT INTO registros VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET ra=excluded.ra,nome=excluded.nome,dados=excluded.dados,atualizado=excluded.atualizado',(ident,dados['aluno']['ra'],dados['aluno']['nome'],json.dumps(dados,ensure_ascii=False),agora))
-    return ident
+def _repo_salvar(d, ra_antigo=None):
+    supabase = get_supabase_client()
+    ra = d['aluno']['ra']
+    
+    # Salva dados principais do aluno na tabela 'alunos' (ou atualiza)
+    supabase.table("alunos").upsert({
+        "ra": ra,
+        "nome": d['aluno']['nome'],
+        "nascimento": d['aluno']['nascimento'] or None
+    }).execute()
+    
+    # Remove matrículas anteriores para reescrever limpo
+    supabase.table("matriculas").delete().eq("ra_aluno", ra).execute()
+    
+    for i, ano in enumerate(d['anos']):
+        if ano['situacao'] == 'Não cursado' and not ano['ano_letivo']: continue
+        
+        # Insere a matrícula do ano
+        res = supabase.table("matriculas").insert({
+            "ra_aluno": ra,
+            "serie": i+1,
+            "ano_letivo": int(ano['ano_letivo']) if str(ano['ano_letivo']).isdigit() else None,
+            "situacao": ano['situacao'],
+            "modalidade": ano['modalidade'],
+            "ch_base": ano['ch_base'] or None,
+            "ch_div": ano['ch_div'] or None
+        }).execute()
+        
+        if res.data:
+            mat_id = res.data[0]['id']
+            # Insere notas da base comum e diversificada
+            if ano['situacao'] == 'Concluído':
+                for comp, conc in ano['conceitos'].items():
+                    if conc.strip():
+                        supabase.table("resultados_finais").insert({
+                            "matricula_id": mat_id,
+                            "tipo": "BASE",
+                            "componente": comp,
+                            "conceito": conc
+                        }).execute()
+                for comp, conc in ano['participacao'].items():
+                    if conc.strip():
+                        supabase.table("resultados_finais").insert({
+                            "matricula_id": mat_id,
+                            "tipo": "DIVERSIFICADA",
+                            "componente": comp,
+                            "conceito": conc
+                        }).execute()
+    return ra
 
 def _repo_listar():
-    with _repo_conectar() as db:return db.execute('SELECT id,ra,nome,atualizado FROM registros ORDER BY nome').fetchall()
-
-def _repo_carregar(ident):
-    with _repo_conectar() as db:
-        row=db.execute('SELECT dados FROM registros WHERE id=?',(ident,)).fetchone()
-    if not row:raise ValueError('Registro não encontrado.')
-    return json.loads(row[0])
-
-def _repo_arquivar(registro_id,dados,pdf):
-    ident=str(uuid.uuid4());digest=hashlib.sha256(pdf).hexdigest()
-    with _repo_conectar() as db:
-        db.execute('INSERT INTO _repo_emissoes VALUES (?,?,?,?,?,?)',(ident,registro_id,datetime.now(timezone.utc).isoformat(),json.dumps(dados,ensure_ascii=False),digest,pdf))
-    return ident,digest
-
-def _repo_emissoes(ident):
-    with _repo_conectar() as db:return db.execute('SELECT id,emitido,sha256,pdf FROM _repo_emissoes WHERE registro_id=? ORDER BY emitido DESC',(ident,)).fetchall()
+    supabase = get_supabase_client()
+    res = supabase.table("alunos").select("ra, nome").order("nome").execute()
+    return [(row['ra'], row['ra'], row['nome'], '') for row in res.data]
 
 def _repo_obter_todos():
-    with _repo_conectar() as db:
-        rows = db.execute('SELECT id, ra, nome, dados, atualizado FROM registros').fetchall()
-    return rows
+    supabase = get_supabase_client()
+    res = supabase.table("alunos").select("ra, nome").order("nome").execute()
+    registros = []
+    for row in res.data:
+        ra = row['ra']
+        nome = row['nome']
+        d = _repo_carregar(ra)
+        registros.append((ra, ra, nome, json.dumps(d), ''))
+    return registros
+
+def _repo_carregar(ra):
+    supabase = get_supabase_client()
+    aluno_res = supabase.table("alunos").select("*").eq("ra", ra).execute()
+    if not aluno_res.data: raise ValueError('Estudante não encontrado.')
+    aluno = aluno_res.data[0]
+    
+    d = novo()
+    d['aluno']['ra'] = str(aluno.get('ra') or '')
+    d['aluno']['nome'] = str(aluno.get('nome') or '')
+    d['aluno']['nascimento'] = str(aluno.get('nascimento'))[:10] if aluno.get('nascimento') else ''
+    
+    mats_res = supabase.table("matriculas").select("*, resultados_finais(*)").eq("ra_aluno", ra).execute()
+    
+    for mat in mats_res.data:
+        idx = int(mat['serie']) - 1
+        if 0 <= idx <= 4:
+            d['anos'][idx]['situacao'] = mat.get('situacao') or 'Não cursado'
+            if mat.get('ano_letivo'): d['anos'][idx]['ano_letivo'] = str(mat['ano_letivo'])
+            if mat.get('modalidade'): d['anos'][idx]['modalidade'] = mat['modalidade']
+            if mat.get('ch_base'): d['anos'][idx]['ch_base'] = str(mat['ch_base'])
+            if mat.get('ch_div'): d['anos'][idx]['ch_div'] = str(mat['ch_div'])
+            
+            for r in mat.get('resultados_finais', []):
+                comp = r.get('componente')
+                conc = r.get('conceito')
+                if comp in BASE:
+                    d['anos'][idx]['conceitos'][comp] = conc
+                elif comp in DIV:
+                    d['anos'][idx]['participacao'][comp] = conc
+    return d
+
+def _repo_arquivar(ra, dados, pdf):
+    supabase = get_supabase_client()
+    ident = str(uuid.uuid4())
+    # O PDF é binário, convertemos para base64 para salvar na coluna TEXT/BYTEA do Supabase se necessário, ou salvamos direto
+    supabase.table("emissoes_pdf").insert({
+        "id": ident,
+        "ra_aluno": ra,
+        "dados": dados,
+        "sha256": hashlib.sha256(pdf).hexdigest(),
+        "pdf": base64.b64encode(pdf).decode('utf-8')
+    }).execute()
+    return ident, ""
+
+def _repo_emissoes(ra):
+    supabase = get_supabase_client()
+    res = supabase.table("emissoes_pdf").select("id, emitido, pdf").eq("ra_aluno", ra).order("emitido", desc=True).execute()
+    return [(str(row['id']), str(row['emitido']), '', base64.b64decode(row['pdf'])) for row in res.data]
 
 repo=SimpleNamespace(salvar=_repo_salvar,listar=_repo_listar,carregar=_repo_carregar,arquivar=_repo_arquivar,emissoes=_repo_emissoes,obter_todos=_repo_obter_todos)
 
@@ -840,36 +883,26 @@ def trocar(d,ident=None):
 
 def renderizar_dashboard():
     st.title("🎓 Gestão de Históricos Escolares")
-    st.markdown("Painel principal unificado. Escolha abaixo a operação desejada:")
+    st.markdown("Painel principal unificado (Integrado ao Supabase). Escolha abaixo a operação desejada:")
     st.divider()
     
     c1, c2 = st.columns(2)
     with c1:
         st.subheader("📝 Alunos e Registros")
-        if st.button("Novo Histórico Escolar", use_container_width=True):
+        if st.button("Novo Histórico Escolar", width='stretch'):
             trocar(novo())
-        if st.button("🔍 Consultar / Pesquisar Alunos", use_container_width=True):
+        if st.button("🔍 Consultar / Pesquisar Alunos", width='stretch'):
             estado_historico.pagina_atual = 'consulta'
             st.rerun()
             
     with c2:
         st.subheader("📚 Controle e Lotes")
-        if st.button("📊 Auditoria de Notas e Progresso", use_container_width=True):
+        if st.button("📊 Auditoria de Notas e Progresso", width='stretch'):
             estado_historico.pagina_atual = 'auditoria'
             st.rerun()
-        if st.button("📦 Emissão de Históricos em Lote (ZIP)", use_container_width=True):
+        if st.button("📦 Emissão de Históricos em Lote (ZIP)", width='stretch'):
             estado_historico.pagina_atual = 'lote'
             st.rerun()
-            
-    st.divider()
-    with st.expander("Importar Backup de Registros (JSON)"):
-        arquivo = st.file_uploader("Arquivo JSON", type=['json'])
-        if st.button("Importar Dados", disabled=arquivo is None):
-            try:
-                novo_d = importar(arquivo.getvalue())
-                trocar(novo_d)
-            except Exception as exc:
-                st.error(str(exc))
 
 def renderizar_auditoria():
     if st.button("⬅️ Voltar ao Painel Principal"):
@@ -877,11 +910,16 @@ def renderizar_auditoria():
         st.rerun()
         
     st.title("📊 Painel de Auditoria e Progresso")
-    st.markdown("Verifique o status de preenchimento dos históricos escolares salvos.")
+    st.markdown("Verifique o status de preenchimento dos históricos escolares no Supabase.")
     
-    registros = repo.obter_todos()
+    try:
+        registros = repo.obter_todos()
+    except Exception as e:
+        st.error(f"Erro ao buscar dados no Supabase: {e}")
+        return
+
     if not registros:
-        st.info("Nenhum histórico encontrado no banco local.")
+        st.info("Nenhum histórico encontrado no banco.")
         return
 
     dados_tabela = []
@@ -902,7 +940,7 @@ def renderizar_auditoria():
         })
         
     df = pd.DataFrame(dados_tabela)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(df, width='stretch', hide_index=True)
 
 def renderizar_lote():
     if st.button("⬅️ Voltar ao Painel Principal"):
@@ -910,11 +948,15 @@ def renderizar_lote():
         st.rerun()
         
     st.title("📚 Emissão em Lote")
-    st.markdown("Gere um arquivo ZIP com os PDFs de todos os estudantes que estão com o cadastro completo.")
+    st.markdown("Gere um arquivo ZIP com os PDFs de todos os estudantes prontos.")
     
-    registros = repo.obter_todos()
+    try:
+        registros = repo.obter_todos()
+    except Exception as e:
+        st.error(f"Erro: {e}")
+        return
+        
     prontos = []
-    
     for reg in registros:
         ident, ra, nome, json_str, atualizado = reg
         dados_aluno = json.loads(json_str)
@@ -928,7 +970,7 @@ def renderizar_lote():
         
     st.success(f"{len(prontos)} histórico(s) pronto(s) para emissão em lote.")
     
-    if st.button("Gerar ZIP com Históricos", type="primary", use_container_width=True):
+    if st.button("Gerar ZIP com Históricos", type="primary", width='stretch'):
         with st.spinner("Gerando PDFs..."):
             zip_buffer = BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
@@ -937,7 +979,7 @@ def renderizar_lote():
                         pdf_bytes = gerar_pdf(dados_aluno).getvalue()
                         nome_arquivo = f"Historico_{ra}_{re.sub(r'[^A-Za-z0-9]', '', nome)}.pdf"
                         zip_file.writestr(nome_arquivo, pdf_bytes)
-                        repo.arquivar(ident, dados_aluno, pdf_bytes)
+                        repo.arquivar(ra, dados_aluno, pdf_bytes)
                     except Exception as e:
                         st.error(f"Erro ao gerar PDF de {nome}: {e}")
                         
@@ -945,7 +987,8 @@ def renderizar_lote():
                 label="📦 Baixar Arquivo ZIP",
                 data=zip_buffer.getvalue(),
                 file_name=f"Lote_Historicos_{date.today().isoformat()}.zip",
-                mime="application/zip"
+                mime="application/zip",
+                width='stretch'
             )
 
 def renderizar_consulta():
@@ -956,9 +999,14 @@ def renderizar_consulta():
     st.title("🔍 Consultar Registros")
     st.markdown("Pesquise pelo nome ou RA do estudante para abrir a ficha e editar os dados.")
     
-    registros = repo.listar()
+    try:
+        registros = repo.listar()
+    except Exception as e:
+        st.error(f"Erro ao consultar Supabase: {e}")
+        return
+        
     if not registros:
-        st.info("Nenhum histórico encontrado no banco local.")
+        st.info("Nenhum histórico encontrado.")
         return
         
     pesquisa = st.text_input("Pesquisar Estudante", placeholder="Digite o nome ou RA...")
@@ -966,28 +1014,26 @@ def renderizar_consulta():
     filtrados = [x for x in registros if pesquisa.lower() in x[1].lower() or pesquisa.lower() in x[2].lower()]
     
     if filtrados:
-        for ident, ra, nome, atualizado in filtrados:
+        for ident, ra, nome, _ in filtrados:
             with st.expander(f"RA: {ra}  ·  {nome}"):
                 c1, c2 = st.columns(2)
                 with c1:
-                    if st.button("✏️ Abrir e Editar Ficha", key=f"edit_{ident}", use_container_width=True):
-                        trocar(repo.carregar(ident), ident)
+                    if st.button("✏️ Abrir e Editar Ficha", key=f"edit_{ident}", width='stretch'):
+                        trocar(repo.carregar(ra), ra)
                 with c2:
-                    emissoes = repo.emissoes(ident)
+                    emissoes = repo.emissoes(ra)
                     if emissoes:
-                        for eid, dt, digest, pdf in emissoes:
-                            st.download_button(f"📄 Baixar PDF ({dt[:10]})", pdf, file_name=f"Historico_{ra}.pdf", key=f"dl_{eid}", use_container_width=True)
+                        for eid, dt, _, pdf in emissoes:
+                            st.download_button(f"📄 Baixar PDF ({dt[:10]})", pdf, file_name=f"Historico_{ra}.pdf", key=f"dl_{eid}", width='stretch')
                     else:
                         st.caption("Nenhum PDF emitido ainda.")
     else:
         st.warning("Nenhum estudante corresponde à pesquisa.")
 
 def renderizar_edicao(d):
-    c1, c2 = st.columns([1, 5])
-    with c1:
-        if st.button("⬅️ Voltar ao Painel Principal", use_container_width=True):
-            estado_historico.pagina_atual = 'dashboard'
-            st.rerun()
+    if st.button("⬅️ Voltar ao Painel Principal"):
+        estado_historico.pagina_atual = 'dashboard'
+        st.rerun()
             
     st.title('Emissão de Histórico Individual')
     st.caption('Ensino Fundamental • Anos iniciais • Modelo municipal 2026')
@@ -1100,32 +1146,32 @@ def renderizar_edicao(d):
         
         cs=st.columns(3)
         with cs[0]:
-            if st.button('Salvar registro',width='stretch'):
+            if st.button('Salvar registro', width='stretch'):
                 if not d['aluno']['ra'].strip() or not d['aluno']['nome'].strip():st.error('Informe nome e RA para salvar.')
                 else:
                     try:
                         repo.salvar(d,estado_historico.get('ident'))
-                        st.success('Registro salvo com sucesso!')
+                        st.success('Registro salvo no Supabase!')
                     except Exception as exc:
                         st.error(str(exc))
         with cs[1]:
-            if st.button('Gerar prévia',width='stretch'):
+            if st.button('Gerar prévia', width='stretch'):
                 try:estado_historico.pdf=(assinatura,gerar_pdf(d,rascunho=True).getvalue(),'Previa')
                 except ValueError as exc:st.error(str(exc))
         with cs[2]:
-            if st.button('Emitir histórico em PDF',type='primary',disabled=bool(erros) or not d['conferido'],width='stretch'):
+            if st.button('Emitir histórico em PDF',type='primary',disabled=bool(erros) or not d['conferido'], width='stretch'):
                 try:
                     pdf=gerar_pdf(d).getvalue()
                     ident=repo.salvar(d,estado_historico.get('ident'));estado_historico.ident=ident
-                    repo.arquivar(ident,d,pdf)
-                    estado_historico.pdf=(assinatura,pdf,'Historico');st.success('PDF emitido e cópia arquivada nesta instância.')
+                    repo.arquivar(d['aluno']['ra'],d,pdf)
+                    estado_historico.pdf=(assinatura,pdf,'Historico');st.success('PDF emitido e cópia arquivada no Supabase.')
                 except Exception as exc:st.error(str(exc))
                 
-        st.download_button('Exportar registro editável (JSON)',json.dumps(d,ensure_ascii=False,indent=2),file_name='registro_historico.json',mime='application/json')
+        st.download_button('Exportar registro editável (JSON)',json.dumps(d,ensure_ascii=False,indent=2),file_name='registro_historico.json',mime='application/json', width='stretch')
         result=estado_historico.get('pdf')
         if result and result[0]==assinatura:
             _,pdf,tipo=result;ra=re.sub(r'[^\w-]','',d['aluno']['ra'])[:40] or 'rascunho'
-            st.download_button('Baixar PDF',pdf,file_name=f'{tipo}_{ra}.pdf',mime='application/pdf',type='primary')
+            st.download_button('Baixar PDF',pdf,file_name=f'{tipo}_{ra}.pdf',mime='application/pdf',type='primary', width='stretch')
             
             try:
                 base64_pdf = base64.b64encode(pdf).decode('utf-8')
@@ -1137,10 +1183,6 @@ def renderizar_edicao(d):
             st.info('Os dados mudaram. Gere uma nova prévia ou emissão.')
 
 def renderizar_modulo(banco_path=None):
-    global DB
-    if banco_path is not None: DB=Path(banco_path)
-    DB.parent.mkdir(parents=True,exist_ok=True)
-    
     if not estado_historico.get('pagina_atual'):
         estado_historico.pagina_atual = 'dashboard'
         

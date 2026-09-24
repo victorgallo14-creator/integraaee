@@ -781,6 +781,11 @@ def _repo_carregar(ra):
             d['anos'][idx]['situacao'] = mat.get('situacao') or 'Não cursado'
             if mat.get('ano_letivo'): d['anos'][idx]['ano_letivo'] = str(mat['ano_letivo'])
             if mat.get('modalidade'): d['anos'][idx]['modalidade'] = mat['modalidade']
+            
+            # Recupera os dados preenchidos no banco
+            if mat.get('estabelecimento'): d['anos'][idx]['estabelecimento'] = str(mat['estabelecimento'])
+            if mat.get('municipio'): d['anos'][idx]['municipio'] = str(mat['municipio'])
+            if mat.get('uf'): d['anos'][idx]['uf'] = str(mat['uf'])
             if mat.get('ch_base'): d['anos'][idx]['ch_base'] = str(mat['ch_base'])
             if mat.get('ch_div'): d['anos'][idx]['ch_div'] = str(mat['ch_div'])
             

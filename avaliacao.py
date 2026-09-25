@@ -57,8 +57,23 @@ def _agora_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 def _ano_da_turma(turma: str) -> Optional[int]:
-    m = re.search('([1-5])\\s*[ºO]?\\s*ANO', _norm(turma))
-    return int(m.group(1)) if m else None
+    """Extrai o ano escolar de nomes de turma usados no Integra.
+
+    Aceita, entre outras variações:
+    5º Ano 1, 5º Ano 01, 5° Ano 1, 5o Ano 1, 5 Ano 1 e 5ANO1.
+    A normalização Unicode pode transformar o ordinal masculino em 'o'
+    minúsculo; por isso a busca é case-insensitive.
+    """
+    texto = _norm(turma)
+    m = re.search(r'(?<!\\d)([1-5])\\s*(?:[Oº°])?\\s*ANO\\b', texto, flags=re.IGNORECASE)
+    if m:
+        return int(m.group(1))
+
+    if 'ANO' in texto:
+        m = re.search(r'(?<!\\d)([1-5])(?!\\d)', texto)
+        if m:
+            return int(m.group(1))
+    return None
 
 def _clean_pdf(texto: Any) -> str:
     s = str(texto or '')

@@ -35,7 +35,7 @@ import streamlit as st
 
 from dados_avaliacao_completo import AVALIACAO_DB, METADADOS_AVALIACAO
 
-MODULO_AVALIACAO_VERSAO = "2026.09.24-v3-impacto-pedagogico"
+MODULO_AVALIACAO_VERSAO = "2026.09.24-v4-interface-institucional"
 TABLE_NAME = "Avaliacao"
 
 STATUS_APRENDIZAGEM = {
@@ -746,6 +746,19 @@ def _css() -> None:
         .av-hero-title{font-size:2.55rem;font-weight:900;line-height:1.02;margin:8px 0 12px 0;max-width:900px}
         .av-hero-sub{font-size:1.02rem;opacity:.92;max-width:920px;line-height:1.6}
         .av-context{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;position:relative;z-index:2}
+
+        .av-context-setup{
+            padding:23px 25px;border-radius:22px;background:#fff;
+            border:1px solid #dfe7f1;box-shadow:0 10px 30px rgba(15,23,42,.055);
+            margin:8px 0 18px
+        }
+        .av-context-setup-title{font-size:1.12rem;font-weight:900;color:#0f172a;margin-bottom:3px}
+        .av-context-setup-sub{font-size:.86rem;color:#64748b;line-height:1.5;margin-bottom:6px}
+        .av-context-action{
+            display:flex;justify-content:flex-end;align-items:center;gap:10px;
+            margin:-9px 2px 16px 0
+        }
+        .av-context-current{font-size:.76rem;color:#64748b}
         .av-chip{
             padding:7px 11px;border-radius:999px;background:rgba(255,255,255,.12);
             border:1px solid rgba(255,255,255,.16);font-size:.79rem;font-weight:650;
@@ -853,7 +866,6 @@ def _css() -> None:
         }
         div[data-testid="stDataFrame"]{border:1px solid #e2e8f0;border-radius:16px;overflow:hidden}
         div[data-testid="stVerticalBlockBorderWrapper"]{border-radius:19px!important;border-color:#e2e8f0!important;background:#fff}
-        div[role="radiogroup"]{gap:.35rem}
         button[kind="primary"]{border-radius:12px!important;font-weight:800!important;min-height:2.65rem}
         button[kind="secondary"]{border-radius:12px!important;min-height:2.55rem}
         textarea{border-radius:13px!important}
@@ -879,16 +891,18 @@ def _css() -> None:
     )
 
 
+
 def _hero(ctx: Contexto, usuario: str) -> None:
     st.markdown(
         f"""
         <div class="av-hero">
           <div class="av-hero-kicker">Integra · Avaliação e Aprendizagem</div>
-          <div class="av-hero-title">Avaliar para decidir melhor.<br>Ensinar melhor amanhã.</div>
+          <div class="av-hero-title">Acompanhamento da aprendizagem<br>e tomada de decisão pedagógica</div>
           <div class="av-hero-sub">
-            Esta ferramenta transforma currículo, evidências e registros em decisões pedagógicas:
-            mostra o que priorizar, onde recompor, quem precisa de intervenção e qual deve ser o próximo passo.
-            Menos relatório por obrigação. Mais informação útil para a prática.
+            O módulo organiza as aprendizagens previstas para o período, os pré-requisitos relacionados,
+            as evidências produzidas e o percurso de cada estudante. Os registros subsidiam o planejamento docente,
+            a recomposição das aprendizagens, a definição de intervenções e a atribuição dos conceitos trimestrais
+            com base em evidências pedagógicas.
           </div>
           <div class="av-context">
             <span class="av-chip">🏫 {_esc(ctx.turma)}</span>
@@ -1046,7 +1060,7 @@ def _componente_card_html(componente: str, progresso: Mapping[str, Any], resumo:
 def _painel(repo: AvaliacaoRepo, ctx_base: Contexto, componentes: List[str], alunos: List[str]) -> None:
     _titulo(
         "Seu painel pedagógico",
-        "Aqui você não acompanha “formulários preenchidos”. Você acompanha decisões: o que ensinar, o que observar e onde intervir.",
+        "O painel reúne o andamento dos componentes, as prioridades que emergem dos registros e os pontos que ainda requerem acompanhamento pedagógico.",
     )
     _impacto_pratica()
 
@@ -1109,7 +1123,7 @@ def _painel(repo: AvaliacaoRepo, ctx_base: Contexto, componentes: List[str], alu
     k4.metric("Fechamentos realizados", f"{fechados_total}/{esperado}" if esperado else "0")
 
     _ganho_pratico(
-        "Como usar este painel durante o trimestre",
+        "Leitura pedagógica do painel",
         [
             "No início: abra o componente e confira onde a turma precisa chegar e quais pré-requisitos podem bloquear o avanço.",
             "Durante: atualize o que está AT, ED ou RP e use o mapa de evidências para conferir se suas atividades estão realmente mostrando aprendizagem.",
@@ -2146,6 +2160,113 @@ def _show_setup(sql_text: str, erro: str) -> None:
             st.code(erro)
 
 
+
+def _contexto_trabalho(
+    supabase: Any,
+    matriz_professores: pd.DataFrame,
+    usuario_nome: str,
+    usuario_matricula: str,
+    gestor: bool,
+) -> Optional[Tuple[int, int, int, str]]:
+    """Configura o contexto somente quando necessário e o mantém limpo durante o uso."""
+    pronto = bool(st.session_state.get("av_v2_context_ready"))
+
+    if pronto:
+        anos = _anos_disponiveis()
+        ano_letivo = int(st.session_state.get("av_v2_ano_letivo", date.today().year))
+        ano_escolar = int(st.session_state.get("av_v2_ano_escolar", anos[0] if anos else 1))
+        trimestres = _trimestres_disponiveis(ano_escolar)
+        trimestre = int(st.session_state.get("av_v2_trimestre", trimestres[0] if trimestres else 1))
+        turma = str(st.session_state.get("av_v2_turma", "") or "")
+
+        turmas = _turmas_permitidas(
+            matriz_professores, usuario_nome, gestor, supabase, ano_escolar
+        )
+        if (
+            ano_escolar not in anos
+            or trimestre not in trimestres
+            or not turma
+            or turma not in turmas
+        ):
+            st.session_state["av_v2_context_ready"] = False
+            pronto = False
+        else:
+            return ano_letivo, ano_escolar, trimestre, turma
+
+    st.markdown(
+        """
+        <div class="av-context-setup">
+          <div class="av-context-setup-title">Defina o contexto de trabalho</div>
+          <div class="av-context-setup-sub">
+            Selecione o ano de escolaridade, o trimestre e a turma que serão acompanhados.
+            Essa escolha organiza todo o percurso avaliativo exibido no módulo.
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    c1, c2, c3 = st.columns([1, 1, 1])
+    with c1:
+        ano_letivo = int(
+            st.number_input(
+                "Ano letivo",
+                min_value=2025,
+                max_value=2035,
+                value=int(st.session_state.get("av_v2_ano_letivo", date.today().year)),
+                step=1,
+                key="av_v2_ano_letivo",
+            )
+        )
+    with c2:
+        anos = _anos_disponiveis()
+        ano_escolar = st.selectbox(
+            "Ano de escolaridade",
+            anos,
+            format_func=lambda x: f"{x}º ano",
+            key="av_v2_ano_escolar",
+        )
+    with c3:
+        trimestres = _trimestres_disponiveis(ano_escolar)
+        trimestre = st.selectbox(
+            "Trimestre",
+            trimestres,
+            format_func=lambda x: f"{x}º trimestre",
+            key="av_v2_trimestre",
+        )
+
+    turmas = _turmas_permitidas(
+        matriz_professores, usuario_nome, gestor, supabase, ano_escolar
+    )
+    if not turmas:
+        st.warning(
+            f"Não encontrei turmas do {ano_escolar}º ano vinculadas ao seu usuário "
+            "na matriz de professores nem no Carômetro."
+        )
+        return None
+
+    turma = st.selectbox("Turma", turmas, key="av_v2_turma")
+
+    b1, b2 = st.columns([1.7, 4.3])
+    with b1:
+        iniciar = st.button(
+            "Iniciar acompanhamento",
+            type="primary",
+            use_container_width=True,
+            key="av_v4_start_context",
+        )
+    with b2:
+        st.caption(
+            "O contexto poderá ser alterado depois, sem modificar os registros já salvos."
+        )
+
+    if iniciar:
+        st.session_state["av_v2_context_ready"] = True
+        st.rerun()
+
+    return None
+
+
 # -----------------------------------------------------------------------------
 # Entrada principal
 # -----------------------------------------------------------------------------
@@ -2165,24 +2286,17 @@ def renderizar_avaliacao(supabase: Any, sql_instalacao: Optional[str] = None) ->
     matriz_professores = _carregar_matriz_professores(supabase)
     gestor = _eh_gestor(usuario_matricula, usuario_nome, supabase)
 
-    # Contexto: compacto e sempre disponível.
-    with st.expander("⚙️ Turma e período", expanded=not bool(st.session_state.get("av_v2_context_ready"))):
-        a, b, c = st.columns(3)
-        with a:
-            ano_letivo = int(st.number_input("Ano letivo", min_value=2025, max_value=2035, value=int(st.session_state.get("av_v2_ano_letivo", date.today().year)), step=1, key="av_v2_ano_letivo"))
-        with b:
-            anos = _anos_disponiveis()
-            ano_escolar = st.selectbox("Ano de escolaridade", anos, format_func=lambda x: f"{x}º ano", key="av_v2_ano_escolar")
-        with c:
-            trimestres = _trimestres_disponiveis(ano_escolar)
-            trimestre = st.selectbox("Trimestre", trimestres, format_func=lambda x: f"{x}º trimestre", key="av_v2_trimestre")
+    contexto = _contexto_trabalho(
+        supabase,
+        matriz_professores,
+        usuario_nome,
+        usuario_matricula,
+        gestor,
+    )
+    if contexto is None:
+        return
 
-        turmas = _turmas_permitidas(matriz_professores, usuario_nome, gestor, supabase, ano_escolar)
-        if not turmas:
-            st.warning(f"Não encontrei turmas do {ano_escolar}º ano vinculadas ao seu usuário na matriz de professores nem no Carômetro.")
-            return
-        turma = st.selectbox("Turma", turmas, key="av_v2_turma")
-        st.session_state["av_v2_context_ready"] = True
+    ano_letivo, ano_escolar, trimestre, turma = contexto
 
     alunos = _alunos_da_turma(supabase, turma)
     disponiveis = _componentes_disponiveis(ano_escolar, trimestre)
@@ -2192,15 +2306,43 @@ def renderizar_avaliacao(supabase: Any, sql_instalacao: Optional[str] = None) ->
     _hero(ctx_base, usuario_nome)
 
     st.markdown(
-        '''
+        """
         <div class="av-impact-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:-5px">
-          <div class="av-impact" style="min-height:112px"><div class="av-eyebrow">ANTES DA AULA</div><div class="av-impact-title">Planeje pelo que o aluno precisa aprender</div><div class="av-impact-text">Use currículo e pré-requisitos para escolher o foco e antecipar possíveis barreiras.</div></div>
-          <div class="av-impact" style="min-height:112px"><div class="av-eyebrow">DURANTE O TRIMESTRE</div><div class="av-impact-title">Observe evidências, não impressões</div><div class="av-impact-text">Registre o que o estudante demonstra e transforme dificuldades em decisões de intervenção.</div></div>
-          <div class="av-impact" style="min-height:112px"><div class="av-eyebrow">NO FECHAMENTO</div><div class="av-impact-title">Conceitue e já planeje o próximo passo</div><div class="av-impact-text">A síntese final deve alimentar o ensino seguinte, e não encerrar a aprendizagem.</div></div>
+          <div class="av-impact" style="min-height:118px">
+            <div class="av-eyebrow">PLANEJAMENTO DO PERÍODO</div>
+            <div class="av-impact-title">Delimite as aprendizagens que precisam ser desenvolvidas</div>
+            <div class="av-impact-text">Consulte o currículo do trimestre, registre o que foi efetivamente trabalhado e identifique pré-requisitos que demandam recomposição.</div>
+          </div>
+          <div class="av-impact" style="min-height:118px">
+            <div class="av-eyebrow">ACOMPANHAMENTO DA APRENDIZAGEM</div>
+            <div class="av-impact-title">Relacione atividades e produções às evidências esperadas</div>
+            <div class="av-impact-text">Observe o nível de domínio demonstrado por cada estudante e diferencie ausência de evidência, aprendizagem parcial, consolidação e ampliação.</div>
+          </div>
+          <div class="av-impact" style="min-height:118px">
+            <div class="av-eyebrow">SÍNTESE E INTERVENÇÃO</div>
+            <div class="av-impact-title">Fundamente o conceito e defina a continuidade do trabalho</div>
+            <div class="av-impact-text">Utilize o conjunto de evidências para atribuir o conceito trimestral e registrar o próximo passo pedagógico, individual e coletivo.</div>
+          </div>
         </div>
-        ''',
+        """,
         unsafe_allow_html=True,
     )
+
+    c_ctx1, c_ctx2 = st.columns([6.2, 1.2])
+    with c_ctx1:
+        st.markdown(
+            f'<div class="av-context-current">Contexto atual: <b>{_esc(turma)}</b> · '
+            f'{ano_escolar}º ano · {trimestre}º trimestre/{ano_letivo}</div>',
+            unsafe_allow_html=True,
+        )
+    with c_ctx2:
+        if st.button(
+            "Alterar contexto",
+            use_container_width=True,
+            key="av_v4_change_context",
+        ):
+            st.session_state["av_v2_context_ready"] = False
+            st.rerun()
 
     repo = AvaliacaoRepo(supabase, usuario_nome)
     ok, erro = repo.disponivel()
@@ -2208,28 +2350,41 @@ def renderizar_avaliacao(supabase: Any, sql_instalacao: Optional[str] = None) ->
         _show_setup(sql_instalacao or SQL_INSTALACAO, erro)
         return
 
-    # Navegação principal: poucas escolhas e nomes orientados à tarefa.
-    areas = ["🏠 Meu painel", "📚 Percurso do componente", "👤 Perfil do estudante", "🏛️ Síntese do Conselho"]
+    # Navegação principal: formato de seleção visual, sem aparência de formulário.
+    areas = ["🏠 Painel da turma", "📚 Percurso do componente", "👤 Perfil do estudante", "🏛️ Síntese do Conselho"]
     force_area = st.session_state.pop("av_v2_force_area", None)
     aliases_area = {
-        "🏠 Visão geral": "🏠 Meu painel",
+        "🏠 Visão geral": "🏠 Painel da turma",
+        "🏠 Painel da turma": "🏠 Painel da turma",
         "📚 Trabalhar componente": "📚 Percurso do componente",
         "🏛️ Conselho de Ciclo": "🏛️ Síntese do Conselho",
     }
     force_area = aliases_area.get(force_area, force_area)
-    if force_area in areas:
-        st.session_state["av_v2_area_radio"] = force_area
-    if "av_v2_area_radio" not in st.session_state:
-        st.session_state["av_v2_area_radio"] = areas[0]
-    area = st.radio(
-        "Navegação",
-        areas,
-        horizontal=True,
-        key="av_v2_area_radio",
-        label_visibility="collapsed",
-    )
 
-    if area == "🏠 Meu painel":
+    if "av_v4_area" not in st.session_state:
+        st.session_state["av_v4_area"] = areas[0]
+    if force_area in areas:
+        st.session_state["av_v4_area"] = force_area
+
+    if hasattr(st, "pills"):
+        area = st.pills(
+            "Navegação",
+            areas,
+            selection_mode="single",
+            key="av_v4_area",
+            label_visibility="collapsed",
+        )
+        area = area or areas[0]
+    else:
+        area = st.radio(
+            "Navegação",
+            areas,
+            horizontal=True,
+            key="av_v4_area",
+            label_visibility="collapsed",
+        )
+
+    if area == "🏠 Painel da turma":
         _painel(repo, ctx_base, componentes, alunos)
     elif area == "📚 Percurso do componente":
         _trabalhar_componente(repo, ctx_base, componentes, alunos)

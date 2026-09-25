@@ -8195,8 +8195,14 @@ elif modulo_atuacao == "🏫 Ensino Regular":
 
 
     elif app_mode_regular == "📊 Avaliação e Aprendizagem":
-        from avaliacao import renderizar_avaliacao
-        renderizar_avaliacao(supabase)
+    import importlib
+    import sys
+
+    importlib.invalidate_caches()
+    sys.modules.pop("avaliacao", None)
+
+    modulo_avaliacao = importlib.import_module("avaliacao")
+    modulo_avaliacao.renderizar_avaliacao(supabase)
 # ==============================================================================
 # MÓDULO 4: AGENDAMENTO SALA DE INFORMÁTICA (MIGRADO PARA SUPABASE)
 # ==============================================================================

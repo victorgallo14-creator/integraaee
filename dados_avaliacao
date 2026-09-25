@@ -1,96 +1,113 @@
-"""Dados curriculares do módulo Avaliação do Integra.
+                                      'evidencia': 'Mapa/croqui/maquete; leitura cartográfica; localização; interpretação de imagem; '
+                                                   'atividade prática.'},
+                                     {'id': '3',
+                                      'dimensao': 'G5T3-03',
+                                      'situacao': 'Leitura de mapa/imagem/dado ou situação espacial envolvendo: Globo terrestre: Paralelos '
+                                                  'e Meridianos..',
+                                      'bloom': 'Compreender / Aplicar',
+                                      'evidencia': 'Mapa/croqui/maquete; leitura cartográfica; localização; interpretação de imagem; '
+                                                   'atividade prática.'},
+                                     {'id': '4',
+                                      'dimensao': 'G5T3-04',
+                                      'situacao': 'Leitura de mapa/imagem/dado ou situação espacial envolvendo: Elementos naturais que '
+                                                  'formam o espaço natural e geográfico (relevo, clima, hidrografia e vegetação) para que '
+                                                  'entendam a interdependên….',
+                                      'bloom': 'Compreender / Analisar',
+                                      'evidencia': 'Atividade escrita/oral; mapa ou imagem quando pertinente; comparação; produção '
+                                                   'individual; observação sistemática.'},
+                                     {'id': '5',
+                                      'dimensao': 'G5T3-05',
+                                      'situacao': 'Leitura de mapa/imagem/dado ou situação espacial envolvendo: Leitura de mapas '
+                                                  'contemplando informações da geografia regionais e nacional..',
+                                      'bloom': 'Compreender / Aplicar',
+                                      'evidencia': 'Mapa/croqui/maquete; leitura cartográfica; localização; interpretação de imagem; '
+                                                   'atividade prática.'}],
+                       'itens_curriculares': [{'codigo': 'G5T3-01',
+                                               'objetivo': '5. Identificar os diferentes tipos de energia utilizados na produção '
+                                                           'industrial, agrícola e extrativa e no cotidiano das populações. Fonte '
+                                                           'curricular: p. 16.',
+                                               'conteudo': 'Dados sobre as 05 regiões brasileiras de produção de energia e consumo.',
+                                               'observar': 'Identifica, compara e explica Dados sobre as 05 regiões brasileiras de '
+                                                           'produção de energia e consumo, relacionando atividades humanas, produção, '
+                                                           'circulação, consumo e transformação do espaço geográfico.',
+                                               'evidencias': 'Atividade escrita/oral; mapa ou imagem quando pertinente; comparação; '
+                                                             'produção individual; observação sistemática.',
+                                               'fonte': 'Matriz de rastreabilidade construída a partir do Currículo Municipal/2019'},
+                                              {'codigo': 'G5T3-02',
+                                               'objetivo': '7. Ler e analisar diversas representações cartográficas. Fonte curricular: p. '
+                                                           '17.',
+                                               'conteudo': 'Planisfério: 05 continentes.',
+                                               'observar': 'Lê, localiza, representa e/ou interpreta Planisfério: 05 continentes, '
+                                                           'utilizando corretamente as referências espaciais e cartográficas previstas '
+                                                           'para o ano.',
+                                               'evidencias': 'Mapa/croqui/maquete; leitura cartográfica; localização; interpretação de '
+                                                             'imagem; atividade prática.',
+                                               'fonte': 'Matriz de rastreabilidade construída a partir do Currículo Municipal/2019'},
+                                              {'codigo': 'G5T3-03',
+                                               'objetivo': '7. Ler e analisar diversas representações cartográficas. Fonte curricular: p. '
+                                                           '17.',
+                                               'conteudo': 'Globo terrestre: Paralelos e Meridianos.',
+                                               'observar': 'Lê, localiza, representa e/ou interpreta Globo terrestre: Paralelos e '
+                                                           'Meridianos, utilizando corretamente as referências espaciais e cartográficas '
+                                                           'previstas para o ano.',
+                                               'evidencias': 'Mapa/croqui/maquete; leitura cartográfica; localização; interpretação de '
+                                                             'imagem; atividade prática.',
+                                               'fonte': 'Matriz de rastreabilidade construída a partir do Currículo Municipal/2019'},
+                                              {'codigo': 'G5T3-04',
+                                               'objetivo': '13. Conhecer e estudar os diferentes espaços físicos existentes, antecipando a '
+                                                           'viabilização de Fonte curricular: p. 18.',
+                                               'conteudo': 'Elementos naturais que formam o espaço natural e geográfico (relevo, clima, '
+                                                           'hidrografia e vegetação) para que entendam a interdependência desses elementos '
+                                                           'na formação do espaço brasileiro, especificando as 05 regiões.',
+                                               'observar': 'Identifica e explica Elementos naturais que formam o espaço natural e '
+                                                           'geográfico (relevo, clima, hidrografia e vegetação) para que entendam a '
+                                                           'interdependência desses elem…, estabelecendo relações entre elementos '
+                                                           'naturais, ações humanas, usos do espaço e consequências socioambientais.',
+                                               'evidencias': 'Atividade escrita/oral; mapa ou imagem quando pertinente; comparação; '
+                                                             'produção individual; observação sistemática.',
+                                               'fonte': 'Matriz de rastreabilidade construída a partir do Currículo Municipal/2019'},
+                                              {'codigo': 'G5T3-05',
+                                               'objetivo': '14. Identificar órgãos do poder público e canais de participação social, '
+                                                           'responsáveis por buscar soluções para a melhoria da qualidade de vida (em '
+                                                           'áreas como meio ambiente, mobilidade, moradia e direito à cidade) e discutir '
+                                                           'as propostas implementadas por esses órgãos que afetam a comunidade em que '
+                                                           'vive. Fonte curricular: p. 19.',
+                                               'conteudo': 'Leitura de mapas contemplando informações da geografia regionais e nacional.',
+                                               'observar': 'Lê, localiza, representa e/ou interpreta Leitura de mapas contemplando '
+                                                           'informações da geografia regionais e nacional, utilizando corretamente as '
+                                                           'referências espaciais e cartográficas previstas para o ano.',
+                                               'evidencias': 'Mapa/croqui/maquete; leitura cartográfica; localização; interpretação de '
+                                                             'imagem; atividade prática.',
+                                               'fonte': 'Matriz de rastreabilidade construída a partir do Currículo Municipal/2019'}],
+                       'fonte_curricular': 'Currículo de Geografia – divisão trimestral/2019 + Metas de Aprendizagem/2019'}}}}
 
-Fonte: Kit do Professor Polivalente - 5º ano - 1º trimestre, construído a partir
-dos Currículos e Metas de Aprendizagem 2019 da Rede Municipal de Limeira.
-A estrutura é extensível para os demais anos/trimestres sem alterar o motor do módulo.
-"""
+def validar_base():
+    """Retorna um resumo de integridade da base."""
+    componentes = METADADOS_AVALIACAO["componentes"]
+    faltas = []
+    total_dimensoes = 0
+    total_itens = 0
+    for ano in METADADOS_AVALIACAO["anos"]:
+        for tri in METADADOS_AVALIACAO["trimestres"]:
+            bloco = AVALIACAO_DB.get(ano, {}).get(tri, {})
+            for componente in componentes:
+                base = bloco.get(componente)
+                if not base:
+                    faltas.append((ano, tri, componente))
+                    continue
+                total_dimensoes += len(base.get("dimensoes", []))
+                total_itens += len(base.get("itens_curriculares", []))
+    return {
+        "ok": not faltas,
+        "faltas": faltas,
+        "anos": len(METADADOS_AVALIACAO["anos"]),
+        "trimestres_por_ano": len(METADADOS_AVALIACAO["trimestres"]),
+        "componentes": len(componentes),
+        "combinacoes_ano_trimestre_componente": 5 * 3 * 5,
+        "total_dimensoes": total_dimensoes,
+        "total_itens_curriculares": total_itens,
+    }
 
-AVALIACAO_DB = {5: {1: {'Língua Portuguesa': {'slug': 'LP',
-                               'curriculo_chegada': 'Leitura fluente e compreensiva; estratégias de leitura; '
-                                                    'oralidade/argumentação; análise discursiva e textual; '
-                                                    'conhecimentos linguísticos; produção escrita; leitura literária.',
-                               'nucleo_estruturante': 'Fluência/compreensão, inferência, produção textual e domínio do '
-                                                      'sistema linguístico esperado.',
-                               'pre_requisitos_principais': '4º: leitura autônoma e inferencial, comparação de textos, '
-                                                            'fato/opinião, produção/revisão. 3º: fluência, informações '
-                                                            'explícitas, sequência, estrutura básica e coesão.',
-                               'ancora': 'ÂNCORA PARA A SÍNTESE LP1, LP2 e LP6 são dimensões estruturantes para a '
-                                         'síntese do componente.',
-                               'dimensoes': [{'codigo': 'LP1',
-                                              'nome': 'Leitura fluente e autônoma',
-                                              'demonstrar': 'Lê silenciosamente e em voz alta com fluência, precisão, '
-                                                            'entonação e compreensão. A meta anual indica 140 '
-                                                            'palavras/minuto como referência, sempre articulada à '
-                                                            'compreensão.',
-                                              'focos': 'Fluência; autonomia; compreensão global; leitura expressiva.',
-                                              'peso': 'ESTRUTURANTE'},
-                                             {'codigo': 'LP2',
-                                              'nome': 'Compreensão e estratégias de leitura',
-                                              'demonstrar': 'Localiza informações explícitas e nucleares, infere '
-                                                            'informações implícitas, identifica tema/finalidade, '
-                                                            'compara textos e distingue fatos/opiniões, mobilizando '
-                                                            'elementos verbais e não verbais.',
-                                              'focos': 'Inferência; comparação; finalidade; tema; fato/opinião; '
-                                                       'informações relevantes; material gráfico.',
-                                              'peso': 'ESTRUTURANTE'},
-                                             {'codigo': 'LP3',
-                                              'nome': 'Oralidade, escuta e argumentação',
-                                              'demonstrar': 'Produz e compreende gêneros orais do período, respeita '
-                                                            'turnos, adequa vocabulário e sustenta pontos de vista com '
-                                                            'informações estudadas.',
-                                              'focos': 'Regra de jogo, poema e outras situações orais previstas; '
-                                                       'interação discursiva; argumentação.',
-                                              'peso': 'REGULAR'},
-                                             {'codigo': 'LP4',
-                                              'nome': 'Discursividade e textualidade',
-                                              'demonstrar': 'Reconhece contexto de produção, finalidade, estrutura dos '
-                                                            'gêneros e utiliza coesão, coerência, paragrafação e '
-                                                            'pontuação para construir sentidos.',
-                                              'focos': 'Contexto de produção; estrutura composicional; coesão; '
-                                                       'coerência; parágrafo; pontuação.',
-                                              'peso': 'REGULAR'},
-                                             {'codigo': 'LP5',
-                                              'nome': 'Análise linguística e ortografia',
-                                              'demonstrar': 'Analisa e emprega conhecimentos gramaticais e '
-                                                            'ortográficos previstos no período, sem dissociá-los do '
-                                                            'uso real da língua.',
-                                              'focos': 'Concordância; acentuação/paroxítonas; substantivos/adjetivos; '
-                                                       'ortografia e consulta ao dicionário, conforme o período.',
-                                              'peso': 'REGULAR'},
-                                             {'codigo': 'LP6',
-                                              'nome': 'Produção escrita e revisão',
-                                              'demonstrar': 'Planeja, produz, revisa e reescreve textos considerando '
-                                                            'interlocutor, finalidade, gênero, organização, coesão, '
-                                                            'coerência e convenções da escrita.',
-                                              'focos': 'Texto instrucional e gêneros do período; verbete/relato de '
-                                                       'experimento quando trabalhados; revisão e reescrita.',
-                                              'peso': 'ESTRUTURANTE'},
-                                             {'codigo': 'LP7',
-                                              'nome': 'Leitura literária e efeitos de sentido',
-                                              'demonstrar': 'Aprecia textos literários e interpreta linguagem '
-                                                            'figurada, humor/ironia, relações entre texto e leitor e '
-                                                            'elementos narrativos.',
-                                              'focos': 'Conto, mito, poema, HQ e outros gêneros literários previstos '
-                                                       'no trimestre.',
-                                              'peso': 'REGULAR'}],
-                               'pre_requisitos': [{'codigo': 'LP1',
-                                                   'pre_4ano': '4º ano: leitura fluente e autônoma com compreensão '
-                                                               '(meta anual: 125 palavras/minuto).',
-                                                   'pre_antigo': '3º ano: leitura fluente e autônoma (meta anual: 110 '
-                                                                 'palavras/minuto); reconhecimento de palavras e '
-                                                                 'estruturas silábicas não canônicas.',
-                                                   'diagnostico': 'Amostra curta de leitura oral + perguntas de '
-                                                                  'compreensão; observar precisão, ritmo e manutenção '
-                                                                  'de sentido.',
-                                                   'recomposicao': 'Recompor decodificação/fluência sem abandonar '
-                                                                   'textos do 5º ano: leitura assistida, repetida e '
-                                                                   'compartilhada, com progressiva autonomia.'},
-                                                  {'codigo': 'LP2',
-                                                   'pre_4ano': '4º ano: inferir, localizar explícitas, comparar '
-                                                               'textos, distinguir fato/opinião, identificar '
-                                                               'tema/finalidade e aspectos nucleares.',
-                                                   'pre_antigo': '3º ano: localizar explícitas e sequência temporal, '
-                                                                 'comparar textos, inferir significados, identificar '
-                                                                 'tema e causa/consequência.',
-                                                   'diagnostico': 'Texto narrativo + texto informativo curto: '
-                                                                  'localizar, inferir, explicar finalidade e comparar '
+
+if __name__ == "__main__":
+    print(validar_base())

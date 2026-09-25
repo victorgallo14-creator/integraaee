@@ -1234,7 +1234,8 @@ with st.sidebar:
             "💻 Agendamento Informática", 
             "📝 Nova Ata de Conselho", 
             "📂 Histórico de Atas", 
-            "📖 Planejamento Curricular"
+            "📖 Planejamento Curricular",
+            "📊 Avaliação e Aprendizagem"
         ]
         
         # A opção do Álbum aparece para si
@@ -8192,12 +8193,16 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                 safe_update("Config_Ata", df_config)
                 st.success("✅ Matriz da gestão salva com sucesso!")
 
-    
+   elif app_mode_regular == "📊 Avaliação e Aprendizagem":
+    from avaliacao import renderizar_avaliacao
+    renderizar_avaliacao(supabase) 
 
 # ==============================================================================
 # MÓDULO 4: AGENDAMENTO SALA DE INFORMÁTICA (MIGRADO PARA SUPABASE)
 # ==============================================================================
 
+    
+    
     elif app_mode_regular == "💻 Agendamento Informática":
         st.markdown('<div class="header-box"><div class="header-title">💻 Agendamento - Sala de Informática</div></div>', unsafe_allow_html=True)
         st.markdown("Reserve a sala de computadores para a sua turma do Ensino Regular.")

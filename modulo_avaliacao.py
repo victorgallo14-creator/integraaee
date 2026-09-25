@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 """
 Integra | Avaliação e Aprendizagem
-Versão 2 — fluxo pedagógico guiado, interface centrada no professor.
+Versão 3 — impacto pedagógico, fluxo guiado e interface centrada em decisões de ensino.
 
 Integração mínima no app_pei.py::
 
@@ -35,7 +35,7 @@ import streamlit as st
 
 from dados_avaliacao_completo import AVALIACAO_DB, METADADOS_AVALIACAO
 
-MODULO_AVALIACAO_VERSAO = "2026.09.24-v2-ux-pedagogica"
+MODULO_AVALIACAO_VERSAO = "2026.09.24-v3-impacto-pedagogico"
 TABLE_NAME = "Avaliacao"
 
 STATUS_APRENDIZAGEM = {
@@ -721,64 +721,158 @@ def _resumo_componente(repo: AvaliacaoRepo, ctx: Contexto, base: Mapping[str, An
 # Aparência
 # -----------------------------------------------------------------------------
 
+
 def _css() -> None:
     st.markdown(
         """
         <style>
+        .av-shell{max-width:1400px;margin:auto}
         .av-hero{
-            padding:26px 28px;border-radius:22px;
-            background:linear-gradient(135deg,#0f3f78 0%,#165c9f 55%,#2d74b8 100%);
-            color:white;margin:2px 0 18px 0;box-shadow:0 12px 32px rgba(15,63,120,.16)
+            position:relative;overflow:hidden;
+            padding:34px 36px;border-radius:28px;
+            background:
+              radial-gradient(circle at 88% 18%,rgba(56,189,248,.34),transparent 25%),
+              radial-gradient(circle at 15% 105%,rgba(99,102,241,.35),transparent 34%),
+              linear-gradient(135deg,#071b35 0%,#0d3d73 48%,#1168a7 100%);
+            color:white;margin:4px 0 22px 0;
+            box-shadow:0 22px 55px rgba(2,25,56,.22)
         }
-        .av-hero-kicker{font-size:.78rem;font-weight:800;letter-spacing:.11em;text-transform:uppercase;opacity:.82}
-        .av-hero-title{font-size:2rem;font-weight:850;line-height:1.08;margin:4px 0 8px 0}
-        .av-hero-sub{font-size:.98rem;opacity:.9;max-width:850px;line-height:1.5}
-        .av-context{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-        .av-chip{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);font-size:.82rem}
+        .av-hero:after{
+            content:"";position:absolute;right:-70px;bottom:-90px;width:260px;height:260px;
+            border-radius:50%;border:1px solid rgba(255,255,255,.10);
+            box-shadow:0 0 0 35px rgba(255,255,255,.035),0 0 0 70px rgba(255,255,255,.025)
+        }
+        .av-hero-kicker{font-size:.76rem;font-weight:850;letter-spacing:.14em;text-transform:uppercase;opacity:.78}
+        .av-hero-title{font-size:2.55rem;font-weight:900;line-height:1.02;margin:8px 0 12px 0;max-width:900px}
+        .av-hero-sub{font-size:1.02rem;opacity:.92;max-width:920px;line-height:1.6}
+        .av-context{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;position:relative;z-index:2}
+        .av-chip{
+            padding:7px 11px;border-radius:999px;background:rgba(255,255,255,.12);
+            border:1px solid rgba(255,255,255,.16);font-size:.79rem;font-weight:650;
+            backdrop-filter:blur(6px)
+        }
 
-        .av-section-title{font-size:1.28rem;font-weight:850;color:#0f172a;margin:.2rem 0 .25rem 0}
-        .av-section-sub{color:#64748b;font-size:.93rem;line-height:1.5;margin-bottom:.8rem}
-        .av-eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#64748b;margin-bottom:4px}
+        .av-section-title{font-size:1.38rem;font-weight:900;color:#0f172a;margin:.3rem 0 .25rem 0}
+        .av-section-sub{color:#64748b;font-size:.94rem;line-height:1.55;margin-bottom:1rem;max-width:1050px}
+        .av-eyebrow{font-size:.69rem;font-weight:850;letter-spacing:.10em;text-transform:uppercase;color:#64748b;margin-bottom:4px}
 
-        .av-guide{padding:15px 17px;border-radius:15px;background:#f8fafc;border:1px solid #e2e8f0;margin:8px 0 16px 0}
+        .av-guide{
+            padding:16px 18px;border-radius:16px;
+            background:linear-gradient(135deg,#f8fbff,#f5f9ff);
+            border:1px solid #dce9f8;margin:8px 0 18px 0;
+            box-shadow:0 4px 16px rgba(15,61,115,.035)
+        }
         .av-guide b{color:#0f3f78}
+        .av-guide-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;font-weight:850;color:#2563eb;margin-bottom:3px}
 
-        .av-card{border:1px solid #e2e8f0;border-radius:18px;padding:17px 18px;background:#fff;box-shadow:0 3px 14px rgba(15,23,42,.04);margin-bottom:10px}
-        .av-card:hover{border-color:#cbd5e1;box-shadow:0 7px 22px rgba(15,23,42,.06)}
-        .av-card-title{font-weight:820;color:#0f172a;font-size:1rem;line-height:1.35}
-        .av-card-text{color:#475569;font-size:.91rem;line-height:1.5;margin-top:5px}
-        .av-code{display:inline-block;padding:3px 8px;border-radius:7px;background:#eff6ff;color:#1d4ed8;font-weight:850;font-size:.72rem;margin-right:7px}
-        .av-struct{display:inline-block;padding:3px 8px;border-radius:7px;background:#fff7ed;color:#9a3412;font-weight:800;font-size:.68rem;margin-left:5px}
+        .av-impact-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:12px 0 20px}
+        .av-impact{
+            background:#fff;border:1px solid #e5edf7;border-radius:18px;padding:17px 17px 16px;
+            box-shadow:0 6px 22px rgba(15,23,42,.045);min-height:150px
+        }
+        .av-impact-icon{
+            width:38px;height:38px;border-radius:12px;background:#eff6ff;
+            display:flex;align-items:center;justify-content:center;font-size:1.12rem;margin-bottom:11px
+        }
+        .av-impact-title{font-size:.93rem;font-weight:850;color:#0f172a;margin-bottom:5px}
+        .av-impact-text{font-size:.82rem;line-height:1.48;color:#64748b}
 
-        .av-progress-shell{height:8px;border-radius:999px;background:#e2e8f0;overflow:hidden;margin:8px 0 6px 0}
+        .av-next{
+            display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;
+            padding:18px 20px;border-radius:20px;background:linear-gradient(135deg,#eff6ff,#f8fbff);
+            border:1px solid #bfdbfe;margin:12px 0 20px;box-shadow:0 7px 22px rgba(37,99,235,.07)
+        }
+        .av-next-icon{
+            width:48px;height:48px;border-radius:15px;background:#2563eb;color:#fff;
+            display:flex;align-items:center;justify-content:center;font-size:1.35rem
+        }
+        .av-next-kicker{font-size:.68rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase;color:#2563eb}
+        .av-next-title{font-size:1.03rem;font-weight:880;color:#0f172a;margin:2px 0 2px}
+        .av-next-text{font-size:.84rem;color:#64748b;line-height:1.45}
+        .av-next-pill{font-size:.75rem;font-weight:850;color:#1d4ed8;background:white;border:1px solid #bfdbfe;padding:7px 10px;border-radius:999px}
+
+        .av-practice{
+            border:1px solid #dbeafe;background:linear-gradient(135deg,#ffffff,#f8fbff);
+            border-radius:18px;padding:16px 18px;margin:10px 0 18px;box-shadow:0 6px 20px rgba(15,23,42,.035)
+        }
+        .av-practice-head{display:flex;gap:9px;align-items:center;font-size:.93rem;font-weight:850;color:#0f3f78;margin-bottom:8px}
+        .av-practice ul{margin:.25rem 0 0 1.1rem;padding:0;color:#475569}
+        .av-practice li{margin:.24rem 0;font-size:.86rem;line-height:1.45}
+
+        .av-card{
+            border:1px solid #e3ebf5;border-radius:20px;padding:18px 19px;background:#fff;
+            box-shadow:0 5px 20px rgba(15,23,42,.045);margin-bottom:11px;transition:.15s ease
+        }
+        .av-card:hover{transform:translateY(-1px);border-color:#c9d8ea;box-shadow:0 10px 28px rgba(15,23,42,.07)}
+        .av-card-title{font-weight:850;color:#0f172a;font-size:1rem;line-height:1.4}
+        .av-card-text{color:#475569;font-size:.9rem;line-height:1.55;margin-top:6px}
+        .av-code{display:inline-block;padding:4px 8px;border-radius:8px;background:#eff6ff;color:#1d4ed8;font-weight:900;font-size:.69rem;margin-right:7px}
+        .av-struct{display:inline-block;padding:4px 8px;border-radius:8px;background:#fff7ed;color:#9a3412;font-weight:850;font-size:.65rem;margin-left:5px}
+
+        .av-progress-shell{height:8px;border-radius:999px;background:#e7edf5;overflow:hidden;margin:8px 0 6px}
         .av-progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#2563eb,#0ea5e9)}
-        .av-small{font-size:.79rem;color:#64748b}
+        .av-small{font-size:.78rem;color:#64748b;line-height:1.4}
 
-        .av-stage-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0 16px 0}
-        .av-stage{padding:10px 11px;border-radius:12px;border:1px solid #e2e8f0;background:#fff}
-        .av-stage.done{background:#ecfdf5;border-color:#a7f3d0}
-        .av-stage.current{background:#eff6ff;border-color:#bfdbfe}
-        .av-stage-num{font-size:.7rem;font-weight:850;color:#64748b;text-transform:uppercase}
-        .av-stage-name{font-size:.82rem;font-weight:760;color:#1e293b;margin-top:2px}
+        .av-stage-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0 18px}
+        .av-stage{padding:12px 13px;border-radius:15px;border:1px solid #e2e8f0;background:#fff}
+        .av-stage.done{background:#f0fdf4;border-color:#bbf7d0}
+        .av-stage.current{background:#eff6ff;border-color:#bfdbfe;box-shadow:0 5px 18px rgba(37,99,235,.07)}
+        .av-stage-num{font-size:.66rem;font-weight:900;color:#64748b;text-transform:uppercase;letter-spacing:.04em}
+        .av-stage-name{font-size:.82rem;font-weight:800;color:#1e293b;margin-top:3px}
 
-        .av-badge{display:inline-block;padding:4px 9px;border-radius:999px;font-weight:850;font-size:.74rem}
-        .av-concept{font-size:2.2rem;font-weight:900;line-height:1;color:#0f172a}
-        .av-concept-label{font-size:.78rem;color:#64748b;font-weight:750;text-transform:uppercase;letter-spacing:.06em}
-        .av-kpi{padding:14px 15px;border:1px solid #e2e8f0;border-radius:15px;background:#fff;height:100%}
-        .av-kpi-n{font-size:1.45rem;font-weight:900;color:#0f172a}
-        .av-kpi-l{font-size:.76rem;color:#64748b;font-weight:750;margin-top:2px}
+        .av-badge{display:inline-block;padding:4px 9px;border-radius:999px;font-weight:900;font-size:.72rem}
+        .av-concept{font-size:2.35rem;font-weight:950;line-height:1;color:#0f172a}
+        .av-concept-label{font-size:.7rem;color:#64748b;font-weight:850;text-transform:uppercase;letter-spacing:.07em}
+        .av-kpi{padding:15px 16px;border:1px solid #e2e8f0;border-radius:16px;background:#fff;height:100%}
+        .av-kpi-n{font-size:1.5rem;font-weight:950;color:#0f172a}
+        .av-kpi-l{font-size:.75rem;color:#64748b;font-weight:800;margin-top:2px}
 
-        .av-callout-ok{padding:13px 15px;border-radius:13px;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;margin:8px 0}
-        .av-callout-warn{padding:13px 15px;border-radius:13px;background:#fffbeb;border:1px solid #fde68a;color:#92400e;margin:8px 0}
-        .av-callout-info{padding:13px 15px;border-radius:13px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;margin:8px 0}
+        .av-callout-ok{padding:14px 16px;border-radius:14px;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;margin:9px 0}
+        .av-callout-warn{padding:14px 16px;border-radius:14px;background:#fffbeb;border:1px solid #fde68a;color:#92400e;margin:9px 0}
+        .av-callout-info{padding:14px 16px;border-radius:14px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;margin:9px 0}
 
-        div[data-testid="stMetric"]{background:#fff;border:1px solid #e2e8f0;padding:12px 14px;border-radius:14px}
-        div[data-testid="stDataFrame"]{border:1px solid #e2e8f0;border-radius:14px;overflow:hidden}
-        div[data-testid="stVerticalBlockBorderWrapper"]{border-radius:17px!important;border-color:#e2e8f0!important}
-        div[role="radiogroup"]{gap:.3rem}
-        button[kind="primary"]{border-radius:10px!important;font-weight:750!important}
-        button[kind="secondary"]{border-radius:10px!important}
-        @media (max-width:900px){.av-stage-grid{grid-template-columns:1fr 1fr}.av-hero-title{font-size:1.6rem}}
+        .av-radar{
+            border-radius:20px;padding:18px 20px;
+            background:linear-gradient(135deg,#0f172a,#172554);
+            color:white;margin:12px 0 18px;box-shadow:0 12px 30px rgba(15,23,42,.14)
+        }
+        .av-radar-kicker{font-size:.68rem;font-weight:850;letter-spacing:.09em;text-transform:uppercase;color:#93c5fd}
+        .av-radar-title{font-size:1.08rem;font-weight:900;margin:3px 0 4px}
+        .av-radar-text{font-size:.84rem;opacity:.86;line-height:1.5}
+
+        .av-summary{
+            border:1px solid #d9e4f2;border-radius:20px;padding:18px 20px;background:#fff;
+            box-shadow:0 6px 22px rgba(15,23,42,.04);margin:10px 0 18px
+        }
+        .av-summary-title{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;font-weight:900;color:#64748b;margin-bottom:7px}
+        .av-summary-text{font-size:.92rem;color:#334155;line-height:1.62}
+
+        div[data-testid="stMetric"]{
+            background:#fff;border:1px solid #e2e8f0;padding:13px 15px;border-radius:16px;
+            box-shadow:0 4px 16px rgba(15,23,42,.035)
+        }
+        div[data-testid="stDataFrame"]{border:1px solid #e2e8f0;border-radius:16px;overflow:hidden}
+        div[data-testid="stVerticalBlockBorderWrapper"]{border-radius:19px!important;border-color:#e2e8f0!important;background:#fff}
+        div[role="radiogroup"]{gap:.35rem}
+        button[kind="primary"]{border-radius:12px!important;font-weight:800!important;min-height:2.65rem}
+        button[kind="secondary"]{border-radius:12px!important;min-height:2.55rem}
+        textarea{border-radius:13px!important}
+        [data-baseweb="select"]>div{border-radius:12px!important}
+        .stTabs [data-baseweb="tab-list"]{gap:6px}
+        .stTabs [data-baseweb="tab"]{border-radius:10px;padding:8px 12px}
+
+        @media (max-width:1000px){
+            .av-impact-grid{grid-template-columns:1fr 1fr}
+            .av-stage-grid{grid-template-columns:1fr 1fr}
+            .av-hero-title{font-size:2rem}
+        }
+        @media (max-width:650px){
+            .av-impact-grid{grid-template-columns:1fr}
+            .av-next{grid-template-columns:auto 1fr}
+            .av-next-pill{display:none}
+            .av-hero{padding:25px 22px}
+            .av-hero-title{font-size:1.7rem}
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -790,8 +884,12 @@ def _hero(ctx: Contexto, usuario: str) -> None:
         f"""
         <div class="av-hero">
           <div class="av-hero-kicker">Integra · Avaliação e Aprendizagem</div>
-          <div class="av-hero-title">O caminho da aprendizagem, claro do planejamento ao conceito.</div>
-          <div class="av-hero-sub">O sistema mostra o que precisa ser desenvolvido, ajuda a localizar pré-requisitos, orienta quais evidências reunir e organiza o fechamento sem transformar a avaliação em uma média automática.</div>
+          <div class="av-hero-title">Avaliar para decidir melhor.<br>Ensinar melhor amanhã.</div>
+          <div class="av-hero-sub">
+            Esta ferramenta transforma currículo, evidências e registros em decisões pedagógicas:
+            mostra o que priorizar, onde recompor, quem precisa de intervenção e qual deve ser o próximo passo.
+            Menos relatório por obrigação. Mais informação útil para a prática.
+          </div>
           <div class="av-context">
             <span class="av-chip">🏫 {_esc(ctx.turma)}</span>
             <span class="av-chip">🎓 {ctx.ano_escolar}º ano</span>
@@ -803,15 +901,101 @@ def _hero(ctx: Contexto, usuario: str) -> None:
         unsafe_allow_html=True,
     )
 
-
 def _titulo(secao: str, subtitulo: str = "") -> None:
     st.markdown(f'<div class="av-section-title">{_esc(secao)}</div>', unsafe_allow_html=True)
     if subtitulo:
         st.markdown(f'<div class="av-section-sub">{_esc(subtitulo)}</div>', unsafe_allow_html=True)
 
 
+
 def _guia(texto: str) -> None:
-    st.markdown(f'<div class="av-guide"><b>O que fazer aqui:</b> {_esc(texto)}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div class="av-guide">
+          <div class="av-guide-title">Seu objetivo nesta etapa</div>
+          <div><b>Faça isso agora:</b> {_esc(texto)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _impacto_pratica() -> None:
+    st.markdown(
+        """
+        <div class="av-impact-grid">
+          <div class="av-impact">
+            <div class="av-impact-icon">🎯</div>
+            <div class="av-impact-title">Planejamento mais preciso</div>
+            <div class="av-impact-text">Você enxerga o essencial do trimestre e deixa de planejar apenas por sequência de atividades. O foco passa a ser a aprendizagem que precisa aparecer.</div>
+          </div>
+          <div class="av-impact">
+            <div class="av-impact-icon">🧩</div>
+            <div class="av-impact-title">Recomposição com propósito</div>
+            <div class="av-impact-text">Quando a turma trava, o sistema aponta pré-requisitos relacionados. Você retoma o que realmente bloqueia o avanço, sem “voltar séries inteiras”.</div>
+          </div>
+          <div class="av-impact">
+            <div class="av-impact-icon">🔎</div>
+            <div class="av-impact-title">Avaliação que revela</div>
+            <div class="av-impact-text">Você confere se suas atividades realmente produzem evidência do que pretende avaliar — e evita decidir conceito por uma prova isolada ou impressão geral.</div>
+          </div>
+          <div class="av-impact">
+            <div class="av-impact-icon">🚀</div>
+            <div class="av-impact-title">Próxima aula mais inteligente</div>
+            <div class="av-impact-text">Os registros viram mapa de intervenção: quem já consolidou, quem oscila, quem precisa de apoio e qual aprendizagem deve entrar no próximo planejamento.</div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _ganho_pratico(titulo: str, itens: Sequence[str], icone: str = "✨") -> None:
+    lis = "".join(f"<li>{_esc(item)}</li>" for item in itens)
+    st.markdown(
+        f"""
+        <div class="av-practice">
+          <div class="av-practice-head"><span>{_esc(icone)}</span><span>{_esc(titulo)}</span></div>
+          <ul>{lis}</ul>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _radar(texto_titulo: str, texto: str) -> None:
+    st.markdown(
+        f"""
+        <div class="av-radar">
+          <div class="av-radar-kicker">Radar pedagógico</div>
+          <div class="av-radar-title">{_esc(texto_titulo)}</div>
+          <div class="av-radar-text">{_esc(texto)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _texto_sintese_individual(
+    aluno: str,
+    componente: str,
+    conceito: str,
+    fortes: Sequence[str],
+    prioridades: Sequence[str],
+    proximo_passo: str = "",
+) -> str:
+    inicio = f"{aluno}: em {componente}, "
+    if conceito:
+        inicio += f"o fechamento do período registra conceito {conceito}. "
+    else:
+        inicio += "o fechamento do período ainda está em construção. "
+    if fortes:
+        inicio += "Entre as aprendizagens já demonstradas, destacam-se " + "; ".join(str(x) for x in fortes[:3]) + ". "
+    if prioridades:
+        inicio += "As prioridades de continuidade são " + "; ".join(str(x) for x in prioridades[:3]) + ". "
+    if proximo_passo:
+        inicio += "Próximo passo pedagógico: " + str(proximo_passo).strip()
+    return inicio.strip()
 
 
 def _barra_progresso(valor: int, cor: str = "#2563eb") -> str:
@@ -840,31 +1024,31 @@ def _etapas_html(progresso: Mapping[str, Any]) -> str:
     return '<div class="av-stage-grid">' + "".join(blocos) + "</div>"
 
 
+
 def _componente_card_html(componente: str, progresso: Mapping[str, Any], resumo: Mapping[str, Any]) -> str:
     meta = COMPONENTE_META.get(componente, {"icone": "📘", "cor": "#2563eb", "suave": "#eff6ff"})
     conceitos = resumo.get("conceitos", {})
     pendentes = conceitos.get("-", 0)
+    prioridades = resumo.get("prioridades", []) or []
+    prioridade_txt = prioridades[0] if prioridades else "Ainda sem prioridade coletiva consolidada"
     return f"""
     <div class="av-card" style="border-top:4px solid {meta['cor']};">
       <div class="av-eyebrow">{meta['icone']} {_esc(componente)}</div>
-      <div class="av-card-title">{progresso.get('total', 0)}% do fluxo concluído</div>
+      <div class="av-card-title">{progresso.get('total', 0)}% do percurso pedagógico registrado</div>
       {_barra_progresso(progresso.get('total', 0), meta['cor'])}
-      <div class="av-small">Próxima ação: <b>{_esc(progresso.get('proxima', ''))}</b></div>
-      <div class="av-small" style="margin-top:6px">Fechamentos pendentes: {pendentes}</div>
+      <div class="av-small">Agora: <b>{_esc(progresso.get('proxima', ''))}</b></div>
+      <div class="av-small" style="margin-top:7px">🎯 Prioridade que mais aparece: <b>{_esc(prioridade_txt)}</b></div>
+      <div class="av-small" style="margin-top:5px">Fechamentos ainda pendentes: {pendentes}</div>
     </div>
     """
 
 
-# -----------------------------------------------------------------------------
-# Telas: visão geral
-# -----------------------------------------------------------------------------
-
 def _painel(repo: AvaliacaoRepo, ctx_base: Contexto, componentes: List[str], alunos: List[str]) -> None:
     _titulo(
-        "Visão geral da turma",
-        "Use este painel para saber exatamente onde o trabalho está e qual é a próxima ação em cada componente.",
+        "Seu painel pedagógico",
+        "Aqui você não acompanha “formulários preenchidos”. Você acompanha decisões: o que ensinar, o que observar e onde intervir.",
     )
-    _guia("Escolha o componente que precisa de atenção e clique em “Continuar”. O Integra abrirá automaticamente a etapa ainda pendente.")
+    _impacto_pratica()
 
     if not alunos:
         st.warning("A turma foi localizada, mas ainda não há estudantes no Carômetro com esse nome de turma. Você pode consultar o currículo, mas não registrar aprendizagens.")
@@ -886,15 +1070,55 @@ def _painel(repo: AvaliacaoRepo, ctx_base: Contexto, componentes: List[str], alu
     )
     esperado = len(alunos) * len(componentes)
 
+    if componentes:
+        componente_foco = min(
+            componentes,
+            key=lambda c: (progresso_comp[c].get("total", 0), progresso_comp[c].get("etapa", 1))
+        )
+        p_foco = progresso_comp[componente_foco]
+        meta = COMPONENTE_META.get(componente_foco, {"icone": "📘"})
+        st.markdown(
+            f"""
+            <div class="av-next">
+              <div class="av-next-icon">{meta.get('icone','📘')}</div>
+              <div>
+                <div class="av-next-kicker">Comece por aqui</div>
+                <div class="av-next-title">{_esc(componente_foco)} · {_esc(p_foco.get('proxima',''))}</div>
+                <div class="av-next-text">É o ponto do fluxo com maior necessidade de continuidade neste momento. Ao avançar aqui, os registros começam a gerar informação útil para o planejamento da turma.</div>
+              </div>
+              <div class="av-next-pill">{p_foco.get('total',0)}% concluído</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button(
+            f"Abrir {componente_foco}",
+            type="primary",
+            use_container_width=True,
+            key=f"av3_focus_{_slug(ctx_base.turma)}_{_slug(componente_foco)}",
+        ):
+            st.session_state["av_v2_componente"] = componente_foco
+            st.session_state["av_v2_force_step"] = int(p_foco.get("etapa", 1))
+            st.session_state["av_v2_force_area"] = "📚 Percurso do componente"
+            st.rerun()
+
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Progresso do trimestre", f"{media}%")
+    k1.metric("Percurso registrado", f"{media}%")
     k2.metric("Componentes concluídos", f"{concluidos}/{len(componentes)}")
     k3.metric("Estudantes", len(alunos))
-    k4.metric("Conceitos fechados", f"{fechados_total}/{esperado}" if esperado else "0")
+    k4.metric("Fechamentos realizados", f"{fechados_total}/{esperado}" if esperado else "0")
 
-    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+    _ganho_pratico(
+        "Como usar este painel durante o trimestre",
+        [
+            "No início: abra o componente e confira onde a turma precisa chegar e quais pré-requisitos podem bloquear o avanço.",
+            "Durante: atualize o que está AT, ED ou RP e use o mapa de evidências para conferir se suas atividades estão realmente mostrando aprendizagem.",
+            "Antes do Conselho: observe as prioridades coletivas e os estudantes que precisam de intervenção; o sistema já organiza essa leitura para você.",
+        ],
+        "🧭",
+    )
 
-    # Cards em duas linhas, para não comprimir cinco componentes numa tela estreita.
+    _titulo("Componentes", "Cada card mostra onde você está, qual é a próxima ação e a prioridade coletiva que começa a aparecer nos registros.")
     for inicio in range(0, len(componentes), 3):
         lote = componentes[inicio:inicio + 3]
         colunas = st.columns(3)
@@ -902,19 +1126,33 @@ def _painel(repo: AvaliacaoRepo, ctx_base: Contexto, componentes: List[str], alu
             with colunas[idx]:
                 st.markdown(_componente_card_html(componente, progresso_comp[componente], resumo_comp[componente]), unsafe_allow_html=True)
                 if st.button(
-                    "Continuar",
+                    "Abrir percurso",
                     key=f"av_go_{_slug(ctx_base.turma)}_{_slug(componente)}",
                     use_container_width=True,
                     type="primary" if progresso_comp[componente].get("total", 0) < 100 else "secondary",
                 ):
                     st.session_state["av_v2_componente"] = componente
                     st.session_state["av_v2_force_step"] = int(progresso_comp[componente].get("etapa", 1))
-                    st.session_state["av_v2_force_area"] = "📚 Trabalhar componente"
+                    st.session_state["av_v2_force_area"] = "📚 Percurso do componente"
                     st.rerun()
 
-    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-    _titulo("O que merece atenção coletiva", "O sistema cruza os registros da turma e destaca aprendizagens que aparecem com maior frequência em EP ou NC.")
+    ranking = []
+    for componente in componentes:
+        for prioridade in resumo_comp[componente].get("prioridades", [])[:3]:
+            ranking.append((componente, prioridade))
+    if ranking:
+        comp0, prio0 = ranking[0]
+        _radar(
+            f"Primeira prioridade visível: {comp0}",
+            f"{prio0}. Use esta informação como hipótese de intervenção coletiva: confirme nas produções dos estudantes e planeje uma retomada focalizada, em vez de repetir todo o conteúdo.",
+        )
+    else:
+        _radar(
+            "Ainda não há um padrão coletivo consolidado",
+            "Isso é esperado no início do processo. Conforme os registros forem feitos, o Integra começará a mostrar quais aprendizagens concentram EP/NC e merecem intervenção da turma.",
+        )
 
+    _titulo("Leitura coletiva dos conceitos", "Esta visão serve para localizar padrões; ela não substitui a leitura das evidências de cada estudante.")
     linhas = []
     for componente in componentes:
         resumo = resumo_comp[componente]
@@ -930,14 +1168,18 @@ def _painel(repo: AvaliacaoRepo, ctx_base: Contexto, componentes: List[str], alu
         })
     st.dataframe(pd.DataFrame(linhas), hide_index=True, use_container_width=True)
 
-
-# -----------------------------------------------------------------------------
-# Tela do componente — Etapa 1: currículo
-# -----------------------------------------------------------------------------
-
 def _etapa_curriculo(repo: AvaliacaoRepo, ctx: Contexto, base: Mapping[str, Any]) -> None:
     _titulo("1 · Organizar o currículo do trimestre", "Primeiro, deixe explícito o que foi efetivamente desenvolvido, o que ainda está em andamento e o que precisará ser reprogramado.")
     _guia("Leia cada aprendizagem, indique AT, ED ou RP e, quando houver lacuna que bloqueie o avanço, use o mapa de pré-requisitos para escolher uma recomposição focalizada.")
+    _ganho_pratico(
+        "Por que esta etapa melhora seu planejamento",
+        [
+            "Você separa o que realmente foi desenvolvido do que apenas estava previsto no papel.",
+            "Você identifica quais lacunas anteriores estão impedindo a turma de acessar a aprendizagem atual.",
+            "Você termina esta etapa sabendo o que precisa ensinar/reensinar — e o que pode deixar de ocupar tempo porque já está avançando.",
+        ],
+        "🎯",
+    )
 
     a, b = st.columns(2)
     with a:
@@ -1044,6 +1286,25 @@ def _etapa_curriculo(repo: AvaliacaoRepo, ctx: Contexto, base: Mapping[str, Any]
             unsafe_allow_html=True,
         )
 
+    at_q = sum(1 for x in novos.values() if (x or {}).get("situacao") == "AT")
+    ed_q = sum(1 for x in novos.values() if (x or {}).get("situacao") == "ED")
+    rp_q = sum(1 for x in novos.values() if (x or {}).get("situacao") == "RP")
+    if rp_q:
+        _radar(
+            f"{rp_q} aprendizagem(ns) foi(ram) reprogramada(s)",
+            "Isso não significa fracasso da turma. Significa que o planejamento precisa prever quando essas aprendizagens voltarão e quais pré-requisitos devem ser recompostos para que elas não desapareçam do percurso.",
+        )
+    elif ed_q:
+        _radar(
+            f"{ed_q} aprendizagem(ns) ainda está(ão) em desenvolvimento",
+            "Seu foco agora é produzir boas oportunidades de aprendizagem e não antecipar um julgamento. O conceito só deve ser sustentado pelo que já teve tempo e condições de ser desenvolvido.",
+        )
+    else:
+        _radar(
+            "O currículo do período está todo marcado como trabalhado e avaliado",
+            "Agora a pergunta muda: suas atividades produziram evidências suficientes e variadas para mostrar o que cada estudante realmente aprendeu?",
+        )
+
     if st.button("Salvar etapa 1 e seguir para as evidências →", type="primary", use_container_width=True, key=f"av2_save_cov_{_slug(ctx.turma)}_{_slug(ctx.componente)}"):
         repo.salvar("cobertura", ctx, {"dimensoes": novos, "percurso_turma": percurso or percurso_sugerido})
         st.session_state["av_v2_force_step"] = 2
@@ -1058,6 +1319,15 @@ def _etapa_curriculo(repo: AvaliacaoRepo, ctx: Contexto, base: Mapping[str, Any]
 def _etapa_evidencias(repo: AvaliacaoRepo, ctx: Contexto, base: Mapping[str, Any]) -> None:
     _titulo("2 · Planejar as evidências", "Agora transforme o currículo trabalhado em evidências observáveis. Não é obrigatório concentrar tudo numa prova única.")
     _guia("Para cada situação recomendada, marque se ela está contemplada e registre onde o professor obterá essa evidência: prova, produção, oralidade, atividade prática, observação intencional, projeto etc.")
+    _ganho_pratico(
+        "Por que esta etapa melhora sua avaliação",
+        [
+            "Você verifica se o instrumento mede o que pretende medir — e não apenas aquilo que é mais fácil colocar numa prova.",
+            "Você combina diferentes tipos de evidência e reduz o peso de uma única atividade no conceito.",
+            "Você enxerga se existem oportunidades de aplicação, análise e justificativa suficientes para distinguir domínio esperado de aprendizagem ampliada.",
+        ],
+        "🔎",
+    )
 
     cobertura = repo.obter("cobertura", ctx).get("dimensoes", {}) or _default_cobertura(base)
     salvo = repo.obter("blueprint", ctx)
@@ -1152,6 +1422,17 @@ def _etapa_evidencias(repo: AvaliacaoRepo, ctx: Contexto, base: Mapping[str, Any
     else:
         st.markdown('<div class="av-callout-ok">Mapa de evidências completo e com oportunidades de maior complexidade.</div>', unsafe_allow_html=True)
 
+    tipos_usados = set()
+    for x in novos.values():
+        inst = str((x or {}).get("instrumento", "") or "").strip()
+        if inst:
+            tipos_usados.add(inst.split(" · ")[0].strip())
+    if cobertas:
+        _radar(
+            f"{len(tipos_usados)} tipo(s) de evidência no mapa",
+            "Quanto mais a natureza da aprendizagem exigir, combine instrumentos diferentes. Diversidade não é quantidade por si só: é escolher a evidência mais adequada para aquilo que o estudante precisa demonstrar.",
+        )
+
     if st.button("Salvar etapa 2 e registrar os estudantes →", type="primary", use_container_width=True, key=f"av2_save_bp_{_slug(ctx.turma)}_{_slug(ctx.componente)}"):
         repo.salvar("blueprint", ctx, {"itens": novos})
         st.session_state["av_v2_force_step"] = 3
@@ -1188,6 +1469,15 @@ def _salvar_status_aluno(
 def _etapa_registros(repo: AvaliacaoRepo, ctx: Contexto, base: Mapping[str, Any], alunos: List[str]) -> None:
     _titulo("3 · Registrar as aprendizagens", "Registre o que cada estudante demonstrou nas aprendizagens que realmente foram trabalhadas e avaliadas.")
     _guia("Use NE quando ainda faltam evidências; NC apenas quando a aprendizagem foi ensinada/retomada e ainda não foi consolidada. ED e RP não entram no julgamento do estudante nesta etapa.")
+    _ganho_pratico(
+        "Aqui o registro começa a virar intervenção",
+        [
+            "NC e EP deixam de ser apenas códigos: mostram exatamente qual aprendizagem precisa voltar ao planejamento.",
+            "C mostra onde o estudante já trabalha com autonomia e onde você pode elevar a complexidade.",
+            "AA indica que vale oferecer desafios de transferência, análise ou elaboração — em vez de repetir exercícios do mesmo nível.",
+        ],
+        "🧠",
+    )
 
     if not alunos:
         st.warning("Nenhum estudante foi localizado no Carômetro para esta turma.")
@@ -1264,6 +1554,20 @@ def _etapa_registros(repo: AvaliacaoRepo, ctx: Contexto, base: Mapping[str, Any]
         else:
             st.info(motor.get("motivo", "Ainda faltam evidências para uma leitura preliminar."))
 
+        dados_preview = dict(dados)
+        dados_preview["status"] = novos_status
+        fortes_preview, prioridades_preview = construir_perfil_aluno(base, dados_preview)
+        if prioridades_preview:
+            _radar(
+                "O que este registro sugere para a próxima intervenção",
+                "Priorize " + "; ".join(prioridades_preview[:3]) + ". Antes de propor mais do mesmo, verifique se a dificuldade está no conteúdo atual ou em um pré-requisito relacionado.",
+            )
+        elif fortes_preview:
+            _radar(
+                "O estudante já apresenta base para avançar",
+                "As aprendizagens registradas aparecem predominantemente consolidadas. Planeje situações de maior autonomia, aplicação e transferência para continuar produzindo evidência de avanço.",
+            )
+
         if st.button("Salvar registros deste estudante", type="primary", use_container_width=True, key=f"av2_save_student_{_slug(ctx.turma)}_{_slug(ctx.componente)}"):
             _salvar_status_aluno(repo, ctx, base, cobertura, blueprint, aluno, novos_status)
             st.success(f"Registros de {aluno} salvos.")
@@ -1331,6 +1635,15 @@ def _etapa_registros(repo: AvaliacaoRepo, ctx: Contexto, base: Mapping[str, Any]
 def _etapa_fechamento(repo: AvaliacaoRepo, ctx: Contexto, base: Mapping[str, Any], alunos: List[str]) -> None:
     _titulo("4 · Fechar os conceitos", "O Integra organiza as evidências e apresenta uma sugestão explicada. A decisão final continua sendo do professor.")
     _guia("Revise um estudante por vez, leia o motivo da sugestão, confirme ou altere o conceito e registre o próximo passo pedagógico. Se divergir do sistema, justifique com base nas evidências.")
+    _ganho_pratico(
+        "O fechamento só vale a pena se melhorar o próximo planejamento",
+        [
+            "O conceito sintetiza o período, mas o campo mais útil para a prática é o próximo passo pedagógico.",
+            "A justificativa faz o professor voltar às evidências quando sua leitura profissional diverge da sugestão do sistema.",
+            "Ao final, você tem um retrato do que o estudante demonstra e uma decisão concreta sobre o que fazer a seguir.",
+        ],
+        "🚀",
+    )
 
     if not alunos:
         st.warning("Sem estudantes para o fechamento.")
@@ -1436,6 +1749,19 @@ def _etapa_fechamento(repo: AvaliacaoRepo, ctx: Contexto, base: Mapping[str, Any
     pode_salvar = bool(final) and not (diverge and not justificativa.strip())
     if diverge and not justificativa.strip():
         st.warning("Como o conceito final diverge da sugestão, registre a justificativa pedagógica antes de salvar.")
+
+    sintese_preview = _texto_sintese_individual(
+        aluno,
+        ctx.componente,
+        final or sugestao,
+        fortes,
+        prioridades,
+        proximo,
+    )
+    st.markdown(
+        f'<div class="av-summary"><div class="av-summary-title">Leitura pedagógica pronta para você usar</div><div class="av-summary-text">{_esc(sintese_preview)}</div></div>',
+        unsafe_allow_html=True,
+    )
 
     if st.button("Confirmar fechamento deste estudante", type="primary", use_container_width=True, disabled=not pode_salvar, key=f"av2_save_close_{_slug(ctx.turma)}_{_slug(ctx.componente)}"):
         novo = dict(dados)
@@ -1546,8 +1872,17 @@ def _trabalhar_componente(repo: AvaliacaoRepo, ctx_base: Contexto, componentes: 
 # -----------------------------------------------------------------------------
 
 def _perfil_estudante(repo: AvaliacaoRepo, ctx_base: Contexto, componentes: List[str], alunos: List[str]) -> None:
-    _titulo("Perfil integrado do estudante", "Uma leitura pedagógica única dos cinco componentes: o que já demonstra, o que precisa consolidar e qual é o próximo passo.")
-    _guia("Selecione o estudante. O Integra organiza os registros já realizados; você não precisa gerar um PDF para compreender o percurso.")
+    _titulo("Perfil integrado do estudante", "Uma leitura pedagógica única dos cinco componentes: onde o estudante está, o que já sustenta novos desafios e onde a intervenção precisa ser mais intencional.")
+    _guia("Selecione o estudante. Use esta tela para planejar intervenção, conversar com a equipe e preparar devolutivas — não para produzir mais um relatório.")
+    _ganho_pratico(
+        "O que esta visão te entrega",
+        [
+            "Forças do estudante que podem ser usadas como ponto de apoio.",
+            "Prioridades específicas, evitando intervenções genéricas como “precisa melhorar”.",
+            "Próximos passos já registrados em cada componente, reunidos num único lugar.",
+        ],
+        "👤",
+    )
 
     if not alunos:
         st.warning("Sem estudantes para exibir.")
@@ -1612,9 +1947,22 @@ def _perfil_estudante(repo: AvaliacaoRepo, ctx_base: Contexto, componentes: List
 # Conselho de Ciclo
 # -----------------------------------------------------------------------------
 
+
 def _conselho(repo: AvaliacaoRepo, ctx_base: Contexto, componentes: List[str], alunos: List[str]) -> None:
-    _titulo("Conselho de Ciclo", "A síntese reúne os cinco componentes para apoiar a discussão pedagógica e os encaminhamentos do Conselho.")
-    _guia("Use a visão geral para localizar estudantes que precisam de atenção e as prioridades coletivas. Depois, se desejar, envie a síntese para a tela já existente de Nova Ata de Conselho.")
+    _titulo(
+        "Síntese para o Conselho de Ciclo",
+        "A ferramenta transforma os registros do trimestre em uma leitura coletiva da turma. O objetivo é apoiar a conversa pedagógica — não preencher a ata automaticamente.",
+    )
+    _guia("Analise os padrões, confira os estudantes que precisam de maior atenção e, ao final, use o texto sugerido. Se ele for útil para a ata, edite, copie e cole onde desejar.")
+    _ganho_pratico(
+        "O que o Conselho ganha com esta tela",
+        [
+            "A discussão parte de aprendizagens concretas, não apenas de uma lista de conceitos.",
+            "As prioridades coletivas aparecem antes dos encaminhamentos, ajudando a equipe a decidir o que precisa entrar no próximo planejamento.",
+            "O texto para registro é apenas uma síntese editável: o professor e o Conselho continuam responsáveis pela leitura final.",
+        ],
+        "🏛️",
+    )
 
     if not alunos:
         st.warning("Sem estudantes para consolidar.")
@@ -1647,72 +1995,129 @@ def _conselho(repo: AvaliacaoRepo, ctx_base: Contexto, componentes: List[str], a
     com_b = df[df[col_conceitos].eq("B").any(axis=1)] if col_conceitos else df.iloc[0:0]
     completos = df[df[col_conceitos].isin(CONCEITOS).all(axis=1)] if col_conceitos else df.iloc[0:0]
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Com ao menos um AB", len(com_ab))
-    c2.metric("Com ao menos um B", len(com_b))
-    c3.metric("Fechamento completo", f"{len(completos)}/{len(alunos)}")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Estudantes", len(alunos))
+    c2.metric("Ao menos um AB", len(com_ab))
+    c3.metric("Ao menos um B", len(com_b))
+    c4.metric("Fechamento completo", f"{len(completos)}/{len(alunos)}")
 
-    filtro = st.radio("Exibir", ["Todos", "Com AB", "Com B", "Fechamento incompleto"], horizontal=True, key=f"av2_cons_filtro_{_slug(ctx_base.turma)}")
-    exibicao = df
-    if filtro == "Com AB":
-        exibicao = com_ab
-    elif filtro == "Com B":
-        exibicao = com_b
-    elif filtro == "Fechamento incompleto":
-        exibicao = df[~df[col_conceitos].isin(CONCEITOS).all(axis=1)] if col_conceitos else df
-    st.dataframe(exibicao, hide_index=True, use_container_width=True)
-
-    _titulo("Prioridades coletivas", "Aprendizagens com maior incidência de EP/NC entre os registros do trimestre.")
-    prioridades_linhas = []
+    prioridades_contagem: List[Dict[str, Any]] = []
+    prioridades_texto: List[str] = []
     for componente in componentes:
         ctx = Contexto(ctx_base.ano_letivo, ctx_base.ano_escolar, ctx_base.trimestre, ctx_base.turma, componente)
         base = _base_curricular(ctx.ano_escolar, ctx.trimestre, componente)
-        resumo = _resumo_componente(repo, ctx, base, alunos)
-        for ordem, prioridade in enumerate(resumo.get("prioridades", [])[:3], 1):
-            prioridades_linhas.append({"Componente": componente, "Prioridade": prioridade, "Ordem": ordem})
-    if prioridades_linhas:
-        st.dataframe(pd.DataFrame(prioridades_linhas), hide_index=True, use_container_width=True)
-    else:
-        st.info("Ainda não há prioridades coletivas suficientes para sintetizar.")
-
-    if st.button("Enviar síntese para Nova Ata de Conselho", type="primary", use_container_width=True, key=f"av2_to_ata_{_slug(ctx_base.turma)}"):
-        rows_ab = []
-        for _, row in com_ab.iterrows():
-            rows_ab.append({
-                "Estudante": row.get("Estudante", ""),
-                "LP": row.get("LP", ""),
-                "M": row.get("MAT", ""),
-                "H": row.get("HIS", ""),
-                "G": row.get("GEO", ""),
-                "C": row.get("CIE", ""),
-                "A": "", "EF": "", "LT": "", "LIBRAS": "",
+        registros = registros_comp.get(componente, {})
+        cont: Dict[str, int] = {}
+        for aluno in alunos:
+            status = (registros.get(aluno, {}) or {}).get("status", {}) or {}
+            for dim in base.get("dimensoes", []):
+                if status.get(dim["codigo"]) in {"NC", "EP"}:
+                    nome = dim.get("nome", dim["codigo"])
+                    cont[nome] = cont.get(nome, 0) + 1
+        for nome, qtd in sorted(cont.items(), key=lambda x: (-x[1], x[0]))[:3]:
+            prioridades_contagem.append({
+                "Componente": componente,
+                "Aprendizagem prioritária": nome,
+                "Estudantes em NC/EP": qtd,
             })
-        rows_b = []
-        for _, row in com_b.iterrows():
-            acoes = []
-            if row.get("LP") == "B":
-                acoes.append("LP")
-            if row.get("MAT") == "B":
-                acoes.append("Matemática")
-            if acoes:
-                rows_b.append({
-                    "Estudante": row.get("Estudante", ""),
-                    "Ações (LP e Mat)": "Intervenção/recomposição em " + " e ".join(acoes),
-                })
+            prioridades_texto.append(f"{componente}: {nome} ({qtd} estudante(s) em NC/EP)")
 
-        atual = st.session_state.get("data_ata_ef", {}) or {}
-        atual["abaixo_basico"] = rows_ab or [{"Estudante": "", "LP": "", "M": "", "H": "", "G": "", "C": "", "A": "", "EF": "", "LT": "", "LIBRAS": ""}]
-        atual["basico"] = rows_b or [{"Estudante": "", "Ações (LP e Mat)": ""}]
-        atual["turma"] = ctx_base.turma
-        atual["trimestre"] = f"{ctx_base.trimestre}º Trimestre"
-        st.session_state.data_ata_ef = atual
-        st.session_state.ata_turma_confirmada = ctx_base.turma
-        st.success("Síntese preparada. Abra “📝 Nova Ata de Conselho” no Ensino Regular para revisar e concluir a ata.")
+    if prioridades_texto:
+        _radar(
+            "O Conselho já tem um ponto de partida objetivo",
+            prioridades_texto[0] + ". Comece a discussão por esse padrão: ele pode indicar necessidade de retomada coletiva, mudança de estratégia ou investigação de pré-requisitos.",
+        )
+    else:
+        _radar(
+            "Ainda não há concentração clara de NC/EP",
+            "Use a leitura dos perfis individuais para verificar situações pontuais e preservar oportunidades de ampliação para os estudantes que já consolidaram o período.",
+        )
 
+    tab1, tab2, tab3 = st.tabs(["🎯 Prioridades da turma", "👥 Estudantes", "📝 Texto para registro"])
 
-# -----------------------------------------------------------------------------
-# Instalação / validação
-# -----------------------------------------------------------------------------
+    with tab1:
+        _titulo("Prioridades coletivas", "Aprendizagens que concentram mais registros EP/NC. Use-as para decidir intervenções da turma.")
+        if prioridades_contagem:
+            st.dataframe(pd.DataFrame(prioridades_contagem), hide_index=True, use_container_width=True)
+        else:
+            st.info("Ainda não há prioridades coletivas suficientes para sintetizar.")
+
+    with tab2:
+        filtro = st.radio(
+            "Exibir",
+            ["Todos", "Com AB", "Com B", "Fechamento incompleto"],
+            horizontal=True,
+            key=f"av3_cons_filtro_{_slug(ctx_base.turma)}",
+        )
+        exibicao = df
+        if filtro == "Com AB":
+            exibicao = com_ab
+        elif filtro == "Com B":
+            exibicao = com_b
+        elif filtro == "Fechamento incompleto":
+            exibicao = df[~df[col_conceitos].isin(CONCEITOS).all(axis=1)] if col_conceitos else df
+        st.dataframe(exibicao, hide_index=True, use_container_width=True)
+
+    with tab3:
+        linhas_texto = [
+            f"Síntese pedagógica — {ctx_base.turma} — {ctx_base.trimestre}º trimestre/{ctx_base.ano_letivo}.",
+            "",
+            f"A análise dos registros de aprendizagem contempla {len(alunos)} estudantes do {ctx_base.ano_escolar}º ano.",
+        ]
+        if len(completos) < len(alunos):
+            linhas_texto.append(
+                f"No momento desta síntese, {len(completos)} de {len(alunos)} estudantes possuem fechamento completo nos componentes disponíveis; os demais registros ainda devem ser considerados em processo de consolidação."
+            )
+        if len(com_ab):
+            nomes_ab = ", ".join(com_ab["Estudante"].astype(str).tolist()[:10])
+            complemento = " e outros" if len(com_ab) > 10 else ""
+            linhas_texto.append(
+                f"{len(com_ab)} estudante(s) apresenta(m) ao menos um conceito AB no conjunto dos componentes: {nomes_ab}{complemento}. Esses casos requerem análise das evidências e definição de intervenção sistemática."
+            )
+        if len(com_b):
+            linhas_texto.append(
+                f"{len(com_b)} estudante(s) apresenta(m) ao menos um conceito B em algum componente, indicando aprendizagens ainda parciais ou instáveis que demandam continuidade de mediação e recomposição."
+            )
+        if prioridades_texto:
+            linhas_texto.append("")
+            linhas_texto.append("Prioridades coletivas identificadas nos registros:")
+            for item in prioridades_texto[:8]:
+                linhas_texto.append(f"- {item}.")
+            linhas_texto.append(
+                "Como encaminhamento, recomenda-se que essas prioridades sejam retomadas no planejamento subsequente com estratégias focalizadas, produção de novas evidências e reavaliação do avanço dos estudantes."
+            )
+        else:
+            linhas_texto.append(
+                "Não foi identificada, até o momento, concentração suficiente de registros NC/EP para caracterizar uma prioridade coletiva única; recomenda-se manter o acompanhamento dos casos individuais e ampliar desafios para aprendizagens já consolidadas."
+            )
+
+        linhas_texto.append("")
+        linhas_texto.append(
+            "Esta síntese é um texto-base produzido a partir dos registros do módulo e deve ser revisado pela equipe antes de qualquer utilização oficial."
+        )
+        texto_sugerido = "\n".join(linhas_texto)
+
+        key_texto = f"av3_texto_conselho_{_slug(ctx_base.turma)}_{ctx_base.ano_letivo}_{ctx_base.trimestre}"
+        if key_texto not in st.session_state:
+            st.session_state[key_texto] = texto_sugerido
+
+        st.markdown(
+            '<div class="av-callout-info"><b>Sem envio automático:</b> o Integra não encaminha nada para a Ata. Edite o texto abaixo e copie somente se ele fizer sentido para o registro do Conselho.</div>',
+            unsafe_allow_html=True,
+        )
+        st.text_area(
+            "Texto sugerido para registro",
+            key=key_texto,
+            height=360,
+            help="O texto é editável. Revise, selecione e copie se quiser utilizá-lo na ata ou em outro registro.",
+        )
+        c_reset, c_tip = st.columns([1, 2.5])
+        with c_reset:
+            if st.button("Restaurar texto sugerido", use_container_width=True, key=f"av3_reset_text_{_slug(ctx_base.turma)}"):
+                st.session_state[key_texto] = texto_sugerido
+                st.rerun()
+        with c_tip:
+            st.caption("Dica: revise o texto com a equipe. Para copiar, clique no campo, use Ctrl+A e Ctrl+C.")
 
 def _validar_base_externa() -> Tuple[bool, str]:
     esperados = ["Língua Portuguesa", "Matemática", "Ciências", "História", "Geografia"]
@@ -1786,6 +2191,17 @@ def renderizar_avaliacao(supabase: Any, sql_instalacao: Optional[str] = None) ->
 
     _hero(ctx_base, usuario_nome)
 
+    st.markdown(
+        '''
+        <div class="av-impact-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:-5px">
+          <div class="av-impact" style="min-height:112px"><div class="av-eyebrow">ANTES DA AULA</div><div class="av-impact-title">Planeje pelo que o aluno precisa aprender</div><div class="av-impact-text">Use currículo e pré-requisitos para escolher o foco e antecipar possíveis barreiras.</div></div>
+          <div class="av-impact" style="min-height:112px"><div class="av-eyebrow">DURANTE O TRIMESTRE</div><div class="av-impact-title">Observe evidências, não impressões</div><div class="av-impact-text">Registre o que o estudante demonstra e transforme dificuldades em decisões de intervenção.</div></div>
+          <div class="av-impact" style="min-height:112px"><div class="av-eyebrow">NO FECHAMENTO</div><div class="av-impact-title">Conceitue e já planeje o próximo passo</div><div class="av-impact-text">A síntese final deve alimentar o ensino seguinte, e não encerrar a aprendizagem.</div></div>
+        </div>
+        ''',
+        unsafe_allow_html=True,
+    )
+
     repo = AvaliacaoRepo(supabase, usuario_nome)
     ok, erro = repo.disponivel()
     if not ok:
@@ -1793,8 +2209,14 @@ def renderizar_avaliacao(supabase: Any, sql_instalacao: Optional[str] = None) ->
         return
 
     # Navegação principal: poucas escolhas e nomes orientados à tarefa.
-    areas = ["🏠 Visão geral", "📚 Trabalhar componente", "👤 Perfil do estudante", "🏛️ Conselho de Ciclo"]
+    areas = ["🏠 Meu painel", "📚 Percurso do componente", "👤 Perfil do estudante", "🏛️ Síntese do Conselho"]
     force_area = st.session_state.pop("av_v2_force_area", None)
+    aliases_area = {
+        "🏠 Visão geral": "🏠 Meu painel",
+        "📚 Trabalhar componente": "📚 Percurso do componente",
+        "🏛️ Conselho de Ciclo": "🏛️ Síntese do Conselho",
+    }
+    force_area = aliases_area.get(force_area, force_area)
     if force_area in areas:
         st.session_state["av_v2_area_radio"] = force_area
     if "av_v2_area_radio" not in st.session_state:
@@ -1807,9 +2229,9 @@ def renderizar_avaliacao(supabase: Any, sql_instalacao: Optional[str] = None) ->
         label_visibility="collapsed",
     )
 
-    if area == "🏠 Visão geral":
+    if area == "🏠 Meu painel":
         _painel(repo, ctx_base, componentes, alunos)
-    elif area == "📚 Trabalhar componente":
+    elif area == "📚 Percurso do componente":
         _trabalhar_componente(repo, ctx_base, componentes, alunos)
     elif area == "👤 Perfil do estudante":
         _perfil_estudante(repo, ctx_base, componentes, alunos)

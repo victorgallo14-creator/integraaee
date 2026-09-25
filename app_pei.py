@@ -8193,10 +8193,10 @@ elif modulo_atuacao == "🏫 Ensino Regular":
                 safe_update("Config_Ata", df_config)
                 st.success("✅ Matriz da gestão salva com sucesso!")
 
-   elif app_mode_regular == "📊 Avaliação e Aprendizagem":
-    from avaliacao import renderizar_avaliacao
-    renderizar_avaliacao(supabase) 
 
+    elif app_mode_regular == "📊 Avaliação e Aprendizagem":
+        from avaliacao import renderizar_avaliacao
+        renderizar_avaliacao(supabase)
 # ==============================================================================
 # MÓDULO 4: AGENDAMENTO SALA DE INFORMÁTICA (MIGRADO PARA SUPABASE)
 # ==============================================================================

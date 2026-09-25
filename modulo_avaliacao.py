@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*- 
 """
 Integra | Avaliação e Aprendizagem
 Versão 2 — fluxo pedagógico guiado, interface centrada no professor.
